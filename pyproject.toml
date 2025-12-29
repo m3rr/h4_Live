@@ -1,0 +1,19 @@
+[project]
+name = "comfyui-h4-live"
+description = "Nuclear Logic & Persistent State for ComfyUI. The 'Railway Switch' for your workflows."
+version = "1.0.0"
+license = { text = "GPL-3.0" }
+dependencies = []
+readme = "README.md"
+authors = [
+    { name = "(h4)", email = "h4_devs@gmail.com" }
+]
+
+[project.urls]
+Repository = "https://github.com/m3rr/h4_Live"
+Homepage = "https://github.com/m3rr/h4_Live"
+
+[tool.comfy]
+PublisherId = "h4"
+DisplayName = "h4 Live"
+Icon = "https://github.com/m3rr/h4_Live/raw/main/icon.png"
