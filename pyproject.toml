@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-h4-live"
 description = "Nuclear Logic & Persistent State for ComfyUI. The 'Railway Switch' for your workflows."
-version = "1.0.3"
+version = "2.0.0"
 license = { text = "GPL-3.0" }
 dependencies = []
 readme = "README.md"
