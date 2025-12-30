@@ -14,82 +14,97 @@ def _log(node_name: str, message: str):
     ts = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
     print(f"[h4_Live][{node_name}][{ts}] {message}")
 
-class H4_DebugSender:
+class H4_TrafficRouter:
     """
-    {h4-DEBUG} Sender (The Portal Gun) 🟠
-    Teleports data to the global storage.
-    Acts as a passthrough for convenience.
+    🚦 H4 Traffic Router (The Nexus)
+    Combines the Splitter and Merger into one powerful node.
+    NOW WITH SMART DENOISE CONTROL.
     """
     def __init__(self):
         pass
-    
+
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
-                "any_input": (ANY_TYPE,),
-                "trigger_key": ("STRING", {"default": "my_signal", "multiline": False}),
+                "first_run_in": (ANY_TYPE, {"tooltip": "Items for the FIRST run (Run 0)."}),
+                "loop_run_in": (ANY_TYPE, {"tooltip": "Items for the LOOP runs (Run 1+)."}),
+                "first_denoise": ("FLOAT", {
+                    "default": 1.00, "min": 0.00, "max": 1.00, "step": 0.01,
+                    "label": "First Run Denoise",
+                    "tooltip": "Denoise value to send during the start (Run 0)."
+                }),
+                "loop_denoise": ("FLOAT", {
+                    "default": 0.45, "min": 0.00, "max": 1.00, "step": 0.01,
+                    "label": "Loop Run Denoise",
+                    "tooltip": "Denoise value to send during the loop (Run 1+)."
+                }),
+                "restart": ("BOOLEAN", {
+                    "default": False, 
+                    "label": "Restart Count?", 
+                    "tooltip": "True = Reset to 0. False = Continue Looping."
+                }),
             }
         }
 
-    RETURN_TYPES = (ANY_TYPE,)
-    RETURN_NAMES = ("any_input",)
-    FUNCTION = "send_debug"
-    CATEGORY = "h4_Live/Debug"
-
-    def send_debug(self, any_input, trigger_key):
-        input_type = type(any_input).__name__
-        _log("DebugSender", f"🟠 Sending '{trigger_key}' to Orbit. Type: {input_type}")
-        
-        # Log Shape/Details if possible
-        if hasattr(any_input, "shape"):
-             _log("DebugSender", f"   Info: Shape {any_input.shape}")
-             
-        orbit_set(trigger_key, any_input)
-        return (any_input,)
-
-class H4_DebugReceiver:
-    """
-    {h4-DEBUG} Receiver (The Portal Exit) 🔵
-    Retrieves data from global storage.
-    Breaks loops because it has no wired input.
-    """
-    def __init__(self):
-        pass
+    # Outputs: Context (Data), Denoise (Float)
+    RETURN_TYPES = (ANY_TYPE, "FLOAT")
+    RETURN_NAMES = ("Context_Out", "Denoise_Val")
     
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "listen_key": ("STRING", {"default": "my_signal", "multiline": False}),
-            }
-        }
-
-    RETURN_TYPES = (ANY_TYPE,)
-    RETURN_NAMES = ("teleported_data",)
-    FUNCTION = "receive_debug"
-    CATEGORY = "h4_Live/Debug"
+    DESCRIPTION = """
+    🚦 **H4 Traffic Router (Smart Nexus)**
     
-    # Needs to update every run to fetch new data
+    Merges "Start" and "Loop" flows into one stream.
+    Automatically switches Denoise values based on the run count.
+    
+    **Usage:**
+    1. Connect `Context_Out` to your KSampler's `input`.
+    2. Connect `Denoise_Val` to your KSampler's `denoise`.
+    """
+    
+    FUNCTION = "process_router"
+    CATEGORY = "h4_Live/Logic"
+
     @classmethod
     def IS_CHANGED(cls, **kwargs):
         return float("nan")
 
-    def receive_debug(self, listen_key):
-        val = orbit_get(listen_key)
+    def process_router(self, first_run_in, loop_run_in, first_denoise, loop_denoise, restart):
+        node_id = "TrafficRouter"
         
-        if val is None:
-            _log("DebugReceiver", f"🔵 Listening for '{listen_key}'... NOTHING FOUND.")
-            # Return None to avoid crashing execution if possible, or maybe a safetensor?
-            return (None,)
+        # 1. Handle Reset
+        if restart:
+            _log(node_id, "⚠️ RESTART SIGNAL RECEIVED")
+            current_count = reset_state()
+        else:
+            state = get_state()
+            current_count = state["loop_count"]
             
-        input_type = type(val).__name__
-        _log("DebugReceiver", f"🔵 Received '{listen_key}' from Orbit. Type: {input_type}")
-        return (val,)
+        _log(node_id, f"Processing Nexus | ID: {current_count}")
+        
+        if not restart:
+            increment_loop()
+
+        # 3. Routing Logic & Denoise Selection
+        if current_count == 0:
+            _log(node_id, f"👉 Route: START MODE (Run 0) | Denoise: {first_denoise}")
+            if first_run_in is None:
+                raise ValueError(f"[{node_id}] CRITICAL: 'first_run_in' is missing! I cannot start without it.")
+            
+            # Smart Output: First Run Data + First Run Denoise
+            return (first_run_in, first_denoise)
+        else:
+            _log(node_id, f"👉 Route: LOOP MODE (Run {current_count}) | Denoise: {loop_denoise}")
+            if loop_run_in is None:
+                 raise ValueError(f"[{node_id}] CRITICAL: 'loop_run_in' is connected but empty! Run {current_count} needs data.")
+
+            # Smart Output: Loop Run Data + Loop Run Denoise
+            return (loop_run_in, loop_denoise)
 
 class H4_TrafficCop:
     """
-    The Main Logic Gate (Friendly Version).
+    The Main Logic Gate (Legacy Splitter).
+    Now with SAFE PASSTHROUGH to prevents Red Node Crashes.
     """
     
     def __init__(self):
@@ -117,25 +132,15 @@ class H4_TrafficCop:
     # Detailed User-Friendly Description
     DESCRIPTION = """
     👋 Hi! I am your Workflow Splitter.
+    *(Legacy Node: Consider using H4 Traffic Router for more options)*
     
     I help you run things differently 
     the first time vs the next times.
     
-    **How I work:**
-    1. **First Run (Setup)**:
-       When you hit Queue, I send your input 
-       to the TOP output ("Run_Once"). 
-       The bottom output stays dead.
-       
-    2. **Next Runs (Looping)**:
-       If you are auto-queuing, every run 
-       after the first one goes to the 
-       BOTTOM output ("Loop"). 
-       The top output stays dead.
-    
-    **Use me to:**
-    - Load a model once, reuse many times.
-    - Generate a seed, then refine forever.
+    **SAFE MODE ACTIVE:**
+    I will never output 'Nothing'. 
+    If a path is inactive, I send the data anyway 
+    to prevent your workflow from crashing.
     """
     
     FUNCTION = "process_logic"
@@ -172,22 +177,26 @@ class H4_TrafficCop:
         # 3. Increment for the *next* pass
         if not restart_on_true:
             increment_loop()
+        
+        # Validation
+        if any_input is None:
+             raise ValueError(f"[{node_id}] ERROR: Input is missing! I cannot split 'Nothing'.")
 
-        # 4. Route Traffic
+        # 4. Route Traffic (Safe Mode)
         if current_count == 0:
             _log(node_id, "👉 Routing to: RUN ONCE (Start)")
-            # First Run: Send Signal to Setup (Top), Send None to Loop (Bottom)
-            return (any_input, None)
+            # Run 0: Active on Top, Fallback on Bottom
+            return (any_input, any_input)
         else:
             _log(node_id, "👉 Routing to: LOOP (Continue)")
-            # Subsequent Runs: Send None to Setup (Top), Send Signal to Loop (Bottom)
-            return (None, any_input)
+            # Run 1+: Fallback on Top, Active on Bottom
+            return (any_input, any_input)
 
 class H4_TrafficMerge:
     """
-    The Merge Node (Friendly Version).
+    The Merge Node (Zipper).
     Safely selects between two inputs based on the run count.
-    Prevents 'None' crashes by merging the flow into one active path.
+    Also controls Denoise.
     """
     
     def __init__(self):
@@ -203,6 +212,16 @@ class H4_TrafficMerge:
                 "loop_input": (ANY_TYPE, {
                     "tooltip": "The item to use for every time after the first."
                 }),
+                "first_denoise": ("FLOAT", {
+                    "default": 1.00, "min": 0.00, "max": 1.00, "step": 0.01,
+                    "label": "First Run Denoise",
+                    "tooltip": "Denoise value to send during the start (Run 0)."
+                }),
+                "loop_denoise": ("FLOAT", {
+                    "default": 0.45, "min": 0.00, "max": 1.00, "step": 0.01,
+                    "label": "Loop Run Denoise",
+                    "tooltip": "Denoise value to send during the loop (Run 1+)."
+                }),
                 "restart_on_true": ("BOOLEAN", {
                     "default": False, 
                     "label": "Restart Count? (True=Reset)",
@@ -211,26 +230,18 @@ class H4_TrafficMerge:
             },
         }
 
-    RETURN_TYPES = (ANY_TYPE,)
-    RETURN_NAMES = ("Selected_Output",)
+    RETURN_TYPES = (ANY_TYPE, "FLOAT")
+    RETURN_NAMES = ("Selected_Output", "Denoise_Val")
     
     DESCRIPTION = """
-    🤐 I am the Traffic Zipper.
+    🤐 **H4 Traffic Merge (Smart)**
     
-    I solve the "Red Node Crash".
-    Instead of splitting logic, I merge it.
+    Merges two inputs into one stream.
+    Selects Denoise value automatically.
     
     **How I work:**
-    - **Run 0**: I grab `run_once_input`.
-    - **Run 1+**: I grab `loop_input`.
-    
-    **Why use me?**
-    Connect **Empty Latent** to Top.
-    Connect **Feedback Latent** to Bottom.
-    Feed my Output to **ONE** KSampler.
-    
-    Now you loop safely without 
-    complex switching logic!
+    - **Run 0**: I grab `run_once_input` & `first_denoise`.
+    - **Run 1+**: I grab `loop_input` & `loop_denoise`.
     """
     
     FUNCTION = "process_merge"
@@ -245,7 +256,7 @@ class H4_TrafficMerge:
     def VALIDATE_INPUTS(cls, **kwargs):
         return True
 
-    def process_merge(self, run_once_input, loop_input, restart_on_true):
+    def process_merge(self, run_once_input, loop_input, first_denoise, loop_denoise, restart_on_true):
         node_id = "TrafficZipper"
         
         # 1. Handle Reset
@@ -264,12 +275,19 @@ class H4_TrafficMerge:
         # 3. Select w/ Logging
         if current_count == 0:
             item_type = type(run_once_input).__name__
-            _log(node_id, f"👉 Selecting: SETUP Input ({item_type})")
-            return (run_once_input,)
+            _log(node_id, f"👉 Selecting: SETUP Input ({item_type}) | Denoise: {first_denoise}")
+            if run_once_input is None:
+                 raise ValueError(f"[{node_id}] CRITICAL: Run 0 Input (Top) is Not Connected.")
+            return (run_once_input, first_denoise)
         else:
             item_type = type(loop_input).__name__
-            _log(node_id, f"👉 Selecting: LOOP Input ({item_type})")
-            return (loop_input,)
+            _log(node_id, f"👉 Selecting: LOOP Input ({item_type}) | Denoise: {loop_denoise}")
+            if loop_input is None:
+                 if run_once_input is not None:
+                     _log(node_id, "⚠️ Loop Input Missing! Falling back to Setup Input to prevent crash.")
+                     return (run_once_input, loop_denoise)
+                 raise ValueError(f"[{node_id}] CRITICAL: Run {current_count} Input (Bottom) is Not Connected!")
+            return (loop_input, loop_denoise)
 
 class H4_StateMonitor:
     """
@@ -277,10 +295,15 @@ class H4_StateMonitor:
     """
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {}}
+        return {
+            "required": {},
+            "optional": {
+                 "Any_In": (ANY_TYPE, {"tooltip": "Optional: Connect an output here to force this monitor to wait for that node (Daisy Chaining)."})
+            }
+        }
     
-    RETURN_TYPES = ("INT",)
-    RETURN_NAMES = ("loop_count_number",)
+    RETURN_TYPES = ("INT", ANY_TYPE)
+    RETURN_NAMES = ("loop_count_number", "Any_Pass")
     
     DESCRIPTION = """
     👀 I am a simple counter.
@@ -288,9 +311,9 @@ class H4_StateMonitor:
     I look at system memory 
     and ask: "What run is this?"
     
-    - 0 = First run.
-    - 1 = Second run.
-    - 100 = Running loop.
+    **Tip**: Connect the output of your 
+    Logic Node to `Any_In` to make sure 
+    I wait for the Reset to happen first!
     """
     
     FUNCTION = "report_state"
@@ -300,8 +323,6 @@ class H4_StateMonitor:
     def IS_CHANGED(cls, **kwargs):
         return float("nan")
 
-    def report_state(self):
+    def report_state(self, Any_In=None):
         state = get_state()
-        # count = state["loop_count"] 
-        # _log("StateMonitor", f"Reporting Count: {count}") # Commented out to avoid spam, uncomment if needed
-        return (state["loop_count"],)
+        return (state["loop_count"], Any_In)

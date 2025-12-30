@@ -1,26 +1,35 @@
 # FILE: custom_nodes/comfyui_h4_live/__init__.py
 # ------------------------------------------------------------------------------
-from .h4_traffic import H4_TrafficCop, H4_StateMonitor, H4_TrafficMerge
+from .version import __version__
+from .h4_traffic import H4_TrafficCop, H4_TrafficMerge, H4_TrafficRouter, H4_StateMonitor
 from .h4_context import H4_ContextHub, H4_ContextUnpack
 from .h4_smart_debug import H4_SmartConsole
-from .version import __version__
+from .h4_mission_control import H4_MissionControl, H4_LinearScheduler, H4_SeedGenerator
 
 NODE_CLASS_MAPPINGS = {
     "H4_TrafficCop": H4_TrafficCop,
     "H4_TrafficMerge": H4_TrafficMerge,
+    "H4_TrafficRouter": H4_TrafficRouter,
     "H4_StateMonitor": H4_StateMonitor,
     "H4_ContextHub": H4_ContextHub,
     "H4_ContextUnpack": H4_ContextUnpack,
-    "H4_SmartConsole": H4_SmartConsole
+    "H4_SmartConsole": H4_SmartConsole,
+    "H4_MissionControl": H4_MissionControl,
+    "H4_LinearScheduler": H4_LinearScheduler,
+    "H4_SeedGenerator": H4_SeedGenerator
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_TrafficCop": "h4 Traffic Cop (Live Logic)",
     "H4_TrafficMerge": "h4 Traffic Merge (Safe Select)",
+    "H4_TrafficRouter": "h4 Traffic Router (The Nexus)",
     "H4_StateMonitor": "h4 State Monitor",
     "H4_ContextHub": "h4 Context Hub (Mothership)",
     "H4_ContextUnpack": "h4 Context Unpack (Distributor)",
-    "H4_SmartConsole": "{h4 - DEBUGGER} - Inline Debugger {Smart Console}"
+    "H4_SmartConsole": "{h4 - DEBUGGER} - Inline Debugger {Smart Console}",
+    "H4_MissionControl": "h4 Mission Control (Dashboard)",
+    "H4_LinearScheduler": "h4 Linear Scheduler (Signal Gen)",
+    "H4_SeedGenerator": "h4 Seed Generator (Signal Gen)"
 }
 
 WEB_DIRECTORY = "./js"

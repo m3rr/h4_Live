@@ -1,0 +1,205 @@
+# FILE: custom_nodes/comfyui_h4_live/h4_mission_control.py
+# ------------------------------------------------------------------------------
+# H4 Mission Control System
+# Rule 1 (No Placeholders): Full logic for Scheduling and Dashboarding.
+# Rule 11 (Logging): Debug modes and value tracking.
+# Rule 21 (Debug Review): Input validation and type safety.
+# ------------------------------------------------------------------------------
+from .h4_core import get_state, _log
+from .h4_utils import ANY_TYPE
+import random
+
+class H4_MissionControl:
+    """
+    🛸 H4 Mission Control (The Dashboard)
+    
+    A central hub for your loop signals.
+    Displays live stats and allows 'Nuclear Logging' toggle.
+    """
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "debug_mode": ("BOOLEAN", {
+                    "default": False, 
+                    "label": "Debug Mode (Nuclear Logs)", 
+                    "tooltip": "Turn ON to flood the console with detailed values."
+                }),
+            },
+            "optional": {
+                "scheduler_val": ("FLOAT", {"forceInput": True, "tooltip": "Connect a Signal Generator (Float) here."}),
+                "scheduler_seed": ("INT", {"forceInput": True, "tooltip": "Connect a Seed Generator (Int) here."}),
+                "trigger_in": (ANY_TYPE, {"tooltip": "Daisy chain trigger (Optional)."}),
+            }
+        }
+
+    RETURN_TYPES = ("FLOAT", "INT", ANY_TYPE, "STRING")
+    RETURN_NAMES = ("Scheduler_Val", "Scheduler_Seed", "Trigger_Pass", "Dashboard_UI")
+    
+    DESCRIPTION = """
+    🛸 **H4 Mission Control**
+    
+    **The Flight Deck for your Loop.**
+    - Connect your generators (Seed, Float) here.
+    - View live stats (Run Count, Time).
+    - Toggle `Debug Mode` to inspect values in the console.
+    
+    **Outputs:**
+    - Passes signals through safely.
+    - `Dashboard_UI`: Connect to a Text Display node to see stats.
+    """
+    
+    FUNCTION = "process_mission"
+    CATEGORY = "h4_Live/MissionControl"
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("nan")
+
+    def process_mission(self, debug_mode, scheduler_val=None, scheduler_seed=None, trigger_in=None):
+        node_id = "MissionControl"
+        state = get_state()
+        count = state["loop_count"]
+        
+        # 1. Log Stats
+        if debug_mode:
+            _log(f"[{node_id}] ----------------------------------------")
+            _log(f"[{node_id}] 🛸 MISSION STATUS | RUN: {count}")
+            _log(f"[{node_id}] Sched Val: {scheduler_val}")
+            _log(f"[{node_id}] Sched Seed: {scheduler_seed}")
+            _log(f"[{node_id}] ----------------------------------------")
+
+        # 2. Build UI String
+        ui_report = f"🛸 H4 MISSION CONTROL\n"
+        ui_report += f"Run Count: {count}\n"
+        ui_report += f"Scheduler Value: {scheduler_val}\n"
+        ui_report += f"Current Seed: {scheduler_seed}\n"
+        
+        # 3. Passthrough
+        return (scheduler_val, scheduler_seed, trigger_in, ui_report)
+
+
+class H4_LinearScheduler:
+    """
+    📈 H4 Linear Scheduler
+    
+    Generates a ramping float value based on loop count.
+    Formula: Start + (End - Start) * (Current / Max)
+    """
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "start_val": ("FLOAT", {
+                    "default": 1.0, "min": 0.0, "max": 10000.0, "step": 0.01,
+                    "tooltip": "Value at Loop 0."
+                }),
+                "end_val": ("FLOAT", {
+                    "default": 0.0, "min": 0.0, "max": 10000.0, "step": 0.01,
+                    "tooltip": "Value at Max Loop."
+                }),
+                "max_loops": ("INT", {
+                    "default": 16, "min": 1, "max": 10000, 
+                    "tooltip": "The total number of loops you plan to run."
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("FLOAT",)
+    RETURN_NAMES = ("Scheduled_Float",)
+    
+    DESCRIPTION = """
+    📈 **H4 Linear Scheduler**
+    
+    Generates a value that changes over time.
+    Useful for Denoise Ramps, CFG Ramps, etc.
+    """
+    
+    FUNCTION = "calculate_linear"
+    CATEGORY = "h4_Live/MissionControl"
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("nan")
+
+    def calculate_linear(self, start_val, end_val, max_loops):
+        state = get_state()
+        count = state["loop_count"]
+        
+        # Safety: Prevent division by zero
+        if max_loops < 1: max_loops = 1
+        
+        # Clamp Logic: If we go past max loops, stay at end_val
+        if count >= max_loops:
+            return (end_val,)
+            
+        # Linear Interpolation
+        progress = count / max_loops
+        current_val = start_val + (end_val - start_val) * progress
+        
+        return (current_val,)
+
+
+class H4_SeedGenerator:
+    """
+    🎲 H4 Seed Generator
+    
+    Controls randomness with intent.
+    Modes: Incremental, Fixed, Random.
+    """
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "start_seed": ("INT", {
+                    "default": 0, "min": 0, "max": 0xffffffffffffffff, 
+                    "tooltip": "The starting seed."
+                }),
+                "mode": (["Incremental", "Fixed", "Random"], {
+                    "default": "Incremental",
+                    "tooltip": "Incremental: Start + Loop Count. Fixed: Always Start. Random: Pure Chaos."
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("INT",)
+    RETURN_NAMES = ("Scheduled_Seed",)
+    
+    DESCRIPTION = """
+    🎲 **H4 Seed Generator**
+    
+    **Modes:**
+    - **Incremental**: Best for sweeping. (Run 0 = Seed, Run 1 = Seed+1...)
+    - **Fixed**: Best for testing logic. Reuses same seed.
+    - **Random**: Best for exploration. New seed every time.
+    """
+    
+    FUNCTION = "generate_seed"
+    CATEGORY = "h4_Live/MissionControl"
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        # Force update for Random mode
+        if kwargs.get("mode") == "Random":
+            return float("nan")
+        return float("nan")
+
+    def generate_seed(self, start_seed, mode):
+        state = get_state()
+        count = state["loop_count"]
+        
+        if mode == "Fixed":
+            return (start_seed,)
+        elif mode == "Incremental":
+            return (start_seed + count,)
+        else: # Random
+            return (random.randint(0, 0xffffffffffffffff),)

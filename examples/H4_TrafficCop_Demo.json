@@ -1,0 +1,385 @@
+{
+    "last_node_id": 102,
+    "last_link_id": 50,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "CheckpointLoaderSimple",
+            "pos": [
+                50,
+                50
+            ],
+            "size": {
+                "0": 315,
+                "1": 98
+            },
+            "outputs": [
+                {
+                    "name": "MODEL",
+                    "type": "MODEL",
+                    "links": [
+                        1
+                    ]
+                },
+                {
+                    "name": "CLIP",
+                    "type": "CLIP",
+                    "links": [
+                        3,
+                        4
+                    ]
+                },
+                {
+                    "name": "VAE",
+                    "type": "VAE",
+                    "links": [
+                        5
+                    ]
+                }
+            ],
+            "widgets_values": [
+                "v1-5-pruned-emaonly.ckpt"
+            ]
+        },
+        {
+            "id": 2,
+            "type": "EmptyLatentImage",
+            "title": "Setup Latent (Single Input)",
+            "pos": [
+                50,
+                250
+            ],
+            "size": {
+                "0": 315,
+                "1": 106
+            },
+            "outputs": [
+                {
+                    "name": "LATENT",
+                    "type": "LATENT",
+                    "links": [
+                        10
+                    ]
+                }
+            ],
+            "widgets_values": [
+                1024,
+                1024,
+                1
+            ]
+        },
+        {
+            "id": 3,
+            "type": "H4_TrafficCop",
+            "title": "H4 Traffic Cop (Legacy Splitter)",
+            "pos": [
+                450,
+                250
+            ],
+            "size": {
+                "0": 350,
+                "1": 150
+            },
+            "inputs": [
+                {
+                    "name": "any_input",
+                    "type": "*",
+                    "link": 10
+                },
+                {
+                    "name": "restart_on_true",
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "restart_on_true"
+                    }
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "Run_Once_(Start)",
+                    "type": "*",
+                    "links": [
+                        11
+                    ],
+                    "shape": 3
+                },
+                {
+                    "name": "Loop_(Continue)",
+                    "type": "*",
+                    "links": [
+                        12
+                    ],
+                    "shape": 3
+                }
+            ],
+            "widgets_values": [
+                false
+            ]
+        },
+        {
+            "id": 6,
+            "type": "KSampler",
+            "title": "Sampler A (Run 0 Only)",
+            "pos": [
+                900,
+                200
+            ],
+            "size": {
+                "0": 315,
+                "1": 262
+            },
+            "inputs": [
+                {
+                    "name": "model",
+                    "type": "MODEL",
+                    "link": 1
+                },
+                {
+                    "name": "positive",
+                    "type": "CONDITIONING",
+                    "link": 13
+                },
+                {
+                    "name": "negative",
+                    "type": "CONDITIONING",
+                    "link": 15
+                },
+                {
+                    "name": "latent_image",
+                    "type": "LATENT",
+                    "link": 11
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "LATENT",
+                    "type": "LATENT",
+                    "links": [
+                        20
+                    ]
+                }
+            ],
+            "widgets_values": [
+                12345,
+                "randomize",
+                20,
+                8.0,
+                "euler",
+                "normal",
+                1.00
+            ]
+        },
+        {
+            "id": 7,
+            "type": "KSampler",
+            "title": "Sampler B (Loop Only)",
+            "pos": [
+                900,
+                500
+            ],
+            "size": {
+                "0": 315,
+                "1": 262
+            },
+            "inputs": [
+                {
+                    "name": "model",
+                    "type": "MODEL",
+                    "link": 1
+                },
+                {
+                    "name": "positive",
+                    "type": "CONDITIONING",
+                    "link": 13
+                },
+                {
+                    "name": "negative",
+                    "type": "CONDITIONING",
+                    "link": 15
+                },
+                {
+                    "name": "latent_image",
+                    "type": "LATENT",
+                    "link": 12
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "LATENT",
+                    "type": "LATENT",
+                    "links": []
+                }
+            ],
+            "widgets_values": [
+                12345,
+                "randomize",
+                20,
+                8.0,
+                "euler",
+                "normal",
+                0.50
+            ]
+        },
+        {
+            "id": 4,
+            "type": "CLIPTextEncode",
+            "pos": [
+                450,
+                50
+            ],
+            "inputs": [
+                {
+                    "name": "clip",
+                    "type": "CLIP",
+                    "link": 3
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "CONDITIONING",
+                    "type": "CONDITIONING",
+                    "links": [
+                        13
+                    ]
+                }
+            ],
+            "widgets_values": [
+                "safe workflow"
+            ]
+        },
+        {
+            "id": 5,
+            "type": "CLIPTextEncode",
+            "pos": [
+                450,
+                450
+            ],
+            "inputs": [
+                {
+                    "name": "clip",
+                    "type": "CLIP",
+                    "link": 4
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "CONDITIONING",
+                    "type": "CONDITIONING",
+                    "links": [
+                        15
+                    ]
+                }
+            ],
+            "widgets_values": [
+                "bad quality"
+            ]
+        },
+        {
+            "id": 100,
+            "type": "Note",
+            "title": "Traffic Cop Demo",
+            "pos": [
+                50,
+                450
+            ],
+            "size": [
+                "300",
+                "150"
+            ],
+            "widgets_values": [
+                "👋 THE COP SPLITTER:\n\n1. Run 0: Sends Input TOP (To Sampler A).\n2. Run 1+: Sends Input BOTTOM (To Sampler B).\n\nUse this to switch execution paths!"
+            ]
+        }
+    ],
+    "links": [
+        [
+            1,
+            1,
+            0,
+            6,
+            0,
+            "MODEL"
+        ],
+        [
+            2,
+            1,
+            0,
+            7,
+            0,
+            "MODEL"
+        ],
+        [
+            3,
+            1,
+            1,
+            4,
+            0,
+            "CLIP"
+        ],
+        [
+            4,
+            1,
+            1,
+            5,
+            0,
+            "CLIP"
+        ],
+        [
+            10,
+            2,
+            0,
+            3,
+            0,
+            "*"
+        ],
+        [
+            11,
+            3,
+            0,
+            6,
+            3,
+            "LATENT"
+        ],
+        [
+            12,
+            3,
+            1,
+            7,
+            3,
+            "LATENT"
+        ],
+        [
+            13,
+            4,
+            0,
+            6,
+            1,
+            "CONDITIONING"
+        ],
+        [
+            14,
+            4,
+            0,
+            7,
+            1,
+            "CONDITIONING"
+        ],
+        [
+            15,
+            5,
+            0,
+            6,
+            2,
+            "CONDITIONING"
+        ],
+        [
+            16,
+            5,
+            0,
+            7,
+            2,
+            "CONDITIONING"
+        ]
+    ],
+    "version": 0.4
+}

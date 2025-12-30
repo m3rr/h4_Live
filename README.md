@@ -1,6 +1,6 @@
 # h4_Live: The Logic & Loop Controller
 
-![Version](https://img.shields.io/badge/version-1.0.3-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
+![Version](https://img.shields.io/badge/version-2.1.0-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
 **"The Railway Switch for your Workflow."**
 
@@ -100,6 +100,29 @@ A simple, powerful inline debugger that shows you exactly what is flowing throug
 1.  **Sender** beams the finished image to `loop_signal`.
 2.  **Receiver** catches it.
 3.  **Traffic Merge** grabs it on Run 1+ and feeds it back in.
+
+---
+
+## 🛸 Mission Control (New in v2.2.0)
+*(For Advanced Users who want to act like a Scientist)*
+
+The **Mission Control System** allows you to schedule values (Denoise, Seed, CFG) that change over time as your loop progresses.
+
+### 1. H4 Mission Control (The Dashboard)
+This is your Flight Deck. Connect your signals here to visualize them live.
+- **Inputs**: Generator Signals (Float/Int).
+- **Features**: Live Stats (Run Count, Values) and a `Dashboard_UI` prompt string you can feed into a text display.
+
+### 2. H4 Linear Scheduler (Signal Generator)
+Generates a floating point number that ramps up or down.
+- **Example**: Start at `1.0` (Run 0), ramp down to `0.1` (Run 16).
+- **Use Case**: Perfect for slowly lowering Denoise to "bake" an image.
+
+### 3. H4 Seed Generator (Signal Generator)
+Controls the chaos.
+- **Incremental Mode**: `Seed, Seed+1, Seed+2...` (Great for latent sweeping).
+- **Fixed Mode**: `Seed, Seed, Seed...` (Great for debugging).
+- **Random Mode**: `Chaos`.
 
 ---
 
