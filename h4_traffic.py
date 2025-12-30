@@ -5,7 +5,7 @@
 # Rule 11 (Logging): Detailed payload inspection.
 # Rule 21 (Debug Review): Input/Output validation.
 # ------------------------------------------------------------------------------
-from .h4_core import get_state, increment_loop, reset_state
+from .h4_core import get_state, increment_loop, reset_state, orbit_set, orbit_get
 from .h4_utils import ANY_TYPE
 import datetime
 
@@ -13,6 +13,79 @@ def _log(node_name: str, message: str):
     """Internal helper to standardize logging format per Rule 11."""
     ts = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
     print(f"[h4_Live][{node_name}][{ts}] {message}")
+
+class H4_DebugSender:
+    """
+    {h4-DEBUG} Sender (The Portal Gun) 🟠
+    Teleports data to the global storage.
+    Acts as a passthrough for convenience.
+    """
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "any_input": (ANY_TYPE,),
+                "trigger_key": ("STRING", {"default": "my_signal", "multiline": False}),
+            }
+        }
+
+    RETURN_TYPES = (ANY_TYPE,)
+    RETURN_NAMES = ("any_input",)
+    FUNCTION = "send_debug"
+    CATEGORY = "h4_Live/Debug"
+
+    def send_debug(self, any_input, trigger_key):
+        input_type = type(any_input).__name__
+        _log("DebugSender", f"🟠 Sending '{trigger_key}' to Orbit. Type: {input_type}")
+        
+        # Log Shape/Details if possible
+        if hasattr(any_input, "shape"):
+             _log("DebugSender", f"   Info: Shape {any_input.shape}")
+             
+        orbit_set(trigger_key, any_input)
+        return (any_input,)
+
+class H4_DebugReceiver:
+    """
+    {h4-DEBUG} Receiver (The Portal Exit) 🔵
+    Retrieves data from global storage.
+    Breaks loops because it has no wired input.
+    """
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "listen_key": ("STRING", {"default": "my_signal", "multiline": False}),
+            }
+        }
+
+    RETURN_TYPES = (ANY_TYPE,)
+    RETURN_NAMES = ("teleported_data",)
+    FUNCTION = "receive_debug"
+    CATEGORY = "h4_Live/Debug"
+    
+    # Needs to update every run to fetch new data
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("nan")
+
+    def receive_debug(self, listen_key):
+        val = orbit_get(listen_key)
+        
+        if val is None:
+            _log("DebugReceiver", f"🔵 Listening for '{listen_key}'... NOTHING FOUND.")
+            # Return None to avoid crashing execution if possible, or maybe a safetensor?
+            return (None,)
+            
+        input_type = type(val).__name__
+        _log("DebugReceiver", f"🔵 Received '{listen_key}' from Orbit. Type: {input_type}")
+        return (val,)
 
 class H4_TrafficCop:
     """
@@ -72,6 +145,10 @@ class H4_TrafficCop:
     @classmethod
     def IS_CHANGED(cls, **kwargs):
         return float("nan")
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs):
+        return True
 
     def process_logic(self, any_input, restart_on_true):
         node_id = "TrafficCop"
@@ -164,14 +241,13 @@ class H4_TrafficMerge:
     def IS_CHANGED(cls, **kwargs):
         return float("nan")
 
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs):
+        return True
+
     def process_merge(self, run_once_input, loop_input, restart_on_true):
         node_id = "TrafficZipper"
         
-        # 0. Log Inputs (Rule 24)
-        type_a = type(run_once_input).__name__
-        type_b = type(loop_input).__name__
-        _log(node_id, f"📥 Inputs | Setup: {type_a} | Loop: {type_b}")
-
         # 1. Handle Reset
         if restart_on_true:
             _log(node_id, "⚠️ RESTART SIGNAL RECEIVED")
@@ -187,10 +263,12 @@ class H4_TrafficMerge:
 
         # 3. Select w/ Logging
         if current_count == 0:
-            _log(node_id, f"👉 Selecting: SETUP Input ({type_a})")
+            item_type = type(run_once_input).__name__
+            _log(node_id, f"👉 Selecting: SETUP Input ({item_type})")
             return (run_once_input,)
         else:
-            _log(node_id, f"👉 Selecting: LOOP Input ({type_b})")
+            item_type = type(loop_input).__name__
+            _log(node_id, f"👉 Selecting: LOOP Input ({item_type})")
             return (loop_input,)
 
 class H4_StateMonitor:

@@ -15,15 +15,22 @@ _H4_GLOBAL_STATE = {
     "active": True
 }
 
+# ORBIT STORAGE (Wireless Feedback)
+_H4_ORBIT_STORAGE = {}
+
 def _log(message: str):
     """Internal helper for timestamped logging (Rule 11)."""
     ts = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
     print(f"[h4_Live][CORE][{ts}] {message}")
 
 def get_state():
-    """Returns the current state dictionary with logging."""
-    # _log(f"State Access Requested. Current Count: {_H4_GLOBAL_STATE['loop_count']}")
     return _H4_GLOBAL_STATE
+
+def orbit_set(key, value):
+    _H4_ORBIT_STORAGE[key] = value
+
+def orbit_get(key):
+    return _H4_ORBIT_STORAGE.get(key, None)
 
 def increment_loop():
     """Safely increments the loop counter with nuclear logging."""

@@ -56,19 +56,50 @@ This little box just tells you what number loop you are on.
 
 ---
 
+### 4. H4 Context Hub & Unpack (The Mothership) 🛸
+**"The One Wire to Rule Them All"**
+
+Tired of spaghetti wires?
+*   **Context Hub**: Plug *everything* into this (Model, VAE, CLIP, Image, Latent). It does two things:
+    1.  **Bundles** all wires into a single `H4_PIPE`.
+    2.  **Logs** a detailed report to the console (shapes, types, devices) for debugging.
+*   **Context Unpack**: Takes that single `H4_PIPE` wire and gives you back all your connections on the other side of your workflow.
+
+---
+
+---
+
+### 5. H4 Smart Console (Inline Debugger) 🧠
+**"The X-Ray Machine"**
+
+A simple, powerful inline debugger that shows you exactly what is flowing through your wires.
+
+*   **How to use**: Place it **between** any two nodes. (e.g., Checkpoint -> Smart Console -> KSampler).
+*   **What it does**: It passes the data through unchanged, but prints detailed stats to your Console and the Node itself.
+
+**Modes:**
+1.  **Normal (Default)**: Shows Type, Shape, Device. Good for quick checks.
+2.  **🔥 +ULTRA Mode**:
+    *   Inspects Tensors deeply (Min, Max, Mean, Gradients).
+    *   Inspects Objects (Attributes, Keys).
+    *   Use this when you are hunting complex bugs (NaNs, wrong devices).
+
+---
+
 ## 🧠 How to Build a Basic Loop
 
 **The Goal**: Create an image, then keep fixing it over and over (Feedback Loop).
 
 1.  **The Box**: Get a `H4 Traffic Merge` node.
 2.  **The Setup**: Connect an `Empty Latent Image` to the top slot (`run_once_input`).
-3.  **The Loop**: Connect the output of your VAE/Sampler from the end of the graph back to the bottom slot (`loop_input`).
+3.  **The Loop**: Place a `{h4-DEBUG} Receiver` and connect it to the bottom slot (`loop_input`). Set the key to `loop_signal`.
 4.  **The Machine**: Connect the **Output** of the Merge node to your **KSampler**.
+5.  **The End**: At the end of your workflow (Image Save), attach a `{h4-DEBUG} Sender` and set key to `loop_signal`.
 
 **The Logic**:
-1.  You hit "Queue" (Batch count 10).
-2.  **Run 0**: The Merge node sees it's the start. It grabs the Empty Latent. The KSampler generates noise.
-3.  **Run 1**: The Merge node sees we are running again! It ignores the Empty Latent. It grabs the image you just made. The KSampler acts on that instead!
+1.  **Sender** beams the finished image to `loop_signal`.
+2.  **Receiver** catches it.
+3.  **Traffic Merge** grabs it on Run 1+ and feeds it back in.
 
 ---
 
