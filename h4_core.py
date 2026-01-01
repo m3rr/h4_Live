@@ -18,6 +18,22 @@ _H4_GLOBAL_STATE = {
 # ORBIT STORAGE (Wireless Feedback)
 _H4_ORBIT_STORAGE = {}
 
+# IMAGE BUFFER (RAM Storage for Zero-Lag Loops)
+_H4_IMAGE_BUFFER = None
+
+def buffer_image(image_tensor):
+    """Stores an image tensor in RAM."""
+    global _H4_IMAGE_BUFFER
+    _H4_IMAGE_BUFFER = image_tensor
+    # Simplify log for tensor to avoid spam
+    shape = list(image_tensor.shape) if hasattr(image_tensor, 'shape') else "Unknown"
+    _log(f"📸 IMAGE BUFFERED | Shape: {shape}")
+
+def get_buffered_image():
+    """Retrieves the stored image tensor."""
+    global _H4_IMAGE_BUFFER
+    return _H4_IMAGE_BUFFER
+
 def _log(message: str):
     """Internal helper for timestamped logging (Rule 11)."""
     ts = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]

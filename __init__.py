@@ -1,7 +1,7 @@
 # FILE: custom_nodes/comfyui_h4_live/__init__.py
 # ------------------------------------------------------------------------------
 from .version import __version__
-from .h4_traffic import H4_TrafficCop, H4_TrafficMerge, H4_TrafficRouter, H4_StateMonitor
+from .h4_traffic import H4_TrafficCop, H4_TrafficMerge, H4_TrafficRouter, H4_StateMonitor, H4_LoopIncrementer, H4_WirelessResetButton, H4_ImageBuffer
 from .h4_context import H4_ContextHub, H4_ContextUnpack
 from .h4_smart_debug import H4_SmartConsole
 from .h4_mission_control import H4_MissionControl, H4_LinearScheduler, H4_SeedGenerator
@@ -16,7 +16,10 @@ NODE_CLASS_MAPPINGS = {
     "H4_SmartConsole": H4_SmartConsole,
     "H4_MissionControl": H4_MissionControl,
     "H4_LinearScheduler": H4_LinearScheduler,
-    "H4_SeedGenerator": H4_SeedGenerator
+    "H4_SeedGenerator": H4_SeedGenerator,
+    "H4_LoopIncrementer": H4_LoopIncrementer,
+    "H4_WirelessResetButton": H4_WirelessResetButton,
+    "H4_ImageBuffer": H4_ImageBuffer
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -29,7 +32,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_SmartConsole": "{h4 - DEBUGGER} - Inline Debugger {Smart Console}",
     "H4_MissionControl": "h4 Mission Control (Dashboard)",
     "H4_LinearScheduler": "h4 Linear Scheduler (Signal Gen)",
-    "H4_SeedGenerator": "h4 Seed Generator (Signal Gen)"
+    "H4_SeedGenerator": "h4 Seed Generator (Signal Gen)",
+    "H4_LoopIncrementer": "h4 Loop Incrementer (Hybrid)",
+    "H4_WirelessResetButton": "h4 Wireless Reset (Toggle)",
+    "H4_ImageBuffer": "h4 Image Buffer (Anti-Lag)"
 }
 
 WEB_DIRECTORY = "./js"

@@ -5,7 +5,7 @@
 # Rule 11 (Logging): Detailed payload inspection.
 # Rule 21 (Debug Review): Input/Output validation.
 # ------------------------------------------------------------------------------
-from .h4_core import get_state, increment_loop, reset_state, orbit_set, orbit_get
+from .h4_core import get_state, increment_loop, reset_state, orbit_set, orbit_get, buffer_image, get_buffered_image
 from .h4_utils import ANY_TYPE
 import datetime
 
@@ -326,3 +326,129 @@ class H4_StateMonitor:
     def report_state(self, Any_In=None):
         state = get_state()
         return (state["loop_count"], Any_In)
+
+
+# ------------------------------------------------------------------------------
+# NEW NODES (v2.2.1) - INCREMENT & LAG REPAIR
+# ------------------------------------------------------------------------------
+
+class H4_LoopIncrementer:
+    """
+    ➕ H4 Loop Incrementer (Hybrid)
+    Bumps the loop counter. 
+    Use this if you want to separate the 'Action' from the 'Router'.
+    """
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "pulse": (ANY_TYPE, {"tooltip": "Connect any output to trigger increment."}),
+                "wireless_reset": ("BOOLEAN", {
+                    "default": False,
+                    "label": "Reset via Wireless?",
+                    "tooltip": "ON=Check orbit storage for reset signal (no wire needed)."
+                }),
+            },
+        }
+    
+    RETURN_TYPES = (ANY_TYPE,)
+    RETURN_NAMES = ("pass_through",)
+    FUNCTION = "do_increment"
+    CATEGORY = "h4_Live/Logic"
+    
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("nan")
+    
+    def do_increment(self, pulse, wireless_reset):
+        node_id = "LoopIncrementer"
+        
+        # Check wireless reset flag
+        if wireless_reset:
+            reset_flag = orbit_get("request_reset")
+            if reset_flag is True:
+                _log(node_id, "📡 Wireless Reset Signal Detected!")
+                reset_state()
+                orbit_set("request_reset", False)  # clear it
+                return (pulse,)
+        
+        # Normal increment
+        increment_loop()
+        return (pulse,)
+
+class H4_WirelessResetButton:
+    """
+    🔴 Wireless Reset Button. 
+    No wires. Just a toggle. Sets the global reset flag.
+    """
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "trigger_reset": ("BOOLEAN", {
+                    "default": False,
+                    "label": "🔴 RESET (Wireless)",
+                    "tooltip": "Toggle ON to reset counter (wireless to H4_LoopIncrementer)."
+                }),
+            }
+        }
+    
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("reset_status",)
+    FUNCTION = "send_reset"
+    CATEGORY = "h4_Live/Logic"
+    OUTPUT_NODE = True
+    
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("nan")
+    
+    def send_reset(self, trigger_reset):
+        if trigger_reset:
+            orbit_set("request_reset", True)
+            return ("✅ RESET SENT",)
+        return ("Idle...",)
+
+class H4_ImageBuffer:
+    """
+    🖼️ H4 Image Buffer (Anti-Lag)
+    Catches generated images and holds them in memory for the next cycle.
+    Eliminates the 1-cycle drive lag in loops.
+    """
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {},
+            "optional": {
+                "image_in": ("IMAGE", {"tooltip": "Wire VAEDecode output here to Store. Leave empty to Load."}),
+            }
+        }
+    
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("buffered_image",)
+    FUNCTION = "buffer_and_pass"
+    CATEGORY = "h4_Live/Logic"
+    OUTPUT_NODE = True
+    
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("nan")
+    
+    def buffer_and_pass(self, image_in=None):
+        node_id = "ImageBuffer"
+        
+        # Store Mode
+        if image_in is not None:
+            buffer_image(image_in)
+            return (image_in,)
+        
+        # Load Mode
+        buffered = get_buffered_image()
+        if buffered is None:
+            # Fallback for Run 0 
+            raise ValueError(f"[{node_id}] Buffer Empty! Run the 'Setup' pass first to fill the buffer.")
+            
+        return (buffered,)
