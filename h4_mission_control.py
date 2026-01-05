@@ -5,16 +5,17 @@
 # Rule 11 (Logging): Debug modes and value tracking.
 # Rule 21 (Debug Review): Input validation and type safety.
 # ------------------------------------------------------------------------------
-from .h4_core import get_state, _log
+from .h4_core import get_state, _log, increment_loop, reset_state, orbit_get, orbit_set
 from .h4_utils import ANY_TYPE
 import random
 
 class H4_MissionControl:
     """
-    🛸 H4 Mission Control (The Dashboard)
+    🛸 H4 Mission Control (The Dashboard & Driver)
     
     A central hub for your loop signals.
-    Displays live stats and allows 'Nuclear Logging' toggle.
+    - Active Mode: Drives the loop (Increments Count).
+    - Passive Mode: Just watches.
     """
     def __init__(self):
         pass
@@ -23,6 +24,15 @@ class H4_MissionControl:
     def INPUT_TYPES(s):
         return {
             "required": {
+                "mode": (["Passive", "Active (Master Base)"], {
+                    "default": "Passive", 
+                    "tooltip": "Passive: Read-Only. Active: Increments Loop Count & Handles Resets."
+                }),
+                "wireless_reset": ("BOOLEAN", {
+                    "default": False,
+                    "label": "Reset via Wireless?",
+                    "tooltip": "ON=Check orbit storage for reset signal (Red Button). Only works in Active Mode."
+                }),
                 "debug_mode": ("BOOLEAN", {
                     "default": False, 
                     "label": "Debug Mode (Nuclear Logs)", 
@@ -43,9 +53,8 @@ class H4_MissionControl:
     🛸 **H4 Mission Control**
     
     **The Flight Deck for your Loop.**
-    - Connect your generators (Seed, Float) here.
-    - View live stats (Run Count, Time).
-    - Toggle `Debug Mode` to inspect values in the console.
+    - **Active Mode**: Increments the loop counter. Connect logic flow here!
+    - **Passive Mode**: Just displays stats. 
     
     **Outputs:**
     - Passes signals through safely.
@@ -57,10 +66,28 @@ class H4_MissionControl:
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
+        # Always update in Active Mode to ensure loop runs
+        if kwargs.get("mode") == "Active (Master Base)":
+            return float("nan")
         return float("nan")
 
-    def process_mission(self, debug_mode, scheduler_val=None, scheduler_seed=None, trigger_in=None):
+    def process_mission(self, mode, wireless_reset, debug_mode, scheduler_val=None, scheduler_seed=None, trigger_in=None):
         node_id = "MissionControl"
+        
+        # --- ACTIVE MODE LOGIC ---
+        if mode == "Active (Master Base)":
+            # 1. Check Wireless Reset
+            if wireless_reset:
+                reset_flag = orbit_get("request_reset")
+                if reset_flag is True:
+                    _log(f"[{node_id}] 📡 Wireless Reset Signal Detected!")
+                    reset_state()
+                    orbit_set("request_reset", False)
+            
+            # 2. Increment Loop
+            increment_loop()
+            
+        # --- STATS REPORTING ---
         state = get_state()
         count = state["loop_count"]
         
@@ -68,12 +95,14 @@ class H4_MissionControl:
         if debug_mode:
             _log(f"[{node_id}] ----------------------------------------")
             _log(f"[{node_id}] 🛸 MISSION STATUS | RUN: {count}")
+            _log(f"[{node_id}] Mode: {mode}")
             _log(f"[{node_id}] Sched Val: {scheduler_val}")
             _log(f"[{node_id}] Sched Seed: {scheduler_seed}")
             _log(f"[{node_id}] ----------------------------------------")
 
         # 2. Build UI String
         ui_report = f"🛸 H4 MISSION CONTROL\n"
+        ui_report += f"Mode: {mode}\n"
         ui_report += f"Run Count: {count}\n"
         ui_report += f"Scheduler Value: {scheduler_val}\n"
         ui_report += f"Current Seed: {scheduler_seed}\n"

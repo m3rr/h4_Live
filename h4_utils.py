@@ -24,3 +24,6 @@ class AnyType(str):
 
 # Instance for import - The "Universal Key"
 ANY_TYPE = AnyType("*")
+
+# FAILSAFE: Using standard ComfyUI wildcard
+# ANY_TYPE = "*"

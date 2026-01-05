@@ -16,11 +16,15 @@ class H4_SmartConsole:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "Anything In": (ANY_TYPE,),
                 "+ULTRA": ("BOOLEAN", {
-                    "default": False, 
-                    "label": "+ULTRA - Ultra Verbose Debugging", 
-                    "tooltip": "OFF=Basic Stats. ON=Deep Inspection (Min/Max, Attributes, Memory)."
+                    "default": False,
+                    "label": "+ULTRA Debug Mode", 
+                    "tooltip": "Enable nuclear scanning of objects (Attributes, hidden methods, deep introspection)."
+                }),
+            },
+            "optional": {
+                "Anything In": (ANY_TYPE, {
+                    "tooltip": "Connect anything here. The node will analyze it."
                 }),
             }
         }
@@ -30,6 +34,11 @@ class H4_SmartConsole:
     FUNCTION = "process"
     CATEGORY = "h4_Live/Debug"
     OUTPUT_NODE = True
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs):
+        print(f"[H4_SmartConsole][GOD MODE] 🧠 Check! Inputs: {list(kwargs.keys())}")
+        return True
 
     def process(self, **kwargs):
         # Handle inputs with spaces via kwargs
@@ -117,8 +126,13 @@ class H4_SmartConsole:
             if ultra:
                 # Inspect attributes
                 attributes = [a for a in dir(obj) if not a.startswith('__')]
-                lines.append(f"Attributes: {attributes[:10]}...")
-                lines.append(f"String Rep: {str(obj)[:100]}")
+                lines.append(f"Attributes: {attributes[:50]}...") # Increased limit
+                lines.append(f"Type: {type(obj)}")
+                lines.append(f"ID: {id(obj)}")
+                try:
+                    lines.append(f"String Rep: {str(obj)[:500]}") # Increased limit
+                except:
+                    pass
             else:
                 lines.append("Object: Complex Object (Use +ULTRA for details)")
                 

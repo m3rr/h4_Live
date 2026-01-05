@@ -2,161 +2,308 @@
 
 ![Version](https://img.shields.io/badge/version-2.2.1-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
-**"The Railway Switch for your Workflow."**
-
-Hi there! Welcome to `h4_Live`. If you are new to ComfyUI, think of this tool as the "Memory" for your robot. Normally, ComfyUI has the memory of a goldfish—it runs once and forgets everything. This set of nodes gives it a brain that can count.
-
-It allows you to say: *"Do THIS on the first run, but do THAT on the second run."*
+> **"The Railway Switch for your Workflow."**
 
 ---
 
-## ⚡ Installation
+### 🤔 What is "Live"?
 
-1.  **Locate Folder**: Go to your ComfyUI folder.
-2.  **Navigate**: Open `ComfyUI/custom_nodes/`.
-3.  **Drop**: Copy the entire `comfyui_h4_live` folder into `custom_nodes/`.
-4.  **Restart**: Restart ComfyUI completely.
-5.  **Verify**: You should see a cool matrix-style table in your console window with green checkmarks ✅.
+Hi there! Welcome to `h4_Live`. 
 
----
+If you're new to ComfyUI, you might have noticed it has the memory of a goldfish. It runs a workflow once, generates an image, and then... nothing. It forgets everything.
 
-## 🧸 The Nodes (Explained Simply)
+**h4_Live gives your robot a brain.** 🧠
 
-We have three main tools for you.
+It allows your workflow to be **Organic**. It allows it to **Count**. It allows it to **Remember**.
+Instead of just making one image, you can tell ComfyUI:
+*"Hey, make an image. Now, take that image, and fix it. Now take that fixed image, and upscale it. Do this 5 times, but on the 3rd time, change the settings."*
 
-### 1. H4 Traffic Merge (The Zipper) ⭐ **Start Here**
-**"The Safe One"**
-
-Imagine you have two conveyor belts.
-*   **Belt A (Run Once)** has your "Starter" items (like an empty canvas).
-*   **Belt B (Loop)** has your "Finished" items (like a painted picture).
-
-You want to send one of them into your machine, but not both at the same time.
-*   **On Run 0 (The Start)**: The Zipper opens gate A. The empty canvas goes in.
-*   **On Run 1+ (The Loop)**: The Zipper closes gate A and opens gate B. The painted picture goes in to be painted again!
-
-**Why is it safe?**
-Because your machine (KSampler) *always* gets something. It never gets an empty "Ghost" signal, so it never crashes.
-
-### 2. H4 Traffic Cop (The Splitter)
-**"The Advanced One"**
-
-This is the opposite of the zipper. It takes one signal and splits it into two paths.
-*   **On Run 0**: It sends data to the Top Road. The Bottom Road is dead (Empty).
-*   **On Run 1+**: It sends data to the Bottom Road. The Top Road is dead (Empty).
-
-**⚠️ WARNING**: If you connect a node to the "Dead" road, it will crash because it receives "Nothing" (NoneType). Only use this if you know how to handle dead signals!
-
-### 3. H4 State Monitor (The Counter)
-**"The Scoreboard"**
-
-This little box just tells you what number loop you are on.
-*   Connect it to a "Show Text" node or similar if you just want to see the number.
-*   It helps you know if your reset trigger worked.
+We hide the scary math and the complex logic behind friendly, easy-to-use nodes so you can focus on being an Artist, not a Programmer.
 
 ---
 
-### 4. H4 Context Hub & Unpack (The Mothership) 🛸
+# 📚 THE CASUAL GUIDE (For Humans)
+
+Here is everything you need to know about the tools in this kit. No jargon. No math. just how to use them.
+
+## 1. H4 Traffic Router (The Nexus) 🚦
+**"The Brain"**
+
+This is the most important node in the pack. It combines a "Splitter" (deciding where to go) and a "Merger" (combining things) into one smart box.
+
+*   **What it does:** It takes two inputs: a "Starter" (e.g., an empty canvas) and a "Looper" (e.g., the finished painting). On the very first run (Run 0), it picks the Starter. On every run after that (Run 1, 2, 3...), it picks the Looper.
+*   **Why use it?** It automates the "Feedback Loop". You don't need to manually switch wires.
+*   **Bonus:** It also switches your "Denoise" setting automatically! (High denoise for the start, low denoise for the polishing loops).
+
+**Workflow:**
+```ascii
+[Run 0 Input] ----> +----------------+
+                    | TRAFFIC ROUTER | ----> [ To KSampler ]
+[Run 1+ Input] ---> +----------------+
+```
+
+**Scenario:**
+You want to paint a picture from scratch, and then spend 10 loops adding tiny details to it. 
+1. Connect your Empty Latent to `Run 0`.
+2. Connect your KSampler Output back to `Run 1`.
+3. Set `First Denoise` to 1.0 (Create).
+4. Set `Loop Denoise` to 0.2 (Polishing).
+5. Hit "Queue" and watch it evolve!
+
+---
+
+## 2. H4 Traffic Merge (The Zipper) 🤐
+**"The Safe Connector"**
+
+This is the "Little Brother" of the Router. It only does one thing: It merges two customized streams into one.
+
+*   **What it does:** It listens to the Loop Counter. If it's Run 0, it opens Gate A. If it's Run 1+, it opens Gate B.
+*   **Why is it "Safe"?** ComfyUI hates empty wires. If you unplug something, it crashes. The Zipper ensures that *something* is always connected, so your workflow never explodes.
+
+**Workflow:**
+```ascii
+[ Start Data ] ---> +---------+
+                    | ZIPPER  | ----> [ Output ]
+[ Loop Data ] ----> +---------+
+```
+
+---
+
+## 3. H4 Traffic Cop (Legacy Splitter) 👮
+**"The Old Reliable"**
+
+*Note: This is an older node. We recommend the **Router**, but the Cop is still on duty.*
+
+*   **What it does:** It takes ONE input and sends it to TWO places. 
+*   **Feature:** It uses "Safe Passthrough". Even if a road is closed, it sends "Ghost Data" down it so your nodes don't turn red and cry.
+
+---
+
+## 4. H4 Image Buffer (The Anti-Lag) 📦
+**"The Wireless Warehouse"**
+
+Understanding this node is the key to preventing headaches.
+
+*   **The Problem:** When you make a loop in ComfyUI, data has to travel physically through wires. Sometimes, the data takes too long to get back to the start, and you get a "Cycle Error" (The Ouroboros Snake biting its own tail).
+*   **The Solution:** The Image Buffer catches the data and stores it in RAM (Memory). It effectively "Snips" the wire, allowing you to send data wirelessly from the end of your workflow back to the start without confusing ComfyUI.
+
+**Scenario:**
+You want to send your finished image back to the start, but ComfyUI keeps giving you errors.
+1. Place an `Image Buffer` at the end of your workflow.
+2. Connect your image to `image_in`.
+3. Place a SECOND `Image Buffer` at the start.
+4. Leave `image_in` EMPTY.
+5. It will magically teleport the data from the first buffer to the second one!
+
+---
+
+## 5. H4 State Monitor (The Scoreboard) 🔢
+**"The Counter"**
+
+*   **What it does:** It just tells you what loop number you are on.
+*   **Use:** Connect it to a Text Display node to see "Run: 5" on your screen. Useful for knowing when to stop.
+
+---
+
+## 6. H4 Loop Incrementer (The Clicker) ➕
+**"The Engine"**
+
+Usually, the **Router** handles counting for you. But sometimes, you want manual control.
+*   **What it does:** Every time this node runs, it adds +1 to the global counter.
+*   **Feature:** It has a "Wireless Reset" port. If you press the Red Button (see below), this node catches the signal and resets the count to 0.
+
+---
+
+## 7. H4 Wireless Reset (The Red Button) 🔴
+**"The Eject Seat"**
+
+*   **The Problem:** You are on Loop 50, but you want to start over.
+*   **The Solution:** Toggle this switch to `True`. The next time your workflow runs, it sends a wireless signal to the **Incrementer** or **Router** screaming "RESET!". The counter drops to 0, and you start fresh.
+*   **Tip:** Don't forget to turn it off after you reset!
+
+---
+
+## 8. H4 Context Hub (The Mothership) 🛸
 **"The One Wire to Rule Them All"**
 
-Tired of spaghetti wires?
-*   **Context Hub**: Plug *everything* into this (Model, VAE, CLIP, Image, Latent). It does two things:
-    1.  **Bundles** all wires into a single `H4_PIPE`.
-    2.  **Logs** a detailed report to the console (shapes, types, devices) for debugging.
-*   **Context Unpack**: Takes that single `H4_PIPE` wire and gives you back all your connections on the other side of your workflow.
+Tired of spaghetti workflows? Do you have 50 wires crossing over each other?
+
+*   **What it does:** It takes all your standard stuff (Model, VAE, CLIP, Positive Prompt, Negative Prompt, Latent, Image) and bundles them into ONE single blue wire called a `PIPE`.
+*   **Bonus:** It prints a detailed report in your console telling you exactly what is inside (Shapes, Types, etc).
 
 ---
 
----
+## 9. H4 Context Unpack (The Distributor) 📤
+**"The Unpacker"**
 
-### 5. H4 Smart Console (Inline Debugger) 🧠
-**"The X-Ray Machine"**
-
-A simple, powerful inline debugger that shows you exactly what is flowing through your wires.
-
-*   **How to use**: Place it **between** any two nodes. (e.g., Checkpoint -> Smart Console -> KSampler).
-*   **What it does**: It passes the data through unchanged, but prints detailed stats to your Console and the Node itself.
-
-**Modes:**
-1.  **Normal (Default)**: Shows Type, Shape, Device. Good for quick checks.
-2.  **🔥 +ULTRA Mode**:
-    *   Inspects Tensors deeply (Min, Max, Mean, Gradients).
-    *   Inspects Objects (Attributes, Keys).
-    *   Use this when you are hunting complex bugs (NaNs, wrong devices).
+*   **What it does:** It takes the single `PIPE` wire from the Mothership and unpacks it back into all the individual connections.
+*   **Use:** Put the Hub at the start of your workflow and the Unpack at the end. Now you have a clean, wire-free workspace in the middle!
 
 ---
 
-## 🧠 How to Build a Basic Loop
+## 10. H4 Smart Console (The X-Ray) 🧠
+**"The Truth Teller"**
 
-**The Goal**: Create an image, then keep fixing it over and over (Feedback Loop).
-
-1.  **The Box**: Get a `H4 Traffic Merge` node.
-2.  **The Setup**: Connect an `Empty Latent Image` to the top slot (`run_once_input`).
-3.  **The Loop**: Place a `{h4-DEBUG} Receiver` and connect it to the bottom slot (`loop_input`). Set the key to `loop_signal`.
-4.  **The Machine**: Connect the **Output** of the Merge node to your **KSampler**.
-5.  **The End**: At the end of your workflow (Image Save), attach a `{h4-DEBUG} Sender` and set key to `loop_signal`.
-
-**The Logic**:
-1.  **Sender** beams the finished image to `loop_signal`.
-2.  **Receiver** catches it.
-3.  **Traffic Merge** grabs it on Run 1+ and feeds it back in.
+*   **What it does:** It sits between any two nodes and shows you what is flowing through the wire.
+*   **Modes:**
+    *   **Normal**: Shows basic info (Type, Shape).
+    *   **🔥 +ULTRA**: Goes nuclear. Inspects inside the object, shows gradients, min/max values, attributes. Use this when you are debugging complex crashes.
 
 ---
 
-## 🛸 Mission Control (New in v2.2.0)
-*(For Advanced Users who want to act like a Scientist)*
+## 11. H4 Mission Control (The Dashboard) 🎛️
+**"The Flight Deck"**
 
-The **Mission Control System** allows you to schedule values (Denoise, Seed, CFG) that change over time as your loop progresses.
-
-### 1. H4 Mission Control (The Dashboard)
-This is your Flight Deck. Connect your signals here to visualize them live.
-- **Inputs**: Generator Signals (Float/Int).
-- **Features**: Live Stats (Run Count, Values) and a `Dashboard_UI` prompt string you can feed into a text display.
-
-### 2. H4 Linear Scheduler (Signal Generator)
-Generates a floating point number that ramps up or down.
-- **Example**: Start at `1.0` (Run 0), ramp down to `0.1` (Run 16).
-- **Use Case**: Perfect for slowly lowering Denoise to "bake" an image.
-
-### 3. H4 Seed Generator (Signal Generator)
-Controls the chaos.
-- **Incremental Mode**: `Seed, Seed+1, Seed+2...` (Great for latent sweeping).
-- **Fixed Mode**: `Seed, Seed, Seed...` (Great for debugging).
-- **Random Mode**: `Chaos`.
+A central place to see everything happening in your loop.
+*   **Active Mode**: It acts like an engine, driving the loop forward.
+*   **Passive Mode**: It just sits there and watches.
+*   **Outputs**: It creates a text report ("Run 5/10, Seed: 12345") that you can display on your screen.
 
 ---
 
-## 🚫 Common Mistakes (Please Read!)
+## 12. H4 Linear Scheduler (The Ramp) 📈
+**"The Smooth Operator"**
 
-### "The Red Box Explosion" (IndexError / NoneType Error)
-**Diagnosis**: You plugged an **Image** into a hole that demands a **Latent**.
-**Explanation**: The `Traffic Merge` is a universal pipe—it lets *anything* through. But the node *after* it (usually a KSampler) is picky.
-*   KSamplers eat **Latents** (Pink wires).
-*   KSamplers explode if you feed them **Images** (Blue wires).
-**Fix**: Make sure whatever you plug into `loop_input` matches `run_once_input`. If you are looping images, convert them to Latents with a `VAE Encode` first!
-
-### "The Zombie Counter"
-**Diagnosis**: You stopped the workflow, changed some settings, and hit run, but it started at "Loop 6" instead of 0.
-**Explanation**: The memory lives in the background. It doesn't know you changed settings.
-**Fix**:
-1.  Tick the `restart_on_true` box (set to True).
-2.  Run once. (This nukes the memory to 0).
-3.  Tick it back to False.
-4.  Run normally.
+*   **What it does:** It creates a number that changes smoothly over time.
+*   **Example:** "Start at 1.0, End at 0.0, over 10 steps."
+    *   Run 0: Output 1.0
+    *   Run 5: Output 0.5
+    *   Run 10: Output 0.0
+*   **Use Case:** Slowly lowering the `Denoise` value so your image gets sharper and sharper with every loop.
 
 ---
 
-## 🔌 Compatibility
-*   **Standard Nodes**: 100% Compatible.
-*   **SDXL**: Yes.
-*   **SD1.5**: Yes.
-*   **Pony**: Yes.
-*   **Does it install viruses?**: No. We follow a "Nuclear Debugging" protocol. We log everything to the console so you can see exactly what is happening.
+## 13. H4 Seed Generator (The Chaos Controller) 🎲
+**"The Dice Roller"**
+
+*   **What it does:** Controls the random seed for your KSampler.
+*   **Modes:**
+    *   **Fixed**: Keeps the seed the same (Scientific Control).
+    *   **Incremental**: Adds +1 every loop (Scanning for cool seeds).
+    *   **Random**: Pure chaos.
 
 ---
 
-[m3rr/h4_Live](https://github.com/m3rr/h4_Live)
+## 14. H4 Gridinator 9001 (The Beast) 📊
+**"IT'S OVER 9000!?!?"**
 
+This is the ultimate testing tool. It takes your workflow and multiplies it into a giant grid.
+
+*   **What it does:** Want to see what your prompt looks like with `CFG` set to 5, 6, 7, and 8? Want to see it across 3 different Models at the same time? The Gridinator does this in one click.
+*   **Powers:**
+    *   **Fuzzy Match**: Type "pony" and it finds your PonyV6 checkpoint.
+    *   **Stutter**: Type a prompt like "A {cat|dog|fish}" and it makes a grid for each animal.
+    *   **Sliding Scale**: Auto-generates the numbers for you.
+
+---
+
+<br>
+<br>
+<br>
+
+# ⚙️ THE DEV CORNER (Technical Specifications)
+
+*> "Show me the code."*
+
+Welcome to the backend. Here is the architectural breakdown of the `h4_Live` toolkit.
+
+## Core Philosophy: Global State & Lazy Evaluation
+The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing in `h4_core.py`. This state persists across ComfyUI's execution graph re-evaluations. Each node uses `check_lazy_status` (where applicable) to inform the ComfyUI backend about dependency requirements based on the current state tick.
+
+### 1. H4_TrafficRouter
+*   **Class**: `H4_TrafficRouter`
+*   **Logic**: Implements a conditional return tuple based on `_H4_GLOBAL_STATE["loop_count"]`.
+*   **Validation**: Uses `VALIDATE_INPUTS` returning `True` to bypass `NoneType` checks during inactive graph paths.
+*   **Type Safety**: Utilizes `ANY_TYPE` wildcard class (`__eq__` always True) to accept potentially unbound inputs from upstream nodes during initialization.
+
+### 2. H4_TrafficMerge
+*   **Class**: `H4_TrafficMerge`
+*   **Logic**: A robust selector switch.
+*   **Wireless Protocol**: If `loop_input` is None, it queries `h4_core.get_buffered_image()`. This implements a "Look-Behind" mechanism that effectively breaks the Directed Acyclic Graph (DAG) cycle restriction of ComfyUI by utilizing external heap storage.
+
+### 3. H4_TrafficCop [LEGACY]
+*   **Class**: `H4_TrafficCop`
+*   **Logic**: Returns `(Data, Data)` regardless of state.
+    *   Active path represents logical flow.
+    *   Inactive path represents "Safe Fallback" (preventing downstream `IndexError`).
+*   **Status**: Maintained for backward compatibility. Recommend `TrafficRouter` for atomic operations.
+
+### 4. H4_ImageBuffer
+*   **Class**: `H4_ImageBuffer`
+*   **Storage**: `_H4_IMAGE_BUFFER` (Global Variable).
+*   **Behavior**:
+    *   **Write Mode** (Input Connected): Writes object reference to global variable.
+    *   **Read Mode** (Input Disconnected): Returns object reference from global variable.
+*   **Optimization**: Stores references, not deep copies (zero-copy overhead), unless specific mutation safety is required (not currently implemented for perf reasons).
+
+### 5. H4_StateMonitor
+*   **Class**: `H4_StateMonitor`
+*   **Function**: Read-Only access to `_H4_GLOBAL_STATE["loop_count"]`.
+*   **Execution**: Does not trigger side effects. Pure observer.
+
+### 6. H4_LoopIncrementer
+*   **Class**: `H4_LoopIncrementer`
+*   **Side Effect**: `increment_loop()` -> `count += 1`.
+*   **Wireless Interact**: Polls `_H4_ORBIT_STORAGE` for `request_reset` flag. If True, executes `reset_state()` instead of increment.
+
+### 7. H4_WirelessResetButton
+*   **Class**: `H4_WirelessResetButton`
+*   **Side Effect**: `orbit_set("request_reset", True)`.
+*   **Scope**: Sets a flag that is consumed by the next execution of an Active Logic Node (Router or Incrementer).
+
+### 8. H4_ContextHub
+*   **Class**: `H4_ContextHub`
+*   **Structure**: `H4_PIPE` is a standard Python `dict` containing keys: `model, vae, clip, positive, negative, latent, image, mask`.
+*   **Extensibility**: Includes `any_A`, `any_B` slots for arbitrary custom types (e.g., ControlNet stacks).
+
+### 9. H4_ContextUnpack
+*   **Class**: `H4_ContextUnpack`
+*   **Logic**: Dictionary lookup `.get(key, None)`. returns tuple structure matching standard ComfyUI types.
+
+### 10. H4_SmartConsole
+*   **Class**: `H4_SmartConsole`
+*   **Introspection**:
+    *   **Tensor**: `.shape`, `.dtype`, `.device`, `.grad`.
+    *   **Dict**: Keys inspection.
+    *   **Object**: `dir()` attribute scanning (in +ULTRA mode).
+*   **Frontend**: Pushes text payload to `ui.text` for JS widget rendering.
+
+### 11. H4_MissionControl
+*   **Class**: `H4_MissionControl`
+*   **Role**: Aggregator.
+*   **Modes**:
+    *   **Active**: Calls `increment_loop()`.
+    *   **Passive**: Read-only.
+*   **Dashboard**: Formats a formatted string for UI consumption.
+
+### 12. H4_LinearScheduler
+*   **Class**: `H4_LinearScheduler`
+*   **Math**: `LERP(start, end, current / max)`.
+*   **Clamping**: Clamps to `end` value if `current > max`.
+
+### 13. H4_SeedGenerator
+*   **Class**: `H4_SeedGenerator`
+*   **Modes**:
+    *   **Incremental**: `seed + loop_count`.
+    *   **Fixed**: `return seed`.
+    *   **Random**: `random.randint(0, 0xffffffffffffffff)`. Note: Explicitly breaks determinism.
+
+### 14. H4_Gridinator
+*   **Class**: `H4_Gridinator`
+*   **Architecture**: Monolithic KSampler Encapsulation.
+*   **Dependencies**: Imports `comfy.sd`, `comfy.samplers`, `nodes`.
+*   **Pipeline**:
+    1.  Parse Axes (X/Y/Z) -> Vector Lists.
+    2.  Iterate `z in Z`: `y in Y`: `x in X`.
+    3.  `fuzzy_load_checkpoint(name)`: On-demand loading. Cache efficient.
+    4.  `common_ksampler(...)`: Execute diffusion.
+    5.  `VAE Decode`: Latent -> Pixel.
+    6.  `PIL.Draw`: Stitch into canvas.
+    7.  `ToTensor`: Return final grid.
+
+---
 <div align="right">
-  (b ' . ' )b - h4 - { Be Your Best }
+
+(b ' . ' )b - h4 - { Be Your Best }
+
 </div>

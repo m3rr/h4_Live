@@ -5,6 +5,7 @@ from .h4_traffic import H4_TrafficCop, H4_TrafficMerge, H4_TrafficRouter, H4_Sta
 from .h4_context import H4_ContextHub, H4_ContextUnpack
 from .h4_smart_debug import H4_SmartConsole
 from .h4_mission_control import H4_MissionControl, H4_LinearScheduler, H4_SeedGenerator
+from .h4_gridinator import H4_Gridinator
 
 NODE_CLASS_MAPPINGS = {
     "H4_TrafficCop": H4_TrafficCop,
@@ -19,7 +20,8 @@ NODE_CLASS_MAPPINGS = {
     "H4_SeedGenerator": H4_SeedGenerator,
     "H4_LoopIncrementer": H4_LoopIncrementer,
     "H4_WirelessResetButton": H4_WirelessResetButton,
-    "H4_ImageBuffer": H4_ImageBuffer
+    "H4_ImageBuffer": H4_ImageBuffer,
+    "H4_Gridinator": H4_Gridinator
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -35,7 +37,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_SeedGenerator": "h4 Seed Generator (Signal Gen)",
     "H4_LoopIncrementer": "h4 Loop Incrementer (Hybrid)",
     "H4_WirelessResetButton": "h4 Wireless Reset (Toggle)",
-    "H4_ImageBuffer": "h4 Image Buffer (Anti-Lag)"
+    "H4_ImageBuffer": "h4 Image Buffer (Anti-Lag)",
+    "H4_Gridinator": "h4 - Gridinator 9001"
 }
 
 WEB_DIRECTORY = "./js"

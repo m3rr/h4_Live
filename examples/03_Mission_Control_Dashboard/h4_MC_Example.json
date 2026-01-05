@@ -1,0 +1,669 @@
+{
+  "id": "0ff42e8e-9075-4284-abd2-0a23c1a8bce1",
+  "revision": 0,
+  "last_node_id": 233,
+  "last_link_id": 315,
+  "nodes": [
+    {
+      "id": 167,
+      "type": "SaveImage",
+      "pos": [
+        580.0113859715306,
+        -1310.5196855656702
+      ],
+      "size": [
+        672.2686178010322,
+        836.155832460712
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 298
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "h4_Gen_Test_Loop"
+      ]
+    },
+    {
+      "id": 215,
+      "type": "H4_MissionControl",
+      "pos": [
+        -732.3525858390144,
+        -1108.950270000729
+      ],
+      "size": [
+        310.624609375,
+        166
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "scheduler_val",
+          "shape": 7,
+          "type": "FLOAT",
+          "link": 283
+        },
+        {
+          "name": "scheduler_seed",
+          "shape": 7,
+          "type": "INT",
+          "link": 284
+        },
+        {
+          "name": "trigger_in",
+          "shape": 7,
+          "type": "*",
+          "link": 301
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Scheduler_Val",
+          "type": "FLOAT",
+          "links": [
+            286
+          ]
+        },
+        {
+          "name": "Scheduler_Seed",
+          "type": "INT",
+          "links": [
+            288
+          ]
+        },
+        {
+          "name": "Trigger_Pass",
+          "type": "*",
+          "links": null
+        },
+        {
+          "name": "Dashboard_UI",
+          "type": "STRING",
+          "links": [
+            289
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H4_MissionControl"
+      },
+      "widgets_values": [
+        "Active (Master Base)",
+        true,
+        true
+      ]
+    },
+    {
+      "id": 216,
+      "type": "H4_LinearScheduler",
+      "pos": [
+        -1109.5919373922554,
+        -1222.1851090340567
+      ],
+      "size": [
+        318.65,
+        106
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "Scheduled_Float",
+          "type": "FLOAT",
+          "links": [
+            283
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H4_LinearScheduler"
+      },
+      "widgets_values": [
+        1.25,
+        0.35,
+        4
+      ]
+    },
+    {
+      "id": 217,
+      "type": "H4_SeedGenerator",
+      "pos": [
+        -1103.010777093415,
+        -1047.784361114798
+      ],
+      "size": [
+        310.706640625,
+        82
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "Scheduled_Seed",
+          "type": "INT",
+          "links": [
+            284
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H4_SeedGenerator"
+      },
+      "widgets_values": [
+        0,
+        "Random"
+      ]
+    },
+    {
+      "id": 218,
+      "type": "KSampler",
+      "pos": [
+        96.9541173950656,
+        -1070.8184221607353
+      ],
+      "size": [
+        270,
+        474
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 293
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 290
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 291
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 312
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": 288
+        },
+        {
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": 286
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            297
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        487656061125254,
+        "randomize",
+        35,
+        3.5,
+        "dpmpp_2m",
+        "karras",
+        1
+      ]
+    },
+    {
+      "id": 219,
+      "type": "H4_SmartConsole",
+      "pos": [
+        -744.3375408066377,
+        -1462.3974599417127
+      ],
+      "size": [
+        400,
+        250
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Anything In",
+          "shape": 7,
+          "type": "*",
+          "link": 289
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Anything Out",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H4_SmartConsole"
+      },
+      "widgets_values": [
+        true,
+        "[05:46:16] 🔥 TYPE: str\nValue: 🛸 H4 MISSION CONTROL\nMode: Active (Master Base)\nRun Count: 1\nScheduler Value: 1.025\nCurrent Seed: 12992729256824850269\n"
+      ]
+    },
+    {
+      "id": 220,
+      "type": "CLIPTextEncode",
+      "pos": [
+        -367.0176836731504,
+        -1139.920605298554
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 294
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            290
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "Close up shot of a beautiful goth womans face her hands in front of her face holding a tesseract, inside the tesseract is a spiral galaxy"
+      ]
+    },
+    {
+      "id": 221,
+      "type": "CLIPTextEncode",
+      "pos": [
+        -331.99634397199037,
+        -851.8918340422501
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 295
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            291
+          ]
+        }
+      ],
+      "title": "NEGATIVE",
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "blurry, bad quality, low resolution, poor quality, broken fingers, extra fingers, extra limbs, extra digits, fused fingers, fused digits, boring, cross-eyed, watermark, signature, writing, text, copyright, trademark, logo, branding"
+      ]
+    },
+    {
+      "id": 222,
+      "type": "EmptyLatentImage",
+      "pos": [
+        -1083.2672961968972,
+        -909.5799948391567
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            312
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        768,
+        512,
+        1
+      ]
+    },
+    {
+      "id": 223,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        -1086.5578763463157,
+        -1388.9078366046663
+      ],
+      "size": [
+        270,
+        98
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            293
+          ]
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            294,
+            295
+          ]
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            296
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "widgets_values": [
+        "XL\\h4_RepentXL.safetensors"
+      ]
+    },
+    {
+      "id": 224,
+      "type": "VAEDecode",
+      "pos": [
+        402.97807129112095,
+        -1168.4389665935296
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 297
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 296
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            298
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 225,
+      "type": "H4_WirelessResetButton",
+      "pos": [
+        -1090.4348909542346,
+        -738.5257158676925
+      ],
+      "size": [
+        278.1265625,
+        58
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "reset_status",
+          "type": "STRING",
+          "links": [
+            301
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H4_WirelessResetButton"
+      },
+      "widgets_values": [
+        true
+      ]
+    },
+    {
+      "id": 231,
+      "type": "Note",
+      "pos": [
+        -312.7224426602711,
+        -1688.7493613439076
+      ],
+      "size": [
+        517.8124691,
+        459.24239432000013
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "HEY .. HEY YOU... READ THIS <3",
+      "properties": {},
+      "widgets_values": [
+        ".                                                              _\nh4 Misson Control Node - Operator      \\_____ these are just words I use to describe\nh4 Linear Scheduler - Controller            |_____ how these function\nh4 Seed Generator - ID                        _ /\n\n\nHey - So, ever get those models that can produce at weird denoise ranges?\nOr maybe you wanna check a range of a val that's a float?\n\nWELL HELLO THERE FELLOW WEIRDO\nI'm like you!\n\nAnyway - This takes a value plugged in a scheduler value and out puts it to the scheduler input in a ksampler.\n\nSo essentially what this does\n\nIt makes the changes for you on your setting\nso you can set a run batch of 20 and see the whole\nthing happen from denoise ### ---> ###\n\nIf it's combined with the image buffer it can be used\nto iteratively upscale.  Or create variations.\n\nPlay around - mix things up\n\nThis is a very basic workflow just to show the node operate.\nI'll be honest I was lazy withd this one - and I just wanted to show you it works.\n\n***Note***\n\nWireless reset does not NEED to be plugged into anything.\nI plug it in for the debugging in console.. However on other nodes or any node that requires a trigger this can operate as a odd and even firing mechanism."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      283,
+      216,
+      0,
+      215,
+      0,
+      "FLOAT"
+    ],
+    [
+      284,
+      217,
+      0,
+      215,
+      1,
+      "INT"
+    ],
+    [
+      286,
+      215,
+      0,
+      218,
+      5,
+      "FLOAT"
+    ],
+    [
+      288,
+      215,
+      1,
+      218,
+      4,
+      "INT"
+    ],
+    [
+      289,
+      215,
+      3,
+      219,
+      0,
+      "STRING"
+    ],
+    [
+      290,
+      220,
+      0,
+      218,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      291,
+      221,
+      0,
+      218,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      293,
+      223,
+      0,
+      218,
+      0,
+      "MODEL"
+    ],
+    [
+      294,
+      223,
+      1,
+      220,
+      0,
+      "CLIP"
+    ],
+    [
+      295,
+      223,
+      1,
+      221,
+      0,
+      "CLIP"
+    ],
+    [
+      296,
+      223,
+      2,
+      224,
+      1,
+      "VAE"
+    ],
+    [
+      297,
+      218,
+      0,
+      224,
+      0,
+      "LATENT"
+    ],
+    [
+      298,
+      224,
+      0,
+      167,
+      0,
+      "IMAGE"
+    ],
+    [
+      301,
+      225,
+      0,
+      215,
+      2,
+      "STRING"
+    ],
+    [
+      312,
+      222,
+      0,
+      218,
+      3,
+      "LATENT"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.620921323059155,
+      "offset": [
+        1576.045930821802,
+        1717.8064358274557
+      ]
+    },
+    "workflowRendererVersion": "LG",
+    "frontendVersion": "1.35.9"
+  },
+  "version": 0.4
+}

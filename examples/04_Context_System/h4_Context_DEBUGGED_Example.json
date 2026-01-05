@@ -1,0 +1,1122 @@
+{
+  "id": "0ff42e8e-9075-4284-abd2-0a23c1a8bce1",
+  "revision": 0,
+  "last_node_id": 243,
+  "last_link_id": 341,
+  "nodes": [
+    {
+      "id": 167,
+      "type": "SaveImage",
+      "pos": [
+        6.485607785180003,
+        -1362.064723256301
+      ],
+      "size": [
+        672.2686178010322,
+        836.155832460712
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 298
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "h4_Gen_Test_Loop"
+      ]
+    },
+    {
+      "id": 218,
+      "type": "KSampler",
+      "pos": [
+        -506.68819779128495,
+        -1331.407657851366
+      ],
+      "size": [
+        475.5010759999998,
+        605.095514
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 329
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 331
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 332
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 333
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            297
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        79553033794856,
+        "randomize",
+        35,
+        3.5,
+        "dpmpp_2m",
+        "karras",
+        1
+      ]
+    },
+    {
+      "id": 219,
+      "type": "H4_SmartConsole",
+      "pos": [
+        -1667.3112275593305,
+        -2328.1209451166096
+      ],
+      "size": [
+        400,
+        250
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Anything In",
+          "shape": 7,
+          "type": "*",
+          "link": 327
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Anything Out",
+          "type": "*",
+          "links": [
+            331
+          ]
+        }
+      ],
+      "title": "CONDITIONING + DEBUG",
+      "properties": {
+        "Node name for S&R": "H4_SmartConsole"
+      },
+      "widgets_values": [
+        true,
+        "[06:07:21] 🔥 TYPE: list\nLength: 1\nItem 0 Type: list\n[0]: [tensor([[[-2.1160, -1.6972,  2.5168,  ...,  0.164..."
+      ]
+    },
+    {
+      "id": 220,
+      "type": "CLIPTextEncode",
+      "pos": [
+        -3079.1426552374187,
+        -1247.3220226114697
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 294
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            319
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "Close up shot of a beautiful goth womans face her hands in front of her face holding a tesseract, inside the tesseract is a spiral galaxy"
+      ]
+    },
+    {
+      "id": 221,
+      "type": "CLIPTextEncode",
+      "pos": [
+        -2888.881723713971,
+        -947.1599946017234
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 295
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            320
+          ]
+        }
+      ],
+      "title": "NEGATIVE",
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "blurry, bad quality, low resolution, poor quality, broken fingers, extra fingers, extra limbs, extra digits, fused fingers, fused digits, boring, cross-eyed, watermark, signature, writing, text, copyright, trademark, logo, branding"
+      ]
+    },
+    {
+      "id": 222,
+      "type": "EmptyLatentImage",
+      "pos": [
+        -3451.9390151917187,
+        -888.0016404111667
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            321
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        768,
+        512,
+        1
+      ]
+    },
+    {
+      "id": 223,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        -3447.5378880769404,
+        -1036.3922988524766
+      ],
+      "size": [
+        270,
+        98
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            316
+          ]
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            294,
+            295,
+            317
+          ]
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            318
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "widgets_values": [
+        "XL\\h4_RepentXL.safetensors"
+      ]
+    },
+    {
+      "id": 224,
+      "type": "VAEDecode",
+      "pos": [
+        8.379954104771025,
+        -1480.403471284161
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 297
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 330
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            298
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 231,
+      "type": "Note",
+      "pos": [
+        -1056.7952792510744,
+        -1187.5368675254444
+      ],
+      "size": [
+        485.08519637272707,
+        250.15148522909112
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "HEY .. HEY YOU... READ THIS <3",
+      "properties": {},
+      "widgets_values": [
+        "CONTEXT CONTROL SYSTEM\n\nIt's best if you read the READ ME for this one\n\nHowever\n\nIt's a contetxt controller - allows you to manage your wires and move certain\ndata to anywhere you want. Or all at once\n\nI've created this workflow as an example of it and made a debugging grid to show EXACTLY what's getting passed so you can just get an at a glance look at what this does. \n\n"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 234,
+      "type": "H4_ContextHub",
+      "pos": [
+        -2496.148241812968,
+        -1091.6580548450227
+      ],
+      "size": [
+        232.987890625,
+        226
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "base_pipe",
+          "shape": 7,
+          "type": "H4_PIPE",
+          "link": null
+        },
+        {
+          "name": "model",
+          "shape": 7,
+          "type": "MODEL",
+          "link": 316
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 318
+        },
+        {
+          "name": "clip",
+          "shape": 7,
+          "type": "CLIP",
+          "link": 317
+        },
+        {
+          "name": "positive",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 319
+        },
+        {
+          "name": "negative",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 320
+        },
+        {
+          "name": "latent",
+          "shape": 7,
+          "type": "LATENT",
+          "link": 321
+        },
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "any_A",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "name": "any_B",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "h4_pipe",
+          "type": "H4_PIPE",
+          "links": [
+            334
+          ]
+        },
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            322
+          ]
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "links": [
+            323
+          ]
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "links": [
+            324
+          ]
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            327
+          ]
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            328
+          ]
+        },
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            325
+          ]
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            326
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        },
+        {
+          "name": "any_A",
+          "type": "*",
+          "links": null
+        },
+        {
+          "name": "any_B",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H4_ContextHub"
+      }
+    },
+    {
+      "id": 235,
+      "type": "H4_SmartConsole",
+      "pos": [
+        -2175.503846601732,
+        -2705.6637851553096
+      ],
+      "size": [
+        400,
+        250
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Anything In",
+          "shape": 7,
+          "type": "*",
+          "link": 322
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Anything Out",
+          "type": "*",
+          "links": [
+            329
+          ]
+        }
+      ],
+      "title": "MODEL DEBUG",
+      "properties": {
+        "Node name for S&R": "H4_SmartConsole"
+      },
+      "widgets_values": [
+        true,
+        "[06:07:21] 🔥 TYPE: ModelPatcher\nAttributes: ['_load_list', 'add_callback', 'add_callback_with_key', 'add_hook_patches', 'add_object_patch', 'add_patches', 'add_weight_wrapper', 'add_wrapper', 'add_wrapper_with_key', 'additional_models', 'apply_hooks', 'attachments', 'backup', 'cached_hook_patches', 'calculate_weight', 'callbacks', 'clean_hooks', 'cleanup', 'clear_cached_hook_weights', 'clone', 'clone_has_same_weights', 'current_hooks', 'current_loaded_device', 'detach', 'eject_model', 'force_cast_weights', 'forced_hooks', 'get_additional_models', 'get_additional_models_with_key', 'get_all_callbacks', 'get_all_wrappers', 'get_attachment', 'get_callbacks', 'get_combined_hook_patches', 'get_injections', 'get_key_patches', 'get_model_object', 'get_nested_additional_models', 'get_ram_usage', 'get_wrappers', 'hook_backup', 'hook_mode', 'hook_patches', 'hook_patches_backup', 'inject_model', 'injections', 'is_clip', 'is_clone', 'is_injected', 'load']...\nType: <class 'comfy.model_patcher.ModelPatcher'>\nID: 1938093726736\nString Rep: <comfy.model_patcher.ModelPatcher object at 0x000001C33F635C10>"
+      ]
+    },
+    {
+      "id": 236,
+      "type": "H4_SmartConsole",
+      "pos": [
+        -2186.5677453636317,
+        -2332.731165342309
+      ],
+      "size": [
+        400,
+        250
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Anything In",
+          "shape": 7,
+          "type": "*",
+          "link": 325
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Anything Out",
+          "type": "*",
+          "links": [
+            333
+          ]
+        }
+      ],
+      "title": "LATENT DEBUG",
+      "properties": {
+        "Node name for S&R": "H4_SmartConsole"
+      },
+      "widgets_values": [
+        true,
+        "[06:07:21] 🔥 TYPE: dict\nKeys (1): ['samples']...\nLatent Shape: [1, 4, 64, 96]\nKey 'samples': Tensor"
+      ]
+    },
+    {
+      "id": 237,
+      "type": "H4_SmartConsole",
+      "pos": [
+        -1662.5771351266287,
+        -2705.3390601416118
+      ],
+      "size": [
+        400,
+        250
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Anything In",
+          "shape": 7,
+          "type": "*",
+          "link": 324
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Anything Out",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "title": "CLIP DEBUG",
+      "properties": {
+        "Node name for S&R": "H4_SmartConsole"
+      },
+      "widgets_values": [
+        true,
+        "[06:07:21] 🔥 TYPE: CLIP\nAttributes: ['add_hooks_to_dict', 'add_patches', 'apply_hooks_to_conds', 'clip_layer', 'clone', 'cond_stage_model', 'encode', 'encode_from_tokens', 'encode_from_tokens_scheduled', 'get_key_patches', 'get_ram_usage', 'get_sd', 'layer_idx', 'load_model', 'load_sd', 'patcher', 'set_tokenizer_option', 'tokenize', 'tokenizer', 'tokenizer_options', 'use_clip_schedule']...\nType: <class 'comfy.sd.CLIP'>\nID: 1938094679936\nString Rep: <comfy.sd.CLIP object at 0x000001C33F71E780>"
+      ]
+    },
+    {
+      "id": 238,
+      "type": "H4_SmartConsole",
+      "pos": [
+        -1172.2802218188353,
+        -2700.6050197630098
+      ],
+      "size": [
+        400,
+        250
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Anything In",
+          "shape": 7,
+          "type": "*",
+          "link": 323
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Anything Out",
+          "type": "*",
+          "links": [
+            330
+          ]
+        }
+      ],
+      "title": "VAE DEBUG",
+      "properties": {
+        "Node name for S&R": "H4_SmartConsole"
+      },
+      "widgets_values": [
+        true,
+        "[06:07:21] 🔥 TYPE: VAE\nAttributes: ['crop_input', 'decode', 'decode_tiled', 'decode_tiled_', 'decode_tiled_1d', 'decode_tiled_3d', 'device', 'disable_offload', 'downscale_index_formula', 'downscale_ratio', 'encode', 'encode_tiled', 'encode_tiled_', 'encode_tiled_1d', 'encode_tiled_3d', 'extra_1d_channel', 'first_stage_model', 'get_ram_usage', 'get_sd', 'latent_channels', 'latent_dim', 'memory_used_decode', 'memory_used_encode', 'model_size', 'not_video', 'output_channels', 'output_device', 'pad_channel_value', 'patcher', 'process_input', 'process_output', 'size', 'spacial_compression_decode', 'spacial_compression_encode', 'temporal_compression_decode', 'throw_exception_if_invalid', 'upscale_index_formula', 'upscale_ratio', 'vae_dtype', 'vae_encode_crop_pixels', 'working_dtypes']...\nType: <class 'comfy.sd.VAE'>\nID: 1932813935744\nString Rep: <comfy.sd.VAE object at 0x000001C204B02480>"
+      ]
+    },
+    {
+      "id": 239,
+      "type": "H4_SmartConsole",
+      "pos": [
+        -1162.3629609109337,
+        -2321.2907145443114
+      ],
+      "size": [
+        400,
+        250
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Anything In",
+          "shape": 7,
+          "type": "*",
+          "link": 326
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Anything Out",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "title": "IMAGE DEBUG",
+      "properties": {
+        "Node name for S&R": "H4_SmartConsole"
+      },
+      "widgets_values": [
+        true,
+        "[06:07:21] 🔥 TYPE: NoneType\nAttributes: []...\nType: <class 'NoneType'>\nID: 140709584152352\nString Rep: None"
+      ]
+    },
+    {
+      "id": 240,
+      "type": "H4_SmartConsole",
+      "pos": [
+        -1662.3112275593303,
+        -2013.3609451166074
+      ],
+      "size": [
+        400,
+        250
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Anything In",
+          "shape": 7,
+          "type": "*",
+          "link": 328
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Anything Out",
+          "type": "*",
+          "links": [
+            332
+          ]
+        }
+      ],
+      "title": "CONDITIONING - DEBUG",
+      "properties": {
+        "Node name for S&R": "H4_SmartConsole"
+      },
+      "widgets_values": [
+        true,
+        "[06:07:21] 🔥 TYPE: list\nLength: 1\nItem 0 Type: list\n[0]: [tensor([[[-2.1160, -1.6972,  2.5168,  ...,  0.164..."
+      ]
+    },
+    {
+      "id": 241,
+      "type": "H4_SmartConsole",
+      "pos": [
+        -2184.187494441981,
+        -2007.1880058916697
+      ],
+      "size": [
+        400,
+        250
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Anything In",
+          "shape": 7,
+          "type": "*",
+          "link": 334
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Anything Out",
+          "type": "*",
+          "links": [
+            335
+          ]
+        }
+      ],
+      "title": "H4 PIPE OUT DEBUG",
+      "properties": {
+        "Node name for S&R": "H4_SmartConsole"
+      },
+      "widgets_values": [
+        true,
+        "[06:07:21] 🔥 TYPE: dict\nKeys (6): ['model', 'vae', 'clip', 'positive', 'negative']...\nKey 'model': ModelPatcher\nKey 'vae': VAE\nKey 'clip': CLIP\nKey 'positive': list\nKey 'negative': list\nKey 'latent': dict"
+      ]
+    },
+    {
+      "id": 242,
+      "type": "H4_ContextUnpack",
+      "pos": [
+        -1606.4690716454195,
+        -1695.1005007183549
+      ],
+      "size": [
+        251.089453125,
+        206
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "h4_pipe",
+          "type": "H4_PIPE",
+          "link": 335
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": []
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "links": null
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "links": null
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": null
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": null
+        },
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": null
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "any_A",
+          "type": "*",
+          "links": [
+            341
+          ]
+        },
+        {
+          "name": "any_B",
+          "type": "*",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H4_ContextUnpack"
+      }
+    },
+    {
+      "id": 243,
+      "type": "H4_SmartConsole",
+      "pos": [
+        -1185.4104011130478,
+        -2014.9725153645416
+      ],
+      "size": [
+        400,
+        250
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "Anything In",
+          "shape": 7,
+          "type": "*",
+          "link": 341
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Anything Out",
+          "type": "*",
+          "links": []
+        }
+      ],
+      "title": "CONDITIONING - DEBUG",
+      "properties": {
+        "Node name for S&R": "H4_SmartConsole"
+      },
+      "widgets_values": [
+        true,
+        "[06:07:21] 🔥 TYPE: list\nLength: 1\nItem 0 Type: list\n[0]: [tensor([[[-2.1160, -1.6972,  2.5168,  ...,  0.164..."
+      ]
+    }
+  ],
+  "links": [
+    [
+      294,
+      223,
+      1,
+      220,
+      0,
+      "CLIP"
+    ],
+    [
+      295,
+      223,
+      1,
+      221,
+      0,
+      "CLIP"
+    ],
+    [
+      297,
+      218,
+      0,
+      224,
+      0,
+      "LATENT"
+    ],
+    [
+      298,
+      224,
+      0,
+      167,
+      0,
+      "IMAGE"
+    ],
+    [
+      316,
+      223,
+      0,
+      234,
+      1,
+      "MODEL"
+    ],
+    [
+      317,
+      223,
+      1,
+      234,
+      3,
+      "CLIP"
+    ],
+    [
+      318,
+      223,
+      2,
+      234,
+      2,
+      "VAE"
+    ],
+    [
+      319,
+      220,
+      0,
+      234,
+      4,
+      "CONDITIONING"
+    ],
+    [
+      320,
+      221,
+      0,
+      234,
+      5,
+      "CONDITIONING"
+    ],
+    [
+      321,
+      222,
+      0,
+      234,
+      6,
+      "LATENT"
+    ],
+    [
+      322,
+      234,
+      1,
+      235,
+      0,
+      "MODEL"
+    ],
+    [
+      323,
+      234,
+      2,
+      238,
+      0,
+      "VAE"
+    ],
+    [
+      324,
+      234,
+      3,
+      237,
+      0,
+      "CLIP"
+    ],
+    [
+      325,
+      234,
+      6,
+      236,
+      0,
+      "LATENT"
+    ],
+    [
+      326,
+      234,
+      7,
+      239,
+      0,
+      "IMAGE"
+    ],
+    [
+      327,
+      234,
+      4,
+      219,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      328,
+      234,
+      5,
+      240,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      329,
+      235,
+      0,
+      218,
+      0,
+      "MODEL"
+    ],
+    [
+      330,
+      238,
+      0,
+      224,
+      1,
+      "VAE"
+    ],
+    [
+      331,
+      219,
+      0,
+      218,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      332,
+      240,
+      0,
+      218,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      333,
+      236,
+      0,
+      218,
+      3,
+      "LATENT"
+    ],
+    [
+      334,
+      234,
+      0,
+      241,
+      0,
+      "H4_PIPE"
+    ],
+    [
+      335,
+      241,
+      0,
+      242,
+      0,
+      "H4_PIPE"
+    ],
+    [
+      341,
+      242,
+      8,
+      243,
+      0,
+      "*"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.35049389948139237,
+      "offset": [
+        4035.8481976597845,
+        2896.3130824413047
+      ]
+    },
+    "workflowRendererVersion": "LG",
+    "frontendVersion": "1.35.9"
+  },
+  "version": 0.4
+}

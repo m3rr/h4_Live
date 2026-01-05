@@ -1,0 +1,740 @@
+{
+    "id": "0ff42e8e-9075-4284-abd2-0a23c1a8bce1",
+    "revision": 0,
+    "last_node_id": 192,
+    "last_link_id": 223,
+    "nodes": [
+        {
+            "id": 167,
+            "type": "SaveImage",
+            "pos": [
+                859.4849692725285,
+                -923.7762904968278
+            ],
+            "size": [
+                672.2686178010322,
+                836.155832460712
+            ],
+            "flags": {},
+            "order": 11,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "images",
+                    "type": "IMAGE",
+                    "link": 204
+                }
+            ],
+            "outputs": [],
+            "properties": {},
+            "widgets_values": [
+                "h4_Gen_Test_Loop"
+            ]
+        },
+        {
+            "id": 180,
+            "type": "H4_TrafficMerge",
+            "pos": [
+                122.27253894889049,
+                -722.5922870658708
+            ],
+            "size": [
+                299.413671875,
+                126
+            ],
+            "flags": {},
+            "order": 5,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "run_once_input",
+                    "shape": 7,
+                    "type": "*",
+                    "link": 192
+                },
+                {
+                    "name": "loop_input",
+                    "shape": 7,
+                    "type": "*",
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "Selected_Output",
+                    "type": "*",
+                    "links": [
+                        216
+                    ]
+                },
+                {
+                    "name": "Denoise_Val",
+                    "type": "FLOAT",
+                    "links": [
+                        195
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "H4_TrafficMerge"
+            },
+            "widgets_values": [
+                1,
+                0.45,
+                false
+            ]
+        },
+        {
+            "id": 181,
+            "type": "EmptyLatentImage",
+            "pos": [
+                -219.07729290469317,
+                -821.3922325568042
+            ],
+            "size": [
+                270,
+                106
+            ],
+            "flags": {},
+            "order": 1,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "LATENT",
+                    "type": "LATENT",
+                    "links": [
+                        192
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "EmptyLatentImage"
+            },
+            "widgets_values": [
+                1280,
+                768,
+                1
+            ]
+        },
+        {
+            "id": 182,
+            "type": "KSampler (Efficient)",
+            "pos": [
+                485.81969022500743,
+                -1030.2906281356218
+            ],
+            "size": [
+                325,
+                562
+            ],
+            "flags": {},
+            "order": 7,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "model",
+                    "type": "MODEL",
+                    "link": 218
+                },
+                {
+                    "name": "positive",
+                    "type": "CONDITIONING",
+                    "link": 199
+                },
+                {
+                    "name": "negative",
+                    "type": "CONDITIONING",
+                    "link": 201
+                },
+                {
+                    "name": "latent_image",
+                    "type": "LATENT",
+                    "link": 214
+                },
+                {
+                    "name": "optional_vae",
+                    "shape": 7,
+                    "type": "VAE",
+                    "link": 202
+                },
+                {
+                    "name": "script",
+                    "shape": 7,
+                    "type": "SCRIPT",
+                    "link": null
+                },
+                {
+                    "name": "denoise",
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "denoise"
+                    },
+                    "link": 195
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "MODEL",
+                    "type": "MODEL",
+                    "links": null
+                },
+                {
+                    "name": "CONDITIONING+",
+                    "type": "CONDITIONING",
+                    "links": null
+                },
+                {
+                    "name": "CONDITIONING-",
+                    "type": "CONDITIONING",
+                    "links": null
+                },
+                {
+                    "name": "LATENT",
+                    "type": "LATENT",
+                    "links": [
+                        203,
+                        223
+                    ]
+                },
+                {
+                    "name": "VAE",
+                    "type": "VAE",
+                    "links": [
+                        205
+                    ]
+                },
+                {
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": null
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "KSampler (Efficient)"
+            },
+            "widgets_values": [
+                104700754099949,
+                null,
+                20,
+                4.5,
+                "dpmpp_2m",
+                "karras",
+                1,
+                "auto",
+                "false"
+            ],
+            "color": "#2a363b",
+            "bgcolor": "#3f5159",
+            "shape": 1
+        },
+        {
+            "id": 183,
+            "type": "CheckpointLoaderSimple",
+            "pos": [
+                -217.20599504543367,
+                -991.0067113827716
+            ],
+            "size": [
+                270,
+                98
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "MODEL",
+                    "type": "MODEL",
+                    "links": [
+                        217
+                    ]
+                },
+                {
+                    "name": "CLIP",
+                    "type": "CLIP",
+                    "links": [
+                        197,
+                        200
+                    ]
+                },
+                {
+                    "name": "VAE",
+                    "type": "VAE",
+                    "links": [
+                        202
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "CheckpointLoaderSimple"
+            },
+            "widgets_values": [
+                "XL\\Illustrious\\h4_illustriousXL.safetensors"
+            ]
+        },
+        {
+            "id": 184,
+            "type": "CLIPTextEncode",
+            "pos": [
+                127.0435620984025,
+                -1062.1179798372907
+            ],
+            "size": [
+                288.618915475559,
+                220.19597401910505
+            ],
+            "flags": {},
+            "order": 3,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "clip",
+                    "type": "CLIP",
+                    "link": 197
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "CONDITIONING",
+                    "type": "CONDITIONING",
+                    "links": [
+                        199
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "CLIPTextEncode"
+            },
+            "widgets_values": [
+                "In a room dimly lit by a fireplace, a cute sorceress sits at a table adorned with a mystic crystal ball, this ball has swirling green energies confined within it, the sorceress looks at it with intense focus, her black and white hair, braided falls to her side, her petite perky breasts, braless, cleavage hangs slightly forward as she leans in to look deeper to the cyrstal ball, her attire is that of a night gown fit for a queen, two leg slits, deep vneck, choker, heterochromia"
+            ]
+        },
+        {
+            "id": 185,
+            "type": "CLIPTextEncode",
+            "pos": [
+                154.7965801417576,
+                -785.6156889609094
+            ],
+            "size": [
+                400,
+                200
+            ],
+            "flags": {
+                "collapsed": true
+            },
+            "order": 4,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "clip",
+                    "type": "CLIP",
+                    "link": 200
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "CONDITIONING",
+                    "type": "CONDITIONING",
+                    "links": [
+                        201
+                    ]
+                }
+            ],
+            "title": "NEGATIVE",
+            "properties": {
+                "Node name for S&R": "CLIPTextEncode"
+            },
+            "widgets_values": [
+                "blurry, bad quality, fuzzy, out of focus, boring, dull, cross-eyed, fused fingers, fused digits, extra fingers, extra limbs, dull eyes, watermark, signature, logo, brand, trademark, copyright"
+            ]
+        },
+        {
+            "id": 186,
+            "type": "VAEDecode",
+            "pos": [
+                839.5169546916102,
+                -1034.3903506660065
+            ],
+            "size": [
+                140,
+                46
+            ],
+            "flags": {},
+            "order": 9,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "samples",
+                    "type": "LATENT",
+                    "link": 203
+                },
+                {
+                    "name": "vae",
+                    "type": "VAE",
+                    "link": 205
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": [
+                        204,
+                        219
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "VAEDecode"
+            },
+            "widgets_values": []
+        },
+        {
+            "id": 187,
+            "type": "H4_ImageBuffer",
+            "pos": [
+                -189.04523700062705,
+                -648.8833344434771
+            ],
+            "size": [
+                216.8619140625,
+                26
+            ],
+            "flags": {},
+            "order": 8,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "image_in",
+                    "shape": 7,
+                    "type": "*",
+                    "link": 223
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "buffered_data",
+                    "type": "*",
+                    "links": [
+                        221
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "H4_ImageBuffer"
+            },
+            "widgets_values": []
+        },
+        {
+            "id": 189,
+            "type": "H4_SmartConsole",
+            "pos": [
+                -1208.0157815254386,
+                -380.11202396421777
+            ],
+            "size": [
+                392.1626953125,
+                369.2067481093559
+            ],
+            "flags": {},
+            "order": 6,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "Anything In",
+                    "shape": 7,
+                    "type": "*",
+                    "link": 216
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "Anything Out",
+                    "type": "*",
+                    "links": [
+                        214
+                    ]
+                }
+            ],
+            "title": "SELECTED OUTPUT OUT DEBUG",
+            "properties": {
+                "Node name for S&R": "H4_SmartConsole"
+            },
+            "widgets_values": [
+                true,
+                "[07:51:56] 🔥 TYPE: Tensor\nShape: [1, 768, 1280, 3]\nDtype: torch.float32\nDevice: cpu\nMin: 0.0000\nMax: 1.0000\nMean: 0.3507\nGradient: None"
+            ]
+        },
+        {
+            "id": 190,
+            "type": "H4_SmartConsole",
+            "pos": [
+                -1207.9234785461074,
+                -813.9762407121444
+            ],
+            "size": [
+                391.13480575533856,
+                371.98204991369096
+            ],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "Anything In",
+                    "shape": 7,
+                    "type": "*",
+                    "link": 217
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "Anything Out",
+                    "type": "*",
+                    "links": [
+                        218
+                    ]
+                }
+            ],
+            "title": "CHECKPOINT DEBUG",
+            "properties": {
+                "Node name for S&R": "H4_SmartConsole"
+            },
+            "widgets_values": [
+                true,
+                "[07:51:56] 🔥 TYPE: ModelPatcher\nAttributes: ['_load_list', 'add_callback', 'add_callback_with_key', 'add_hook_patches', 'add_object_patch', 'add_patches', 'add_weight_wrapper', 'add_wrapper', 'add_wrapper_with_key', 'additional_models', 'apply_hooks', 'attachments', 'backup', 'cached_hook_patches', 'calculate_weight', 'callbacks', 'clean_hooks', 'cleanup', 'clear_cached_hook_weights', 'clone', 'clone_has_same_weights', 'current_hooks', 'current_loaded_device', 'detach', 'eject_model', 'force_cast_weights', 'forced_hooks', 'get_additional_models', 'get_additional_models_with_key', 'get_all_callbacks', 'get_all_wrappers', 'get_attachment', 'get_callbacks', 'get_combined_hook_patches', 'get_injections', 'get_key_patches', 'get_model_object', 'get_nested_additional_models', 'get_ram_usage', 'get_wrappers', 'hook_backup', 'hook_mode', 'hook_patches', 'hook_patches_backup', 'inject_model', 'injections', 'is_clip', 'is_clone', 'is_injected', 'load']...\nType: <class 'comfy.model_patcher.ModelPatcher'>\nID: 2245119925312\nString Rep: <comfy.model_patcher.ModelPatcher object at 0x0000020ABB935C40>"
+            ]
+        },
+        {
+            "id": 191,
+            "type": "H4_SmartConsole",
+            "pos": [
+                -1621.7372301346034,
+                -811.8311579332803
+            ],
+            "size": [
+                392.1626953125,
+                369.2067481093559
+            ],
+            "flags": {},
+            "order": 12,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "Anything In",
+                    "shape": 7,
+                    "type": "*",
+                    "link": 219
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "Anything Out",
+                    "type": "*",
+                    "links": []
+                }
+            ],
+            "title": "Image IN TO IMAGE BUFFER DEBUG",
+            "properties": {
+                "Node name for S&R": "H4_SmartConsole"
+            },
+            "widgets_values": [
+                true,
+                "[07:47:15] 🔥 TYPE: Tensor\nShape: [1, 768, 1280, 3]\nDtype: torch.float32\nDevice: cpu\nMin: 0.0000\nMax: 1.0000\nMean: 0.3507\nGradient: None"
+            ]
+        },
+        {
+            "id": 192,
+            "type": "H4_SmartConsole",
+            "pos": [
+                -1623.0458503071936,
+                -388.53224384017847
+            ],
+            "size": [
+                392.1626953125,
+                369.2067481093559
+            ],
+            "flags": {},
+            "order": 10,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "Anything In",
+                    "shape": 7,
+                    "type": "*",
+                    "link": 221
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "Anything Out",
+                    "type": "*",
+                    "links": []
+                }
+            ],
+            "title": "IMAGE OUT FROM IMAGE BUFFER DEBUG",
+            "properties": {
+                "Node name for S&R": "H4_SmartConsole"
+            },
+            "widgets_values": [
+                true,
+                "[07:47:15] 🔥 TYPE: Tensor\nShape: [1, 768, 1280, 3]\nDtype: torch.float32\nDevice: cpu\nMin: 0.0000\nMax: 1.0000\nMean: 0.3507\nGradient: None"
+            ]
+        }
+    ],
+    "links": [
+        [
+            192,
+            181,
+            0,
+            180,
+            0,
+            "LATENT"
+        ],
+        [
+            195,
+            180,
+            1,
+            182,
+            6,
+            "FLOAT"
+        ],
+        [
+            197,
+            183,
+            1,
+            184,
+            0,
+            "CLIP"
+        ],
+        [
+            199,
+            184,
+            0,
+            182,
+            1,
+            "CONDITIONING"
+        ],
+        [
+            200,
+            183,
+            1,
+            185,
+            0,
+            "CLIP"
+        ],
+        [
+            201,
+            185,
+            0,
+            182,
+            2,
+            "CONDITIONING"
+        ],
+        [
+            202,
+            183,
+            2,
+            182,
+            4,
+            "VAE"
+        ],
+        [
+            203,
+            182,
+            3,
+            186,
+            0,
+            "LATENT"
+        ],
+        [
+            204,
+            186,
+            0,
+            167,
+            0,
+            "IMAGE"
+        ],
+        [
+            205,
+            182,
+            4,
+            186,
+            1,
+            "VAE"
+        ],
+        [
+            214,
+            189,
+            0,
+            182,
+            3,
+            "LATENT"
+        ],
+        [
+            216,
+            180,
+            0,
+            189,
+            0,
+            "*"
+        ],
+        [
+            217,
+            183,
+            0,
+            190,
+            0,
+            "MODEL"
+        ],
+        [
+            218,
+            190,
+            0,
+            182,
+            0,
+            "MODEL"
+        ],
+        [
+            219,
+            186,
+            0,
+            191,
+            0,
+            "IMAGE"
+        ],
+        [
+            221,
+            187,
+            0,
+            192,
+            0,
+            "IMAGE"
+        ],
+        [
+            223,
+            182,
+            3,
+            187,
+            0,
+            "LATENT"
+        ]
+    ],
+    "groups": [],
+    "config": {},
+    "extra": {
+        "ds": {
+            "scale": 0.7309295008079205,
+            "offset": [
+                1196.6021178440267,
+                1256.0072047483418
+            ]
+        },
+        "workflowRendererVersion": "LG",
+        "frontendVersion": "1.35.9"
+    },
+    "version": 0.4
+}
