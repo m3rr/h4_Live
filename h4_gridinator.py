@@ -87,6 +87,8 @@ class H4_Gridinator:
                 "font_size": ("INT", {"default": 40, "min": 10, "max": 200, "tooltip": "Text size for the grid labels."}),
                 "font_color": ("STRING", {"default": "white", "tooltip": "Text color (red, blue, gold, etc)."}),
                 "bg_color": ("STRING", {"default": "black", "tooltip": "Background color of the sheet."}),
+                "margin": ("INT", {"default": 50, "min": 0, "max": 500, "tooltip": "Outer margin around the entire grid."}),
+                "padding": ("INT", {"default": 20, "min": 0, "max": 200, "tooltip": "Inner padding between cells and labels."}),
             },
             "optional": {
                 "optional_vae": ("VAE", {"tooltip": "Override the VAE. (Optional, usually models have one built-in)."})
@@ -97,6 +99,8 @@ class H4_Gridinator:
     RETURN_NAMES = ("Grid_Image",)
     FUNCTION = "generate_grid"
     CATEGORY = "h4_Live/Grid"
+    
+    DESCRIPTION = "ITS OVER 9000?!?!"
 
     # VALIDATION BYPASS
     # We want to allow values outside the range if they are hidden/unused? 
@@ -183,7 +187,7 @@ class H4_Gridinator:
                       grid_x_mode, grid_x_val, grid_y_mode, grid_y_val, grid_z_mode, grid_z_val, 
                       stutter_mode, sliding_scale_enable, denoise_min, denoise_max, steps_min, steps_max, range_count,
                       grid_x_override, grid_y_override, grid_z_override,
-                      font_size, font_color, bg_color, optional_vae=None):
+                      font_size, font_color, bg_color, margin, padding, optional_vae=None):
         
         # Determine effective values: Override takes priority over dropdown/text
         eff_x_val = grid_x_override.strip() if grid_x_override and grid_x_override.strip() else grid_x_val
@@ -318,73 +322,121 @@ class H4_Gridinator:
                     results_grid[(x_idx, y_idx, z_idx)] = img
 
         # 5. STITCHING (The Gridinator)
-        final_image = self.stitch_grid(results_grid, x_vals, y_vals, z_vals, grid_x_mode, grid_y_mode, grid_z_mode, font_size, font_color, bg_color)
+        final_image = self.stitch_grid(results_grid, x_vals, y_vals, z_vals, grid_x_mode, grid_y_mode, grid_z_mode, font_size, font_color, bg_color, margin, padding)
         
         # 6. Convert back to Tensor
         final_tensor = torch.from_numpy(np.array(final_image).astype(np.float32) / 255.0).unsqueeze(0)
         
         return (final_tensor,)
 
-    def stitch_grid(self, results, x_vals, y_vals, z_vals, x_mode, y_mode, z_mode, f_size, f_color, bg_color):
+    def stitch_grid(self, results, x_vals, y_vals, z_vals, x_mode, y_mode, z_mode, f_size, f_color, bg_color, margin, padding):
         """Assembles the individual images into a labeled grid."""
         
-        # Dimensions
+        # Dimensions from first image
         sample_w, sample_h = list(results.values())[0].size
         
         cols = len(x_vals)
         rows = len(y_vals)
         stacks = len(z_vals)
         
-        # Padding for Labels
-        label_h = f_size + 20
-        label_w = f_size * 5 # Approximation
+        # --- DYNAMIC LABEL SIZING ---
+        # We need to measure how much space the Y-axis labels actually take.
+        # Create a dummy draw context to measure text
+        dummy_img = Image.new("RGB", (1, 1))
+        dummy_draw = ImageDraw.Draw(dummy_img)
         
-        # Total Grid Size
-        # Structure: 
-        # Z-Stacks are vertically appended (Huge image)
-        
-        grid_w = label_w + (cols * sample_w)
-        grid_h = (label_h + (rows * sample_h)) * stacks
-        
-        canvas = Image.new("RGB", (grid_w, grid_h), bg_color)
-        draw = ImageDraw.Draw(canvas)
-        
-        # Try Loading Font
         try:
             font = ImageFont.truetype("arial.ttf", f_size)
         except:
             font = ImageFont.load_default()
 
+        # Measure Max Y-Label Width
+        max_y_label_w = 0
+        for y_val in y_vals:
+            label_text = f"{y_mode}: {str(y_val)}"
+            bbox = dummy_draw.textbbox((0, 0), label_text, font=font)
+            text_w = bbox[2] - bbox[0]
+            if text_w > max_y_label_w:
+                max_y_label_w = text_w
+                
+        # Layout Calculations
+        
+        # Header Height (X-Axis Labels + Z-Axis Header)
+        # We reserve space for Z-header and X-labels
+        header_h = (f_size * 2) + (padding * 2) 
+        
+        # Side Width (Y-Axis Labels)
+        # padding + text + padding
+        side_panel_w = max_y_label_w + (padding * 2)
+        
+        # Total Grid Size
+        # Width: Margin + SidePanel + (Cols * ImgWidth) + Margin
+        grid_w = margin + side_panel_w + (cols * sample_w) + margin
+        
+        # Height Per Stack: Header + (Rows * ImgHeight) + Padding
+        stack_h = header_h + (rows * sample_h) + padding
+        
+        # Total Height: Margin + (StackHeight * Stacks) + Margin
+        grid_h = margin + (stack_h * stacks) + margin
+        
+        # CANVAS CREATION
+        canvas = Image.new("RGB", (grid_w, grid_h), bg_color)
+        draw = ImageDraw.Draw(canvas)
+        
         # Draw Stacks
-        current_y_offset = 0
+        current_y_offset = margin # Start below top margin
         
         for z_idx, z_val in enumerate(z_vals):
-            # Header for Z
+            # 1. Z-Axis Header
             z_label = f"Z-Axis ({z_mode}): {str(z_val)}"
-            draw.text((10, current_y_offset + 5), z_label, fill=f_color, font=font)
-            current_y_offset += label_h
+            draw.text((margin, current_y_offset), z_label, fill=f_color, font=font)
             
-            # Column Headers (X)
+            # Move down to X-Labels
+            # current_y_offset += f_size + padding
+            
+            # 2. X-Axis Labels (Column Headers)
+            # They sit above the images, shifted right by the side panel
+            # Y-Position: calculated relative to the image top
+            x_header_y = current_y_offset + f_size + padding // 2
+            
             for x_idx, x_val in enumerate(x_vals):
-                x_label = f"{str(x_val)}"
-                x_pos = label_w + (x_idx * sample_w) + (sample_w // 2) - (len(x_label)*f_size//4)
-                draw.text((x_pos, current_y_offset - label_h), x_label, fill=f_color, font=font)
+                x_text = f"{str(x_val)}"
+                # Center text over the column
+                # Col Start = margin + side_panel_w + (x_idx * sample_w)
+                col_start_x = margin + side_panel_w + (x_idx * sample_w)
+                
+                # Measure text to center it
+                bbox = draw.textbbox((0, 0), x_text, font=font)
+                t_w = bbox[2] - bbox[0]
+                
+                text_x = col_start_x + (sample_w // 2) - (t_w // 2)
+                draw.text((text_x, x_header_y), x_text, fill=f_color, font=font)
 
+            # Move down to Image Start
+            image_start_y = x_header_y + f_size + padding // 2
+
+            # 3. Rows (Y-Axis)
             for y_idx, y_val in enumerate(y_vals):
-                # Row Header (Y)
-                y_label = f"{y_mode}: {str(y_val)}"
-                draw.text((10, current_y_offset + (sample_h//2)), y_label, fill=f_color, font=font)
+                row_y = image_start_y + (y_idx * sample_h)
                 
+                # Y-Axis Label (Left Side)
+                y_text = f"{y_mode}: {str(y_val)}"
+                # Vertically center text in the row
+                bbox = draw.textbbox((0, 0), y_text, font=font)
+                t_h = bbox[3] - bbox[1]
+                
+                text_y = row_y + (sample_h // 2) - (t_h // 2)
+                draw.text((margin, text_y), y_text, fill=f_color, font=font)
+                
+                # Images
                 for x_idx, x_val in enumerate(x_vals):
-                    # Paste Image
                     img = results[(x_idx, y_idx, z_idx)]
-                    x_pos = label_w + (x_idx * sample_w)
-                    canvas.paste(img, (x_pos, current_y_offset))
+                    
+                    x_pos = margin + side_panel_w + (x_idx * sample_w)
+                    canvas.paste(img, (x_pos, row_y))
                 
-                current_y_offset += sample_h
-                
-            # Spacer between Z-stacks
-            current_y_offset += 20
+            # Advance to next stack
+            current_y_offset += stack_h + padding # Extra padding between stacks
             
         return canvas
 

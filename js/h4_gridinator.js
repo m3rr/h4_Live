@@ -7,10 +7,9 @@ app.registerExtension({
         if (node.comfyClass === "H4_Gridinator") {
 
             // 1. THE TOOLTIP
+            // 1. THE TOOLTIP
             node.getTooltip = function () {
-                return "ITS OVER 9000!?!?\n" +
-                    "The Ultimate X/Y/Z Grid Generator.\n" +
-                    "Loads Models, Draws Grids, Stutters Prompts.";
+                return "ITS OVER 9000?!?!";
             };
 
             // 2. DEFAULT SIZE (Aggressive)
@@ -121,29 +120,58 @@ app.registerExtension({
             });
 
             // 6. ADVANCED SECTION (Hidden by default)
-            // These widgets are hidden until sliding_scale_enable is toggled ON
-            // Note: Overrides are NOT in this list - they stay visible always
             const ADVANCED_WIDGETS = [
                 "denoise_min", "denoise_max", "steps_min", "steps_max", "range_count"
             ];
+
             function toggleAdvanced(enabled) {
+                let changed = false;
                 for (const wName of ADVANCED_WIDGETS) {
                     const w = node.widgets.find(x => x.name === wName);
                     if (w) {
-                        // For numbers/floats, use their proper type when shown
-                        if (wName.includes("override")) {
-                            w.type = enabled ? "text" : "hidden";
-                        } else {
-                            w.type = enabled ? "number" : "hidden";
+                        const newType = enabled ? "number" : "hidden";
+                        if (w.type !== newType) {
+                            w.type = newType;
+                            // When hidden, we must ensure computeSize runs or we manually shrink
+                            // CustomText/Number widgets usually respect "hidden" type if handled by LiteGraph
+                            // But usually we need to mess with properties to fully hide them from the computed height
+                            w.computeSize = enabled ? undefined : () => [0, -4]; // Hack: Negative height prevents gap
+                            changed = true;
                         }
+                    }
+                }
+
+                if (changed) {
+                    // Force a resize calculation
+                    node.onResize && node.onResize(node.size);
+                    node.setDirtyCanvas(true, true);
+
+                    // Trigger a shape update if possible (LiteGraph specific)
+                    if (node.graph) {
+                        node.graph.setDirtyCanvas(true, true);
                     }
                 }
             }
 
             const toggleWidget = node.widgets.find(w => w.name === "sliding_scale_enable");
             if (toggleWidget) {
-                setTimeout(() => toggleAdvanced(toggleWidget.value), 100);
-                toggleWidget.callback = (val) => toggleAdvanced(val);
+                // Initial State Check (Delay to let widgets settle)
+                setTimeout(() => {
+                    toggleAdvanced(toggleWidget.value);
+                    // Force resize after initial hide
+                    if (!toggleWidget.value) {
+                        node.setSize([node.size[0], node.computeSize()[1]]);
+                    }
+                }, 100);
+
+                // Callback
+                toggleWidget.callback = (val) => {
+                    toggleAdvanced(val);
+                    // Force resize on toggle
+                    setTimeout(() => {
+                        node.setSize([node.size[0], node.computeSize()[1]]);
+                    }, 50);
+                };
             }
         }
     }
