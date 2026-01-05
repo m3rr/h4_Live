@@ -1,6 +1,6 @@
 # h4_Live: The Logic & Loop Controller
 
-![Version](https://img.shields.io/badge/version-2.2.2--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
+![Version](https://img.shields.io/badge/version-2.2.3--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
 > **"The Railway Switch for your Workflow."**
 
@@ -194,6 +194,7 @@ This is the ultimate testing tool. It takes your workflow and multiplies it into
     *   **Fuzzy Match**: Type "pony" and it finds your PonyV6 checkpoint.
     *   **Stutter**: Type a prompt like "A {cat|dog|fish}" and it makes a grid for each animal.
     *   **Sliding Scale**: Auto-generates the numbers for you.
+    *   **Dynamic Layout**: Automatic label sizing with configurable `Margin` and `Padding` for perfect grids every time.
 
 ---
 
@@ -298,7 +299,7 @@ The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing
     3.  `fuzzy_load_checkpoint(name)`: On-demand loading. Cache efficient.
     4.  `common_ksampler(...)`: Execute diffusion.
     5.  `VAE Decode`: Latent -> Pixel.
-    6.  `PIL.Draw`: Stitch into canvas.
+    6.  `PIL.Draw`: Stitch into canvas with Dynamic Label Sizing (Auto-fit).
     7.  `ToTensor`: Return final grid.
 
 ---
