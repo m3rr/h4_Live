@@ -417,7 +417,7 @@ class H4_StateMonitor:
 
 
 # ------------------------------------------------------------------------------
-# NEW NODES (v2.2.1) - INCREMENT & LAG REPAIR
+# NEW NODES (v2.2.2b) - INCREMENT & LAG REPAIR
 # ------------------------------------------------------------------------------
 
 class H4_LoopIncrementer:
