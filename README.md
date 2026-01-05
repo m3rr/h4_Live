@@ -1,6 +1,6 @@
 # h4_Live: The Logic & Loop Controller
 
-![Version](https://img.shields.io/badge/version-2.2.2b-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
+![Version](https://img.shields.io/badge/version-2.2.2--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
 > **"The Railway Switch for your Workflow."**
 
