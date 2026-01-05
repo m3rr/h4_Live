@@ -64,7 +64,17 @@ This is the receiver.
 1.  **Global Hub:** Create one Hub at the far left of your workflow (near the Loader). Pack your Model, Clip, VAE.
 2.  **Prompt Hub:** Create a second Hub after your Prompts. Feed the "Global Pipe" into it, and add `Positive`/`Negative` conditioning.
 3.  **Distribution:** Drag the pipe wire from the Prompt Hub to your Samplers, Detailers, and Upscalers. Unpack locally at each spot.
-4.  **Result:** A canvas with almost no visible wires.
+4.  **Result:** A canvas with very minimal wiring.
+
+## **NOTE** 
+
+I just want to note that this can do more than just organize. It moves the pipe along. 
+I've come up with a few fun ways to use this however - I leave it to you to figure out. 
+I've noticed though that when fully wired my normal workflow of over 60 nodes goes 
+from a mess of sghetti to clear followable graph lines. It doesn't REMOVE them as I boast. 
+Or making them nearly none existent I just got ahead of myself haha, it does minimize the amount however. 
+More so it houses the entire pipeline within it self. So you can pull specific pipe data from multiple pipes 
+to run a single workflow- using multiple pipes. (Yea ... I Em Dash deal with it.) 
 
 ---
 <div align="right">
