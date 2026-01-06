@@ -6,6 +6,178 @@ app.registerExtension({
     async nodeCreated(node, app) {
         if (node.comfyClass === "H4_Gridinator") {
 
+            // 0. CUSTOM UPLOAD WIDGET Logic
+            // 0. CUSTOM UPLOAD WIDGET Logic
+            setTimeout(() => {
+                const uploadWidget = node.widgets.find(w => w.name === "image_upload");
+                if (uploadWidget) {
+                    // Hide the default combo
+                    uploadWidget.type = "hidden";
+                    uploadWidget.computeSize = () => [0, -4];
+                    uploadWidget.draw = () => { };
+
+                    // Check for existing elements
+                    if (node.widgets.find(w => w.name === "Upload Image")) return;
+
+                    // --- PREVIEW WIDGET (Dynamic) ---
+                    // Created on demand, but we define the helper here
+                    function addPreviewWidget(targetNode, imageUrl) {
+                        let prevWidget = targetNode.widgets.find(w => w.name === "img_preview");
+
+                        // Helper to trigger update when image loads
+                        const onImgLoad = () => {
+                            console.log("[H4 Gridinator] Image Loaded. Triggering Resize.");
+                            setTimeout(() => {
+                                // Force recalculation
+                                const sz = targetNode.computeSize();
+                                // Sanity check dimensions (prevent infinity/NaN)
+                                const safeW = Number.isFinite(sz[0]) ? sz[0] : 350;
+                                const safeH = Number.isFinite(sz[1]) ? sz[1] : 820;
+
+                                console.log("[H4 Gridinator] New Size:", [safeW, safeH]);
+                                targetNode.setSize([safeW, safeH]);
+                                targetNode.setDirtyCanvas(true, true);
+                            }, 50);
+                        };
+
+                        if (!prevWidget) {
+                            const imgObj = new Image();
+                            imgObj.src = imageUrl;
+                            imgObj.onload = onImgLoad;
+
+                            prevWidget = {
+                                name: "img_preview",
+                                type: "custom",
+                                value: imageUrl,
+                                imgObj: imgObj,
+                                draw: function (ctx, node, widget_width, y, widget_height) {
+                                    try {
+                                        if (this.imgObj && this.imgObj.complete && this.imgObj.naturalWidth > 0) {
+                                            const MAX_H = 250;
+                                            const imgRatio = this.imgObj.naturalWidth / this.imgObj.naturalHeight;
+                                            const w = widget_width || node.size[0];
+                                            const widgetRatio = w / MAX_H;
+
+                                            // "Contain" logic
+                                            let drawW, drawH;
+                                            if (imgRatio > widgetRatio) {
+                                                drawW = w;
+                                                drawH = drawW / imgRatio;
+                                            } else {
+                                                drawH = MAX_H;
+                                                drawW = drawH * imgRatio;
+                                            }
+
+                                            const centerX = (w - drawW) / 2;
+                                            ctx.drawImage(this.imgObj, centerX, y, drawW, drawH);
+                                        }
+                                    } catch (e) { console.error("Gridinator Draw Error", e); }
+                                },
+                                computeSize: function (width) {
+                                    // Robust width handling
+                                    const w = width || 250; // Default if undefined
+                                    if (this.imgObj && this.imgObj.complete && this.imgObj.naturalWidth > 0) {
+                                        const aspect = this.imgObj.naturalHeight / this.imgObj.naturalWidth;
+                                        const calcH = w * aspect;
+                                        return [w, Math.min(calcH, 250)];
+                                    }
+                                    return [w, 0];
+                                }
+                            };
+
+                            // Add to top, shifting button down
+                            const btnIdx = targetNode.widgets.findIndex(w => w.name === "Upload Image");
+                            if (btnIdx > -1) {
+                                targetNode.widgets.splice(btnIdx, 0, prevWidget);
+                            } else {
+                                targetNode.widgets.unshift(prevWidget);
+                            }
+                        } else {
+                            // Update existing
+                            prevWidget.value = imageUrl;
+                            prevWidget.imgObj = new Image();
+                            prevWidget.imgObj.onload = onImgLoad;
+                            prevWidget.imgObj.src = imageUrl;
+                        }
+                    }
+
+                    // --- UPLOAD BUTTON ---
+                    // LABEL: "Upload Image" (Capitalized)
+                    const btn = node.addWidget("button", "Upload Image", "Upload", () => {
+                        const fileInput = document.createElement("input");
+                        Object.assign(fileInput, {
+                            type: "file",
+                            accept: "image/*",
+                            style: "display: none",
+                            onchange: async () => {
+                                if (fileInput.files.length > 0) {
+                                    const file = fileInput.files[0];
+                                    const formData = new FormData();
+                                    formData.append("image", file);
+                                    formData.append("overwrite", "true");
+
+                                    try {
+                                        const resp = await fetch("/upload/image", {
+                                            method: "POST",
+                                            body: formData,
+                                        });
+                                        if (resp.ok) {
+                                            const data = await resp.json();
+
+                                            // 1. Update Combo
+                                            if (uploadWidget.options && uploadWidget.options.values) {
+                                                if (!uploadWidget.options.values.includes(data.name)) {
+                                                    uploadWidget.options.values.push(data.name);
+                                                }
+                                            }
+                                            uploadWidget.value = data.name;
+
+                                            // 2. Trigger Preview
+                                            const params = new URLSearchParams({
+                                                filename: data.name,
+                                                subfolder: data.subfolder || "",
+                                                type: data.type || "input"
+                                            });
+                                            const imgUrl = `/view?${params.toString()}`;
+                                            addPreviewWidget(node, imgUrl);
+
+                                            // Force Layout Update (Redundant but safe)
+                                            setTimeout(() => {
+                                                app.graph.setDirtyCanvas(true, true);
+                                            }, 100);
+
+                                            if (uploadWidget.callback) {
+                                                uploadWidget.callback(uploadWidget.value);
+                                            }
+                                            app.graph.setDirtyCanvas(true, true);
+                                        } else {
+                                            alert("Upload Failed: " + resp.statusText);
+                                        }
+                                    } catch (err) {
+                                        alert("Error uploading file.");
+                                    }
+                                }
+                            }
+                        });
+                        document.body.appendChild(fileInput);
+                        fileInput.click();
+                        setTimeout(() => document.body.removeChild(fileInput), 1000);
+                    });
+
+                    btn.name = "Upload Image"; // Correct Internal Name now
+
+                    // Move to Top
+                    const btnIdx = node.widgets.indexOf(btn);
+                    if (btnIdx > -1) {
+                        node.widgets.splice(btnIdx, 1);
+                        node.widgets.unshift(btn);
+                    }
+
+                    node.onResize && node.onResize(node.size);
+                    node.setDirtyCanvas(true, true);
+                }
+            }, 100);
+
             // 1. THE TOOLTIP
             // 1. THE TOOLTIP
             node.getTooltip = function () {
@@ -93,6 +265,27 @@ app.registerExtension({
             // 5. EVENT LISTENERS
             const MODES = ["x", "y", "z"];
 
+            function checkLoRAVisibility() {
+                const xVal = node.widgets.find(w => w.name === "grid_x_mode")?.value;
+                const yVal = node.widgets.find(w => w.name === "grid_y_mode")?.value;
+                const zVal = node.widgets.find(w => w.name === "grid_z_mode")?.value;
+
+                const hasLora = (xVal === "LoRA" || yVal === "LoRA" || zVal === "LoRA");
+
+                const loraWidget = node.widgets.find(w => w.name === "lora_strength");
+                if (loraWidget) {
+                    const targetType = hasLora ? "number" : "hidden";
+                    if (loraWidget.type !== targetType) {
+                        loraWidget.type = targetType;
+                        loraWidget.computeSize = hasLora ? undefined : () => [0, -4];
+
+                        // Resize safely
+                        node.onResize && node.onResize(node.size);
+                        node.setDirtyCanvas(true, true);
+                    }
+                }
+            }
+
             MODES.forEach(axis => {
                 const modeName = `grid_${axis}_mode`;
                 const valName = `grid_${axis}_val`;
@@ -115,9 +308,15 @@ app.registerExtension({
                         } else {
                             replaceWidget(node, valName, "text", []);
                         }
+
+                        // Check Visibility
+                        checkLoRAVisibility();
                     };
                 }
             });
+
+            // Initial Check
+            setTimeout(() => checkLoRAVisibility(), 200);
 
             // 6. ADVANCED SECTION (Hidden by default)
             const ADVANCED_WIDGETS = [

@@ -15,7 +15,9 @@ import numpy as np
 import random
 import re
 import itertools
+import itertools
 import math
+import os
 
 # Internal Imports
 from .h4_core import _log
@@ -38,8 +40,15 @@ class H4_Gridinator:
         # Axis Modes
         modes = ["None", "Model", "LoRA", "Prompt Stutter", "Steps", "CFG", "Denoise", "Sampler", "Scheduler", "Seed", "Negative Stutter"]
 
+        # Fix for KeyError: 'input' - specific manual listing
+        input_dir = folder_paths.get_input_directory()
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))] if os.path.exists(input_dir) else []
+
         return {
             "required": {
+                # --- IMAGE UPLOAD (TOP PRIORITY) ---
+                "image_upload": (sorted(files), {"tooltip": "Upload an image directly here for Img2Img."}),
+
                 # --- CORE SETTINGS ---
                 "base_model": (checkpoints, {"tooltip": "The main brain. Pick your checkpoint from the list. If it's not here, check your folders!"}),
                 "base_model_fuzzy": ("STRING", {"default": "", "multiline": False, "tooltip": "Can't find it in the list? Type a part of the name here (like 'juggernaut') and we'll hunt it down for you."}),
@@ -59,6 +68,7 @@ class H4_Gridinator:
                 "sampler_name": (samplers, {"tooltip": "The math behind the art. 'euler' is standard, 'dpmpp_2m' is popular. Try them out!"}),
                 "scheduler": (schedulers, {"tooltip": "How the steps are spaced out. 'simple' or 'karras' are good defaults."}),
                 "denoise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "How much to change. 1.0 = New Image. Lower values are for modifying existing stuff."}),
+                "lora_strength": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01, "label": "LoRA Strength (LOOK HERE!!!!)", "tooltip": "Strength of the LoRA (if active). 1.0 = Full Effect. Example: Start at 0.8 to blend style without frying it. NOTE: For Img2Img, remember to lower Denoise (e.g. 0.6) or you'll just overwrite your image!"}),
                 
                 # --- THE GRID (X/Y/Z) ---
                 "grid_x_mode": (modes, {"default": "None", "tooltip": "What varies Left-to-Right? Model, CFG, Steps?"}),
@@ -75,6 +85,7 @@ class H4_Gridinator:
 
                 # --- STUTTER & STYLING ---
                 "stutter_mode": (["Off", "Permutations {A|B}", "Emphasis [Token*N]", "Both"], {"default": "Off", "tooltip": "Prompt Magic: 'Off' = no processing. 'Permutations' splits {A|B}. 'Emphasis' repeats [words*N]."}),
+                "lora_strength": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "Strength of the LoRA (if active). 1.0 = Full Effect. Example: Start at 0.8 to blend style without frying it. NOTE: For Img2Img, remember to lower Denoise (e.g. 0.6) or you'll just overwrite your image!"}),
                 
                 # --- SLIDING SCALE (Optional Ranges) ---
                 "sliding_scale_enable": ("BOOLEAN", {"default": False, "label": "Enable Sliding Scale", "tooltip": "Unlock the Advanced Sliders below. Auto-generates ranges for you."}),
@@ -142,6 +153,34 @@ class H4_Gridinator:
                 
         raise ValueError(f"Gridinator: Cound not find checkpoint '{name}'")
 
+    def fuzzy_load_lora(self, name, model, clip, strength):
+        """Loads a LoRA by fuzzy matching the name and applies it."""
+        if name == "None": return model, clip
+        
+        all_loras = folder_paths.get_filename_list("loras")
+        target_lora = None
+        
+        # Exact match
+        if name in all_loras:
+            target_lora = name
+        else:
+            # Fuzzy match
+            for lora in all_loras:
+                if name.lower() in lora.lower():
+                    target_lora = lora
+                    break
+        
+        if target_lora:
+            _log(f"Gridinator: Applying LoRA '{target_lora}' at strength {strength}")
+            lora_path = folder_paths.get_full_path("loras", target_lora)
+            # Fix: Must load the LoRA tensors first!
+            lora_tensors = comfy.utils.load_torch_file(lora_path)
+            model_lora, clip_lora = comfy.sd.load_lora_for_models(model, clip, lora_tensors, strength, strength)
+            return model_lora, clip_lora
+            
+        _log(f"Gridinator: WARNING - Could not find LoRA '{name}', skipping.")
+        return model, clip
+
     def apply_stutter(self, text, mode):
         """Processes Stutter syntax."""
         # If Off, return unchanged
@@ -185,9 +224,9 @@ class H4_Gridinator:
 
     def generate_grid(self, base_model, base_model_fuzzy, width, height, batch_size, positive_prompt, negative_prompt, seed, steps, cfg, sampler_name, scheduler, denoise, 
                       grid_x_mode, grid_x_val, grid_y_mode, grid_y_val, grid_z_mode, grid_z_val, 
-                      stutter_mode, sliding_scale_enable, denoise_min, denoise_max, steps_min, steps_max, range_count,
+                      stutter_mode, lora_strength, sliding_scale_enable, denoise_min, denoise_max, steps_min, steps_max, range_count,
                       grid_x_override, grid_y_override, grid_z_override,
-                      font_size, font_color, bg_color, margin, padding, optional_vae=None):
+                      font_size, font_color, bg_color, margin, padding, image_upload=None, optional_vae=None, image_input=None):
         
         # Determine effective values: Override takes priority over dropdown/text
         eff_x_val = grid_x_override.strip() if grid_x_override and grid_x_override.strip() else grid_x_val
@@ -268,6 +307,23 @@ class H4_Gridinator:
                     if "Model" in [grid_x_mode, grid_y_mode, grid_z_mode]:
                         current_model, current_clip, current_vae, _ = self.fuzzy_load_checkpoint(model_to_load)
 
+                    # --- LORA APPLICATION (If Dynamic) ---
+                    # We always start from the base "current_model"/clip and apply fresh lora
+                    # This prevents infinite stacking if we just modified current_model in place
+                    # Optimization: In a loop, this re-patches every time. It's safer than unpatching.
+                    
+                    model_for_run = current_model
+                    clip_for_run = current_clip
+                    
+                    def check_apply_lora(mode, val):
+                        nonlocal model_for_run, clip_for_run
+                        if mode == "LoRA":
+                            model_for_run, clip_for_run = self.fuzzy_load_lora(val, model_for_run, clip_for_run, lora_strength)
+                            
+                    check_apply_lora(grid_x_mode, x)
+                    check_apply_lora(grid_y_mode, y)
+                    check_apply_lora(grid_z_mode, z)
+
                     # --- PROMPT PROCESSING ---
                     # Stutter Logic
                     final_pos = self.apply_stutter(p_pos, stutter_mode)
@@ -283,22 +339,55 @@ class H4_Gridinator:
                     # --- SAMPLING ---
                     # 1. Encode Conditionings
                     # 1. Encode Conditionings
-                    tokens_pos = current_clip.tokenize(final_pos)
-                    cond, pooled = current_clip.encode_from_tokens(tokens_pos, return_pooled=True)
+                    tokens_pos = clip_for_run.tokenize(final_pos)
+                    cond, pooled = clip_for_run.encode_from_tokens(tokens_pos, return_pooled=True)
                     cond_pos = [[cond, {"pooled_output": pooled}]]
                     
-                    tokens_neg = current_clip.tokenize(final_neg)
-                    cond, pooled = current_clip.encode_from_tokens(tokens_neg, return_pooled=True)
+                    tokens_neg = clip_for_run.tokenize(final_neg)
+                    cond, pooled = clip_for_run.encode_from_tokens(tokens_neg, return_pooled=True)
                     cond_neg = [[cond, {"pooled_output": pooled}]]
 
-                    # 2. Latent Empty
-                    # Using user-provided width/height from inputs
-                    latent = torch.zeros([batch_size, 4, height // 8, width // 8])
+                    # 2. Latent Setup (Txt2Img vs Img2Img)
+                    vae_to_use = optional_vae if optional_vae else current_vae
+                    latent_payload = {}
+                    
+                    if image_input is not None:
+                         # 1. Priority: Connected Image
+                         source_img = image_input
+                    elif image_upload and image_upload != "undefined":
+                         # 2. Priority: Uploaded Image
+                         # Load image from path
+                         img_path = folder_paths.get_annotated_filepath(image_upload)
+                         if os.path.exists(img_path):
+                             i = Image.open(img_path)
+                             i = i.convert("RGB") # Ensure RGB
+                             i = np.array(i).astype(np.float32) / 255.0
+                             source_img = torch.from_numpy(i).unsqueeze(0) # [1, H, W, C]
+                         else:
+                             _log(f"Gridinator: Could not find uploaded image: {image_upload}")
+                             source_img = None
+                    else:
+                         source_img = None
+
+                    if source_img is not None:
+                         # Img2Img Mode
+                         # Resize logic
+                         samples = source_img.movedim(-1, 1) # [B, C, H, W]
+                         samples = comfy.utils.common_upscale(samples, width, height, "bilinear", "center")
+                         samples = samples.movedim(1, -1) # Back to [B, H, W, C]
+                         
+                         # VAE Encode
+                         encoded = vae_to_use.encode(samples[:,:,:,0:3]) # Drop alpha if exists
+                         latent_payload = {"samples": encoded}
+                    else:
+                         # Txt2Img Mode
+                         latent = torch.zeros([batch_size, 4, height // 8, width // 8])
+                         latent_payload = {"samples": latent}
 
                     # 3. KSampler
                     # We use standard common_ksampler
                     common_sampler = nodes.common_ksampler(
-                        model=current_model, 
+                        model=model_for_run, 
                         seed=p_seed, 
                         steps=p_steps, 
                         cfg=p_cfg, 
@@ -306,12 +395,11 @@ class H4_Gridinator:
                         scheduler=p_scheduler, 
                         positive=cond_pos, 
                         negative=cond_neg, 
-                        latent={"samples": latent}, 
+                        latent=latent_payload, 
                         denoise=p_denoise
                     )
                     
                     # 4. Decode
-                    vae_to_use = optional_vae if optional_vae else current_vae
                     decoded = vae_to_use.decode(common_sampler[0]["samples"])
                     
                     # 5. Convert to PIL
