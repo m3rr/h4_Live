@@ -1,6 +1,6 @@
 # h4_Live: The Logic & Loop Controller
 
-![Version](https://img.shields.io/badge/version-2.2.4--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
+![Version](https://img.shields.io/badge/version-2.5-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
 > **"The Railway Switch for your Workflow."**
 
@@ -198,6 +198,103 @@ This is the ultimate testing tool. It takes your workflow and multiplies it into
 
 ---
 
+## 15. H4 Big Brother (Ghost Layer) 👁️
+**"The Eye in the Sky"**
+
+This isn't a node you drop onto your workflow - it's a **Global Visual Enhancement Layer** that works silently in the background. Think of it like putting on X-Ray goggles for your entire ComfyUI canvas.
+
+*   **What it does:** It draws a glowing overlay on top of ComfyUI's native visualization. When you select a node, Big Brother draws neon wires tracing all the connections flowing into and out of that node. It's like a highlighter pen for your workflow.
+
+*   **Why it exists:** Sometimes ComfyUI's native wire rendering can be hard to see, especially in complex "spaghetti" workflows where 50 wires are crossing over each other. Big Brother makes your selected connections GLOW so you can trace them across the canvas without squinting.
+
+*   **The Ghost Layer:** The overlay is drawn on a special invisible layer that sits on top of ComfyUI but doesn't interfere with clicking or dragging. You can still interact with your nodes normally - the Ghost Layer is purely visual. It's like a transparent sheet of glass with glowing lines painted on it.
+
+### Big Brother Settings (Settings Panel)
+
+Open **Settings** (the cogwheel icon) and scroll down to find the Big Brother options. Here's what each one does:
+
+#### 1. 👁️ h4 Big Brother: Enable Overlay
+*   **Type:** Toggle (On/Off)
+*   **Default:** On
+*   **What it does:** Turns the entire Ghost Layer on or off. If you find it distracting, flip this off and the overlay disappears completely.
+
+#### 2. 👁️ h4 Big Brother: Console Monitor
+*   **Type:** Toggle (On/Off)
+*   **Default:** On
+*   **What it does:** When enabled, Big Brother prints messages to your browser's Developer Console (Press F12 to see it) during workflow execution. Useful for seeing what's happening "under the hood".
+
+#### 3. 🔬 h4 DEBUG PROTOCOL: NUCLEAR Mode
+*   **Type:** Toggle (On/Off)
+*   **Default:** Off
+*   **What it does:** This is the master switch for **NUCLEAR-level debugging**. When you turn this on, Big Brother becomes EXTREMELY chatty in the console. It logs:
+    *   Every wire position calculation
+    *   Slot index corrections for converted widgets
+    *   Render frame transformations
+    *   Canvas matrix values
+*   **When to use it:** Only turn this on if something looks wrong and you need to troubleshoot. It generates a LOT of console output, whcih can slow things down.
+
+#### 4. 🎨 h4 Wire: Selection Color
+*   **Type:** Text (Color Code)
+*   **Default:** `#00FF00` (Neon Green)
+*   **What it does:** Changes the color of the glowing wires when you select a node. Try `#FF00FF` for pink, `#00FFFF` for cyan, or `#FFA500` for orange. You can use any valid CSS color code.
+
+#### 5. 🎨 h4 Wire: Error Color
+*   **Type:** Text (Color Code)
+*   **Default:** `#FF0000` (Red)
+*   **What it does:** If a node is part of an "Infected" chain (an execution error occurred), its wires glow this color instead. Default is angry red because errors are bad!
+
+#### 6. 🎨 h4 Grid: Color
+*   **Type:** Text (Color Code)
+*   **Default:** `rgba(255, 200, 0, 0.15)`
+*   **What it does:** When Big Brother first initializes, it draws a subtle grid pattern across the canvas as a startup animation. This setting controls that grid's color. The `0.15` at the end is the opacity (transparency).
+
+#### 7. 🔧 h4 Calibrate: Offset X
+*   **Type:** Number (Pixels)
+*   **Default:** 0
+*   **What it does:** If the Ghost Layer seems misaligned horizontally (the glow is shifted left or right from the actual wires), tweak this number to nudge it back into place. Positive = Right, Negative = Left.
+
+#### 8. 🔧 h4 Calibrate: Global Y
+*   **Type:** Number (Pixels)
+*   **Default:** 0
+*   **What it does:** Same as above, but for vertical misalignment. Positive = Down, Negtive = Up.
+
+#### 9. 🔧 h4 Wire: Slot Offset Y
+*   **Type:** Number (Graph Units)
+*   **Default:** 0
+*   **What it does:** Fine-tunes where the wire endpoints land vertically on each slot. If wires seem to be landing above or below the input/output circles, adjust this. This is measured in "grapf units" (the internal coordinate system), not screen pixels.
+
+#### 10. 🔧 h4 Wire: Spacing Scale
+*   **Type:** Text (Decimal Number)
+*   **Default:** `1.00`
+*   **What it does:** Scales the vertical spacing between slots. If your wires are "fanning out" as they travel down a tall node, try `1.05` or `1.10`. If they're squishing together, try `0.95`.
+
+#### 11. 👁️ BB: Wire Style
+*   **Type:** Dropdown
+*   **Options:**
+    *   `Match ComfyUI` - Uses splines that look similar to native wires
+    *   `Spline (Bezier)` - Smooth curvy wires
+    *   `Linear (Straight)` - Direct diagonal lines
+    *   `Circuit Board (Manhattan)` - Right-angle turns only, like traces on a circuit board
+*   **Default:** `Circuit Board`
+*   **What it does:** Changes the artistic style of the Ghost Layer wires. Circuit Board is the most visually distinct from native wires, which helps you see the difference.
+
+#### 12. 👁️ BB: Show Wires
+*   **Type:** Toggle (On/Off)
+*   **Default:** On
+*   **What it does:** Turns just the wire rendering on or off, while keeping the rest of Big Brother active. Useful if you want the error monitoring without the visual overlay.
+
+---
+
+### Wire Alignment Technical Note
+
+If you've noticed that some wires land slightly above or below their target input, that's a known LiteGraph quirk! ComfyUI uses LiteGraph as its canvas engine, and LiteGraph's internal position calculator sometimes returns coordinates that don't quite match the visual center of a slot - especially for "converted widgets" (inputs that were originally dropdown menus but got converted into wire connections).
+
+Big Brother automatically applies a **+45 pixel correction** for any slot at index 4 or higher (which covers most converted widgets like `denoise`, `cfg`, `steps`, etc.) This correction is applied automatically and silently - you don't need to do anything.
+
+If the alignment is still off for your specific setup (different themes, zoom levels, or display scaling can affect this), you can fien-tune it using the **Wire Slot Offset Y** setting mentioned above.
+
+---
+
 <br>
 <br>
 <br>
@@ -302,9 +399,45 @@ The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing
     6.  `PIL.Draw`: Stitch into canvas with Dynamic Label Sizing (Auto-fit).
     7.  `ToTensor`: Return final grid.
 
+### 15. H4_BigBrother (Ghost Layer Extension)
+*   **Module**: `js/h4_BigBrother.js`
+*   **Type**: ComfyUI Frontend Extension (Client-Side JavaScript)
+*   **Architecture**: `app.registerExtension({...})` pattern with singleton state.
+
+#### Internal State Structure
+*   **`_config`**: Immutable default values.
+*   **`_state`**: Mutable runtime state, hydrated from `_config` on `setup()`. Note: Renamed from `settings` to avoid collision with ComfyUI's `extensionService.registerExtension()` schema validation which iterates `_.settings?.forEach()`.
+
+#### Ghost Layer Implementation
+*   **Canvas**: Creates a dedicated `<canvas id="h4-ghost-layer">` element with `pointer-events: none` and `position: absolute`.
+*   **Synchronization**: On each `requestAnimationFrame` tick, reads `app.canvas.ds` (DragAndScale) for `scale`, `offset[0]`, `offset[1]`.
+*   **Matrix Transform**: Applies `ctx.setTransform(scale * dpr, 0, 0, scale * dpr, tx * scale * dpr, ty * scale * dpr)` to align Ghost Layer with LiteGraph's internal coordinate system.
+
+#### Wire Rendering
+*   **Selection Detection**: Queries `app.canvas.selected_nodes` and iterates `app.graph.links`.
+*   **Position Calculation**:
+    *   `getNodeOutputPos(node, slotIndex)`: Delegates to `node.getConnectionOutputPos()`.
+    *   `getNodeInputPos(node, slotIndex)`: Delegates to `node.getConnectionInputPos()`.
+*   **Converted Widget Correction**: LiteGraph's `getConnectionInputPos()` returns coordinates slightly above the visual slot center for converted widgets. A **+45px Y correction** is applied directly in `drawWires()` for `target_slot >= 4` to compensate.
+
+#### Debug Protocol
+*   **Toggle**: `this._state.debugMode` (exposed via Settings UI as "NUCLEAR Mode").
+*   **Implementation**: All `console.log` statements are wrapped in `if (this._state.debugMode)` conditionals.
+*   **Log Prefix**: `[h4-DEBUG]` for consistent filtering in browser DevTools.
+
+#### Wire Styles
+*   **Spline**: `ctx.bezierCurveTo()` with horizontal tangents.
+*   **Linear**: Direct `ctx.lineTo()`.
+*   **Circuit (Manhattan)**: Step function with `midX = (posA[0] + posB[0]) / 2`, then vertical-horizontal-vertical segments.
+
+#### Error Tracking (Infection System)
+*   **Trigger**: Listens to `api.addEventListener("execution_error", ...)`.
+*   **Behavior**: Parses error payload for `node_id`, traces upstream links, and populates `this.infectedLinks` Set.
+*   **Visual**: Infected wires render using `wireColorError` instead of `wireColorSelect`.
+
 ---
 <div align="right">
 
-(b ' . ' )b - h4 - { Be Your Best }
+(b'.')b - h4 - { Be Your Best }
 
 </div>
