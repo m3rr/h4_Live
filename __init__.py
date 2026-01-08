@@ -7,6 +7,7 @@ from .h4_smart_debug import H4_SmartConsole
 from .h4_mission_control import H4_MissionControl, H4_LinearScheduler, H4_SeedGenerator
 from .h4_gridinator import H4_Gridinator
 from .h4_debug_error import H4_DebugErrorGenerator
+from .h4_discombobulator import H4_Discombobulator
 
 NODE_CLASS_MAPPINGS = {
     "H4_TrafficCop": H4_TrafficCop,
@@ -23,7 +24,8 @@ NODE_CLASS_MAPPINGS = {
     "H4_WirelessResetButton": H4_WirelessResetButton,
     "H4_ImageBuffer": H4_ImageBuffer,
     "H4_Gridinator": H4_Gridinator,
-    "H4_DebugErrorGenerator": H4_DebugErrorGenerator
+    "H4_DebugErrorGenerator": H4_DebugErrorGenerator,
+    "H4_Discombobulator": H4_Discombobulator
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -41,7 +43,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_WirelessResetButton": "h4 Wireless Reset (Toggle)",
     "H4_ImageBuffer": "h4 Image Buffer (Anti-Lag)",
     "H4_Gridinator": "h4 - Gridinator 9001",
-    "H4_DebugErrorGenerator": "🔬 h4 Debug Error (TEST ONLY)"
+    "H4_DebugErrorGenerator": "🔬 h4 Debug Error (TEST ONLY)",
+    "H4_Discombobulator": "The Discombobulator - (b'.')b / t('.'t)"
 }
 
 WEB_DIRECTORY = "./js"
@@ -64,6 +67,10 @@ def print_status():
     print(f"-------------------------------------------------------------------------------------")
     
     for key, val in NODE_DISPLAY_NAME_MAPPINGS.items():
+        # Hide the stealth nodes from the terminal status list
+        if key in ["H4_Discombobulator"]:
+            continue
+            
         # Clean up the name for display
         name = val
         print(f"| {name:<55} | {key:<18} |  {check}   |")

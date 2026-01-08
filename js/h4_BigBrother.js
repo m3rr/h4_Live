@@ -55,6 +55,14 @@ app.registerExtension({
     _networkInterceptorInstalled: false, // Flag for network interceptor
     _isHandlingError: false, // Recursion protection for handleError
 
+    // --- Discombobulator Easter Egg State ---
+    _glitchState: {
+        lastGlitchTime: 0,
+        isGlitching: false,
+        glitchDuration: 0,
+        glitchType: 0 // 0: chromatic, 1: macro, 2: static
+    },
+
     async setup() {
         // 0. FIRST: Install console interceptor to capture ALL logs from launch
         this.installConsoleInterceptor();
@@ -102,6 +110,9 @@ app.registerExtension({
 
         // 7. Hide Debug Error Generator node if debug mode is off
         this.updateDebugNodeVisibility();
+
+        // 8. Stealth: Start the Queue UI Watcher for The Discombobulator
+        this.startQueueWatcher();
     },
 
     /**
@@ -479,6 +490,134 @@ app.registerExtension({
         });
     },
 
+    /**
+     * Stealth: Watch the Queue side-panel and discombobulate job entries in real-time.
+     * Non-invasive: only touches the Queue UI, not system-critical popups.
+     */
+    startQueueWatcher() {
+        const self = this;
+        const observer = new MutationObserver((mutations) => {
+            // Check if discombobulator is on graph first (Nuclear Lean)
+            const discombobulator = app.graph?.findNodesByType("H4_Discombobulator")[0];
+            if (!discombobulator) return;
+
+            const mode = discombobulator.widgets?.[0]?.value || "1337";
+
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) { // Element
+                        this.discombobulateElement(node, mode);
+                    }
+                });
+            });
+
+            // Occasional scan of existing items if they update via textContent change
+            // This handles the "In queue..." -> "Running..." -> "Finished" transitions
+            const queueItems = document.querySelectorAll(".comfy-queue-item, .comfy-history-item, .side-bar-panel-container .comfy-list-item");
+            queueItems.forEach(item => this.discombobulateElement(item, mode));
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    },
+
+    discombobulateElement(el, mode) {
+        // Find text nodes recursively and translate them
+        const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while (node = walk.nextNode()) {
+            const text = node.textContent.trim();
+            if (text.length > 2 && !node._h4_discombobulated) {
+                // Ignore technical strings like timestamps or percentages if they look like numbers
+                if (/^\d+(\.\d+)?%?$/.test(text)) continue;
+
+                node.textContent = this.translateText(text, mode);
+                node._h4_discombobulated = true;
+
+                // Add a little visual flair if it's the V01D mode
+                if (mode === "V 0 1 D" && node.parentElement) {
+                    node.parentElement.style.textShadow = "0 0 5px rgba(255,0,0,0.5)";
+                }
+            }
+        }
+    },
+
+    translateText(text, mode) {
+        if (!text) return "";
+        // Don't translate if already discombobulated (prevents double binary etc)
+        if (text.includes("010") && mode === "b1n4ry") return text;
+
+        switch (mode) {
+            case "1337":
+                return text.toUpperCase()
+                    .replace(/A/g, "4").replace(/E/g, "3").replace(/G/g, "6")
+                    .replace(/I/g, "1").replace(/O/g, "0").replace(/S/g, "5")
+                    .replace(/T/g, "7").replace(/B/g, "|3").replace(/R/g, "|2");
+            case "b1n4ry":
+                return text.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join(' ').slice(0, 30) + "...";
+            case "B64":
+                try { return btoa(text).slice(0, 30) + "..."; } catch (e) { return text; }
+            case "V 0 1 D":
+                const zalgo = ["̷", "̵", "̶", "̷", "̸", "̡", "̢", "̧", "̨", "̛", "̛", "̛"];
+                return text.split('').map(char => char + zalgo[Math.floor(Math.random() * zalgo.length)] + zalgo[Math.floor(Math.random() * zalgo.length)]).join('');
+            default:
+                return text;
+        }
+    },
+
+    // Stealth: Add summon option to Context Hub
+    getExtraMenuOptions(node, options) {
+        if (node.type === "H4_ContextHub" || node.comfyClass === "H4_ContextHub") {
+            const self = this;
+            options.push({
+                content: "✨ Summon The Discombobulator",
+                callback: () => {
+                    const newNode = LiteGraph.createNode("H4_Discombobulator");
+                    if (newNode) {
+                        newNode.pos = [node.pos[0] + node.size[0] + 40, node.pos[1]];
+                        app.graph.add(newNode);
+                    }
+                }
+            });
+        }
+    },
+
+    // Extra robustness for menu
+    nodeCreated(node) {
+        if (node.comfyClass === "H4_ContextHub") {
+            // Force it if needed, but getExtraMenuOptions should handle it
+        }
+    },
+
+    // Stealth: Hide from search and inject summon logic
+    beforeRegisterNodeDef(nodeType, nodeData) {
+        if (nodeData.name === "H4_Discombobulator") {
+            nodeData.hide = true;
+        }
+
+        if (nodeData.name === "H4_ContextHub") {
+            const orig = nodeType.prototype.getExtraMenuOptions;
+            nodeType.prototype.getExtraMenuOptions = function (canvas, options) {
+                if (orig) orig.apply(this, arguments);
+
+                // Add separator if there are already options
+                if (options.length > 0 && options[options.length - 1] !== null) {
+                    options.push(null);
+                }
+
+                options.push({
+                    content: "✨ Summon The Discombobulator",
+                    callback: () => {
+                        const newNode = LiteGraph.createNode("H4_Discombobulator");
+                        if (newNode) {
+                            newNode.pos = [this.pos[0] + this.size[0] + 40, this.pos[1]];
+                            app.graph.add(newNode);
+                        }
+                    }
+                });
+            };
+        }
+    },
+
     createGhostLayer() {
         // Remove existing if any (reloads)
         const existing = document.getElementById("h4-ghost-layer");
@@ -641,7 +780,12 @@ app.registerExtension({
         // 1. Draw Cyber Grid (Startup Effect)
         this.drawCyberGrid(timestamp);
 
-        // Only proceed if tracking is relevant
+        // 1.1 Secret Ghost Logic: The Discombobulator Glitch
+        // Call this before coordinate transformation for simple screen-space check, 
+        // but we'll pass the transform anyway.
+        this.renderDiscombobulator(timestamp);
+
+        // Only proceed if tracking is relevant for wires
         const hasSelection = (app.canvas.selected_nodes && Object.keys(app.canvas.selected_nodes).length > 0);
         const hasInfection = (this.infectedLinks.size > 0);
 
@@ -653,7 +797,6 @@ app.registerExtension({
         // 2a. High-DPI Scaling (Base System)
         // This makes 1 logical unit = 1 physical pixel
         // 1. Setup Context
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         const dpr = window.devicePixelRatio || 1;
 
         // 2. Get Transformation State (Source of Truth)
@@ -1502,6 +1645,95 @@ app.registerExtension({
         const query = encodeURIComponent(searchTerms + ' is:issue');
         const url = `https://github.com/m3rr/h4_Live/issues?q=${query}`;
         window.open(url, '_blank');
+    },
+
+    /**
+     * Render Discombobulator Glitch: Identifies the node and triggers glitch effects
+     * strictly localized to its title bar area on a random interval.
+     */
+    renderDiscombobulator(timestamp) {
+        if (!app.graph) return;
+        const discombobulator = app.graph.findNodesByType("H4_Discombobulator")[0];
+        if (!discombobulator) return;
+
+        const now = Date.now();
+        // Transformation state from LiteGraph
+        const scale = app.canvas.ds.scale;
+        const tx = app.canvas.ds.offset[0];
+        const ty = app.canvas.ds.offset[1];
+
+        // Ensure the node is actually on screen before rendering effects
+        if (!app.canvas.visible_nodes || app.canvas.visible_nodes.indexOf(discombobulator) === -1) return;
+
+        // Glitch Trigger Logic
+        if (!this._glitchState.isGlitching) {
+            // Check cooldown (60s)
+            if (now - this._glitchState.lastGlitchTime > 60000) {
+                // 5% chance per frame once cooldown is over
+                if (Math.random() < 0.05) {
+                    this._glitchState.isGlitching = true;
+                    this._glitchState.glitchDuration = Math.floor(10 + Math.random() * 20); // 10-30 frames
+                    this._glitchState.glitchType = Math.floor(Math.random() * 3);
+                    this._glitchState.lastGlitchTime = now;
+                }
+            }
+        }
+
+        if (this._glitchState.isGlitching) {
+            this._glitchState.glitchDuration--;
+            if (this._glitchState.glitchDuration <= 0) {
+                this._glitchState.isGlitching = false;
+            }
+
+            // Calculate screen space position of node title
+            const x = (discombobulator.pos[0] + tx) * scale;
+            const y = (discombobulator.pos[1] + ty) * scale;
+            const w = discombobulator.size[0] * scale;
+            const h = (typeof LiteGraph !== "undefined" ? LiteGraph.NODE_TITLE_HEIGHT : 30) * scale;
+
+            this.applyGlitchEffect(x, y, w, h);
+        }
+    },
+
+    /**
+     * applyGlitchEffect: Paints noisy, colorful, and separated visual elements 
+     * on the Ghost Layer to simulate a cyberpunk glitch.
+     */
+    applyGlitchEffect(x, y, w, h) {
+        const ctx = this.ctx;
+        if (!ctx) return;
+        const type = this._glitchState.glitchType;
+
+        ctx.save();
+
+        if (type === 0) { // Chromatic Aberration / RGB Separation
+            ctx.fillStyle = "rgba(255, 0, 255, 0.4)";
+            ctx.fillRect(x - 5, y + 2, w, h);
+            ctx.fillStyle = "rgba(0, 255, 255, 0.4)";
+            ctx.fillRect(x + 5, y - 2, w, h);
+        }
+        else if (type === 1) { // Macro-blocking / Data Corruption
+            for (let i = 0; i < 6; i++) {
+                const colors = ["#00FF00", "#FF00FF", "#FFFF00", "#00FFFF", "#FFFFFF"];
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                const blockW = Math.random() * (w * 0.4);
+                const blockH = Math.random() * (h * 0.8);
+                ctx.fillRect(x + Math.random() * w, y + Math.random() * h, blockW, blockH);
+            }
+        }
+        else { // Digital Static / Noise
+            for (let i = 0; i < 80; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.8)";
+                ctx.fillRect(x + Math.random() * w, y + Math.random() * h, 2, 2);
+            }
+            // Occasional full-line static
+            if (Math.random() > 0.7) {
+                ctx.fillStyle = "rgba(255,255,255,0.2)";
+                ctx.fillRect(x, y + Math.random() * h, w, 1);
+            }
+        }
+
+        ctx.restore();
     },
 
     /**
