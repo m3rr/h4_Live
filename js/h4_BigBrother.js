@@ -48,32 +48,291 @@ app.registerExtension({
     gridDelay: 500, // ms to wait before grid starts
     gridDuration: 1500, // ms for the wipe to complete
 
-    async setup() {
-        // [VERSION CHECK] If you see this timestamp in console, the NEW code is running
-        const BUILD_TIMESTAMP = "2026-01-07T11:56:00_FIX_v3";
-        console.log(`%c👁️ h4 Big Brother v11 [BUILD: ${BUILD_TIMESTAMP}] Initializing...`, "color: #00FF00; background: #000; font-size: 14px; padding: 4px;");
+    // Console Log Buffer (captures ALL output since launch)
+    _logBuffer: [],
+    _logBufferMaxSize: 50000, // Reduced from 1M to 50k for stability and performance
+    _originalConsole: null, // Store original console methods
+    _networkInterceptorInstalled: false, // Flag for network interceptor
+    _isHandlingError: false, // Recursion protection for handleError
 
-        // 0. Hydrate State
+    async setup() {
+        // 0. FIRST: Install console interceptor to capture ALL logs from launch
+        this.installConsoleInterceptor();
+        // 0.1 Install network interceptor to capture fetch/XHR/WebSocket activity
+        this.installNetworkInterceptor();
+        // 0.2 Global error handling to capture uncaught errors and promise rejections
+        // Wrapped with safety check to prevent infinite loops during early crashes
+        window.addEventListener('error', (event) => {
+            if (this._isHandlingError) return;
+            const { message, filename, lineno, colno, error } = event;
+            const errMsg = `${message} at ${filename}:${lineno}:${colno}`;
+            this.handleError({ error: errMsg, traceback: error ? error.stack : '' });
+        });
+        window.addEventListener('unhandledrejection', (event) => {
+            if (this._isHandlingError) return;
+            const reason = event.reason instanceof Error ? event.reason.stack : String(event.reason);
+            this.handleError({ error: 'Unhandled Promise Rejection', traceback: reason });
+        });
+
+        // [VERSION CHECK] If you see this timestamp in console, the NEW code is running
+        const BUILD_TIMESTAMP = "2026-01-08T09:45:00_LOG_CAPTURE";
+        console.log(`%c👁️ h4 Big Brother v12 [BUILD: ${BUILD_TIMESTAMP}] Initializing...`, "color: #00FF00; background: #000; font-size: 14px; padding: 4px;");
+
+        // 1. Hydrate State
         this._state = { ...this._config };
 
-        // 1. Initialize Settings
+        // 2. Initialize Settings
         this.registerSettings();
 
-        // 2. Spawn the Ghost Layer
+        // 3. Spawn the Ghost Layer
         this.createGhostLayer();
 
-        // 3. Inject CSS for Modals
+        // 4. Inject CSS for Modals
         this.injectCSS();
 
-        // 4. Start the Surveillance Loop
+        // 5. Start the Surveillance Loop
         this.startLoop();
 
-        // 5. Register Event Listeners (The Snitch)
+        // 6. Register Event Listeners (The Snitch)
         api.addEventListener("execution_error", (e) => this.handleError(e));
         api.addEventListener("execution_start", () => this.resetState());
 
         // Mark start time for animation
         this.animStart = performance.now();
+
+        // 7. Hide Debug Error Generator node if debug mode is off
+        this.updateDebugNodeVisibility();
+    },
+
+    /**
+     * Install console interceptor to capture ALL console output since launch.
+     * This allows the error popup to show the last 500 entries and
+     * the Full Report to show EVERYTHING from launch to present.
+     */
+    installConsoleInterceptor() {
+        if (this._originalConsole) return; // Already installed
+
+        const self = this;
+        this._originalConsole = {
+            log: console.log.bind(console),
+            warn: console.warn.bind(console),
+            error: console.error.bind(console),
+            info: console.info.bind(console),
+            debug: console.debug.bind(console)
+        };
+
+        const captureLog = (level, args) => {
+            const timestamp = new Date().toISOString();
+            const message = args.map(arg => {
+                if (arg === null) return 'null';
+                if (arg === undefined) return 'undefined';
+                if (typeof arg === 'string') return arg;
+
+                // PERFORMANCE FIX: Avoid deep stringify on large objects (like the graph)
+                // Use a shallow representative string instead
+                try {
+                    if (typeof arg === 'object') {
+                        // Check if it's a DOM element or a very complex object
+                        if (arg instanceof HTMLElement) return `<${arg.tagName.toLowerCase()} ...>`;
+                        if (Array.isArray(arg)) return `Array(${arg.length})`;
+
+                        // Limit JSON.stringify for small objects only
+                        const str = JSON.stringify(arg);
+                        return str.length > 500 ? str.slice(0, 500) + '... (truncated)' : str;
+                    }
+                    return String(arg);
+                } catch (e) {
+                    return `[Complex ${typeof arg}]`;
+                }
+            }).join(' ');
+
+            self._logBuffer.push({
+                timestamp,
+                level,
+                message: (message.length > 2000 ? message.slice(0, 2000) + '... [LOG TRUNCATED]' : message).replace(/%c/g, '')
+            });
+
+            // Trim buffer if it exceeds max size
+            if (self._logBuffer.length > self._logBufferMaxSize) {
+                self._logBuffer.shift();
+            }
+        };
+
+        console.log = (...args) => {
+            captureLog('LOG', args);
+            self._originalConsole.log(...args);
+        };
+        console.warn = (...args) => {
+            captureLog('WARN', args);
+            self._originalConsole.warn(...args);
+        };
+        console.error = (...args) => {
+            captureLog('ERROR', args);
+            self._originalConsole.error(...args);
+        };
+        console.info = (...args) => {
+            captureLog('INFO', args);
+            self._originalConsole.info(...args);
+        };
+        console.debug = (...args) => {
+            captureLog('DEBUG', args);
+            self._originalConsole.debug(...args);
+        };
+    },
+
+    /**
+     * Install network interceptor to capture fetch, XHR, and WebSocket activity.
+     * All requests and responses are logged with timestamps.
+     */
+    installNetworkInterceptor() {
+        if (this._networkInterceptorInstalled) return;
+        this._networkInterceptorInstalled = true;
+        const self = this;
+
+        // Fetch interception
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = async (...args) => {
+            const [resource, config] = args;
+            const start = Date.now();
+            try {
+                const response = await originalFetch(...args);
+                const cloned = response.clone();
+                const contentType = cloned.headers.get('content-type') || '';
+                let body = '[binary data/stream]';
+
+                if (contentType.includes('text') || contentType.includes('json')) {
+                    try {
+                        const text = await cloned.text();
+                        body = text.length > 500 ? text.slice(0, 500) + '... (truncated)' : text;
+                    } catch (e) {
+                        body = '[body read failed]';
+                    }
+                }
+
+                const duration = Date.now() - start;
+                self._logBuffer.push({
+                    timestamp: new Date().toISOString(),
+                    level: 'NETWORK',
+                    message: `FETCH ${resource} ${config?.method || 'GET'} ${duration}ms Response: ${body}`
+                });
+                return response;
+            } catch (err) {
+                const duration = Date.now() - start;
+                self._logBuffer.push({
+                    timestamp: new Date().toISOString(),
+                    level: 'NETWORK',
+                    message: `FETCH ${resource} FAILED after ${duration}ms Error: ${err}`
+                });
+                throw err;
+            }
+        };
+
+        // XHR interception
+        const OriginalXHR = window.XMLHttpRequest;
+        function XHRInterceptor() {
+            const xhr = new OriginalXHR();
+            let method, url;
+            const open = xhr.open;
+            const send = xhr.send;
+            xhr.open = function (m, u) {
+                method = m;
+                url = u;
+                return open.apply(this, arguments);
+            };
+            xhr.send = function (body) {
+                const start = Date.now();
+                this.addEventListener('load', function () {
+                    const duration = Date.now() - start;
+                    const ct = this.getResponseHeader('content-type') || '';
+                    let resp = '[binary data]';
+                    if (ct.includes('text') || ct.includes('json')) {
+                        resp = this.responseText.length > 500 ? this.responseText.slice(0, 500) + '... (truncated)' : this.responseText;
+                    }
+                    self._logBuffer.push({
+                        timestamp: new Date().toISOString(),
+                        level: 'NETWORK',
+                        message: `XHR ${method} ${url} ${duration}ms Status: ${this.status} Response: ${resp}`
+                    });
+                });
+                this.addEventListener('error', function () {
+                    const duration = Date.now() - start;
+                    self._logBuffer.push({
+                        timestamp: new Date().toISOString(),
+                        level: 'NETWORK',
+                        message: `XHR ${method} ${url} FAILED after ${duration}ms`
+                    });
+                });
+                return send.apply(this, arguments);
+            };
+            return xhr;
+        }
+        window.XMLHttpRequest = XHRInterceptor;
+
+        // WebSocket interception
+        const OriginalWebSocket = window.WebSocket;
+        window.WebSocket = function (url, protocols) {
+            const ws = new OriginalWebSocket(url, protocols);
+            ws.addEventListener('open', () => {
+                self._logBuffer.push({ timestamp: new Date().toISOString(), level: 'NETWORK', message: `WebSocket CONNECT ${url}` });
+            });
+            ws.addEventListener('message', (event) => {
+                const dat = typeof event.data === 'string' ? (event.data.length > 500 ? event.data.slice(0, 500) + '...' : event.data) : '[binary]';
+                self._logBuffer.push({ timestamp: new Date().toISOString(), level: 'NETWORK', message: `WebSocket MSG from ${url}: ${dat}` });
+            });
+            ws.addEventListener('close', (event) => {
+                self._logBuffer.push({ timestamp: new Date().toISOString(), level: 'NETWORK', message: `WebSocket CLOSE ${url} Code:${event.code}` });
+            });
+            ws.addEventListener('error', () => {
+                self._logBuffer.push({ timestamp: new Date().toISOString(), level: 'NETWORK', message: `WebSocket ERROR ${url}` });
+            });
+            return ws;
+        };
+    },
+
+    /**
+     * Get the last N log entries for display in error popup.
+     * @param {number} count - Number of entries to retrieve
+     * @returns {string} Formatted log entries
+     */
+    getRecentLogs(count = 5000) {
+        const entries = this._logBuffer.slice(-count);
+        return entries.map(e => `[${e.timestamp}] [${e.level}] ${e.message}`).join('\\n');
+    },
+
+    /**
+     * Get ALL log entries since launch for full report.
+     * @returns {string} Complete formatted log
+     */
+    getFullLog() {
+        return this._logBuffer.map(e => `[${e.timestamp}] [${e.level}] ${e.message}`).join('\n');
+    },
+
+    /**
+     * Hide or show the H4_DebugErrorGenerator node based on debug mode.
+     * When debug mode is OFF, the node is removed from the menu.
+     * When debug mode is ON, the node is visible in h4/debug category.
+     */
+    updateDebugNodeVisibility() {
+        const debugNodeType = "H4_DebugErrorGenerator";
+
+        // Store reference to original node type if we haven't already
+        if (!this._debugNodeBackup && LiteGraph.registered_node_types[debugNodeType]) {
+            this._debugNodeBackup = LiteGraph.registered_node_types[debugNodeType];
+        }
+
+        if (this._state.debugMode) {
+            // Debug mode ON: Restore the node if it was hidden
+            if (this._debugNodeBackup && !LiteGraph.registered_node_types[debugNodeType]) {
+                LiteGraph.registerNodeType(debugNodeType, this._debugNodeBackup);
+                console.log("[h4-DEBUG] Debug Error Generator node VISIBLE");
+            }
+        } else {
+            // Debug mode OFF: Hide the node
+            if (LiteGraph.registered_node_types[debugNodeType]) {
+                delete LiteGraph.registered_node_types[debugNodeType];
+                console.log("[h4] Debug Error Generator node HIDDEN (enable Debug Mode to show)");
+            }
+        }
     },
 
     registerSettings() {
@@ -103,8 +362,11 @@ app.registerExtension({
             name: "🔬 h4 DEBUG PROTOCOL: NUCLEAR Mode",
             type: "boolean",
             defaultValue: this._state.debugMode,
-            tooltip: "Enable NUCLEAR-level debug logging. Outputs wire positions, slot calculations, and all internal state to console. For troubleshooting only.",
-            onChange: (v) => { this._state.debugMode = v; }
+            tooltip: "Enable NUCLEAR-level debug logging. Outputs wire positions, slot calculations, and all internal state to console. Also shows the Debug Error Generator node for testing. For troubleshooting only.",
+            onChange: (v) => {
+                this._state.debugMode = v;
+                this.updateDebugNodeVisibility();
+            }
         });
 
         // Error popup toggle
@@ -308,24 +570,53 @@ app.registerExtension({
             .h4-death-modal .h4-controls {
                 display: flex;
                 justify-content: center;
-                gap: 20px;
+                flex-wrap: wrap;
+                gap: 12px;
                 margin-top: 10px;
             }
             .h4-death-modal button {
                 background: #222;
                 color: #fff;
                 border: 1px solid #555;
-                padding: 10px 24px;
+                padding: 10px 20px;
                 cursor: pointer;
                 font-family: inherit;
                 text-transform: uppercase;
                 font-weight: bold;
+                font-size: 0.85em;
                 transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 6px;
             }
             .h4-death-modal button:hover {
                 background: ${this._state.wireColorError};
                 border-color: ${this._state.wireColorError};
                 color: #000;
+            }
+            .h4-death-modal button.h4-btn-secondary {
+                border-color: #00bcd4;
+                color: #00bcd4;
+            }
+            .h4-death-modal button.h4-btn-secondary:hover {
+                background: #00bcd4;
+                border-color: #00bcd4;
+                color: #000;
+            }
+            .h4-death-modal button.h4-btn-github {
+                border-color: #8b949e;
+                color: #8b949e;
+                padding: 10px 16px;
+            }
+            .h4-death-modal button.h4-btn-github:hover {
+                background: #238636;
+                border-color: #238636;
+                color: #fff;
+            }
+            .h4-death-modal button .h4-icon-github {
+                width: 16px;
+                height: 16px;
+                fill: currentColor;
             }
         `;
         document.head.appendChild(style);
@@ -816,35 +1107,48 @@ app.registerExtension({
     },
 
     handleError(event) {
-        if (!this._state.enabled) return;
+        if (!this._state.enabled || this._isHandlingError) return;
+        this._isHandlingError = true;
 
-        const error = event.detail;
-        if (!error) return;
-        const nodeId = error.node_id;
-        const errorMsg = error.exception_message || "Unknown Error";
-        const traceback = error.traceback || error.exception_type || "No traceback available.";
+        try {
+            // event can be from api listener (detail) or window listener (object)
+            const error = event.detail || event;
+            const nodeId = error.node_id || null;
+            const errorMsg = error.exception_message || error.error || error.message || "Unknown Execution Error";
+            const traceback = error.traceback || error.exception_type || "No traceback available.";
 
-        if (this._state.monitorEnabled) {
-            console.error(`👁️ [BB-v11] EXECUTION ERROR on Node ${nodeId}:`, errorMsg);
-        }
+            if (this._state.monitorEnabled) {
+                console.error(`👁️ [h4-BB] EXECUTION ERROR on Node ${nodeId || 'GLOBAL'}:`, errorMsg);
+            }
 
-        if (nodeId) {
-            this.infectedNodes.add(nodeId);
-            if (app.graph) {
-                const node = app.graph.getNodeById(nodeId);
-                if (node && node.inputs) {
-                    for (const input of node.inputs) {
-                        if (input.link) {
-                            this.infectedLinks.add(input.link);
+            // Log to buffer
+            this._logBuffer.push({
+                timestamp: new Date().toISOString(),
+                level: 'CRITICAL',
+                message: `ERROR: ${errorMsg} \n TRACE: ${traceback}`
+            });
+
+            if (nodeId) {
+                this.infectedNodes.add(nodeId);
+                if (app.graph) {
+                    const node = app.graph.getNodeById(nodeId);
+                    if (node && node.inputs) {
+                        for (const input of node.inputs) {
+                            if (input.link) {
+                                this.infectedLinks.add(input.link);
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // Only show popup if setting is enabled
-        if (this._state.showErrorPopup) {
-            this.showDeathModal(errorMsg, traceback);
+            // Only show popup if setting is enabled
+            if (this._state.showErrorPopup) {
+                this.showDeathModal(errorMsg, traceback);
+            }
+        } finally {
+            // Safety release
+            setTimeout(() => { this._isHandlingError = false; }, 1000);
         }
     },
 
@@ -865,28 +1169,339 @@ app.registerExtension({
         const existing = document.querySelector(".h4-death-modal");
         if (existing) existing.remove();
 
+        // Sanitize the log content for privacy before any display or action
+        const sanitizedError = this.sanitizeLog(errorMsg);
+        const sanitizedTrace = this.sanitizeLog(traceback);
+
+        // Get the recent console logs (default count)
+        const recentLogs = this.sanitizeLog(this.getRecentLogs());
+
         const modal = document.createElement("div");
         modal.className = "h4-death-modal";
         // Inline override for dynamic color
         modal.style.borderColor = styleColor;
         modal.style.boxShadow = `0 0 50px ${styleColor}aa`;
 
+        // GitHub icon SVG inline (from Octicons)
+        const githubIconSVG = `<svg class="h4-icon-github" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>`;
+
         modal.innerHTML = `
             <h2 style="color: ${styleColor}; border-bottom-color: ${styleColor};">💀 EXECUTION FAILURE 💀</h2>
-            <div style="font-weight: bold; color: #fff;">${errorMsg}</div>
-            <pre>${traceback}</pre>
+            <div style="font-weight: bold; color: #fff; margin-bottom: 10px;">${sanitizedError}</div>
+            <div style="color: #888; font-size: 0.85em; margin-bottom: 5px;">Stack Trace:</div>
+            <pre style="max-height: 150px; overflow-y: auto; margin-bottom: 10px; border-color: #ff4444;">${sanitizedTrace}</pre>
+            <div style="color: #888; font-size: 0.85em; margin-bottom: 5px;">Recent Console Log (Last entries):</div>
+            <pre style="max-height: 400px; overflow-y: auto; font-size: 0.75em; color: #aaffaa;">${recentLogs || '(No console logs captured)'}</pre>
             <div class="h4-controls">
-                <button class="h4-copy" onclick="
-                    const pre = this.parentElement.previousElementSibling;
-                    navigator.clipboard.writeText(pre.innerText);
-                    this.innerText = 'COPIED!';
-                    setTimeout(() => this.innerText = 'COPY TRACE', 1000);
-                ">COPY TRACE</button>
-                <button onclick="this.parentElement.parentElement.remove()">DISMISS</button>
+                <button class="h4-btn-secondary" data-action="show-report">SHOW FULL REPORT</button>
+                <button class="h4-btn-secondary" data-action="help-fix">HELP FIX THIS</button>
+                <button class="h4-btn-github" data-action="find-issues">${githubIconSVG} FIND ISSUES</button>
+                <button data-action="copy">COPY TRACE</button>
+                <button data-action="dismiss">DISMISS</button>
             </div>
         `;
 
+        // Attach event listeners via delegation for cleaner code
+        modal.querySelector('.h4-controls').addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            switch (action) {
+                case 'show-report':
+                    this.showFullReport(sanitizedError, sanitizedTrace);
+                    break;
+                case 'help-fix':
+                    this.openHelpSearch(sanitizedError);
+                    break;
+                case 'find-issues':
+                    this.openGitHubIssues(sanitizedError);
+                    break;
+                case 'copy':
+                    navigator.clipboard.writeText(sanitizedTrace);
+                    btn.textContent = 'COPIED!';
+                    setTimeout(() => btn.textContent = 'COPY TRACE', 1000);
+                    break;
+                case 'dismiss':
+                    modal.remove();
+                    break;
+            }
+        });
+
         document.body.appendChild(modal);
+    },
+
+    /**
+     * Sanitize log content to remove personal/sensitive information.
+     * Replaces paths with Windows environment variable placeholders.
+     * @param {string} text - Raw log text
+     * @returns {string} Sanitized text safe for public sharing
+     */
+    sanitizeLog(text) {
+        if (!text || typeof text !== 'string') return text || '';
+
+        let sanitized = text;
+
+        // 1. Windows user profile paths: C:\Users\{username}\ -> %USERPROFILE%\
+        sanitized = sanitized.replace(/[A-Za-z]:\\Users\\[^\\]+\\/gi, '%USERPROFILE%\\');
+
+        // 2. Also handle forward slashes: C:/Users/{username}/ -> %USERPROFILE%/
+        sanitized = sanitized.replace(/[A-Za-z]:\/Users\/[^\/]+\//gi, '%USERPROFILE%/');
+
+        // 3. Linux/Mac home paths: /home/{username}/ or /Users/{username}/ -> $HOME/
+        sanitized = sanitized.replace(/\/(home|Users)\/[^\/]+\//g, '$HOME/');
+
+        // 4. UNC paths (network shares): \\servername\share -> %NETWORKSHARE%
+        sanitized = sanitized.replace(/\\\\[^\\]+\\[^\\]+/g, '%NETWORKSHARE%');
+
+        // 5. Email addresses -> [EMAIL REDACTED]
+        sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL REDACTED]');
+
+        // 6. IPv4 addresses (but not localhost) -> [IP REDACTED]
+        sanitized = sanitized.replace(/\b(?!127\.0\.0\.1)(?!0\.0\.0\.0)\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP REDACTED]');
+
+        return sanitized;
+    },
+
+    /**
+     * Open a new window displaying the full sanitized error report.
+     * Styled to match the Death Modal aesthetic.
+     * @param {string} errorMsg - Sanitized error message
+     * @param {string} traceback - Sanitized stack trace
+     */
+    showFullReport(errorMsg, traceback) {
+        const reportWindow = window.open('', '_blank', 'width=1200,height=900,scrollbars=yes');
+        if (!reportWindow) {
+            alert('Popup blocked! Please allow popups for this site.');
+            return;
+        }
+
+        const timestamp = new Date().toISOString();
+
+        // Get the COMPLETE log from launch to present
+        const fullLog = this.sanitizeLog(this.getFullLog());
+        const logEntryCount = this._logBuffer.length;
+
+        const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>h4 FULL Error Report - ${timestamp}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0f;
+            color: #fff;
+            font-family: 'Consolas', 'Monaco', monospace;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #ff4444;
+            border-bottom: 2px solid #ff4444;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        h2 {
+            color: #00bcd4;
+            font-size: 1em;
+            text-transform: uppercase;
+            margin: 20px 0 10px 0;
+            cursor: pointer;
+            user-select: none;
+        }
+        h2:hover { color: #00ffff; }
+        h2::before { content: "▼ "; font-size: 0.8em; }
+        h2.collapsed::before { content: "▶ "; }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            color: #00bcd4;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .error-message {
+            background: #1a1a25;
+            border: 1px solid #ff4444;
+            padding: 15px;
+            border-radius: 4px;
+            color: #ff8888;
+            font-weight: bold;
+        }
+        pre {
+            background: #000;
+            border: 1px solid #333;
+            padding: 15px;
+            overflow-x: auto;
+            color: #00ff99;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.85em;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        pre.traceback {
+            border-color: #ff4444;
+            color: #ff8888;
+            max-height: 200px;
+        }
+        pre.full-log {
+            font-size: 0.75em;
+            color: #aaffaa;
+            max-height: none;
+        }
+        .meta {
+            color: #666;
+            font-size: 0.8em;
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #333;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #222;
+            color: #fff;
+            border: 1px solid #00bcd4;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            text-transform: uppercase;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #00bcd4;
+            color: #000;
+        }
+        .stats {
+            background: #111;
+            border: 1px solid #333;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            font-size: 0.85em;
+        }
+        .stat-item { text-align: center; }
+        .stat-value { color: #00bcd4; font-size: 1.2em; font-weight: bold; }
+        .stat-label { color: #666; font-size: 0.8em; }
+        .collapsible { display: block; }
+        .collapsible.hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>💀 h4 FULL Error Report</h1>
+    
+    <div class="stats">
+        <div class="stat-item">
+            <div class="stat-value">${logEntryCount}</div>
+            <div class="stat-label">Total Log Entries</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">${timestamp.split('T')[1].split('.')[0]}</div>
+            <div class="stat-label">Report Time</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">v12</div>
+            <div class="stat-label">Big Brother Version</div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Error Message</div>
+        <div class="error-message">${errorMsg}</div>
+    </div>
+    
+    <h2 onclick="toggleSection(this, 'traceback-section')">Stack Trace</h2>
+    <div id="traceback-section" class="collapsible">
+        <pre class="traceback" id="traceback">${traceback}</pre>
+    </div>
+    
+    <h2 onclick="toggleSection(this, 'full-log-section')">Complete Console Log (Launch → Present)</h2>
+    <div id="full-log-section" class="collapsible">
+        <pre class="full-log" id="full-log">${fullLog || '(No console logs captured)'}</pre>
+    </div>
+    
+    <div class="meta">
+        <div>Generated: ${timestamp}</div>
+        <div>Extension: h4 Live ToolKit (Big Brother v12)</div>
+        <div>Log Buffer Size: ${logEntryCount} entries (max: 10,000)</div>
+        <div>Note: Personal paths, emails, and IPs have been sanitized for privacy.</div>
+    </div>
+    
+    <div class="controls">
+        <button onclick="copySection('traceback')">COPY TRACE</button>
+        <button onclick="copySection('full-log')">COPY FULL LOG</button>
+        <button onclick="copyAll()">COPY EVERYTHING</button>
+        <button onclick="window.close();">CLOSE</button>
+    </div>
+    
+    <script>
+        function toggleSection(header, sectionId) {
+            const section = document.getElementById(sectionId);
+            section.classList.toggle('hidden');
+            header.classList.toggle('collapsed');
+        }
+        
+        function copySection(id) {
+            const el = document.getElementById(id);
+            navigator.clipboard.writeText(el.innerText);
+            event.target.textContent = 'COPIED!';
+            setTimeout(() => event.target.textContent = event.target.textContent.replace('COPIED!', 'COPY ' + (id === 'traceback' ? 'TRACE' : 'FULL LOG')), 1000);
+        }
+        
+        function copyAll() {
+            const errorMsg = document.querySelector('.error-message').innerText;
+            const trace = document.getElementById('traceback').innerText;
+            const fullLog = document.getElementById('full-log').innerText;
+            const all = '=== ERROR MESSAGE ===\\n' + errorMsg + '\\n\\n=== STACK TRACE ===\\n' + trace + '\\n\\n=== FULL CONSOLE LOG ===\\n' + fullLog;
+            navigator.clipboard.writeText(all);
+            event.target.textContent = 'COPIED!';
+            setTimeout(() => event.target.textContent = 'COPY EVERYTHING', 1000);
+        }
+    </script>
+</body>
+</html>`;
+
+        reportWindow.document.write(htmlContent);
+        reportWindow.document.close();
+    },
+
+    /**
+     * Open ComfyUI GitHub issues search for help with the error.
+     * Searches the main ComfyUI repository.
+     * @param {string} errorMsg - Sanitized error message
+     */
+    openHelpSearch(errorMsg) {
+        // Extract key terms from the error (first 100 chars, cleaned)
+        const searchTerms = errorMsg.substring(0, 100).replace(/[^\w\s]/g, ' ').trim();
+        const query = encodeURIComponent(searchTerms + ' is:issue');
+        const url = `https://github.com/comfyanonymous/ComfyUI/issues?q=${query}`;
+        window.open(url, '_blank');
+    },
+
+    /**
+     * Open h4_Live GitHub issues search to find related issues.
+     * @param {string} errorMsg - Sanitized error message
+     */
+    openGitHubIssues(errorMsg) {
+        // Extract key terms from the error (first 100 chars, cleaned)
+        const searchTerms = errorMsg.substring(0, 100).replace(/[^\w\s]/g, ' ').trim();
+        const query = encodeURIComponent(searchTerms + ' is:issue');
+        const url = `https://github.com/m3rr/h4_Live/issues?q=${query}`;
+        window.open(url, '_blank');
     },
 
     /**

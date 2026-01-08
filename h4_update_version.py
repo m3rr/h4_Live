@@ -27,6 +27,18 @@ def get_current_version():
         return match.group(1)
     return None
 
+def validate_semver(v_str):
+    """
+    Validates that version string follows SemVer for ComfyUI registry.
+    Valid formats:
+      - X.Y.Z (e.g., 2.5.2)
+      - X.Y.Z-suffix (e.g., 2.5.2-beta, 2.5.2-alpha.1)
+    Returns True if valid, False otherwise.
+    """
+    # SemVer pattern: MAJOR.MINOR.PATCH with optional prerelease
+    pattern = r'^\d+\.\d+\.\d+(-[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*)?$'
+    return bool(re.match(pattern, v_str))
+
 def increment_version(v_str):
     # Regex to find the last number to increment
     # Logic: Look for the last sequence of digits.
@@ -114,6 +126,15 @@ def main():
     if not target_version:
         print("Aborted.")
         return
+
+    # Validate SemVer format for ComfyUI registry compatibility
+    if not validate_semver(target_version):
+        print(f"\n⚠️  WARNING: '{target_version}' may not be valid SemVer!")
+        print("   ComfyUI registry expects: X.Y.Z or X.Y.Z-suffix (e.g., 2.5.2-beta)")
+        confirm = input("   Continue anyway? [y/N]: ").strip().lower()
+        if confirm != 'y':
+            print("Aborted.")
+            return
 
     print(f"\nUpdating files to: \033[92m{target_version}\033[0m ...\n")
     

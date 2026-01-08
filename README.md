@@ -1,8 +1,8 @@
-# h4_Live: The Logic & Loop Controller
+# h4_Live: The Logic & Loop Controller v2.5.3 { Now with QoL enhancements! }
 
-![Version](https://img.shields.io/badge/version-2.5.2--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
+![Version](https://img.shields.io/badge/version-2.5.5--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
-> **"The Railway Switch for your Workflow."**
+> **"A Railway Switch for your Workflow."**
 
 ---
 
@@ -209,6 +209,34 @@ This isn't a node you drop onto your workflow - it's a **Global Visual Enhanceme
 
 *   **The Ghost Layer:** The overlay is drawn on a special invisible layer that sits on top of ComfyUI but doesn't interfere with clicking or dragging. You can still interact with your nodes normally - the Ghost Layer is purely visual. It's like a transparent sheet of glass with glowing lines painted on it.
 
+> ⚠️ **IMPORTANT: Known Limitations**
+> - **Subgraphs Not Supported (WIP)**: The glowing wires and edge highlights currently do NOT work inside subgraphs/group nodes. The overlay only renders on the main canvas. This is a known limitation and is being worked on.
+> - **Manual Configuration May Be Required**: Due to variations in themes, display scaling, and browser zoom levels, the wire overlay may not align perfectly out of the box. Use the calibration settings below to fine-tune the alignment for your setup.
+
+### Big Brother Error Popup (Death Modal) 💀
+
+When an execution error occurs, Big Brother displays a dramatic "Death Modal" popup with the error details. This popup includes several helpful features:
+
+| Button | What It Does |
+|--------|-------------|
+| **SHOW FULL REPORT** | Opens a new window with the complete sanitized error log, styled for easy reading and copying |
+| **HELP FIX THIS** | Searches the ComfyUI GitHub repository for similar issues |
+| **FIND ISSUES** | Searches the h4_Live GitHub repository for related issues |
+| **COPY TRACE** | Copies the sanitized stack trace to your clipboard |
+| **DISMISS** | Closes the popup |
+
+#### Privacy-Safe Log Sanitization 🔒
+
+Before displaying or copying any error information, Big Brother automatically sanitizes the log to remove personal information:
+
+- `C:\Users\YourName\...` → `%USERPROFILE%\...`
+- `/home/yourname/...` → `$HOME/...`
+- Email addresses → `[EMAIL REDACTED]`
+- IP addresses → `[IP REDACTED]`
+- Network paths → `%NETWORKSHARE%`
+
+This means you can safely share error logs on Discord, Reddit, or GitHub without exposing your username or file paths.
+
 ### Big Brother Settings (Settings Panel)
 
 Open **Settings** (the cogwheel icon) and scroll down to find the Big Brother options. Here's what each one does:
@@ -223,7 +251,12 @@ Open **Settings** (the cogwheel icon) and scroll down to find the Big Brother op
 *   **Default:** On
 *   **What it does:** When enabled, Big Brother prints messages to your browser's Developer Console (Press F12 to see it) during workflow execution. Useful for seeing what's happening "under the hood".
 
-#### 3. 🔬 h4 DEBUG PROTOCOL: NUCLEAR Mode
+#### 3. 💀 h4 Big Brother: Show Error Popup
+*   **Type:** Toggle (On/Off)
+*   **Default:** On
+*   **What it does:** Controls whether the Death Modal popup appears when an execution error occurs. If you find the popup annoying, disable this - errors will still be tracked visually (red glow on nodes/wires) but the popup won't interrupt you.
+
+#### 4. 🔬 h4 DEBUG PROTOCOL: NUCLEAR Mode
 *   **Type:** Toggle (On/Off)
 *   **Default:** Off
 *   **What it does:** This is the master switch for **NUCLEAR-level debugging**. When you turn this on, Big Brother becomes EXTREMELY chatty in the console. It logs:
@@ -233,42 +266,42 @@ Open **Settings** (the cogwheel icon) and scroll down to find the Big Brother op
     *   Canvas matrix values
 *   **When to use it:** Only turn this on if something looks wrong and you need to troubleshoot. It generates a LOT of console output, whcih can slow things down.
 
-#### 4. 🎨 h4 Wire: Selection Color
+#### 5. 🎨 h4 Wire: Selection Color
 *   **Type:** Text (Color Code)
 *   **Default:** `#00FF00` (Neon Green)
 *   **What it does:** Changes the color of the glowing wires when you select a node. Try `#FF00FF` for pink, `#00FFFF` for cyan, or `#FFA500` for orange. You can use any valid CSS color code.
 
-#### 5. 🎨 h4 Wire: Error Color
+#### 6. 🎨 h4 Wire: Error Color
 *   **Type:** Text (Color Code)
 *   **Default:** `#FF0000` (Red)
 *   **What it does:** If a node is part of an "Infected" chain (an execution error occurred), its wires glow this color instead. Default is angry red because errors are bad!
 
-#### 6. 🎨 h4 Grid: Color
+#### 7. 🎨 h4 Grid: Color
 *   **Type:** Text (Color Code)
 *   **Default:** `rgba(255, 200, 0, 0.15)`
 *   **What it does:** When Big Brother first initializes, it draws a subtle grid pattern across the canvas as a startup animation. This setting controls that grid's color. The `0.15` at the end is the opacity (transparency).
 
-#### 7. 🔧 h4 Calibrate: Offset X
+#### 8. 🔧 h4 Calibrate: Offset X
 *   **Type:** Number (Pixels)
 *   **Default:** 0
 *   **What it does:** If the Ghost Layer seems misaligned horizontally (the glow is shifted left or right from the actual wires), tweak this number to nudge it back into place. Positive = Right, Negative = Left.
 
-#### 8. 🔧 h4 Calibrate: Global Y
+#### 9. 🔧 h4 Calibrate: Global Y
 *   **Type:** Number (Pixels)
 *   **Default:** 0
-*   **What it does:** Same as above, but for vertical misalignment. Positive = Down, Negtive = Up.
+*   **What it does:** Same as above, but for vertical misalignment. Positive = Down, Negative = Up.
 
-#### 9. 🔧 h4 Wire: Slot Offset Y
+#### 10. 🔧 h4 Wire: Slot Offset Y
 *   **Type:** Number (Graph Units)
 *   **Default:** 0
 *   **What it does:** Fine-tunes where the wire endpoints land vertically on each slot. If wires seem to be landing above or below the input/output circles, adjust this. This is measured in "grapf units" (the internal coordinate system), not screen pixels.
 
-#### 10. 🔧 h4 Wire: Spacing Scale
+#### 11. 🔧 h4 Wire: Spacing Scale
 *   **Type:** Text (Decimal Number)
 *   **Default:** `1.00`
 *   **What it does:** Scales the vertical spacing between slots. If your wires are "fanning out" as they travel down a tall node, try `1.05` or `1.10`. If they're squishing together, try `0.95`.
 
-#### 11. 👁️ BB: Wire Style
+#### 12. 👁️ BB: Wire Style
 *   **Type:** Dropdown
 *   **Options:**
     *   `Match ComfyUI` - Uses splines that look similar to native wires
@@ -278,7 +311,7 @@ Open **Settings** (the cogwheel icon) and scroll down to find the Big Brother op
 *   **Default:** `Circuit Board`
 *   **What it does:** Changes the artistic style of the Ghost Layer wires. Circuit Board is the most visually distinct from native wires, which helps you see the difference.
 
-#### 12. 👁️ BB: Show Wires
+#### 13. 👁️ BB: Show Wires
 *   **Type:** Toggle (On/Off)
 *   **Default:** On
 *   **What it does:** Turns just the wire rendering on or off, while keeping the rest of Big Brother active. Useful if you want the error monitoring without the visual overlay.
@@ -434,6 +467,28 @@ The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing
 *   **Trigger**: Listens to `api.addEventListener("execution_error", ...)`.
 *   **Behavior**: Parses error payload for `node_id`, traces upstream links, and populates `this.infectedLinks` Set.
 *   **Visual**: Infected wires render using `wireColorError` instead of `wireColorSelect`.
+
+#### Death Modal (Error Popup)
+*   **Function**: `showDeathModal(errorMsg, traceback)` - Creates and displays the error popup.
+*   **Privacy**: All error content is sanitized via `sanitizeLog()` before display.
+*   **Buttons**:
+    *   `SHOW FULL REPORT` → Calls `showFullReport()`, opens styled popup window.
+    *   `HELP FIX THIS` → Calls `openHelpSearch()`, searches ComfyUI GitHub.
+    *   `FIND ISSUES` → Calls `openGitHubIssues()`, searches h4_Live GitHub.
+    *   `COPY TRACE` → Copies sanitized trace to clipboard.
+    *   `DISMISS` → Removes modal from DOM.
+
+#### Log Sanitization
+*   **Function**: `sanitizeLog(text)` - Regex-based replacement pipeline.
+*   **Patterns**:
+    *   Windows paths: `[A-Za-z]:\\Users\\[^\\]+\\` → `%USERPROFILE%\\`
+    *   Unix paths: `/(home|Users)/[^/]+/` → `$HOME/`
+    *   UNC paths: `\\\\[^\\]+\\[^\\]+` → `%NETWORKSHARE%`
+    *   Email: Standard regex → `[EMAIL REDACTED]`
+    *   IPv4: Non-localhost IPs → `[IP REDACTED]`
+
+#### Known Limitations
+*   **Subgraph Support**: Ghost Layer does NOT render inside subgraphs/group nodes. Wire highlighting only works on the main canvas. (Work In Progress)
 
 ---
 <div align="right">

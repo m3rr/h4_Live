@@ -1,4 +1,4 @@
-# 👁️ H4_LIVE TOOLKIT: THE BIBLICAL ONBOARDING MANIFESTO (v2.2.4-BETA)
+# 👁️ H4_LIVE TOOLKIT: THE BIBLICAL ONBOARDING MANIFESTO (v2.5.3-BETA)
 
 Welcome to the inner workings of the **h4_Live ToolKit**. This document provides an obscenely detailed, line-by-line architectural breakdown of the most advanced logic and visualization suite ever conceived for ComfyUI. 
 
@@ -79,6 +79,34 @@ Big Brother creates a `pointer-events: none` canvas that perfectly overlays the 
 The most complex math in the toolkit lies in `getNodeInputPos` and `getNodeOutputPos`.
 *   **Widget-Aware Spacing**: It accounts for the vertical gap created when widgets are converted to inputs (like the KSampler `denoise`).
 *   **Bottom-Stacking**: Converted inputs are anchored to the physical bottom of the node (`node.size[1]`), ensuring wires hit the center of the input circle even at extreme zoom levels.
+
+### 4. Death Modal (Error Popup System)
+When an execution error occurs, Big Brother intercepts the error and displays a dramatic "Death Modal" popup.
+
+*   **Entry Point**: `api.addEventListener("execution_error", ...)` triggers `handleError()` which calls `showDeathModal()`.
+*   **Privacy-First**: All error content is sanitized via `sanitizeLog()` BEFORE display or any user action.
+*   **Button Actions**:
+    *   `SHOW FULL REPORT` → `showFullReport()` opens a new browser window with the complete styled report.
+    *   `HELP FIX THIS` → `openHelpSearch()` opens GitHub issues search on `comfyanonymous/ComfyUI`.
+    *   `FIND ISSUES` → `openGitHubIssues()` opens GitHub issues search on `m3rr/h4_Live`.
+    *   `COPY TRACE` → Copies sanitized traceback to clipboard.
+    *   `DISMISS` → Removes modal from DOM.
+
+### 5. Log Sanitization Pipeline (`sanitizeLog()`)
+A regex-based privacy protection system that runs on all error content:
+
+| Original Pattern | Replacement |
+|------------------|-------------|
+| `C:\Users\{name}\` | `%USERPROFILE%\` |
+| `C:/Users/{name}/` | `%USERPROFILE%/` |
+| `/home/{user}/` or `/Users/{user}/` | `$HOME/` |
+| `\\servername\share` | `%NETWORKSHARE%` |
+| `user@domain.com` | `[EMAIL REDACTED]` |
+| `192.168.x.x` (non-localhost) | `[IP REDACTED]` |
+
+### 6. Known Limitations (Work In Progress)
+*   **Subgraph Support**: The Ghost Layer canvas is attached to the main ComfyUI canvas parent. It does NOT render inside subgraphs or group nodes. Wire highlighting only works on the main canvas level.
+*   **Manual Calibration**: Due to theme variations, display scaling, and browser zoom, the wire overlay may require manual offset calibration via the Settings panel.
 
 ---
 
