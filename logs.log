@@ -1,41 +1,34 @@
 === ERROR MESSAGE ===
-_log() takes 1 positional argument but 2 were given
+Uncaught TypeError: Failed to execute 'drawImage' on 'CanvasRenderingContext2D': The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'. at http://127.0.0.1:8190/extensions/comfyui_h4_live/h4_datastream.js:147:37
 
 === STACK TRACE ===
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 518, in execute
-    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 329, in get_output_data
-    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 303, in _async_map_node_over_list
-    await process_inputs(input_dict, i)
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 291, in process_inputs
-    result = f(**inputs)
-             ^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_datastream.py", line 142, in stream_image
-    _log(node_id, f"Streaming Frame {effective_index+1}/{total_count}: {filename}")
-
+TypeError: The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'.
+    at Object.draw (http://127.0.0.1:8190/extensions/comfyui_h4_live/h4_datastream.js:147:37)
+    at Pe.drawWidgets (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:44955)
+    at LGraphCanvas.drawNodeWidgets (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:164629)
+    at LGraphCanvas.drawNode (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:156155)
+    at LGraphCanvas.drawNode (http://127.0.0.1:8190/extensions/rgthree-comfy/label.js:141:27)
+    at LGraphCanvas.drawFrontCanvas (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:148671)
+    at LGraphCanvas.draw (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:147612)
+    at LGraphCanvas.renderFrame (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:117115)
 
 === FULL CONSOLE LOG ===
-[2026-01-13T11:06:25.597Z] [LOG] 👁️ h4 Big Brother v12 [BUILD: 2026-01-08T09:45:00_LOG_CAPTURE] Initializing... color: #00FF00; background: #000; font-size: 14px; padding: 4px;
-[2026-01-13T11:06:25.602Z] [WARN] [DEPRECATED] Monkey-patching getCanvasMenuOptions is deprecated. (Extension: "rgthree.QueueNode")
+[2026-01-13T12:34:10.013Z] [LOG] 👁️ h4 Big Brother v12 [BUILD: 2026-01-08T09:45:00_LOG_CAPTURE] Initializing... color: #00FF00; background: #000; font-size: 14px; padding: 4px;
+[2026-01-13T12:34:10.018Z] [WARN] [DEPRECATED] Monkey-patching getCanvasMenuOptions is deprecated. (Extension: "rgthree.QueueNode")
 Please use the new context menu API instead.
 
 See: https://docs.comfy.org/custom-nodes/js/context-menu-migration color: orange; font-weight: bold color: inherit
-[2026-01-13T11:06:25.607Z] [NETWORK] FETCH /api/crystools/monitor PATCH 7ms Response: [binary data/stream]
-[2026-01-13T11:06:25.608Z] [LOG] [Autocomplete-Plus] Loaded 0 Embeddings
-[2026-01-13T11:06:25.610Z] [INFO] [Autocomplete-Plus] Building 20 index for lora took 1.50ms.
-[2026-01-13T11:06:25.610Z] [LOG] [Autocomplete-Plus] Loaded 20 LoRA models
-[2026-01-13T11:06:25.740Z] [WARN] [rgthree] Blocked extension 'efficiency.widgethider' method 'nodeCreated' for rgthree-nodes because: Overrides value getter before widget getter is prepared. Can be lifted if/when https://github.com/jags111/efficiency-nodes-comfyui/pull/203 is pulled. 
-[2026-01-13T11:06:25.825Z] [NETWORK] FETCH /api/crystools/monitor PATCH 225ms Response: [binary data/stream]
-[2026-01-13T11:06:25.825Z] [NETWORK] FETCH /api/crystools/monitor PATCH 224ms Response: [binary data/stream]
-[2026-01-13T11:06:25.826Z] [NETWORK] FETCH /api/crystools/monitor PATCH 225ms Response: [binary data/stream]
-[2026-01-13T11:06:25.826Z] [NETWORK] FETCH ./rgthree/logo_markup.svg?fg=currentColor&cssClass=rgthree-logo&w=auto&h=auto GET 224ms Response: [binary data/stream]
-[2026-01-13T11:06:25.829Z] [NETWORK] XHR GET https://api.comfy.org/releases?project=comfyui¤t_version=0.8.2&form_factor=other&locale=en 131ms Status: 200 Response: [{"attention":"low","content":"# ComfyUI v0.9.1\nMemory optimization update for LTXA-V model processing\n\n- **LTXA-V Memory Estimation**\n  Increased memory estimation for LTXA-V model processing to improve stability","id":919,"project":"comfyui","published_at":"2026-01-13T07:34:05.127Z","version":"0.9.1"},{"attention":"medium","content":"# ComfyUI v0.9.0\nEnhanced model compatibility and improved memory efficiency\n\n- **Audio Processing**\n  New JoinAudioChannels node enables multi-channel au... (truncated)
-[2026-01-13T11:06:25.878Z] [NETWORK] FETCH /api/crystools/monitor/HDD GET 277ms Response: ["C:\\", "D:\\"]
-[2026-01-13T11:06:25.878Z] [NETWORK] FETCH /api/crystools/monitor/GPU GET 277ms Response: [{"index": 0, "name": "NVIDIA GeForce RTX 4060 Laptop GPU"}]
-[2026-01-13T11:06:25.895Z] [NETWORK] FETCH /autocomplete-plus/csv/danbooru/tags/base GET 287ms Response: tag,category,count,alias
+[2026-01-13T12:34:10.028Z] [NETWORK] FETCH /api/crystools/monitor PATCH 13ms Response: [binary data/stream]
+[2026-01-13T12:34:10.030Z] [NETWORK] FETCH /api/crystools/monitor PATCH 14ms Response: [binary data/stream]
+[2026-01-13T12:34:10.030Z] [NETWORK] FETCH /api/crystools/monitor PATCH 14ms Response: [binary data/stream]
+[2026-01-13T12:34:10.031Z] [LOG] [Autocomplete-Plus] Loaded 0 Embeddings
+[2026-01-13T12:34:10.041Z] [INFO] [Autocomplete-Plus] Building 20 index for lora took 8.70ms.
+[2026-01-13T12:34:10.042Z] [LOG] [Autocomplete-Plus] Loaded 20 LoRA models
+[2026-01-13T12:34:10.042Z] [NETWORK] FETCH /api/crystools/monitor PATCH 26ms Response: [binary data/stream]
+[2026-01-13T12:34:10.179Z] [NETWORK] XHR GET https://api.comfy.org/releases?project=comfyui¤t_version=0.8.2&form_factor=other&locale=en 68ms Status: 200 Response: [{"attention":"low","content":"# ComfyUI v0.9.1\nMemory optimization update for LTXA-V model processing\n\n- **LTXA-V Memory Estimation**\n  Increased memory estimation for LTXA-V model processing to improve stability","id":919,"project":"comfyui","published_at":"2026-01-13T07:34:05.127Z","version":"0.9.1"},{"attention":"medium","content":"# ComfyUI v0.9.0\nEnhanced model compatibility and improved memory efficiency\n\n- **Audio Processing**\n  New JoinAudioChannels node enables multi-channel au... (truncated)
+[2026-01-13T12:34:10.184Z] [NETWORK] FETCH /api/crystools/monitor/HDD GET 168ms Response: ["C:\\", "D:\\"]
+[2026-01-13T12:34:10.184Z] [NETWORK] FETCH /api/crystools/monitor/GPU GET 168ms Response: [{"index": 0, "name": "NVIDIA GeForce RTX 4060 Laptop GPU"}]
+[2026-01-13T12:34:10.205Z] [NETWORK] FETCH /autocomplete-plus/csv/danbooru/tags/base GET 162ms Response: tag,category,count,alias
 1girl,0,4974288,"女の子,女性,少女,girl,おんなのこ,女子,소녀,女孩,姑娘,女,ガール,ガールズイラスト,animegirl"
 solo,0,4005860,"ソロ,solo,ひとり"
 long_hair,0,3608339,"ロングヘアー,長髪,ロングヘア,黒髪ロング,金髪ロング,长发,長髪けもフレ,茶髪ロング,長い髪,長髪男子,銀髪ロング"
@@ -43,11 +36,12 @@ breasts,0,3157499,"おっぱい,極上の乳,大艦巨乳主義,オッパイ,美
 looking_at_viewer,0,2903688,カメラ目線
 blush,0,2535113,"脸红,赤面,頬染め,///,紅潮"
 smile,0,2294308,"笑... (truncated)
-[2026-01-13T11:06:25.898Z] [NETWORK] FETCH /object_info/CheckpointLoaderSimple GET 151ms Response: {"CheckpointLoaderSimple": {"input": {"required": {"ckpt_name": [["1.5\\dreamshaper_8LCM.safetensors", "1.5\\h4_Anime_v2.safetensors", "1.5\\h4_JellyBean-v1.safetensors", "1.5\\h4_Realisitc_Refiner45b.safetensors", "1.5\\h4_Realistic_v2.5.safetensors", "1.5\\h4_Realistic_v2.safetensors", "1.5\\h4_Realistic_v3.safetensors", "1.5\\h4_Realistic_v4.safetensors", "1.5\\h4_anime_v1.safetensors", "1.5\\h4_anime_vibrant_v1.safetensors", "Editing Models\\instruct-pix2pix-00-22000.safetensors", "FLUX%NETWORKSHARE%\n\n- **LTXA-V Memory Estimation**\n  Increased memory estimation for LTXA-V model processing to improve stability","id":919,"project":"comfyui","published_at":"2026-01-13T07:34:05.127Z","version":"0.9.1"},{"attention":"medium","content":"# ComfyUI v0.9.0\nEnhanced model compatibility and improved memory efficiency\n\n- **Audio Processing**\n  New JoinAudioChannels node enables multi-channel au... (truncated)
-[2026-01-13T11:06:26.179Z] [NETWORK] FETCH /object_info/LoraLoader GET 161ms Response: {"LoraLoader": {"input": {"required": {"model": ["MODEL", {"tooltip": "The diffusion model the LoRA will be applied to."}], "clip": ["CLIP", {"tooltip": "The CLIP model the LoRA will be applied to."}], "lora_name": [["SDXL\\Dice_SDXL_Comm_LoRa.safetensors", "SDXL\\EmmaWatsonLoRa.safetensors", "SDXL\\RMSDXL_Enhance.safetensors", "SDXL\\breastinclassBetter.safetensors", "SDXL\\cinematic20lighting.safetensors", "SDXL\\dark.safetensors", "SDXL\\h4_IllustriousXL-Stylizer.safetensors", "SDXL\\leaked_n... (truncated)
-[2026-01-13T11:06:26.314Z] [NETWORK] FETCH /object_info/KSampler GET 86ms Response: {"KSampler": {"input": {"required": {"model": ["MODEL", {"tooltip": "The model used for denoising the input latent."}], "seed": ["INT", {"default": 0, "min": 0, "max": 18446744073709551615, "control_after_generate": true, "tooltip": "The random seed used for creating the noise."}], "steps": ["INT", {"default": 20, "min": 1, "max": 10000, "tooltip": "The number of steps used in the denoising process."}], "cfg": ["FLOAT", {"default": 8.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01, "tool... (truncated)
-[2026-01-13T11:06:26.351Z] [LOG] [H4 Gridinator] Data Loaded: {"ckpts":46,"loras":20,"samplers":44,"schedulers":9}
-[2026-01-13T11:06:26.805Z] [NETWORK] FETCH /autocomplete-plus/csv/danbooru/tags_cooccurrence/base GET 1197ms Response: tag_a,tag_b,count
+[2026-01-13T12:34:10.240Z] [NETWORK] FETCH /api/crystools/monitor PATCH 39ms Response: [binary data/stream]
+[2026-01-13T12:34:10.324Z] [LOG] [Autocomplete-Plus] "danbooru" Tags loading complete in 280.90ms
+[2026-01-13T12:34:10.351Z] [NETWORK] FETCH /api/crystools/monitor/GPU/0 PATCH 148ms Response: [binary data/stream]
+[2026-01-13T12:34:10.351Z] [NETWORK] FETCH /api/crystools/monitor/GPU/0 PATCH 147ms Response: [binary data/stream]
+[2026-01-13T12:34:10.351Z] [NETWORK] FETCH /api/crystools/monitor/GPU/0 PATCH 147ms Response: [binary data/stream]
+[2026-01-13T12:34:11.109Z] [NETWORK] FETCH /autocomplete-plus/csv/danbooru/tags_cooccurrence/base GET 1066ms Response: tag_a,tag_b,count
 1girl,solo,3816210.0
 1girl,long_hair,2801554.0
 1girl,breasts,2698892.0
@@ -66,7 +60,7 @@ blush,solo,1520112.0
 breasts,large_breasts,1471472.0
 smile,solo,1406706.0
 long_hai... (truncated)
-[2026-01-13T11:06:27.258Z] [NETWORK] XHR GET assets/sorted-custom-node-map.json 68ms Status: 200 Response: {
+[2026-01-13T12:34:11.635Z] [NETWORK] XHR GET assets/sorted-custom-node-map.json 57ms Status: 200 Response: {
   "PreviewImage": 4314,
   "LoadImage": 3474,
   "CLIPTextEncode": 2435,
@@ -87,78 +81,24 @@ long_hai... (truncated)
   "ControlNetLoader": 499,
   "ImageBatch": 494,
   "ImageSc... (truncated)
-[2026-01-13T11:06:27.438Z] [NETWORK] FETCH /api/experiment/models GET 249ms Response: [{"name": "checkpoints", "folders": ["D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\models\\checkpoints", "D:\\LocalAI\\StabilityMatrix\\Models\\StableDiffusion", "D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\output\\checkpoints"]}, {"name": "loras", "folders": ["D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\models\\loras", "D:\\LocalAI\\StabilityMatrix\\Models\\Lora", "D:\\LocalAI\\StabilityMatrix\\Models\\LyCORIS", "D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\output%NETWORKSHARE%\StabilityMatrix\Packages\ComfyUI\execution.py", line 518, in execute
-    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 329, in get_output_data
-    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 303, in _async_map_node_over_list
-    await process_inputs(input_dict, i)
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 291, in process_inputs
-    result = f(**inputs)
-             ^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_datastream.py", line 142, in stream_image
-    _log(node_id, f"Streaming Frame {effective_index+1}/{total_count}: {filename}")
-
-[2026-01-13T11:06:55.641Z] [NETWORK] FETCH /api/queue GET 357ms Response: {"queue_running": [], "queue_pending": []}
-[2026-01-13T11:06:55.655Z] [NETWORK] XHR GET /internal/logs 235ms Status: 200 Response: "2026-01-13T06:05:48.201493 - Adding extra search path checkpoints D:\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software... (truncated)
-[2026-01-13T11:06:55.660Z] [NETWORK] FETCH /api/queue GET 371ms Response: {"queue_running": [], "queue_pending": []}
-[2026-01-13T11:06:55.660Z] [NETWORK] FETCH /api/history?max_items=64 GET 371ms Response: {"dc934740-69c9-4894-b7ae-d22dacf79b33": {"prompt": [0, "dc934740-69c9-4894-b7ae-d22dacf79b33", {"100": {"inputs": {"upscale_method": "lanczos", "scale_by": 1.0, "image": ["102", 0]}, "class_type": "ImageScaleBy", "_meta": {"title": "Upscale Image By"}}, "101": {"inputs": {"filename_prefix": "h4_MaLi_Upscaled", "with_workflow": false, "metadata_extra": "{\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software... (truncated)
-[2026-01-13T11:06:55.660Z] [NETWORK] FETCH /api/queue GET 25ms Response: {"queue_running": [], "queue_pending": []}
-[2026-01-13T11:06:55.660Z] [NETWORK] FETCH /api/history?max_items=64 GET 25ms Response: {"dc934740-69c9-4894-b7ae-d22dacf79b33": {"prompt": [0, "dc934740-69c9-4894-b7ae-d22dacf79b33", {"100": {"inputs": {"upscale_method": "lanczos", "scale_by": 1.0, "image": ["102", 0]}, "class_type": "ImageScaleBy", "_meta": {"title": "Upscale Image By"}}, "101": {"inputs": {"filename_prefix": "h4_MaLi_Upscaled", "with_workflow": false, "metadata_extra": "{\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software... (truncated)
-[2026-01-13T11:06:56.283Z] [NETWORK] FETCH /api/userdata/workflows%2FMaLi_Influencer_Workflow.json?overwrite=true&full_info=true POST 12ms Response: {"path": "workflows/MaLi_Influencer_Workflow.json", "size": 48559, "modified": 1768302416.2771409, "created": 1767972649.6951103}
-[2026-01-13T11:07:09.001Z] [NETWORK] FETCH /api/userdata/workflows%2FMaLi_Influencer_Workflow.json?overwrite=true&full_info=true POST 15ms Response: {"path": "workflows/MaLi_Influencer_Workflow.json", "size": 48558, "modified": 1768302428.9917922, "created": 1767972649.6951103}
-[2026-01-13T11:07:09.730Z] [WARN] 'execution_start' fired before prompt was made.
-[2026-01-13T11:07:09.750Z] [NETWORK] FETCH /api/prompt POST 41ms Response: {"prompt_id": "1be5badc-f0b0-4f3d-9001-bbdb8d117f3b", "number": 1, "node_errors": {}}
-[2026-01-13T11:07:09.759Z] [ERROR] 👁️ [h4-BB] EXECUTION ERROR on Node 107: _log() takes 1 positional argument but 2 were given
-
-[2026-01-13T11:07:09.759Z] [CRITICAL] ERROR: _log() takes 1 positional argument but 2 were given
- 
- TRACE:   File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 518, in execute
-    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 329, in get_output_data
-    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 303, in _async_map_node_over_list
-    await process_inputs(input_dict, i)
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 291, in process_inputs
-    result = f(**inputs)
-             ^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_datastream.py", line 142, in stream_image
-    _log(node_id, f"Streaming Frame {effective_index+1}/{total_count}: {filename}")
-
-[2026-01-13T11:07:09.822Z] [NETWORK] FETCH /api/queue GET 98ms Response: {"queue_running": [[1, "1be5badc-f0b0-4f3d-9001-bbdb8d117f3b", {"100": {"inputs": {"upscale_method": "lanczos", "scale_by": 1.0, "image": ["102", 0]}, "class_type": "ImageScaleBy", "_meta": {"title": "Upscale Image By"}}, "101": {"inputs": {"filename_prefix": "h4_MaLi_Upscaled", "with_workflow": false, "metadata_extra": "{\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software\": \"ComfyUI\"\n\"Category\": \"... (truncated)
-[2026-01-13T11:07:09.822Z] [NETWORK] FETCH /api/history?max_items=64 GET 98ms Response: {"dc934740-69c9-4894-b7ae-d22dacf79b33": {"prompt": [0, "dc934740-69c9-4894-b7ae-d22dacf79b33", {"100": {"inputs": {"upscale_method": "lanczos", "scale_by": 1.0, "image": ["102", 0]}, "class_type": "ImageScaleBy", "_meta": {"title": "Upscale Image By"}}, "101": {"inputs": {"filename_prefix": "h4_MaLi_Upscaled", "with_workflow": false, "metadata_extra": "{\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software... (truncated)
-[2026-01-13T11:07:10.146Z] [NETWORK] FETCH /api/queue GET 417ms Response: {"queue_running": [], "queue_pending": []}
-[2026-01-13T11:07:10.154Z] [NETWORK] XHR GET /internal/logs 379ms Status: 200 Response: "2026-01-13T06:05:48.201493 - Adding extra search path checkpoints D:\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software... (truncated)
-[2026-01-13T11:07:10.166Z] [NETWORK] FETCH /api/history?max_items=64 GET 437ms Response: {"dc934740-69c9-4894-b7ae-d22dacf79b33": {"prompt": [0, "dc934740-69c9-4894-b7ae-d22dacf79b33", {"100": {"inputs": {"upscale_method": "lanczos", "scale_by": 1.0, "image": ["102", 0]}, "class_type": "ImageScaleBy", "_meta": {"title": "Upscale Image By"}}, "101": {"inputs": {"filename_prefix": "h4_MaLi_Upscaled", "with_workflow": false, "metadata_extra": "{\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software... (truncated)
-[2026-01-13T11:07:10.818Z] [NETWORK] FETCH /api/userdata/workflows%2FMaLi_Influencer_Workflow.json?overwrite=true&full_info=true POST 12ms Response: {"path": "workflows/MaLi_Influencer_Workflow.json", "size": 48558, "modified": 1768302430.8122032, "created": 1767972649.6951103}
-[2026-01-13T11:07:13.709Z] [NETWORK] FETCH /api/prompt POST 19ms Response: {"prompt_id": "febc8c68-03ee-4058-abfe-d8a85896bce6", "number": 2, "node_errors": {}}
-[2026-01-13T11:07:13.711Z] [WARN] 'execution_start' fired before prompt was made.
-[2026-01-13T11:07:13.762Z] [ERROR] 👁️ [h4-BB] EXECUTION ERROR on Node 107: _log() takes 1 positional argument but 2 were given
-
-[2026-01-13T11:07:13.762Z] [CRITICAL] ERROR: _log() takes 1 positional argument but 2 were given
- 
- TRACE:   File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 518, in execute
-    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 329, in get_output_data
-    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 303, in _async_map_node_over_list
-    await process_inputs(input_dict, i)
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 291, in process_inputs
-    result = f(**inputs)
-             ^^^^^^^^^^^
-,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_datastream.py", line 142, in stream_image
-    _log(node_id, f"Streaming Frame {effective_index+1}/{total_count}: {filename}")
-
-[2026-01-13T11:07:13.794Z] [NETWORK] XHR GET /internal/logs 17ms Status: 200 Response: "2026-01-13T06:05:48.201493 - Adding extra search path checkpoints D:\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Models%NETWORKSHARE%\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software\": \"ComfyUI\"\n\"Category\": \"... (truncated)
-[2026-01-13T11:07:13.803Z] [NETWORK] FETCH /api/history?max_items=64 GET 93ms Response: {"dc934740-69c9-4894-b7ae-d22dacf79b33": {"prompt": [0, "dc934740-69c9-4894-b7ae-d22dacf79b33", {"100": {"inputs": {"upscale_method": "lanczos", "scale_by": 1.0, "image": ["102", 0]}, "class_type": "ImageScaleBy", "_meta": {"title": "Upscale Image By"}}, "101": {"inputs": {"filename_prefix": "h4_MaLi_Upscaled", "with_workflow": false, "metadata_extra": "{\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software... (truncated)
-[2026-01-13T11:07:13.804Z] [NETWORK] FETCH /api/queue GET 93ms Response: {"queue_running": [[2, "febc8c68-03ee-4058-abfe-d8a85896bce6", {"100": {"inputs": {"upscale_method": "lanczos", "scale_by": 1.0, "image": ["102", 0]}, "class_type": "ImageScaleBy", "_meta": {"title": "Upscale Image By"}}, "101": {"inputs": {"filename_prefix": "h4_MaLi_Upscaled", "with_workflow": false, "metadata_extra": "{\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software\": \"ComfyUI\"\n\"Category\": \"... (truncated)
-[2026-01-13T11:07:13.804Z] [NETWORK] FETCH /api/history?max_items=64 GET 93ms Response: {"dc934740-69c9-4894-b7ae-d22dacf79b33": {"prompt": [0, "dc934740-69c9-4894-b7ae-d22dacf79b33", {"100": {"inputs": {"upscale_method": "lanczos", "scale_by": 1.0, "image": ["102", 0]}, "class_type": "ImageScaleBy", "_meta": {"title": "Upscale Image By"}}, "101": {"inputs": {"filename_prefix": "h4_MaLi_Upscaled", "with_workflow": false, "metadata_extra": "{\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software... (truncated)
-[2026-01-13T11:07:13.816Z] [NETWORK] FETCH /api/queue GET 20ms Response: {"queue_running": [], "queue_pending": []}
-[2026-01-13T11:07:13.816Z] [NETWORK] FETCH /api/history?max_items=64 GET 20ms Response: {"dc934740-69c9-4894-b7ae-d22dacf79b33": {"prompt": [0, "dc934740-69c9-4894-b7ae-d22dacf79b33", {"100": {"inputs": {"upscale_method": "lanczos", "scale_by": 1.0, "image": ["102", 0]}, "class_type": "ImageScaleBy", "_meta": {"title": "Upscale Image By"}}, "101": {"inputs": {"filename_prefix": "h4_MaLi_Upscaled", "with_workflow": false, "metadata_extra": "{\n\"Title\": \"h4-MaLi\"\n\"Description\": \"Check Me out: https:\\/\\/www.instagram.com%NETWORKSHARE%\n\"Author\": \"h4-MaLi\"\n\"Software... (truncated)
-[2026-01-13T11:07:14.750Z] [NETWORK] FETCH /api/userdata/workflows%2FMaLi_Influencer_Workflow.json?overwrite=true&full_info=true POST 8ms Response: {"path": "workflows/MaLi_Influencer_Workflow.json", "size": 48558, "modified": 1768302434.7473886, "created": 1767972649.6951103}
+[2026-01-13T12:34:11.696Z] [NETWORK] FETCH /api/experiment/models GET 119ms Response: [{"name": "checkpoints", "folders": ["D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\models\\checkpoints", "D:\\LocalAI\\StabilityMatrix\\Models\\StableDiffusion", "D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\output\\checkpoints"]}, {"name": "loras", "folders": ["D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\models\\loras", "D:\\LocalAI\\StabilityMatrix\\Models\\Lora", "D:\\LocalAI\\StabilityMatrix\\Models\\LyCORIS", "D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\output\\loras"]}, {... (truncated)
+[2026-01-13T12:34:12.176Z] [INFO] [Autocomplete-Plus] Building 32259 index for danbooru took 1883.80ms.
+[2026-01-13T12:34:15.634Z] [NETWORK] FETCH /api/userdata/workflows%2F.index.json GET 14ms Response: [binary data/stream]
+[2026-01-13T12:34:17.768Z] [NETWORK] FETCH /api/userdata/workflows%2FMaLi_Influencer_Workflow.json GET 36ms Response: {"id":"3f1b6ff7-0d02-49e1-b749-699a034ddac7","revision":0,"last_node_id":108,"last_link_id":170,"nodes":[{"id":45,"type":"H4_StateMonitor","pos":[-88.53113176332492,511.05394072553037],"size":[193.892578125,46],"flags":{},"order":0,"mode":2,"inputs":[{"localized_name":"Any_In","name":"Any_In","shape":7,"type":"*","link":null}],"outputs":[{"localized_name":"loop_count_number","name":"loop_count_number","type":"INT","links":[90]},{"localized_name":"Any_Pass","name":"Any_Pass","type":"*","links":nu... (truncated)
+[2026-01-13T12:34:17.797Z] [WARN] [rgthree] Blocked extension 'efficiency.widgethider' method 'nodeCreated' for rgthree-nodes because: Overrides value getter before widget getter is prepared. Can be lifted if/when https://github.com/jags111/efficiency-nodes-comfyui/pull/203 is pulled. 
+[2026-01-13T12:34:17.870Z] [ERROR] 👁️ [h4-BB] EXECUTION ERROR on Node GLOBAL: Uncaught TypeError: Failed to execute 'drawImage' on 'CanvasRenderingContext2D': The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'. at http://127.0.0.1:8190/extensions/comfyui_h4_live/h4_datastream.js:147:37
+[2026-01-13T12:34:17.870Z] [CRITICAL] ERROR: Uncaught TypeError: Failed to execute 'drawImage' on 'CanvasRenderingContext2D': The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'. at http://127.0.0.1:8190/extensions/comfyui_h4_live/h4_datastream.js:147:37 
+ TRACE: TypeError: The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'.
+    at Object.draw (http://127.0.0.1:8190/extensions/comfyui_h4_live/h4_datastream.js:147:37)
+    at Pe.drawWidgets (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:44955)
+    at LGraphCanvas.drawNodeWidgets (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:164629)
+    at LGraphCanvas.drawNode (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:156155)
+    at LGraphCanvas.drawNode (http://127.0.0.1:8190/extensions/rgthree-comfy/label.js:141:27)
+    at LGraphCanvas.drawFrontCanvas (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:148671)
+    at LGraphCanvas.draw (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:147612)
+    at LGraphCanvas.renderFrame (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:117115)
+[2026-01-13T12:34:17.962Z] [NETWORK] FETCH /object_info/CheckpointLoaderSimple GET 160ms Response: {"CheckpointLoaderSimple": {"input": {"required": {"ckpt_name": [["1.5\\dreamshaper_8LCM.safetensors", "1.5\\h4_Anime_v2.safetensors", "1.5\\h4_JellyBean-v1.safetensors", "1.5\\h4_Realisitc_Refiner45b.safetensors", "1.5\\h4_Realistic_v2.5.safetensors", "1.5\\h4_Realistic_v2.safetensors", "1.5\\h4_Realistic_v3.safetensors", "1.5\\h4_Realistic_v4.safetensors", "1.5\\h4_anime_v1.safetensors", "1.5\\h4_anime_vibrant_v1.safetensors", "Editing Models\\instruct-pix2pix-00-22000.safetensors", "FLUX\\DIC... (truncated)
+[2026-01-13T12:34:18.001Z] [NETWORK] FETCH /object_info/LoraLoader GET 22ms Response: {"LoraLoader": {"input": {"required": {"model": ["MODEL", {"tooltip": "The diffusion model the LoRA will be applied to."}], "clip": ["CLIP", {"tooltip": "The CLIP model the LoRA will be applied to."}], "lora_name": [["SDXL\\Dice_SDXL_Comm_LoRa.safetensors", "SDXL\\EmmaWatsonLoRa.safetensors", "SDXL\\RMSDXL_Enhance.safetensors", "SDXL\\breastinclassBetter.safetensors", "SDXL\\cinematic20lighting.safetensors", "SDXL\\dark.safetensors", "SDXL\\h4_IllustriousXL-Stylizer.safetensors", "SDXL\\leaked_n... (truncated)
+[2026-01-13T12:34:18.022Z] [NETWORK] FETCH /object_info/KSampler GET 20ms Response: {"KSampler": {"input": {"required": {"model": ["MODEL", {"tooltip": "The model used for denoising the input latent."}], "seed": ["INT", {"default": 0, "min": 0, "max": 18446744073709551615, "control_after_generate": true, "tooltip": "The random seed used for creating the noise."}], "steps": ["INT", {"default": 20, "min": 1, "max": 10000, "tooltip": "The number of steps used in the denoising process."}], "cfg": ["FLOAT", {"default": 8.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01, "tool... (truncated)
+[2026-01-13T12:34:18.024Z] [LOG] [H4 Gridinator] Data Loaded: {"ckpts":46,"loras":20,"samplers":44,"schedulers":9}
+[2026-01-13T12:34:18.405Z] [LOG] [Autocomplete-Plus] "danbooru" Co-occurrence loading complete in 8361.60ms.

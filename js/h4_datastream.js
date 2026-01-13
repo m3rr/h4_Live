@@ -138,13 +138,18 @@ app.registerExtension({
                         value: null, // Image Object
                         draw: function (ctx, node, widget_width, y, widget_height) {
                             // Draw Image
-                            if (this.value) {
+                            // Draw Image
+                            if (this.value && this.value.complete && this.value.naturalWidth > 0) {
                                 const img = this.value;
                                 const ratio = img.width / img.height;
                                 const w = widget_width;
                                 const h = w / ratio;
                                 // Center vertically if possible, or just top align
-                                ctx.drawImage(img, 0, y, w, h);
+                                try {
+                                    ctx.drawImage(img, 0, y, w, h);
+                                } catch (e) {
+                                    // Silent fail if drawing fails (e.g. invalid state)
+                                }
                             }
 
                             // Draw Text Overlay (Filename)
@@ -157,7 +162,7 @@ app.registerExtension({
                             }
                         },
                         computeSize: function (width) {
-                            if (this.value) {
+                            if (this.value && this.value.width > 0 && this.value.height > 0) {
                                 const ratio = this.value.width / this.value.height;
                                 return [width, width / ratio + 25]; // +25 for text
                             }
