@@ -1,6 +1,6 @@
 # h4_Live: The Logic & Loop Controller v2.5.3 { Now with QoL enhancements! }
 
-![Version](https://img.shields.io/badge/version-2.5.6--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
+![Version](https://img.shields.io/badge/version-2.5.7--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
 > **"A Railway Switch for your Workflow."**
 
@@ -195,6 +195,23 @@ This is the ultimate testing tool. It takes your workflow and multiplies it into
     *   **Stutter**: Type a prompt like "A {cat|dog|fish}" and it makes a grid for each animal.
     *   **Sliding Scale**: Auto-generates the numbers for you.
     *   **Dynamic Layout**: Automatic label sizing with configurable `Margin` and `Padding` for perfect grids every time.
+
+---
+
+## 16. H4 DataStream (The Batch Loader) 📡
+**"Stream the feed. One frame at a time."**
+
+*   **What it does:** It helps you batch process an entire folder of images, one by one.
+*   **The Problem:** Normally, to process 50 images, you have to click Queue 50 times.
+*   **The Solution:**
+    1.  Click **Queue Prompt** *once*.
+    2.  DataStream loads Image #1.
+    3.  DataStream sees there are 49 more images.
+    4.  It immediately presses the "Queue" button 49 more times for you.
+*   **Features:**
+    *   **📁 Browse Button**: Opens a real Windows folder picker (no more copy-pasting paths!).
+    *   **Auto-Queue**: Just set `auto_queue_remaining` to `True` and walk away.
+    *   **Live Preview**: Shows you exactly which image is processing and how far along you are (e.g., "img_05.png (5/50)").
 
 ---
 
@@ -432,7 +449,18 @@ The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing
     6.  `PIL.Draw`: Stitch into canvas with Dynamic Label Sizing (Auto-fit).
     7.  `ToTensor`: Return final grid.
 
-### 15. H4_BigBrother (Ghost Layer Extension)
+### 15. H4_DataStream
+*   **Class**: `H4_DataStream`
+*   **Function**: Sequential image loader with self-scheduling capabilities.
+*   **Pathing**: Supports **Absolute Paths** via a server-side `tkinter` directory picker API (`/h4/browse`).
+*   **Auto-Queue Mechanism**:
+    *   On execution, checks if `auto_queue_remaining` is True.
+    *   Calculates `remaining = total - current`.
+    *   Sends a `h4.datastream.queue_batch` signal to the frontend.
+    *   Frontend (JS) catches signal and executes `api.queuePrompt()` `remaining` times, incrementing the `current_index` for each job.
+    *   **Recursion Safety**: The auto-queued jobs have `auto_queue_remaining` forced to `False` to prevent infinite loops.
+
+### 16. H4_BigBrother (Ghost Layer Extension)
 *   **Module**: `js/h4_BigBrother.js`
 *   **Type**: ComfyUI Frontend Extension (Client-Side JavaScript)
 *   **Architecture**: `app.registerExtension({...})` pattern with singleton state.

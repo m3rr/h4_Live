@@ -8,6 +8,7 @@ from .h4_mission_control import H4_MissionControl, H4_LinearScheduler, H4_SeedGe
 from .h4_gridinator import H4_Gridinator
 from .h4_debug_error import H4_DebugErrorGenerator
 from .h4_discombobulator import H4_Discombobulator
+from .h4_datastream import H4_DataStream
 
 NODE_CLASS_MAPPINGS = {
     "H4_TrafficCop": H4_TrafficCop,
@@ -25,7 +26,8 @@ NODE_CLASS_MAPPINGS = {
     "H4_ImageBuffer": H4_ImageBuffer,
     "H4_Gridinator": H4_Gridinator,
     "H4_DebugErrorGenerator": H4_DebugErrorGenerator,
-    "H4_Discombobulator": H4_Discombobulator
+    "H4_Discombobulator": H4_Discombobulator,
+    "H4_DataStream": H4_DataStream
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -44,7 +46,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_ImageBuffer": "h4 Image Buffer (Anti-Lag)",
     "H4_Gridinator": "h4 - Gridinator 9001",
     "H4_DebugErrorGenerator": "🔬 h4 Debug Error (TEST ONLY)",
-    "H4_Discombobulator": "The Discombobulator - (b'.')b / t('.'t)"
+    "H4_Discombobulator": "The Discombobulator - (b'.')b / t('.'t)",
+    "H4_DataStream": "h4 DataStream (Batch Loader)"
 }
 
 WEB_DIRECTORY = "./js"
