@@ -517,7 +517,9 @@ The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing
 
 #### Known Limitations
 *   **Subgraph Support**: Ghost Layer does NOT render inside subgraphs/group nodes. Wire highlighting only works on the main canvas. (Work In Progress)
-
+*   **Un-aligned Trace Wires**: Currently the glowing trace wires work over 90% of comfyui. There are still some areas that require either manual adjustment or
+       acceptance that it's off (for now). I'm working on a fix - but as it stands it works great. Just if it does land slightly "off target" just look and
+        use our giant meat computers and resolve the correct input. Know what I'm saying? 
 ---
 <div align="right">
 
