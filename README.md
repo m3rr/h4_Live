@@ -1,4 +1,4 @@
-# h4_Live: The Logic & Loop Controller v2.5.3 { Now with QoL enhancements! }
+# h4_Live: The Logic & Loop Controller v2.6.3 { Now with QoL enhancements! }
 ![Version](https://img.shields.io/badge/version-2.6.3--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
 > **"A Railway Switch for your Workflow."**
