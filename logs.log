@@ -1,104 +1,190 @@
-=== ERROR MESSAGE ===
-Uncaught TypeError: Failed to execute 'drawImage' on 'CanvasRenderingContext2D': The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'. at http://127.0.0.1:8190/extensions/comfyui_h4_live/h4_datastream.js:147:37
+Adding extra search path checkpoints D:\LocalAI\StabilityMatrix\Models\StableDiffusion
+Adding extra search path diffusers D:\LocalAI\StabilityMatrix\Models\Diffusers
+Adding extra search path loras D:\LocalAI\StabilityMatrix\Models\Lora
+Adding extra search path loras D:\LocalAI\StabilityMatrix\Models\LyCORIS
+Adding extra search path clip D:\LocalAI\StabilityMatrix\Models\TextEncoders
+Adding extra search path clip_vision D:\LocalAI\StabilityMatrix\Models\ClipVision
+Adding extra search path embeddings D:\LocalAI\StabilityMatrix\Models\Embeddings
+Adding extra search path vae D:\LocalAI\StabilityMatrix\Models\VAE
+Adding extra search path vae_approx D:\LocalAI\StabilityMatrix\Models\ApproxVAE
+Adding extra search path controlnet D:\LocalAI\StabilityMatrix\Models\ControlNet
+Adding extra search path controlnet D:\LocalAI\StabilityMatrix\Models\T2IAdapter
+Adding extra search path gligen D:\LocalAI\StabilityMatrix\Models\GLIGEN
+Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\ESRGAN
+Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\RealESRGAN
+Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\SwinIR
+Adding extra search path hypernetworks D:\LocalAI\StabilityMatrix\Models\Hypernetwork
+Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdapter
+Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdapters15
+Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdaptersXl
+Adding extra search path prompt_expansion D:\LocalAI\StabilityMatrix\Models\PromptExpansion
+Adding extra search path ultralytics D:\LocalAI\StabilityMatrix\Models\Ultralytics
+Adding extra search path ultralytics_bbox D:\LocalAI\StabilityMatrix\Models\Ultralytics\bbox
+Adding extra search path ultralytics_segm D:\LocalAI\StabilityMatrix\Models\Ultralytics\segm
+Adding extra search path sams D:\LocalAI\StabilityMatrix\Models\Sams
+Adding extra search path diffusion_models D:\LocalAI\StabilityMatrix\Models\DiffusionModels
+[START] Security scan
+[DONE] Security scan
+** ComfyUI startup time: 2026-01-28 12:34:50.736
+** Platform: Windows
+** Python version: 3.12.11 (main, Jul 23 2025, 00:32:20) [MSC v.1944 64 bit (AMD64)]
+** Python executable: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Scripts\python.exe
+** ComfyUI Path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI
+** ComfyUI Base Folder Path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI
+** User directory: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user
+** ComfyUI-Manager config path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\__manager\config.ini
+** Log path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\comfyui.log
+[PRE] ComfyUI-Manager
 
-=== STACK TRACE ===
-TypeError: The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'.
-    at Object.draw (http://127.0.0.1:8190/extensions/comfyui_h4_live/h4_datastream.js:147:37)
-    at Pe.drawWidgets (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:44955)
-    at LGraphCanvas.drawNodeWidgets (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:164629)
-    at LGraphCanvas.drawNode (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:156155)
-    at LGraphCanvas.drawNode (http://127.0.0.1:8190/extensions/rgthree-comfy/label.js:141:27)
-    at LGraphCanvas.drawFrontCanvas (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:148671)
-    at LGraphCanvas.draw (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:147612)
-    at LGraphCanvas.renderFrame (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:117115)
+Prestartup times for custom nodes:
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\rgthree-comfy
 
-=== FULL CONSOLE LOG ===
-[2026-01-13T12:34:10.013Z] [LOG] 👁️ h4 Big Brother v12 [BUILD: 2026-01-08T09:45:00_LOG_CAPTURE] Initializing... color: #00FF00; background: #000; font-size: 14px; padding: 4px;
-[2026-01-13T12:34:10.018Z] [WARN] [DEPRECATED] Monkey-patching getCanvasMenuOptions is deprecated. (Extension: "rgthree.QueueNode")
-Please use the new context menu API instead.
+D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\cuda\__init__.py:65: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+Checkpoint files will always be loaded safely.
+Total VRAM 8188 MB, total RAM 16011 MB
+pytorch version: 2.10.0+cu130
+Set vram state to: NORMAL_VRAM
+Device: cuda:0 NVIDIA GeForce RTX 4060 Laptop GPU : cudaMallocAsync
+Using async weight offloading with 2 streams
+Enabled pinned memory 7204.0
+working around nvidia conv3d memory bug.
+Found comfy_kitchen backend cuda: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_nvfp4']}
+Found comfy_kitchen backend eager: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_nvfp4']}
+Found comfy_kitchen backend triton: {'available': True, 'disabled': True, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8']}
+Using sage attention
+Python version: 3.12.11 (main, Jul 23 2025, 00:32:20) [MSC v.1944 64 bit (AMD64)]
+ComfyUI version: 0.11.0
+ComfyUI frontend version: 1.37.11
+[Prompt Server] web root: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\comfyui_frontend_package\static
+[START] ComfyUI-Manager
+[ComfyUI-Manager] network_mode: public
 
-See: https://docs.comfy.org/custom-nodes/js/context-menu-migration color: orange; font-weight: bold color: inherit
-[2026-01-13T12:34:10.028Z] [NETWORK] FETCH /api/crystools/monitor PATCH 13ms Response: [binary data/stream]
-[2026-01-13T12:34:10.030Z] [NETWORK] FETCH /api/crystools/monitor PATCH 14ms Response: [binary data/stream]
-[2026-01-13T12:34:10.030Z] [NETWORK] FETCH /api/crystools/monitor PATCH 14ms Response: [binary data/stream]
-[2026-01-13T12:34:10.031Z] [LOG] [Autocomplete-Plus] Loaded 0 Embeddings
-[2026-01-13T12:34:10.041Z] [INFO] [Autocomplete-Plus] Building 20 index for lora took 8.70ms.
-[2026-01-13T12:34:10.042Z] [LOG] [Autocomplete-Plus] Loaded 20 LoRA models
-[2026-01-13T12:34:10.042Z] [NETWORK] FETCH /api/crystools/monitor PATCH 26ms Response: [binary data/stream]
-[2026-01-13T12:34:10.179Z] [NETWORK] XHR GET https://api.comfy.org/releases?project=comfyui¤t_version=0.8.2&form_factor=other&locale=en 68ms Status: 200 Response: [{"attention":"low","content":"# ComfyUI v0.9.1\nMemory optimization update for LTXA-V model processing\n\n- **LTXA-V Memory Estimation**\n  Increased memory estimation for LTXA-V model processing to improve stability","id":919,"project":"comfyui","published_at":"2026-01-13T07:34:05.127Z","version":"0.9.1"},{"attention":"medium","content":"# ComfyUI v0.9.0\nEnhanced model compatibility and improved memory efficiency\n\n- **Audio Processing**\n  New JoinAudioChannels node enables multi-channel au... (truncated)
-[2026-01-13T12:34:10.184Z] [NETWORK] FETCH /api/crystools/monitor/HDD GET 168ms Response: ["C:\\", "D:\\"]
-[2026-01-13T12:34:10.184Z] [NETWORK] FETCH /api/crystools/monitor/GPU GET 168ms Response: [{"index": 0, "name": "NVIDIA GeForce RTX 4060 Laptop GPU"}]
-[2026-01-13T12:34:10.205Z] [NETWORK] FETCH /autocomplete-plus/csv/danbooru/tags/base GET 162ms Response: tag,category,count,alias
-1girl,0,4974288,"女の子,女性,少女,girl,おんなのこ,女子,소녀,女孩,姑娘,女,ガール,ガールズイラスト,animegirl"
-solo,0,4005860,"ソロ,solo,ひとり"
-long_hair,0,3608339,"ロングヘアー,長髪,ロングヘア,黒髪ロング,金髪ロング,长发,長髪けもフレ,茶髪ロング,長い髪,長髪男子,銀髪ロング"
-breasts,0,3157499,"おっぱい,極上の乳,大艦巨乳主義,オッパイ,美乳,おっぱいがいっぱい,乳神様,天乳,胸,boobs,胸がぱんぱかぱーん,九九艦爆乳,ダイヤモンドバスト,このおっぱいで聖女は無理でしょ,乳,いいおっぱいの日,乳房,유방,着衣巨乳,tits,どや乳,なのぱい,boob,tit,titties,titty,breast,oppai,boobies,歐派"
-looking_at_viewer,0,2903688,カメラ目線
-blush,0,2535113,"脸红,赤面,頬染め,///,紅潮"
-smile,0,2294308,"笑... (truncated)
-[2026-01-13T12:34:10.240Z] [NETWORK] FETCH /api/crystools/monitor PATCH 39ms Response: [binary data/stream]
-[2026-01-13T12:34:10.324Z] [LOG] [Autocomplete-Plus] "danbooru" Tags loading complete in 280.90ms
-[2026-01-13T12:34:10.351Z] [NETWORK] FETCH /api/crystools/monitor/GPU/0 PATCH 148ms Response: [binary data/stream]
-[2026-01-13T12:34:10.351Z] [NETWORK] FETCH /api/crystools/monitor/GPU/0 PATCH 147ms Response: [binary data/stream]
-[2026-01-13T12:34:10.351Z] [NETWORK] FETCH /api/crystools/monitor/GPU/0 PATCH 147ms Response: [binary data/stream]
-[2026-01-13T12:34:11.109Z] [NETWORK] FETCH /autocomplete-plus/csv/danbooru/tags_cooccurrence/base GET 1066ms Response: tag_a,tag_b,count
-1girl,solo,3816210.0
-1girl,long_hair,2801554.0
-1girl,breasts,2698892.0
-1girl,looking_at_viewer,2491351.0
-long_hair,solo,2242342.0
-looking_at_viewer,solo,2214758.0
-breasts,solo,2063967.0
-1girl,blush,2025924.0
-breasts,long_hair,1958684.0
-long_hair,looking_at_viewer,1754757.0
-1girl,smile,1700205.0
-breasts,looking_at_viewer,1686943.0
-blush,breasts,1521808.0
-blush,long_hair,1521165.0
-blush,solo,1520112.0
-breasts,large_breasts,1471472.0
-smile,solo,1406706.0
-long_hai... (truncated)
-[2026-01-13T12:34:11.635Z] [NETWORK] XHR GET assets/sorted-custom-node-map.json 57ms Status: 200 Response: {
-  "PreviewImage": 4314,
-  "LoadImage": 3474,
-  "CLIPTextEncode": 2435,
-  "SaveImage": 1762,
-  "VAEDecode": 1754,
-  "KSampler": 1511,
-  "CheckpointLoaderSimple": 1293,
-  "VAEEncode": 1067,
-  "LoraLoader": 861,
-  "EmptyLatentImage": 857,
-  "VHS_VideoCombine": 631,
-  "UpscaleModelLoader": 629,
-  "UNETLoader": 606,
-  "VAELoader": 604,
-  "ShowText|pysssss": 527.5526981023964,
-  "ImageUpscaleWithModel": 523,
-  "ControlNetApplyAdvanced": 513,
-  "ControlNetLoader": 499,
-  "ImageBatch": 494,
-  "ImageSc... (truncated)
-[2026-01-13T12:34:11.696Z] [NETWORK] FETCH /api/experiment/models GET 119ms Response: [{"name": "checkpoints", "folders": ["D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\models\\checkpoints", "D:\\LocalAI\\StabilityMatrix\\Models\\StableDiffusion", "D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\output\\checkpoints"]}, {"name": "loras", "folders": ["D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\models\\loras", "D:\\LocalAI\\StabilityMatrix\\Models\\Lora", "D:\\LocalAI\\StabilityMatrix\\Models\\LyCORIS", "D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\output\\loras"]}, {... (truncated)
-[2026-01-13T12:34:12.176Z] [INFO] [Autocomplete-Plus] Building 32259 index for danbooru took 1883.80ms.
-[2026-01-13T12:34:15.634Z] [NETWORK] FETCH /api/userdata/workflows%2F.index.json GET 14ms Response: [binary data/stream]
-[2026-01-13T12:34:17.768Z] [NETWORK] FETCH /api/userdata/workflows%2FMaLi_Influencer_Workflow.json GET 36ms Response: {"id":"3f1b6ff7-0d02-49e1-b749-699a034ddac7","revision":0,"last_node_id":108,"last_link_id":170,"nodes":[{"id":45,"type":"H4_StateMonitor","pos":[-88.53113176332492,511.05394072553037],"size":[193.892578125,46],"flags":{},"order":0,"mode":2,"inputs":[{"localized_name":"Any_In","name":"Any_In","shape":7,"type":"*","link":null}],"outputs":[{"localized_name":"loop_count_number","name":"loop_count_number","type":"INT","links":[90]},{"localized_name":"Any_Pass","name":"Any_Pass","type":"*","links":nu... (truncated)
-[2026-01-13T12:34:17.797Z] [WARN] [rgthree] Blocked extension 'efficiency.widgethider' method 'nodeCreated' for rgthree-nodes because: Overrides value getter before widget getter is prepared. Can be lifted if/when https://github.com/jags111/efficiency-nodes-comfyui/pull/203 is pulled. 
-[2026-01-13T12:34:17.870Z] [ERROR] 👁️ [h4-BB] EXECUTION ERROR on Node GLOBAL: Uncaught TypeError: Failed to execute 'drawImage' on 'CanvasRenderingContext2D': The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'. at http://127.0.0.1:8190/extensions/comfyui_h4_live/h4_datastream.js:147:37
-[2026-01-13T12:34:17.870Z] [CRITICAL] ERROR: Uncaught TypeError: Failed to execute 'drawImage' on 'CanvasRenderingContext2D': The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'. at http://127.0.0.1:8190/extensions/comfyui_h4_live/h4_datastream.js:147:37 
- TRACE: TypeError: The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'.
-    at Object.draw (http://127.0.0.1:8190/extensions/comfyui_h4_live/h4_datastream.js:147:37)
-    at Pe.drawWidgets (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:44955)
-    at LGraphCanvas.drawNodeWidgets (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:164629)
-    at LGraphCanvas.drawNode (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:156155)
-    at LGraphCanvas.drawNode (http://127.0.0.1:8190/extensions/rgthree-comfy/label.js:141:27)
-    at LGraphCanvas.drawFrontCanvas (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:148671)
-    at LGraphCanvas.draw (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:147612)
-    at LGraphCanvas.renderFrame (http://127.0.0.1:8190/assets/index-azSeANjR.js:62:117115)
-[2026-01-13T12:34:17.962Z] [NETWORK] FETCH /object_info/CheckpointLoaderSimple GET 160ms Response: {"CheckpointLoaderSimple": {"input": {"required": {"ckpt_name": [["1.5\\dreamshaper_8LCM.safetensors", "1.5\\h4_Anime_v2.safetensors", "1.5\\h4_JellyBean-v1.safetensors", "1.5\\h4_Realisitc_Refiner45b.safetensors", "1.5\\h4_Realistic_v2.5.safetensors", "1.5\\h4_Realistic_v2.safetensors", "1.5\\h4_Realistic_v3.safetensors", "1.5\\h4_Realistic_v4.safetensors", "1.5\\h4_anime_v1.safetensors", "1.5\\h4_anime_vibrant_v1.safetensors", "Editing Models\\instruct-pix2pix-00-22000.safetensors", "FLUX\\DIC... (truncated)
-[2026-01-13T12:34:18.001Z] [NETWORK] FETCH /object_info/LoraLoader GET 22ms Response: {"LoraLoader": {"input": {"required": {"model": ["MODEL", {"tooltip": "The diffusion model the LoRA will be applied to."}], "clip": ["CLIP", {"tooltip": "The CLIP model the LoRA will be applied to."}], "lora_name": [["SDXL\\Dice_SDXL_Comm_LoRa.safetensors", "SDXL\\EmmaWatsonLoRa.safetensors", "SDXL\\RMSDXL_Enhance.safetensors", "SDXL\\breastinclassBetter.safetensors", "SDXL\\cinematic20lighting.safetensors", "SDXL\\dark.safetensors", "SDXL\\h4_IllustriousXL-Stylizer.safetensors", "SDXL\\leaked_n... (truncated)
-[2026-01-13T12:34:18.022Z] [NETWORK] FETCH /object_info/KSampler GET 20ms Response: {"KSampler": {"input": {"required": {"model": ["MODEL", {"tooltip": "The model used for denoising the input latent."}], "seed": ["INT", {"default": 0, "min": 0, "max": 18446744073709551615, "control_after_generate": true, "tooltip": "The random seed used for creating the noise."}], "steps": ["INT", {"default": 20, "min": 1, "max": 10000, "tooltip": "The number of steps used in the denoising process."}], "cfg": ["FLOAT", {"default": 8.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01, "tool... (truncated)
-[2026-01-13T12:34:18.024Z] [LOG] [H4 Gridinator] Data Loaded: {"ckpts":46,"loras":20,"samplers":44,"schedulers":9}
-[2026-01-13T12:34:18.405Z] [LOG] [Autocomplete-Plus] "danbooru" Co-occurrence loading complete in 8361.60ms.
+
+
+         🔶Chaosaiart: visit our Discord. https://chaosaiart.com/discord
+
+
+
+[Crystools INFO] Crystools version: 1.27.4
+[Crystools INFO] Platform release: 11
+[Crystools INFO] JETSON: Not detected.
+[Crystools INFO] CPU: 13th Gen Intel(R) Core(TM) i9-13900H - Arch: AMD64 - OS: Windows 11
+[Crystools INFO] pynvml (NVIDIA) initialized.
+[Crystools INFO] GPU/s:
+[Crystools INFO] 0) NVIDIA GeForce RTX 4060 Laptop GPU
+[Crystools INFO] NVIDIA Driver: 581.80
+### Loading: ComfyUI-Impact-Pack (V8.28.2)
+[Impact Pack] Wildcard total size (0.00 MB) is within cache limit (50.00 MB). Using full cache mode.
+[Impact Pack] Wildcards loading done.
+### Loading: ComfyUI-Inspire-Pack (V1.23)
+Blocked by policy: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-Manager-main
+
+[ReActor] - STATUS - Running v0.6.2-b1 in ComfyUI
+Torch version: 2.10.0+cu130
+[ComfyUI-RMBG] v3.0.0 | 43 nodes Loaded
+Traceback (most recent call last):
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 2216, in load_custom_node
+    module_spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 999, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_fnodes\__init__.py", line 5, in <module>
+    from .ipadapter import IPADAPTER_CLASS_MAPPINGS, IPADAPTER_NAME_MAPPINGS
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_fnodes\ipadapter.py", line 6, in <module>
+    from custom_nodes.ComfyUI_IPAdapter_plus.IPAdapterPlus import (
+ModuleNotFoundError: No module named 'custom_nodes.ComfyUI_IPAdapter_plus'
+
+Cannot import D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_fnodes module for custom nodes: No module named 'custom_nodes.ComfyUI_IPAdapter_plus'
+[h4_FaceForge] [12:35:28] [INFO] SFW State Loaded: NSFW ALLOWED
+
+-------------------------------------------------------------------------------------
+ 🚀 h4_Live ToolKit | Version: 2.6.2-beta
+    (Nuclear Logic & Persistent State for ComfyUI)
+-------------------------------------------------------------------------------------
+| Node Name                                               | Global ID          | Load |
+-------------------------------------------------------------------------------------
+| h4 Traffic Cop (Live Logic)                             | H4_TrafficCop      |  ✅   |
+| h4 Traffic Merge (Safe Select)                          | H4_TrafficMerge    |  ✅   |
+| h4 Traffic Router (The Nexus)                           | H4_TrafficRouter   |  ✅   |
+| h4 State Monitor                                        | H4_StateMonitor    |  ✅   |
+| h4 Context Hub (Mothership)                             | H4_ContextHub      |  ✅   |
+| h4 Context Unpack (Distributor)                         | H4_ContextUnpack   |  ✅   |
+| {h4 - DEBUGGER} - Inline Debugger {Smart Console}       | H4_SmartConsole    |  ✅   |
+| h4 Mission Control (Dashboard)                          | H4_MissionControl  |  ✅   |
+| h4 Linear Scheduler (Signal Gen)                        | H4_LinearScheduler |  ✅   |
+| h4 Seed Generator (Signal Gen)                          | H4_SeedGenerator   |  ✅   |
+| h4 Loop Incrementer (Hybrid)                            | H4_LoopIncrementer |  ✅   |
+| h4 Wireless Reset (Toggle)                              | H4_WirelessResetButton |  ✅   |
+| h4 Image Buffer (Anti-Lag)                              | H4_ImageBuffer     |  ✅   |
+| h4 - Gridinator 9001                                    | H4_Gridinator      |  ✅   |
+| 🔬 h4 Debug Error (TEST ONLY)                            | H4_DebugErrorGenerator |  ✅   |
+| h4 DataStream (Batch Loader)                            | H4_DataStream      |  ✅   |
+| h4 Axis Driver (Grid Tools)                             | H4_AxisDriver      |  ✅   |
+| h4 Varianator (Latent Riffler)                          | H4_Varianator      |  ✅   |
+| h4 Seed Sequencer (Chaos Control)                       | H4_SeedSequencer   |  ✅   |
+| h4 FaceForge (AIO Face Swap)                            | H4_FaceForge       |  ✅   |
+| h4 Load Face Model                                      | H4_LoadFaceModel   |  ✅   |
+| h4 Build Face Model                                     | H4_BuildFaceModel  |  ✅   |
+| h4 Save Face Model                                      | H4_SaveFaceModel   |  ✅   |
+-------------------------------------------------------------------------------------
+
+Endless Sea of Stars Custom Nodes v1.5.0 loaded successfully!
+Nodes available under 'Endless 🌊✨' menu
+Unable to parse pyproject.toml due to lack dependency pydantic-settings, please run 'pip install -r requirements.txt': 1 validation error for PyProjectConfig
+project.dependencies
+  Input should be a valid list [type=list_type, input_value='', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/list_type
+
+[rgthree-comfy] Loaded 48 epic nodes. 🎉
+
+[rgthree-comfy] ComfyUI's new Node 2.0 rendering may be incompatible with some rgthree-comfy nodes and features, breaking some rendering as well as losing the ability to access a node's properties (a vital part of many nodes). It also appears to run MUCH more slowly spiking CPU usage and causing jankiness and unresponsiveness, especially with large workflows. Personally I am not planning to use the new Nodes 2.0 and, unfortunately, am not able to invest the time to investigate and overhaul rgthree-comfy where needed. If you have issues when Nodes 2.0 is enabled, I'd urge you to switch it off as well and join me in hoping ComfyUI is not planning to deprecate the existing, stable canvas rendering all together.
+
+
+Import times for custom nodes:
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\websocket_image_save.py
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\quick-connections
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_memory_cleanup
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-unload-model
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-base64-to-image
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_ipadapter_plus
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-autocomplete-plus
+   0.0 seconds (IMPORT FAILED): D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_fnodes
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\endless-nodes
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\rgthree-comfy
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-inspire-pack
+   0.3 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\chaosaiart-nodes
+   0.5 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live
+   0.6 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-impact-pack
+   1.3 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-Crystools
+   3.5 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-reactor
+   4.5 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-rmbg
+
+Context impl SQLiteImpl.
+Will assume non-transactional DDL.
+Assets scan(roots=['models']) completed in 0.365s (created=0, skipped_existing=121, total_seen=121)
+Starting server
+
+To see the GUI go to: http://127.0.0.1:8190
+FETCH ComfyRegistry Data [DONE]
+[ComfyUI-Manager] default cache updated: https://api.comfy.org/nodes
+FETCH DATA from: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\__manager\cache\1514988643_custom-node-list.json [DONE]
+[ComfyUI-Manager] All startup tasks have been completed.
+[DEPRECATION WARNING] Detected import of deprecated legacy API: /scripts/ui.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
+[DEPRECATION WARNING] Detected import of deprecated legacy API: /scripts/ui/components/buttonGroup.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
+[DEPRECATION WARNING] Detected import of deprecated legacy API: /extensions/core/clipspace.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
+[ComfyUI-Manager] The ComfyRegistry cache update is still in progress, so an outdated cache is being used.
+FETCH DATA from: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\comfyui_manager\custom-node-list.json [DONE]
+[Autocomplete-Plus] CSV file status:
+  * Danbooru -> base: True, extra: []
+  * E621     -> base: False, extra: []
+got prompt
+[h4_FaceForge] [12:37:06] [INFO] DEBUG: SFW Check Result: SAFE
+[h4_FaceForge] [12:37:06] [INFO] Processing 1 image(s)...
+[h4_FaceForge] [12:37:06] [INFO]   Swap: True | Restore: True | Boost: True
+[h4_FaceForge] [12:37:06] [INFO]   Upscale: True | SAM Occlusion: True
+[h4_FaceForge] [12:37:06] [INFO] DEBUG: Target Indices: [0]
+[h4_FaceForge] [12:37:06] [INFO] DEBUG: Source Indices: [1]
+[h4_FaceForge] [12:37:06] [INFO] DEBUG: Swap Enabled. Resolving Source Face...
+[h4_FaceForge] [12:37:06] [INFO] DEBUG: Analyzing Source Image for faces...
+

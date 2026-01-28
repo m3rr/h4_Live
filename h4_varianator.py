@@ -119,12 +119,17 @@ class H4_Varianator:
     # Simplified Sample Function (Internal KSampler)
     def _run_sample(self, model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise):
         
-        # Use ComfyUI's standard common_ksampler to avoid logic duplication
-        # nodes.common_ksampler returns (latent,)
-        return nodes.common_ksampler(
-            model, seed, steps, cfg, sampler_name, scheduler, 
-            positive, negative, latent_image, denoise
-        )[0]
+        # Use KSampler node class wrapper which is safer than raw function access
+        try:
+            # We instantiate the node class and call its method
+            ksampler_node = nodes.KSampler()
+            return ksampler_node.sample(
+                model, seed, steps, cfg, sampler_name, scheduler, 
+                positive, negative, latent_image, denoise
+            )[0]
+        except Exception as e:
+            _log(f"[Varianator] Sample failed: {e}")
+            raise
 
     def generate(
         self,
@@ -160,12 +165,12 @@ class H4_Varianator:
         anchor_seed = self._coerce_seed(base_seed)
         
         # Seeds for Denoise variation logic
-        # We use a secondary RNG to pick 'random' denoise values between profile min/max
         denoise_rng = random.Random(anchor_seed ^ 0xBADF00D)
         
         variations: List[torch.Tensor] = []
         latent_batches: List[torch.Tensor] = []
         metadata: List[str] = []
+        errors: List[str] = []
 
         last_valid_latent = None
 
@@ -180,16 +185,10 @@ class H4_Varianator:
                 seed_value = random.randint(0, VARIANATOR_SEED_LIMIT)
             
             # 2. Determine Denoise (The "Riff")
-            # We ignore the input 'denoise' slider if utilizing profile ranges? 
-            # Actually, let's say the profile range ADJUSTS the base denoise.
-            # But wait, original code ignored 'denoise' input and used profile range exclusively.
-            # We will follow original logic: Profile defines the denoise strength.
-            
             steps_variation = denoise_rng.uniform(profile_min, profile_max)
             denoise_value = float(steps_variation)
             
             # 3. Sample
-            # We must clone the latent input to avoid mutating it for next run
             latent_copy = {}
             for k, v in latent_in.items():
                 latent_copy[k] = v.clone()
@@ -201,7 +200,6 @@ class H4_Varianator:
                 )
                 
                 # 4. Decode (VAE)
-                # nodes.VAEDecode returns (IMAGE,)
                 decoded_image = nodes.VAEDecode().decode(vae, result_latent)[0]
                 
                 # Store results
@@ -211,24 +209,26 @@ class H4_Varianator:
                 
                 info = f"[{index+1}] Seed: {seed_value} | Denoise: {denoise_value:.3f}"
                 metadata.append(info)
-                # _log(info) # Verbose?
                 
             except Exception as e:
-                _log(f"[Varianator] ❌ Error on variation {index}: {e}")
+                err_msg = f"Error on variation {index}: {str(e)}"
+                _log(f"[Varianator] ❌ {err_msg}")
+                errors.append(err_msg)
 
         if not variations:
             # Fallback to avoid crash
+            summary_text = "GENERATION FAILED\n" + "\n".join(errors)
             empty_img = torch.zeros((1, 512, 512, 3))
-            return (empty_img, latent_in, "Generation Failed")
+            return (empty_img, latent_in, summary_text)
 
         # 5. Batch Outputs
-        # Stack images: [Batch, H, W, C]
         images_out = torch.cat(variations, dim=0)
-        
-        # Stack latents
         latent_out = {"samples": torch.cat(latent_batches, dim=0)}
         
         summary_text = "\n".join(metadata)
+        if errors:
+            summary_text += "\n\nErrata:\n" + "\n".join(errors)
+
         _log(f"[Varianator] Complete. {len(variations)} generated.")
         
         return (images_out, latent_out, summary_text)

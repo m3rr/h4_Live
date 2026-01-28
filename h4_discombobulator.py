@@ -32,7 +32,7 @@ class H4_Discombobulator:
 
     RETURN_TYPES = ()
     FUNCTION = "noop"
-    CATEGORY = "ComfyUI/utils/internal/debug/legacy" # BURIED DEEP
+    CATEGORY = "h4_Live/Stealth/Legacy" # BURIED DEEP
     OUTPUT_NODE = True # Ensures it stays on the graph
 
     def noop(self, **kwargs):
@@ -51,5 +51,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_Discombobulator": "The Discombobulator - (b'.')b / t('.'t)"
+    "H4_Discombobulator": "The Discombobulator (Use with CAUTION)"
 }

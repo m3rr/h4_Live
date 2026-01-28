@@ -49,7 +49,7 @@ AXIS_DRIVER_DEFAULT_STATE: Dict[str, Any] = {
         {"slot": "Y", "preset": "prompt", "items": []},
         {"slot": "Z", "preset": "none", "items": []},
     ],
-    "style": AXIS_DRIVER_DEFAULT_STATE_STYLE := AXIS_DRIVER_DEFAULT_STYLE,
+    "style": AXIS_DRIVER_DEFAULT_STYLE,
 }
 
 # ------------------------------------------------------------------------------

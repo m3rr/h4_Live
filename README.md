@@ -1,6 +1,5 @@
 # h4_Live: The Logic & Loop Controller v2.5.3 { Now with QoL enhancements! }
-
-![Version](https://img.shields.io/badge/version-2.6.0--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
+![Version](https://img.shields.io/badge/version-2.6.2--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
 > **"A Railway Switch for your Workflow."**
 
@@ -8,14 +7,18 @@
 
 ### 🤔 What is "Live"?
 
-Hi there! Welcome to `h4_Live`. 
+So... this started simply enough. We just wanted a switch node. You know, something simple to swap between two inputs.
 
-If you're new to ComfyUI, you might have noticed it has the memory of a goldfish. It runs a workflow once, generates an image, and then... nothing. It forgets everything.
+But then we fell down a rabbit hole. A deep, heavily caffeinated rabbit hole. ☕🐇
+
+We started adding features. Then we added more features. Then we realized "Hey, we need a better way to test this." So we built testing tools. Then we got bored and wanted to verify face swaps, so we built a face swap engine. It became a labor of love, hate, and the occasional pot break.
+
+It is no longer just a switch. It is a **full utility belt**. A suite of tools that has taken on a life of its own.
 
 **h4_Live gives your robot a brain.** 🧠
 
 It allows your workflow to be **Organic**. It allows it to **Count**. It allows it to **Remember**.
-Instead of just making one image, you can tell ComfyUI:
+Instead of just making one image and forgetting it happened, you can tell ComfyUI:
 *"Hey, make an image. Now, take that image, and fix it. Now take that fixed image, and upscale it. Do this 5 times, but on the 3rd time, change the settings."*
 
 We hide the scary math and the complex logic behind friendly, easy-to-use nodes so you can focus on being an Artist, not a Programmer.
@@ -24,7 +27,7 @@ We hide the scary math and the complex logic behind friendly, easy-to-use nodes 
 
 # 📚 THE CASUAL GUIDE (For Humans)
 
-Here is everything you need to know about the tools in this kit. No jargon. No math. just how to use them.
+Here is everything you need to know about the tools in this kit. No jargon. No math. Just how to use them.
 
 ## 1. H4 Traffic Router (The Nexus) 🚦
 **"The Brain"**
@@ -35,22 +38,9 @@ This is the most important node in the pack. It combines a "Splitter" (deciding 
 *   **Why use it?** It automates the "Feedback Loop". You don't need to manually switch wires.
 *   **Bonus:** It also switches your "Denoise" setting automatically! (High denoise for the start, low denoise for the polishing loops).
 
-**Workflow:**
-```ascii
-[Run 0 Input] ----> +----------------+
-                    | TRAFFIC ROUTER | ----> [ To KSampler ]
-[Run 1+ Input] ---> +----------------+
-```
-
-**Scenario:**
-You want to paint a picture from scratch, and then spend 10 loops adding tiny details to it. 
-1. Connect your Empty Latent to `Run 0`.
-2. Connect your KSampler Output back to `Run 1`.
-3. Set `First Denoise` to 1.0 (Create).
-4. Set `Loop Denoise` to 0.2 (Polishing).
-5. Hit "Queue" and watch it evolve!
-
----
+**Settings:**
+*   `first_denoise`: The denoise strength for the very first frame (creation).
+*   `loop_denoise`: The denoise strength for all subsequent frames (refinement).
 
 ## 2. H4 Traffic Merge (The Zipper) 🤐
 **"The Safe Connector"**
@@ -60,24 +50,16 @@ This is the "Little Brother" of the Router. It only does one thing: It merges tw
 *   **What it does:** It listens to the Loop Counter. If it's Run 0, it opens Gate A. If it's Run 1+, it opens Gate B.
 *   **Why is it "Safe"?** ComfyUI hates empty wires. If you unplug something, it crashes. The Zipper ensures that *something* is always connected, so your workflow never explodes.
 
-**Workflow:**
-```ascii
-[ Start Data ] ---> +---------+
-                    | ZIPPER  | ----> [ Output ]
-[ Loop Data ] ----> +---------+
-```
-
----
+**Settings:**
+*   `loop_input`: The data to use on Loop 1+. If not connected, it tries to grab the last image from memory (The Buffer).
 
 ## 3. H4 Traffic Cop (Legacy Splitter) 👮
 **"The Old Reliable"**
 
 *Note: This is an older node. We recommend the **Router**, but the Cop is still on duty.*
 
-*   **What it does:** It takes ONE input and sends it to TWO places. 
-*   **Feature:** It uses "Safe Passthrough". Even if a road is closed, it sends "Ghost Data" down it so your nodes don't turn red and cry.
-
----
+*   **What it does:** It takes ONE input and sends it to TWO places.
+*   **Feature:** It uses "Safe Passthrough". Even if a road is closed, it sends "Ghost Data" down it so your nodes dont turn red and cry.
 
 ## 4. H4 Image Buffer (The Anti-Lag) 📦
 **"The Wireless Warehouse"**
@@ -87,23 +69,11 @@ Understanding this node is the key to preventing headaches.
 *   **The Problem:** When you make a loop in ComfyUI, data has to travel physically through wires. Sometimes, the data takes too long to get back to the start, and you get a "Cycle Error" (The Ouroboros Snake biting its own tail).
 *   **The Solution:** The Image Buffer catches the data and stores it in RAM (Memory). It effectively "Snips" the wire, allowing you to send data wirelessly from the end of your workflow back to the start without confusing ComfyUI.
 
-**Scenario:**
-You want to send your finished image back to the start, but ComfyUI keeps giving you errors.
-1. Place an `Image Buffer` at the end of your workflow.
-2. Connect your image to `image_in`.
-3. Place a SECOND `Image Buffer` at the start.
-4. Leave `image_in` EMPTY.
-5. It will magically teleport the data from the first buffer to the second one!
-
----
-
 ## 5. H4 State Monitor (The Scoreboard) 🔢
 **"The Counter"**
 
 *   **What it does:** It just tells you what loop number you are on.
 *   **Use:** Connect it to a Text Display node to see "Run: 5" on your screen. Useful for knowing when to stop.
-
----
 
 ## 6. H4 Loop Incrementer (The Clicker) ➕
 **"The Engine"**
@@ -112,16 +82,12 @@ Usually, the **Router** handles counting for you. But sometimes, you want manual
 *   **What it does:** Every time this node runs, it adds +1 to the global counter.
 *   **Feature:** It has a "Wireless Reset" port. If you press the Red Button (see below), this node catches the signal and resets the count to 0.
 
----
-
 ## 7. H4 Wireless Reset (The Red Button) 🔴
 **"The Eject Seat"**
 
 *   **The Problem:** You are on Loop 50, but you want to start over.
 *   **The Solution:** Toggle this switch to `True`. The next time your workflow runs, it sends a wireless signal to the **Incrementer** or **Router** screaming "RESET!". The counter drops to 0, and you start fresh.
 *   **Tip:** Don't forget to turn it off after you reset!
-
----
 
 ## 8. H4 Context Hub (The Mothership) 🛸
 **"The One Wire to Rule Them All"**
@@ -131,15 +97,15 @@ Tired of spaghetti workflows? Do you have 50 wires crossing over each other?
 *   **What it does:** It takes all your standard stuff (Model, VAE, CLIP, Positive Prompt, Negative Prompt, Latent, Image) and bundles them into ONE single blue wire called a `PIPE`.
 *   **Bonus:** It prints a detailed report in your console telling you exactly what is inside (Shapes, Types, etc).
 
----
+**Inputs:**
+*   `any_A`: A slot for literally anything else you want to pack (ControlNet, Mask, Lunch).
+*   `any_B`: Another slot for anything.
 
 ## 9. H4 Context Unpack (The Distributor) 📤
 **"The Unpacker"**
 
 *   **What it does:** It takes the single `PIPE` wire from the Mothership and unpacks it back into all the individual connections.
 *   **Use:** Put the Hub at the start of your workflow and the Unpack at the end. Now you have a clean, wire-free workspace in the middle!
-
----
 
 ## 10. H4 Smart Console (The X-Ray) 🧠
 **"The Truth Teller"**
@@ -149,8 +115,6 @@ Tired of spaghetti workflows? Do you have 50 wires crossing over each other?
     *   **Normal**: Shows basic info (Type, Shape).
     *   **🔥 +ULTRA**: Goes nuclear. Inspects inside the object, shows gradients, min/max values, attributes. Use this when you are debugging complex crashes.
 
----
-
 ## 11. H4 Mission Control (The Dashboard) 🎛️
 **"The Flight Deck"**
 
@@ -158,8 +122,6 @@ A central place to see everything happening in your loop.
 *   **Active Mode**: It acts like an engine, driving the loop forward.
 *   **Passive Mode**: It just sits there and watches.
 *   **Outputs**: It creates a text report ("Run 5/10, Seed: 12345") that you can display on your screen.
-
----
 
 ## 12. H4 Linear Scheduler (The Ramp) 📈
 **"The Smooth Operator"**
@@ -171,20 +133,32 @@ A central place to see everything happening in your loop.
     *   Run 10: Output 0.0
 *   **Use Case:** Slowly lowering the `Denoise` value so your image gets sharper and sharper with every loop.
 
----
-
-## 13. H4 Seed Generator (The Chaos Controller) 🎲
+## 13. H4 Seed Sequencer (The Chaos Controller) 🎲
 **"The Dice Roller"**
 
-*   **What it does:** Controls the random seed for your KSampler.
-*   **Modes:**
-    *   **Fixed**: Keeps the seed the same (Scientific Control).
-    *   **Incremental**: Adds +1 every loop (Scanning for cool seeds).
-    *   **Random**: Pure chaos.
+Previously known as the "Broadcaster", this node handles your randomness.
 
----
+*   **Settings:**
+    *   `mode`:
+        *   `fixed`: Keeps the seed the same forever.
+        *   `increment`: Adds +1 every time.
+        *   `random`: Pure chaos.
+    *   `random_digits`: Want to generate a seed like "1999" but not "123456789"? Set this to 4. Good for hunting specific "vibes" in models that react to seed length.
 
-## 14. H4 Gridinator 9001 (The Beast) 📊
+## 14. H4 Varianator (The Riff Machine) 🎸
+**"Play it again, Sam... but different."**
+
+This node takes an image (latent) and remixes it. It's like asking a jazz musician to play a specific song, but add their own flair.
+
+*   **Settings:**
+    *   `variation_count`: How many versions do you want? (1-16).
+    *   `variation_profile`:
+        *   `minimal`: Subtle changes. Same person, different expression.
+        *   `moderate`: Noticeable changes. Same person, different haircut.
+        *   `major`: Identity shift. Cousin of the person.
+    *   `seed_mode`: Should the variations follow a pattern or be totally random?
+
+## 15. H4 Gridinator 9001 (The Beast) 📊
 **"IT'S OVER 9000!?!?"**
 
 This is the ultimate testing tool. It takes your workflow and multiplies it into a giant grid.
@@ -195,8 +169,6 @@ This is the ultimate testing tool. It takes your workflow and multiplies it into
     *   **Stutter**: Type a prompt like "A {cat|dog|fish}" and it makes a grid for each animal.
     *   **Sliding Scale**: Auto-generates the numbers for you.
     *   **Dynamic Layout**: Automatic label sizing with configurable `Margin` and `Padding` for perfect grids every time.
-
----
 
 ## 16. H4 DataStream (The Batch Loader) 📡
 **"Stream the feed. One frame at a time."**
@@ -210,144 +182,78 @@ This is the ultimate testing tool. It takes your workflow and multiplies it into
     4.  It immediately presses the "Queue" button 49 more times for you.
 *   **Features:**
     *   **📁 Browse Button**: Opens a real Windows folder picker (no more copy-pasting paths!).
-    *   **Auto-Queue**: Just set `auto_queue_remaining` to `True` and walk away.
-    *   **Live Preview**: Shows you exactly which image is processing and how far along you are (e.g., "img_05.png (5/50)").
+    *   **Live Preview**: Shows you exactly which image is processing and how far along you are.
 
----
+## 17. h4 FaceForge (AIO Face Swap) 🎭
+**"The Shapeshifter"**
 
-## 15. H4 Big Brother (Ghost Layer) 👁️
+This is not just a face swapper. It is a **Face Re-Engineering Engine**. It consolidates swapping, restoring, boosting, upscaling, and occlusion handling into a single, unified pipeline.
+
+*   **Powers:**
+    *   **Swap**: Auto-detects InsightFace, ReSwapper, or HyperSwap models.
+    *   **Restore**: Integrated face restoration (GFPGAN, CodeFormer) to fix low-res faces.
+    *   **Boost**: Enhances face detail *during* the swap process for better blending.
+    *   **Upscale**: Built-in 4x/8x upscaling (UltraSharp, NMKD) to make the result crisp.
+    *   **Occlusion Handling (SAM)**: Uses Segment Anything Model (SAM) to intelligently handle glasses, hair, and accessories.
+    *   **Memory Safe 🛡️**: Includes an aggressive "VRAM Flush" Protocol. It explicitly offloads models to CPU between steps, preventing crashes on 8GB cards.
+
+**The "Toggle Philosophy":**
+Every feature in FaceForge has an **ON/OFF toggle**. You only pay for what you use. (metaphorically speaking of course)
+
+**Detailed Inputs:**
+
+#### 1. The Basics
+*   `input_image`: The target (The Body).
+*   `source_image`: The source (The Donor).
+*   `face_model`: (Optional) A pre-built face model.
+
+#### 2. Face Swap Settings 🔄
+*   `swap_enabled`: Master switch.
+*   `face_selection_mode`:
+    *   `index`: Pick by number (0=First face).
+    *   `center`: Pick the face in the middle.
+    *   `largest`: Pick the biggest face.
+*   `target_face_index`: "0" is first face. "0,1" swaps the first two faces.
+*   `source_face_index`: Usually "0".
+
+#### 3. Face Restoration (The Fixer) ✨
+*   `restore_enabled`: Fixes blurry faces.
+*   `restore_model`: GFPGAN (Natural) or CodeFormer (Strong).
+*   `restore_visibility`: (0.0-1.0) How much of the original face to keep.
+
+#### 4. Upscaling (The Zoom) 🔍
+*   `upscale_enabled`: Runs a super-resolution pass.
+*   `upscale_face_only`: `True` = Fast (Face only). `False` = Slow (Whole image).
+
+#### 5. Occlusion (The Smart Mask) 🕶️
+*   `occlusion_enabled`: Uses AI to find things blocking the face.
+*   `preserve_glasses`: Finds glasses on the original face and pastes them *over* the new face.
+*   `preserve_hair`: Keeps original bangs/fringes.
+
+## 18. h4 Build/Load/Save Face Model 💾
+**"The Clone Vats"**
+
+Stop loading the same "face.png" every time. Do it the pro way.
+
+*   **H4 Build Face Model**:
+    *   Takes a **BATCH** of images (e.g., 10 photos of the same person).
+    *   Blends their math together.
+    *   **Result**: A "Super-Embedding" that looks more like the person than any single photo.
+    *   **Browse Button**: Yeah, we added a folder browser here too. Just point it at a directory of selfies.
+
+*   **H4 Save Face Model**: Saves your built model to disk.
+*   **H4 Load Face Model**: Loads it back in.
+
+## 19. H4 Big Brother (Ghost Layer) 👁️
 **"The Eye in the Sky"**
 
-This isn't a node you drop onto your workflow - it's a **Global Visual Enhancement Layer** that works silently in the background. Think of it like putting on X-Ray goggles for your entire ComfyUI canvas.
+This isn't a node. It's a **Visual Layer** for ComfyUI itself.
 
-*   **What it does:** It draws a glowing overlay on top of ComfyUI's native visualization. When you select a node, Big Brother draws neon wires tracing all the connections flowing into and out of that node. It's like a highlighter pen for your workflow.
-
-*   **Why it exists:** Sometimes ComfyUI's native wire rendering can be hard to see, especially in complex "spaghetti" workflows where 50 wires are crossing over each other. Big Brother makes your selected connections GLOW so you can trace them across the canvas without squinting.
-
-*   **The Ghost Layer:** The overlay is drawn on a special invisible layer that sits on top of ComfyUI but doesn't interfere with clicking or dragging. You can still interact with your nodes normally - the Ghost Layer is purely visual. It's like a transparent sheet of glass with glowing lines painted on it.
-
-> ⚠️ **IMPORTANT: Known Limitations**
-> - **Subgraphs Not Supported (WIP)**: The glowing wires and edge highlights currently do NOT work inside subgraphs/group nodes. The overlay only renders on the main canvas. This is a known limitation and is being worked on.
-> - **Manual Configuration May Be Required**: Due to variations in themes, display scaling, and browser zoom levels, the wire overlay may not align perfectly out of the box. Use the calibration settings below to fine-tune the alignment for your setup.
-
-### Big Brother Error Popup (Death Modal) 💀
-
-When an execution error occurs, Big Brother displays a dramatic "Death Modal" popup with the error details. This popup includes several helpful features:
-
-| Button | What It Does |
-|--------|-------------|
-| **SHOW FULL REPORT** | Opens a new window with the complete sanitized error log, styled for easy reading and copying |
-| **HELP FIX THIS** | Searches the ComfyUI GitHub repository for similar issues |
-| **FIND ISSUES** | Searches the h4_Live GitHub repository for related issues |
-| **COPY TRACE** | Copies the sanitized stack trace to your clipboard |
-| **DISMISS** | Closes the popup |
-
-#### Privacy-Safe Log Sanitization 🔒
-
-Before displaying or copying any error information, Big Brother automatically sanitizes the log to remove personal information:
-
-- `C:\Users\YourName\...` → `%USERPROFILE%\...`
-- `/home/yourname/...` → `$HOME/...`
-- Email addresses → `[EMAIL REDACTED]`
-- IP addresses → `[IP REDACTED]`
-- Network paths → `%NETWORKSHARE%`
-
-This means you can safely share error logs on Discord, Reddit, or GitHub without exposing your username or file paths.
-
-### Big Brother Settings (Settings Panel)
-
-Open **Settings** (the cogwheel icon) and scroll down to find the Big Brother options. Here's what each one does:
-
-#### 1. 👁️ h4 Big Brother: Enable Overlay
-*   **Type:** Toggle (On/Off)
-*   **Default:** On
-*   **What it does:** Turns the entire Ghost Layer on or off. If you find it distracting, flip this off and the overlay disappears completely.
-
-#### 2. 👁️ h4 Big Brother: Console Monitor
-*   **Type:** Toggle (On/Off)
-*   **Default:** On
-*   **What it does:** When enabled, Big Brother prints messages to your browser's Developer Console (Press F12 to see it) during workflow execution. Useful for seeing what's happening "under the hood".
-
-#### 3. 💀 h4 Big Brother: Show Error Popup
-*   **Type:** Toggle (On/Off)
-*   **Default:** On
-*   **What it does:** Controls whether the Death Modal popup appears when an execution error occurs. If you find the popup annoying, disable this - errors will still be tracked visually (red glow on nodes/wires) but the popup won't interrupt you.
-
-#### 4. 🔬 h4 DEBUG PROTOCOL: NUCLEAR Mode
-*   **Type:** Toggle (On/Off)
-*   **Default:** Off
-*   **What it does:** This is the master switch for **NUCLEAR-level debugging**. When you turn this on, Big Brother becomes EXTREMELY chatty in the console. It logs:
-    *   Every wire position calculation
-    *   Slot index corrections for converted widgets
-    *   Render frame transformations
-    *   Canvas matrix values
-*   **When to use it:** Only turn this on if something looks wrong and you need to troubleshoot. It generates a LOT of console output, whcih can slow things down.
-
-#### 5. 🎨 h4 Wire: Selection Color
-*   **Type:** Text (Color Code)
-*   **Default:** `#00FF00` (Neon Green)
-*   **What it does:** Changes the color of the glowing wires when you select a node. Try `#FF00FF` for pink, `#00FFFF` for cyan, or `#FFA500` for orange. You can use any valid CSS color code.
-
-#### 6. 🎨 h4 Wire: Error Color
-*   **Type:** Text (Color Code)
-*   **Default:** `#FF0000` (Red)
-*   **What it does:** If a node is part of an "Infected" chain (an execution error occurred), its wires glow this color instead. Default is angry red because errors are bad!
-
-#### 7. 🎨 h4 Grid: Color
-*   **Type:** Text (Color Code)
-*   **Default:** `rgba(255, 200, 0, 0.15)`
-*   **What it does:** When Big Brother first initializes, it draws a subtle grid pattern across the canvas as a startup animation. This setting controls that grid's color. The `0.15` at the end is the opacity (transparency).
-
-#### 8. 🔧 h4 Calibrate: Offset X
-*   **Type:** Number (Pixels)
-*   **Default:** 0
-*   **What it does:** If the Ghost Layer seems misaligned horizontally (the glow is shifted left or right from the actual wires), tweak this number to nudge it back into place. Positive = Right, Negative = Left.
-
-#### 9. 🔧 h4 Calibrate: Global Y
-*   **Type:** Number (Pixels)
-*   **Default:** 0
-*   **What it does:** Same as above, but for vertical misalignment. Positive = Down, Negative = Up.
-
-#### 10. 🔧 h4 Wire: Slot Offset Y
-*   **Type:** Number (Graph Units)
-*   **Default:** 0
-*   **What it does:** Fine-tunes where the wire endpoints land vertically on each slot. If wires seem to be landing above or below the input/output circles, adjust this. This is measured in "grapf units" (the internal coordinate system), not screen pixels.
-
-#### 11. 🔧 h4 Wire: Spacing Scale
-*   **Type:** Text (Decimal Number)
-*   **Default:** `1.00`
-*   **What it does:** Scales the vertical spacing between slots. If your wires are "fanning out" as they travel down a tall node, try `1.05` or `1.10`. If they're squishing together, try `0.95`.
-
-#### 12. 👁️ BB: Wire Style
-*   **Type:** Dropdown
-*   **Options:**
-    *   `Match ComfyUI` - Uses splines that look similar to native wires
-    *   `Spline (Bezier)` - Smooth curvy wires
-    *   `Linear (Straight)` - Direct diagonal lines
-    *   `Circuit Board (Manhattan)` - Right-angle turns only, like traces on a circuit board
-*   **Default:** `Circuit Board`
-*   **What it does:** Changes the artistic style of the Ghost Layer wires. Circuit Board is the most visually distinct from native wires, which helps you see the difference.
-
-#### 13. 👁️ BB: Show Wires
-*   **Type:** Toggle (On/Off)
-*   **Default:** On
-*   **What it does:** Turns just the wire rendering on or off, while keeping the rest of Big Brother active. Useful if you want the error monitoring without the visual overlay.
+*   **What it does:** It makes your wires **GLOW**. When you click a node, Big Brother highlights every connection going in and out of it in neon green (or pink, or whatever you want).
+*   **Why?** Because spaghetti workflows are hard to read. Big Brother makes them readable.
+*   **Death Modal**: If your workflow crashes, Big Brother catches the error and shows you a sanitized report that hides your PC Name and IP so you can screenshot it safely.
 
 ---
-
-### Wire Alignment Technical Note
-
-If you've noticed that some wires land slightly above or below their target input, that's a known LiteGraph quirk! ComfyUI uses LiteGraph as its canvas engine, and LiteGraph's internal position calculator sometimes returns coordinates that don't quite match the visual center of a slot - especially for "converted widgets" (inputs that were originally dropdown menus but got converted into wire connections).
-
-Big Brother automatically applies a **+45 pixel correction** for any slot at index 4 or higher (which covers most converted widgets like `denoise`, `cfg`, `steps`, etc.) This correction is applied automatically and silently - you don't need to do anything.
-
-If the alignment is still off for your specific setup (different themes, zoom levels, or display scaling can affect this), you can fien-tune it using the **Wire Slot Offset Y** setting mentioned above.
-
----
-
-<br>
-<br>
-<br>
 
 # ⚙️ THE DEV CORNER (Technical Specifications)
 
@@ -356,173 +262,46 @@ If the alignment is still off for your specific setup (different themes, zoom le
 Welcome to the backend. Here is the architectural breakdown of the `h4_Live` toolkit.
 
 ## Core Philosophy: Global State & Lazy Evaluation
-The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing in `h4_core.py`. This state persists across ComfyUI's execution graph re-evaluations. Each node uses `check_lazy_status` (where applicable) to inform the ComfyUI backend about dependency requirements based on the current state tick.
+The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing in `h4_core.py`. Each node uses `check_lazy_status` to inform the ComfyUI backend about dependency requirements based on the current state tick.
 
-### 1. H4_TrafficRouter
-*   **Class**: `H4_TrafficRouter`
-*   **Logic**: Implements a conditional return tuple based on `_H4_GLOBAL_STATE["loop_count"]`.
-*   **Validation**: Uses `VALIDATE_INPUTS` returning `True` to bypass `NoneType` checks during inactive graph paths.
-*   **Type Safety**: Utilizes `ANY_TYPE` wildcard class (`__eq__` always True) to accept potentially unbound inputs from upstream nodes during initialization.
+### 1. H4_TrafficRouter / Merge
+*   **Class**: `H4_TrafficRouter` / `H4_TrafficMerge`
+*   **Logic**: Implements conditional return tuples based on `loop_count`.
+*   **Wireless Protocol**: Uses a "Look-Behind" mechanism via `h4_core.get_buffered_image()` to break the Directed Acyclic Graph (DAG) cycle restriction.
 
-### 2. H4_TrafficMerge
-*   **Class**: `H4_TrafficMerge`
-*   **Logic**: A robust selector switch.
-*   **Wireless Protocol**: If `loop_input` is None, it queries `h4_core.get_buffered_image()`. This implements a "Look-Behind" mechanism that effectively breaks the Directed Acyclic Graph (DAG) cycle restriction of ComfyUI by utilizing external heap storage.
-
-### 3. H4_TrafficCop [LEGACY]
-*   **Class**: `H4_TrafficCop`
-*   **Logic**: Returns `(Data, Data)` regardless of state.
-    *   Active path represents logical flow.
-    *   Inactive path represents "Safe Fallback" (preventing downstream `IndexError`).
-*   **Status**: Maintained for backward compatibility. Recommend `TrafficRouter` for atomic operations.
-
-### 4. H4_ImageBuffer
-*   **Class**: `H4_ImageBuffer`
+### 2. H4_ImageBuffer
 *   **Storage**: `_H4_IMAGE_BUFFER` (Global Variable).
-*   **Behavior**:
-    *   **Write Mode** (Input Connected): Writes object reference to global variable.
-    *   **Read Mode** (Input Disconnected): Returns object reference from global variable.
-*   **Optimization**: Stores references, not deep copies (zero-copy overhead), unless specific mutation safety is required (not currently implemented for perf reasons).
+*   **Optimization**: Stores references, not deep copies (zero-copy overhead).
 
-### 5. H4_StateMonitor
-*   **Class**: `H4_StateMonitor`
-*   **Function**: Read-Only access to `_H4_GLOBAL_STATE["loop_count"]`.
-*   **Execution**: Does not trigger side effects. Pure observer.
+### 3. H4_FaceForge (AIO Module)
+*   **Class**: `H4_FaceForge`
+*   **Architecture**: Sequential Pipeline.
+*   **Dependencies**: `insightface`, `onnxruntime-gpu`, `segment_anything`, `torch`.
+*   **Memory Safety**: Implements an aggressive `soft_empty_cache()` protocol. Models are moved to CPU or garbage collected between pipeline stages (Swap -> Restore -> Upscale) to ensure 8GB VRAM compatibility.
+*   **Normalization**: Explicitly normalizes embedding vectors (`L2 Norm`) before `Face` object reconstruction to prevent `AttributeError` in InsightFace.
 
-### 6. H4_LoopIncrementer
-*   **Class**: `H4_LoopIncrementer`
-*   **Side Effect**: `increment_loop()` -> `count += 1`.
-*   **Wireless Interact**: Polls `_H4_ORBIT_STORAGE` for `request_reset` flag. If True, executes `reset_state()` instead of increment.
+### 4. H4_Varianator
+*   **Class**: `H4_Varianator`
+*   **Logic**: Wraps `nodes.KSampler` in a loop.
+*   **Profiles**: `minimal` (0.3-0.4 denoise), `moderate` (0.4-0.5), `major` (0.5+).
+*   **Randomness**: Uses a seeded `random.Random` instance separate from the global Torch seed for reproducibility of detail variations.
 
-### 7. H4_WirelessResetButton
-*   **Class**: `H4_WirelessResetButton`
-*   **Side Effect**: `orbit_set("request_reset", True)`.
-*   **Scope**: Sets a flag that is consumed by the next execution of an Active Logic Node (Router or Incrementer).
+### 5. H4_Discombobulator (The Prank)
+*   **Class**: `H4_Discombobulator`
+*   **Function**: Does absolutely nothing to the image.
+*   **Effect**: Injects a CSS shim that randomly tilts the ComfyUI Queue text and changes "Running" to "Discombobulating...".
+*   **Purpose**: April Fools / Stress Testing UI responsiveness. Harmless.
 
-### 8. H4_ContextHub
-*   **Class**: `H4_ContextHub`
-*   **Structure**: `H4_PIPE` is a standard Python `dict` containing keys: `model, vae, clip, positive, negative, latent, image, mask`.
-*   **Extensibility**: Includes `any_A`, `any_B` slots for arbitrary custom types (e.g., ControlNet stacks).
+### 6. H4_BigBrother (Frontend)
+*   **Type**: ComfyUI Frontend Extension.
+*   **Canvas**: Uses a `pointer-events: none` overlay canvas aligned via `ctx.setTransform` on every `requestAnimationFrame`.
+*   **Privacy**: Log sanitization uses regex to strip `%USERPROFILE%`, IPs, and Emails before display.
+*   **Note**: There is a hidden toggle in the settings. If you click it, it toggles a specific filter in the FaceForge backend. We won't say what it does, but if the console says "Boobies Activated", you know what time it is.
 
-### 9. H4_ContextUnpack
-*   **Class**: `H4_ContextUnpack`
-*   **Logic**: Dictionary lookup `.get(key, None)`. returns tuple structure matching standard ComfyUI types.
-
-### 10. H4_SmartConsole
-*   **Class**: `H4_SmartConsole`
-*   **Introspection**:
-    *   **Tensor**: `.shape`, `.dtype`, `.device`, `.grad`.
-    *   **Dict**: Keys inspection.
-    *   **Object**: `dir()` attribute scanning (in +ULTRA mode).
-*   **Frontend**: Pushes text payload to `ui.text` for JS widget rendering.
-
-### 11. H4_MissionControl
-*   **Class**: `H4_MissionControl`
-*   **Role**: Aggregator.
-*   **Modes**:
-    *   **Active**: Calls `increment_loop()`.
-    *   **Passive**: Read-only.
-*   **Dashboard**: Formats a formatted string for UI consumption.
-
-### 12. H4_LinearScheduler
-*   **Class**: `H4_LinearScheduler`
-*   **Math**: `LERP(start, end, current / max)`.
-*   **Clamping**: Clamps to `end` value if `current > max`.
-
-### 13. H4_SeedGenerator
-*   **Class**: `H4_SeedGenerator`
-*   **Modes**:
-    *   **Incremental**: `seed + loop_count`.
-    *   **Fixed**: `return seed`.
-    *   **Random**: `random.randint(0, 0xffffffffffffffff)`. Note: Explicitly breaks determinism.
-
-### 14. H4_Gridinator
-*   **Class**: `H4_Gridinator`
-*   **Architecture**: Monolithic KSampler Encapsulation.
-*   **Dependencies**: Imports `comfy.sd`, `comfy.samplers`, `nodes`.
-*   **Pipeline**:
-    1.  Parse Axes (X/Y/Z) -> Vector Lists.
-    2.  Iterate `z in Z`: `y in Y`: `x in X`.
-    3.  `fuzzy_load_checkpoint(name)`: On-demand loading. Cache efficient.
-    4.  `common_ksampler(...)`: Execute diffusion.
-    5.  `VAE Decode`: Latent -> Pixel.
-    6.  `PIL.Draw`: Stitch into canvas with Dynamic Label Sizing (Auto-fit).
-    7.  `ToTensor`: Return final grid.
-
-### 15. H4_DataStream
-*   **Class**: `H4_DataStream`
-*   **Function**: Sequential image loader with self-scheduling capabilities.
-*   **Pathing**: Supports **Absolute Paths** via a server-side `tkinter` directory picker API (`/h4/browse`).
-*   **Auto-Queue Mechanism**:
-    *   On execution, checks if `auto_queue_remaining` is True.
-    *   Calculates `remaining = total - current`.
-    *   Sends a `h4.datastream.queue_batch` signal to the frontend.
-    *   Frontend (JS) catches signal and executes `api.queuePrompt()` `remaining` times, incrementing the `current_index` for each job.
-    *   **Recursion Safety**: The auto-queued jobs have `auto_queue_remaining` forced to `False` to prevent infinite loops.
-
-### 16. H4_BigBrother (Ghost Layer Extension)
-*   **Module**: `js/h4_BigBrother.js`
-*   **Type**: ComfyUI Frontend Extension (Client-Side JavaScript)
-*   **Architecture**: `app.registerExtension({...})` pattern with singleton state.
-
-#### Internal State Structure
-*   **`_config`**: Immutable default values.
-*   **`_state`**: Mutable runtime state, hydrated from `_config` on `setup()`. Note: Renamed from `settings` to avoid collision with ComfyUI's `extensionService.registerExtension()` schema validation which iterates `_.settings?.forEach()`.
-
-#### Ghost Layer Implementation
-*   **Canvas**: Creates a dedicated `<canvas id="h4-ghost-layer">` element with `pointer-events: none` and `position: absolute`.
-*   **Synchronization**: On each `requestAnimationFrame` tick, reads `app.canvas.ds` (DragAndScale) for `scale`, `offset[0]`, `offset[1]`.
-*   **Matrix Transform**: Applies `ctx.setTransform(scale * dpr, 0, 0, scale * dpr, tx * scale * dpr, ty * scale * dpr)` to align Ghost Layer with LiteGraph's internal coordinate system.
-
-#### Wire Rendering
-*   **Selection Detection**: Queries `app.canvas.selected_nodes` and iterates `app.graph.links`.
-*   **Position Calculation**:
-    *   `getNodeOutputPos(node, slotIndex)`: Delegates to `node.getConnectionOutputPos()`.
-    *   `getNodeInputPos(node, slotIndex)`: Delegates to `node.getConnectionInputPos()`.
-*   **Converted Widget Correction**: LiteGraph's `getConnectionInputPos()` returns coordinates slightly above the visual slot center for converted widgets. A **+45px Y correction** is applied directly in `drawWires()` for `target_slot >= 4` to compensate.
-
-#### Debug Protocol
-*   **Toggle**: `this._state.debugMode` (exposed via Settings UI as "NUCLEAR Mode").
-*   **Implementation**: All `console.log` statements are wrapped in `if (this._state.debugMode)` conditionals.
-*   **Log Prefix**: `[h4-DEBUG]` for consistent filtering in browser DevTools.
-
-#### Wire Styles
-*   **Spline**: `ctx.bezierCurveTo()` with horizontal tangents.
-*   **Linear**: Direct `ctx.lineTo()`.
-*   **Circuit (Manhattan)**: Step function with `midX = (posA[0] + posB[0]) / 2`, then vertical-horizontal-vertical segments.
-
-#### Error Tracking (Infection System)
-*   **Trigger**: Listens to `api.addEventListener("execution_error", ...)`.
-*   **Behavior**: Parses error payload for `node_id`, traces upstream links, and populates `this.infectedLinks` Set.
-*   **Visual**: Infected wires render using `wireColorError` instead of `wireColorSelect`.
-
-#### Death Modal (Error Popup)
-*   **Function**: `showDeathModal(errorMsg, traceback)` - Creates and displays the error popup.
-*   **Privacy**: All error content is sanitized via `sanitizeLog()` before display.
-*   **Buttons**:
-    *   `SHOW FULL REPORT` → Calls `showFullReport()`, opens styled popup window.
-    *   `HELP FIX THIS` → Calls `openHelpSearch()`, searches ComfyUI GitHub.
-    *   `FIND ISSUES` → Calls `openGitHubIssues()`, searches h4_Live GitHub.
-    *   `COPY TRACE` → Copies sanitized trace to clipboard.
-    *   `DISMISS` → Removes modal from DOM.
-
-#### Log Sanitization
-*   **Function**: `sanitizeLog(text)` - Regex-based replacement pipeline.
-*   **Patterns**:
-    *   Windows paths: `[A-Za-z]:\\Users\\[^\\]+\\` → `%USERPROFILE%\\`
-    *   Unix paths: `/(home|Users)/[^/]+/` → `$HOME/`
-    *   UNC paths: `\\\\[^\\]+\\[^\\]+` → `%NETWORKSHARE%`
-    *   Email: Standard regex → `[EMAIL REDACTED]`
-    *   IPv4: Non-localhost IPs → `[IP REDACTED]`
-
-#### Known Limitations
-*   **Subgraph Support**: Ghost Layer does NOT render inside subgraphs/group nodes. Wire highlighting only works on the main canvas. (Work In Progress)
-*   **Un-aligned Trace Wires**: Currently the glowing trace wires work over 90% of comfyui. There are still some areas that require either manual adjustment or
-       acceptance that it's off (for now). I'm working on a fix - but as it stands it works great. Just if it does land slightly "off target" just look and
-        use our giant meat computers and resolve the correct input. Know what I'm saying? 
 ---
+
 <div align="right">
 
-(b'.')b - h4 - { Be Your Best }
+(b'.')b - h4 - {Be Your Best}
 
 </div>

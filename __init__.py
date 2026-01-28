@@ -1,6 +1,16 @@
 # FILE: custom_nodes/comfyui_h4_live/__init__.py
 # ------------------------------------------------------------------------------
-from .version import __version__
+# 🚀 h4_Live ToolKit | Nuclear Logic & Persistent State
+# ------------------------------------------------------------------------------
+import sys
+
+# Version Check
+try:
+    from .version import __version__
+except ImportError:
+    __version__ = "?.?.?"
+
+# Import Nodes
 from .h4_traffic import H4_TrafficCop, H4_TrafficMerge, H4_TrafficRouter, H4_StateMonitor, H4_LoopIncrementer, H4_WirelessResetButton, H4_ImageBuffer
 from .h4_context import H4_ContextHub, H4_ContextUnpack
 from .h4_smart_debug import H4_SmartConsole
@@ -12,6 +22,16 @@ from .h4_datastream import H4_DataStream
 from .h4_axis import H4_AxisDriver
 from .h4_varianator import H4_Varianator
 from .h4_seed_sequencer import H4_SeedSequencer
+
+# FaceForge Module (AIO Face Swap Suite)
+from .h4_faceforge import (
+    H4_FaceForge,
+    H4_LoadFaceModel,
+    H4_BuildFaceModel,
+    H4_SaveFaceModel,
+    NODE_CLASS_MAPPINGS as FACEFORGE_CLASS_MAPPINGS,
+    NODE_DISPLAY_NAME_MAPPINGS as FACEFORGE_DISPLAY_MAPPINGS,
+)
 
 NODE_CLASS_MAPPINGS = {
     "H4_TrafficCop": H4_TrafficCop,
@@ -33,7 +53,9 @@ NODE_CLASS_MAPPINGS = {
     "H4_DataStream": H4_DataStream,
     "H4_AxisDriver": H4_AxisDriver,
     "H4_Varianator": H4_Varianator,
-    "H4_SeedSequencer": H4_SeedSequencer
+    "H4_SeedSequencer": H4_SeedSequencer,
+    # FaceForge Suite
+    **FACEFORGE_CLASS_MAPPINGS,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -52,11 +74,13 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_ImageBuffer": "h4 Image Buffer (Anti-Lag)",
     "H4_Gridinator": "h4 - Gridinator 9001",
     "H4_DebugErrorGenerator": "🔬 h4 Debug Error (TEST ONLY)",
-    "H4_Discombobulator": "The Discombobulator - (b'.')b / t('.'t)",
+    "H4_Discombobulator": "The Discombobulator (Use with CAUTION)",
     "H4_DataStream": "h4 DataStream (Batch Loader)",
     "H4_AxisDriver": "h4 Axis Driver (Grid Tools)",
     "H4_Varianator": "h4 Varianator (Latent Riffler)",
-    "H4_SeedSequencer": "h4 Seed Sequencer (Chaos Control)"
+    "H4_SeedSequencer": "h4 Seed Sequencer (Chaos Control)",
+    # FaceForge Suite
+    **FACEFORGE_DISPLAY_MAPPINGS,
 }
 
 WEB_DIRECTORY = "./js"
@@ -80,7 +104,7 @@ def print_status():
     
     for key, val in NODE_DISPLAY_NAME_MAPPINGS.items():
         # Hide the stealth nodes from the terminal status list
-        if key in ["H4_Discombobulator"]:
+        if "Discombobulator" in key:
             continue
             
         # Clean up the name for display

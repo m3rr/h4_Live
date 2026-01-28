@@ -16,18 +16,18 @@ from .h4_core import _log
 # ------------------------------------------------------------------------------
 # API: Server-Side Folder Browser (Localhost Only)
 # ------------------------------------------------------------------------------
-try:
-    import tkinter
-    from tkinter import filedialog
-    TK_AVAILABLE = True
-except ImportError:
-    TK_AVAILABLE = False
+# Delayed import for Tkinter to prevent startup freeze
+TK_AVAILABLE = False # Will be checked at runtime
 
 @PromptServer.instance.routes.get("/h4/browse")
 async def h4_browse_folder(request):
-    if not TK_AVAILABLE:
-        return web.json_response({"path": "", "error": "Tkinter not available on server"})
-    
+    # Lazy Import inside function to prevent startup freeze
+    try:
+        import tkinter
+        from tkinter import filedialog
+    except ImportError:
+        return web.json_response({"path": "", "error": "Tkinter not installed/available"})
+
     # Run Tkinter in a way that doesn't freeze the async loop
     # We cheat by creating a temporary root, hiding it, and destroying it
     try:

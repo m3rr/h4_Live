@@ -113,6 +113,141 @@ app.registerExtension({
 
         // 8. Stealth: Start the Queue UI Watcher for The Discombobulator
         this.startQueueWatcher();
+
+        // 9. Easter Egg: The Boobies Switch (SFW Toggle)
+        this.setupSfwToggle_v2();
+    },
+
+    // ==============================================================================
+    // SFW Toggle (The Boobies Switch) - Steganographic Mode
+    // ==============================================================================
+
+    _sfwState: {
+        KEY: "h4_sfw_mode"
+    },
+
+    getSfwMode() {
+        const stored = localStorage.getItem(this._sfwState.KEY);
+        return stored === "off" ? "off" : "on";
+    },
+
+    setSfwMode(mode) {
+        localStorage.setItem(this._sfwState.KEY, mode);
+        // Sync with Python backend
+        fetch(`/h4/sfw_status?mode=${mode}`).catch(() => { });
+
+        const prefix = "[ h4_Live {FaceForge} ]";
+        if (mode === "off") {
+            console.log(`%c${prefix} : Boobies Enabled`, "color: #ff69b4; font-weight: bold;");
+        } else {
+            console.log(`%c${prefix} : Boobies Disabled`, "color: #888; font-style: italic;");
+        }
+    },
+
+    toggleSfwMode() {
+        const newMode = this.getSfwMode() === "on" ? "off" : "on";
+        this.setSfwMode(newMode);
+        return newMode;
+    },
+
+    setupSfwToggle() {
+        // We piggyback on the Settings Modal observer to find our target label
+        // Target: "👁️ h4 Big Brother: Enable Overlay"
+        const targetText = "👁️ h4 Big Brother: Enable Overlay";
+
+        const observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                // Check added nodes for the settings table rows
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === 1) {
+                        // Check if this node CONTAINS our target label (it might be the modal or the table)
+                        if (node.textContent && node.textContent.includes(targetText)) {
+                            // Find the specific label element
+                            // ComfyUI settings are usually tables or lists
+                            const labels = node.querySelectorAll ? node.querySelectorAll("tr, label, .comfy-table-row") : [];
+                            for (const row of labels) {
+                                if (row.textContent.includes(targetText)) {
+                                    this.attachSecretListener(row);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Also try to find it immediately (if settings were already open?)
+        setTimeout(() => {
+            const rows = document.querySelectorAll("tr");
+            for (const row of rows) {
+                if (row.textContent.includes(targetText)) this.attachSecretListener(row);
+            }
+        }, 1000);
+    },
+
+    hookTheEye(element) {
+        if (element.dataset.h4EyeHooked) return;
+        element.dataset.h4EyeHooked = "true";
+
+        // Wrap the Eye in a spicy span
+        const html = element.innerHTML;
+        if (html.includes("👁️")) {
+            // Replace first occurrence only
+            element.innerHTML = html.replace("👁️", "<span id='h4-secret-eye' style='cursor:pointer; display:inline-block; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);'>👁️</span>");
+
+            const eye = element.querySelector("#h4-secret-eye");
+            if (eye) {
+                eye.title = "Reviewing Surveillance Footage... (Double-click for SFW Toggle)";
+
+                eye.addEventListener("dblclick", (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const newMode = this.toggleSfwMode();
+
+                    // Animation: Spin and Pulse
+                    eye.style.transform = "scale(1.8) rotate(360deg)";
+                    eye.style.filter = newMode === "off" ? "drop-shadow(0 0 5px #ff69b4)" : "none";
+
+                    setTimeout(() => {
+                        eye.style.transform = "scale(1) rotate(0deg)";
+                    }, 500);
+                });
+
+                console.log("[h4_FaceForge] Secret Eye Armed. Aim for the pupil.");
+            }
+        }
+    },
+
+    setupSfwToggle_v2() {
+        // Target: "👁️ h4 Big Brother: Enable Overlay"
+        const searchStr = "👁️ h4 Big Brother: Enable Overlay";
+
+        const scanForEye = (root) => {
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+            let textNode;
+            while (textNode = walker.nextNode()) {
+                if (textNode.nodeValue.includes(searchStr) && !textNode.parentNode.dataset.h4EyeHooked) {
+                    this.hookTheEye(textNode.parentNode);
+                }
+            }
+        };
+
+        const observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === 1) {
+                        scanForEye(node);
+                    }
+                }
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Initial scan with delay
+        setTimeout(() => scanForEye(document.body), 1000);
     },
 
     /**
