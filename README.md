@@ -7,23 +7,25 @@
 
 ### 🤔 What is "Live"?
 
-So... this started simply enough. We just wanted a switch node. You know, something simple to swap between two inputs.
+So... this started simply enough. Honestly, I just wanted a switch node. You know, something basic to swap between two inputs without rewiring the whole board.
 
-But then we fell down a rabbit hole. A deep, heavily caffeinated rabbit hole. ☕🐇
+But then I fell down a rabbit hole. A deep, heavily caffeinated rabbit hole. ☕🐇
 
-We started adding features. Then we added more features. Then we realized "Hey, we need a better way to test this." So we built testing tools. Then we got bored and wanted to verify face swaps, so we built a face swap engine. It became a labor of love, hate, and the occasional pot break.
+I started adding features. Then I added more features. Then I realized, "Hey, I need a better way to test this," so I built testing tools. Then I got bored and wanted to verify face swaps, so I built a face swap engine. It became a labor of love, hate, and the occasional pot break.
 
-It is no longer just a switch. It is a **full utility belt**. A suite of tools that has taken on a life of its own.
+It is no longer just a switch. It is a full utility belt. It is a suite of tools that has taken on a life of its own.
 
-**h4_Live gives your robot a brain.** 🧠
+h4_Live gives your robot a brain. 🧠
 
-It allows your workflow to be **Organic**. It allows it to **Count**. It allows it to **Remember**.
-Instead of just making one image and forgetting it happened, you can tell ComfyUI:
-*"Hey, make an image. Now, take that image, and fix it. Now take that fixed image, and upscale it. Do this 5 times, but on the 3rd time, change the settings."*
+It allows your workflow to be Organic. It allows it to Count. It allows it to Remember.
 
-We hide the scary math and the complex logic behind friendly, easy-to-use nodes so you can focus on being an Artist, not a Programmer.
+Most workflows just make an image and forget it ever happened. This doesn't. With this, you can tell ComfyUI: "Hey, make an image. Now, take that image and fix it. Now take that fixed image and upscale it. Do this 5 times, but on the 3rd time, change the settings to something weird."
 
----
+I hide the scary math and the complex logic behind friendly, easy-to-use nodes so you can focus on being an Artist, not a Programmer.
+
+This is probablly the most fun you're going to have debugging. Dig in. Break things. Make cool shit.
+
+
 
 # 📚 THE CASUAL GUIDE (For Humans)
 
