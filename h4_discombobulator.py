@@ -26,7 +26,7 @@ class H4_Discombobulator:
                     "b1n4ry", 
                     "B64", 
                     "V 0 1 D"
-                ], {"default": "1337"}),
+                ], {"default": "1337", "tooltip": "Choose your flavor of glitch text. 1337 = Leet Speak, V 0 1 D = Spaced out."}),
             },
         }
 

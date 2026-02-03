@@ -218,7 +218,7 @@ class H4_AxisDriver:
                     {
                         "default": default_config,
                         "multiline": True,
-                        "tooltip": "JSON Payload from JS Widget",
+                        "tooltip": "This box receives data from the visual grid editor. No need to touch it manually unless you are a cyborg.",
                     },
                 )
             }

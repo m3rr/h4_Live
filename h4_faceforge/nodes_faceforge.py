@@ -286,34 +286,34 @@ class H4_FaceForge:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input_image": ("IMAGE",),
+                "input_image": ("IMAGE", {"tooltip": "The image you want to work on. Connect your Load Image node here."}),
                 
                 # === Swap Settings ===
-                "swap_enabled": ("BOOLEAN", {"default": True, "label_off": "OFF", "label_on": "ON"}),
-                "swap_model": (get_swap_models(),),
-                "target_face_index": ("STRING", {"default": "0", "multiline": False}),
-                "source_face_index": ("STRING", {"default": "0", "multiline": False}),
-                "face_selection_mode": (["large-small", "left-right", "right-left", "top-bottom", "small-large"],),
+                "swap_enabled": ("BOOLEAN", {"default": True, "label_off": "OFF", "label_on": "ON", "tooltip": "Turn this ON to swap faces. Turn OFF if you just want to use Restore or Upscale."}),
+                "swap_model": (get_swap_models(), {"tooltip": "The brain that performs the swap. 'inswapper_128' is the standard one."}),
+                "target_face_index": ("STRING", {"default": "0", "multiline": False, "tooltip": "Which face to replace? 0 = 1st face, 1 = 2nd face. Use commas for multiple (e.g., '0,2')."}),
+                "source_face_index": ("STRING", {"default": "0", "multiline": False, "tooltip": "Which face from the source to use? Usually 0 (the main face)."}),
+                "face_selection_mode": (["large-small", "left-right", "right-left", "top-bottom", "small-large"], {"tooltip": "How we count faces. 'large-small' finds the biggest face first (Index 0)."}),
                 
                 # === Restore Settings ===
-                "restore_enabled": ("BOOLEAN", {"default": True, "label_off": "OFF", "label_on": "ON"}),
-                "restore_model": (get_restore_models(),),
-                "restore_visibility": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
-                "codeformer_weight": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "restore_enabled": ("BOOLEAN", {"default": True, "label_off": "OFF", "label_on": "ON", "tooltip": "Fixes blurry or pixelated faces. Great for low-res images."}),
+                "restore_model": (get_restore_models(), {"tooltip": "Choose the repair tool. 'GFPGAN' is standard, 'CodeFormer' is strong but can change identity."}),
+                "restore_visibility": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05, "tooltip": "How strong is the repair? 1.0 = Full Model, 0.5 = 50% Mix with original."}),
+                "codeformer_weight": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.05, "tooltip": "(CodeFormer Only) Balance between Quality (0.0) and Identity (1.0)."}),
                 
                 # === Boost Settings ===
-                "boost_enabled": ("BOOLEAN", {"default": False, "label_off": "OFF", "label_on": "ON"}),
+                "boost_enabled": ("BOOLEAN", {"default": False, "label_off": "OFF", "label_on": "ON", "tooltip": "Experimental: Enhances the face *during* the swap. Slower, but can be sharper."}),
                 
                 # === Upscale Settings ===
-                "upscale_enabled": ("BOOLEAN", {"default": False, "label_off": "OFF", "label_on": "ON"}),
-                "upscale_model": (get_upscale_models(),),
-                "upscale_face_only": ("BOOLEAN", {"default": False, "label_off": "Full Image", "label_on": "Face Only"}),
+                "upscale_enabled": ("BOOLEAN", {"default": False, "label_off": "OFF", "label_on": "ON", "tooltip": "Make the image larger and crisper."}),
+                "upscale_model": (get_upscale_models(), {"tooltip": "The scaling engine. 'UltraSharp' is great for photos."}),
+                "upscale_face_only": ("BOOLEAN", {"default": False, "label_off": "Full Image", "label_on": "Face Only", "tooltip": "ON = Only sharpen the face. OFF = Sharpen the whole image (Slower)."}),
                 
                 # === Occlusion (SAM) Settings ===
                 "occlusion_enabled": ("BOOLEAN", {"default": False, "label_off": "OFF", "label_on": "ON", 
-                    "tooltip": "⚠️ SAM is VRAM hungry! Disable if running low on memory."}),
-                "preserve_glasses": ("BOOLEAN", {"default": True}),
-                "preserve_hair": ("BOOLEAN", {"default": True}),
+                    "tooltip": "Smart Masking. Prevents the face from covering hair/hands/objects. ⚠️ Uses lots of VRAM!"}),
+                "preserve_glasses": ("BOOLEAN", {"default": True, "tooltip": "(With Occlusion) Try to keep the original glasses on the face."}),
+                "preserve_hair": ("BOOLEAN", {"default": True, "tooltip": "(With Occlusion) Try to keep hair strands from being covered by the new face."}),
             },
             "optional": {
                 "source_image": ("IMAGE",),

@@ -18,17 +18,17 @@ class H4_ContextHub:
         return {
             "required": {},
             "optional": {
-                "base_pipe": ("H4_PIPE",),
-                "model": ("MODEL",),
-                "vae": ("VAE",),
-                "clip": ("CLIP",),
-                "positive": ("CONDITIONING",),
-                "negative": ("CONDITIONING",),
-                "latent": ("LATENT",),
-                "image": ("IMAGE",),
-                "mask": ("MASK",),
-                "any_A": (ANY_TYPE,),
-                "any_B": (ANY_TYPE,),
+                "base_pipe": ("H4_PIPE", {"tooltip": "Optional: Pass an existing pipe here to add to it."}),
+                "model": ("MODEL", {"tooltip": "Add a Model to the pipe."}),
+                "vae": ("VAE", {"tooltip": "Add a VAE to the pipe."}),
+                "clip": ("CLIP", {"tooltip": "Add a CLIP to the pipe."}),
+                "positive": ("CONDITIONING", {"tooltip": "Add Positive Conditioning."}),
+                "negative": ("CONDITIONING", {"tooltip": "Add Negative Conditioning."}),
+                "latent": ("LATENT", {"tooltip": "Add a Latent."}),
+                "image": ("IMAGE", {"tooltip": "Add an Image."}),
+                "mask": ("MASK", {"tooltip": "Add a Mask."}),
+                "any_A": (ANY_TYPE, {"tooltip": "Add anything else (A)."}),
+                "any_B": (ANY_TYPE, {"tooltip": "Add anything else (B)."}),
             }
         }
 

@@ -103,7 +103,7 @@ class H4_LoadFaceModel:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "face_model": (get_face_models(),),
+                "face_model": (get_face_models(), {"tooltip": "Select the face file (.safetensors) you recall saving earlier."}),
             }
         }
     
@@ -194,12 +194,12 @@ class H4_BuildFaceModel:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "compute_method": (["Mean", "Median", "Mode"], {"default": "Mean"}),
+                "compute_method": (["Mean", "Median", "Mode"], {"default": "Mean", "tooltip": "How to combine the faces? 'Mean' is usually best. 'Median' ignores weird outliers."}),
             },
             "optional": {
-                "images": ("IMAGE",),
-                "folder_path": ("STRING", {"default": "", "multiline": False}),
-                "det_size": (["640x640", "320x320"], {"default": "640x640"}),
+                "images": ("IMAGE", {"tooltip": "Connect a Batch of images here (e.g. from Load Image Batch)."}),
+                "folder_path": ("STRING", {"default": "", "multiline": False, "tooltip": "Or paste a full folder path here (e.g. C:\\MyPhotos)."}),
+                "det_size": (["640x640", "320x320"], {"default": "640x640", "tooltip": "Scan resolution. 640x640 finds small faces better."}),
             }
         }
     
@@ -353,11 +353,11 @@ class H4_SaveFaceModel:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "face_model": ("FACE_MODEL",),
-                "filename": ("STRING", {"default": "my_face_model"}),
+                "face_model": ("FACE_MODEL", {"tooltip": "Connect the Face Model from Build Face Model here."}),
+                "filename": ("STRING", {"default": "my_face_model", "tooltip": "Name your file (e.g. 'ElonMusk'). No need for .safetensors extension."}),
             },
             "optional": {
-                "overwrite": ("BOOLEAN", {"default": False}),
+                "overwrite": ("BOOLEAN", {"default": False, "tooltip": "Allow overwriting if the file already exists? Be careful."}),
             }
         }
     

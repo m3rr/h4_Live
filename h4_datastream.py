@@ -61,15 +61,16 @@ class H4_DataStream:
                 "folder_path": ("STRING", {
                     "default": "", 
                     "multiline": False,
-                    "placeholder": "C:\\Images\\My_Batch  (or use Browse button)"
+                    "placeholder": "C:\\Images\\My_Batch  (or use Browse button)",
+                    "tooltip": "Paste the full path to your folder here (e.g. C:\\MyPhotos). Or use the Browse button if available."
                 }),
                 "current_index": ("INT", {
                     "default": 0, "min": 0, "max": 99999,
-                    "tooltip": "Current image index. Auto-increments with batch queue."
+                    "tooltip": "Which image number are we on? (0 = First Image). Auto-increments."
                 }),
                 "auto_queue_remaining": ("BOOLEAN", {
                     "default": False,
-                    "tooltip": "When ON: Automatically queues all remaining images after this one."
+                    "tooltip": "If ON, I will automatically keep processing the rest of the folder for you."
                 }),
             },
             "hidden": {

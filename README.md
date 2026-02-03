@@ -1,5 +1,5 @@
-# h4_Live: The Logic & Loop Controller v2.5.3 { Now with QoL enhancements! }
-![Version](https://img.shields.io/badge/version-2.6.3--beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
+# h4_Live: The Logic & Loop Controller v3.0 { Now with DNA! }
+![Version](https://img.shields.io/badge/version-3.0--Beta-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
 > **"A Railway Switch for your Workflow."**
 
@@ -184,8 +184,8 @@ This is the ultimate testing tool. It takes your workflow and multiplies it into
     *   **📁 Browse Button**: Opens a real Windows folder picker (no more copy-pasting paths!).
     *   **Live Preview**: Shows you exactly which image is processing and how far along you are.
 
-## 17. h4 FaceForge (AIO Face Swap) 🎭
-**"The Shapeshifter"**
+## 17. h4 FaceForge (The Shapeshifter) 🎭
+**"The AIO Face Swap Engine"**
 
 This is not just a face swapper. It is a **Face Re-Engineering Engine**. It consolidates swapping, restoring, boosting, upscaling, and occlusion handling into a single, unified pipeline.
 
@@ -197,40 +197,37 @@ This is not just a face swapper. It is a **Face Re-Engineering Engine**. It cons
     *   **Occlusion Handling (SAM)**: Uses Segment Anything Model (SAM) to intelligently handle glasses, hair, and accessories.
     *   **Memory Safe 🛡️**: Includes an aggressive "VRAM Flush" Protocol. It explicitly offloads models to CPU between steps, preventing crashes on 8GB cards.
 
-**The "Toggle Philosophy":**
-Every feature in FaceForge has an **ON/OFF toggle**. You only pay for what you use. (metaphorically speaking of course)
+## 18. h4 Identity Engine 3.0 (The Persona Engine) 🧬
+**"The Character Studio"**
 
-**Detailed Inputs:**
+This node is designed to manage complex characters. It separates "Who they are" from "What they are doing".
 
-#### 1. The Basics
-*   `input_image`: The target (The Body).
-*   `source_image`: The source (The Donor).
-*   `face_model`: (Optional) A pre-built face model.
+*   **The DNA System**:
+    *   **`positive_dna`**: This new box stores persistent character traits (e.g., "blonde, scar on left cheek, cybernetic eye").
+    *   **`positive` (Scene)**: This box describes the action (e.g., "riding a motorcycle").
+    *   **The Logic**: When you hit Queue, the node combines `DNA + Scene` automatically.
+ 
+*   **The Preset System**:
+    *   You can **Save** your character settings as a preset (e.g., "MaLi").
+    *   **Smart Saving**: When you save a preset, it remembers the **DNA** but ignores the **Scene**.
+    *   **Benefit**: You can load your "MaLi" preset into a "Riding a Motorcycle" scene, and she will appear there instantly without erasing your scene prompt.
 
-#### 2. Face Swap Settings 🔄
-*   `swap_enabled`: Master switch.
-*   `face_selection_mode`:
-    *   `index`: Pick by number (0=First face).
-    *   `center`: Pick the face in the middle.
-    *   `largest`: Pick the biggest face.
-*   `target_face_index`: "0" is first face. "0,1" swaps the first two faces.
-*   `source_face_index`: Usually "0".
+## 19. h4 Face Detailer (The Pore Restorer) 🔍
+**"Option B: The Texture King"**
 
-#### 3. Face Restoration (The Fixer) ✨
-*   `restore_enabled`: Fixes blurry faces.
-*   `restore_model`: GFPGAN (Natural) or CodeFormer (Strong).
-*   `restore_visibility`: (0.0-1.0) How much of the original face to keep.
+Face Swapping (even with FaceForge) has a limit: The swapper model often creates a 128x128 pixel face. Even when upscaled, it can look "smooth" or "waxy".
 
-#### 4. Upscaling (The Zoom) 🔍
-*   `upscale_enabled`: Runs a super-resolution pass.
-*   `upscale_face_only`: `True` = Fast (Face only). `False` = Slow (Whole image).
+**The Face Detailer fixes this by hallucinating pores back into existence.**
 
-#### 5. Occlusion (The Smart Mask) 🕶️
-*   `occlusion_enabled`: Uses AI to find things blocking the face.
-*   `preserve_glasses`: Finds glasses on the original face and pastes them *over* the new face.
-*   `preserve_hair`: Keeps original bangs/fringes.
+*   **Workflow**: `FaceForge (Swap)` -> `Pixel Press (Upscale)` -> `Face Detailer`.
+*   **How it works**:
+    1.  It detects the face in your high-res image.
+    2.  It crops it out.
+    3.  It runs a standard Stable Diffusion "Img2Img" pass on *just that crop* using your original Model/LoRA.
+    4.  It blends the high-texture result back into the image.
+*   **Result**: 4K skin texture on a swapped face.
 
-## 18. h4 Build/Load/Save Face Model 💾
+## 20. h4 Build/Load/Save Face Model 💾
 **"The Clone Vats"**
 
 Stop loading the same "face.png" every time. Do it the pro way.
@@ -244,7 +241,7 @@ Stop loading the same "face.png" every time. Do it the pro way.
 *   **H4 Save Face Model**: Saves your built model to disk.
 *   **H4 Load Face Model**: Loads it back in.
 
-## 19. H4 Big Brother (Ghost Layer) 👁️
+## 21. H4 Big Brother (Ghost Layer) 👁️
 **"The Eye in the Sky"**
 
 This isn't a node. It's a **Visual Layer** for ComfyUI itself.
@@ -280,19 +277,24 @@ The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing
 *   **Memory Safety**: Implements an aggressive `soft_empty_cache()` protocol. Models are moved to CPU or garbage collected between pipeline stages (Swap -> Restore -> Upscale) to ensure 8GB VRAM compatibility.
 *   **Normalization**: Explicitly normalizes embedding vectors (`L2 Norm`) before `Face` object reconstruction to prevent `AttributeError` in InsightFace.
 
-### 4. H4_Varianator
+### 4. H4_IdentityEngine (Preset System)
+*   **Frontend**: `js/h4_IdentityEngine.js`.
+*   **Preset Logic**: Uses a custom `getSettings()` function that filters out `positive` (Scene) text widgets before serializing to JSON.
+*   **Validation**: Implements a `remove/create/replace` widget strategy to force `COMBO` widget rendering on browsers that cache the legacy `TEXT` widget definition. Backend validation implements permissive list checking (`None` vs `none`) to prevent casing crashes.
+
+### 5. H4_FaceDetailer (Integration)
+*   **Class**: `H4_FaceDetailer`
+*   **Pipeline**: Detect (InsightFace) -> Crop (Pillow) -> Resize (Lanczos) -> KSampler (Comfy Standard) -> Mask (Soft Ellipse with Feathering) -> Paste (Alpha Blend).
+*   **Safety**: Seed generation is explicitly capped at `2^63 - 1` (Signed INT64 Max) to prevent `OverflowError` during C++ unpacking in the KSampler backend.
+*   **Preview**: Enforces `512x512` resize on debug crops to ensure `torch.cat` valid tensor stacking.
+
+### 6. H4_Varianator
 *   **Class**: `H4_Varianator`
 *   **Logic**: Wraps `nodes.KSampler` in a loop.
 *   **Profiles**: `minimal` (0.3-0.4 denoise), `moderate` (0.4-0.5), `major` (0.5+).
 *   **Randomness**: Uses a seeded `random.Random` instance separate from the global Torch seed for reproducibility of detail variations.
 
-### 5. H4_Discombobulator (The Prank)
-*   **Class**: `H4_Discombobulator`
-*   **Function**: Does absolutely nothing to the image.
-*   **Effect**: Injects a CSS shim that randomly tilts the ComfyUI Queue text and changes "Running" to "Discombobulating...".
-*   **Purpose**: April Fools / Stress Testing UI responsiveness. Harmless.
-
-### 6. H4_BigBrother (Frontend)
+### 7. H4_BigBrother (Frontend)
 *   **Type**: ComfyUI Frontend Extension.
 *   **Canvas**: Uses a `pointer-events: none` overlay canvas aligned via `ctx.setTransform` on every `requestAnimationFrame`.
 *   **Privacy**: Log sanitization uses regex to strip `%USERPROFILE%`, IPs, and Emails before display.

@@ -22,6 +22,7 @@ from .h4_datastream import H4_DataStream
 from .h4_axis import H4_AxisDriver
 from .h4_varianator import H4_Varianator
 from .h4_seed_sequencer import H4_SeedSequencer
+from .h4_pixel_press import H4_PixelPress
 
 # FaceForge Module (AIO Face Swap Suite)
 from .h4_faceforge import (
@@ -29,9 +30,17 @@ from .h4_faceforge import (
     H4_LoadFaceModel,
     H4_BuildFaceModel,
     H4_SaveFaceModel,
+    H4_IdentityEngine,
+    H4_FaceDetailer,
     NODE_CLASS_MAPPINGS as FACEFORGE_CLASS_MAPPINGS,
     NODE_DISPLAY_NAME_MAPPINGS as FACEFORGE_DISPLAY_MAPPINGS,
 )
+
+# DisplayAny Module
+from .h4_display_any import H4_DisplayAny
+
+# Server / API Logic (Presets)
+from . import h4_server
 
 NODE_CLASS_MAPPINGS = {
     "H4_TrafficCop": H4_TrafficCop,
@@ -54,8 +63,11 @@ NODE_CLASS_MAPPINGS = {
     "H4_AxisDriver": H4_AxisDriver,
     "H4_Varianator": H4_Varianator,
     "H4_SeedSequencer": H4_SeedSequencer,
+    "H4_PixelPress": H4_PixelPress,
     # FaceForge Suite
     **FACEFORGE_CLASS_MAPPINGS,
+    # Logic
+    "H4_DisplayAny": H4_DisplayAny,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -79,8 +91,11 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_AxisDriver": "h4 Axis Driver (Grid Tools)",
     "H4_Varianator": "h4 Varianator (Latent Riffler)",
     "H4_SeedSequencer": "h4 Seed Sequencer (Chaos Control)",
+    "H4_PixelPress": "h4 Pixel Press (Density)",
     # FaceForge Suite
     **FACEFORGE_DISPLAY_MAPPINGS,
+    # Logic
+    "H4_DisplayAny": "h4 Display Any+ (Universal Monitor)",
 }
 
 WEB_DIRECTORY = "./js"

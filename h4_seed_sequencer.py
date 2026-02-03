@@ -29,14 +29,14 @@ class H4_SeedSequencer:
                         "default": 123456789,
                         "min": 0,
                         "max": 2**63 - 1,
-                        "tooltip": "Base seed anchor.",
+                        "tooltip": "The starting number (Base Anchor).",
                     },
                 ),
                 "mode": (
                     ["fixed", "increment", "random"],
                     {
                         "default": "fixed",
-                        "tooltip": "Fixed: Static. Increment: +step. Random: Chaos.",
+                        "tooltip": "Fixed = Same every time. Increment = Add X every time. Random = Chaos.",
                     },
                 ),
                 "increment_step": (
@@ -45,14 +45,14 @@ class H4_SeedSequencer:
                         "default": 1,
                         "min": 1,
                         "max": 2**31 - 1,
-                        "tooltip": "How much to verify by in increment mode.",
+                        "tooltip": "How much to add each run (e.g. 1 means Run1=100, Run2=101).",
                     },
                 ),
                 "auto_advance": (
                     "BOOLEAN",
                     {
                         "default": True,
-                        "tooltip": "If True, updates internal state for next run.",
+                        "tooltip": "If ON: I will remember the seed for next time.",
                     },
                 ),
                 "random_digits": (
@@ -61,7 +61,7 @@ class H4_SeedSequencer:
                         "default": 10,
                         "min": 1,
                         "max": 12,
-                        "tooltip": "Number of digits for random generation (e.g. 4 = 1000-9999).",
+                        "tooltip": "For Random Mode: How many digits? (e.g. 4 = 1000-9999).",
                     },
                 ),
             }

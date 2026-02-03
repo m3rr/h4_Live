@@ -1,190 +1,26 @@
-Adding extra search path checkpoints D:\LocalAI\StabilityMatrix\Models\StableDiffusion
-Adding extra search path diffusers D:\LocalAI\StabilityMatrix\Models\Diffusers
-Adding extra search path loras D:\LocalAI\StabilityMatrix\Models\Lora
-Adding extra search path loras D:\LocalAI\StabilityMatrix\Models\LyCORIS
-Adding extra search path clip D:\LocalAI\StabilityMatrix\Models\TextEncoders
-Adding extra search path clip_vision D:\LocalAI\StabilityMatrix\Models\ClipVision
-Adding extra search path embeddings D:\LocalAI\StabilityMatrix\Models\Embeddings
-Adding extra search path vae D:\LocalAI\StabilityMatrix\Models\VAE
-Adding extra search path vae_approx D:\LocalAI\StabilityMatrix\Models\ApproxVAE
-Adding extra search path controlnet D:\LocalAI\StabilityMatrix\Models\ControlNet
-Adding extra search path controlnet D:\LocalAI\StabilityMatrix\Models\T2IAdapter
-Adding extra search path gligen D:\LocalAI\StabilityMatrix\Models\GLIGEN
-Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\ESRGAN
-Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\RealESRGAN
-Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\SwinIR
-Adding extra search path hypernetworks D:\LocalAI\StabilityMatrix\Models\Hypernetwork
-Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdapter
-Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdapters15
-Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdaptersXl
-Adding extra search path prompt_expansion D:\LocalAI\StabilityMatrix\Models\PromptExpansion
-Adding extra search path ultralytics D:\LocalAI\StabilityMatrix\Models\Ultralytics
-Adding extra search path ultralytics_bbox D:\LocalAI\StabilityMatrix\Models\Ultralytics\bbox
-Adding extra search path ultralytics_segm D:\LocalAI\StabilityMatrix\Models\Ultralytics\segm
-Adding extra search path sams D:\LocalAI\StabilityMatrix\Models\Sams
-Adding extra search path diffusion_models D:\LocalAI\StabilityMatrix\Models\DiffusionModels
-[START] Security scan
-[DONE] Security scan
-** ComfyUI startup time: 2026-01-28 12:34:50.736
-** Platform: Windows
-** Python version: 3.12.11 (main, Jul 23 2025, 00:32:20) [MSC v.1944 64 bit (AMD64)]
-** Python executable: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Scripts\python.exe
-** ComfyUI Path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI
-** ComfyUI Base Folder Path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI
-** User directory: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user
-** ComfyUI-Manager config path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\__manager\config.ini
-** Log path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\comfyui.log
-[PRE] ComfyUI-Manager
-
-Prestartup times for custom nodes:
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\rgthree-comfy
-
-D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\cuda\__init__.py:65: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
-  import pynvml  # type: ignore[import]
-Checkpoint files will always be loaded safely.
-Total VRAM 8188 MB, total RAM 16011 MB
-pytorch version: 2.10.0+cu130
-Set vram state to: NORMAL_VRAM
-Device: cuda:0 NVIDIA GeForce RTX 4060 Laptop GPU : cudaMallocAsync
-Using async weight offloading with 2 streams
-Enabled pinned memory 7204.0
-working around nvidia conv3d memory bug.
-Found comfy_kitchen backend cuda: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_nvfp4']}
-Found comfy_kitchen backend eager: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_nvfp4']}
-Found comfy_kitchen backend triton: {'available': True, 'disabled': True, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8']}
-Using sage attention
-Python version: 3.12.11 (main, Jul 23 2025, 00:32:20) [MSC v.1944 64 bit (AMD64)]
-ComfyUI version: 0.11.0
-ComfyUI frontend version: 1.37.11
-[Prompt Server] web root: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\comfyui_frontend_package\static
-[START] ComfyUI-Manager
-[ComfyUI-Manager] network_mode: public
-
-
-
-         🔶Chaosaiart: visit our Discord. https://chaosaiart.com/discord
-
-
-
-[Crystools INFO] Crystools version: 1.27.4
-[Crystools INFO] Platform release: 11
-[Crystools INFO] JETSON: Not detected.
-[Crystools INFO] CPU: 13th Gen Intel(R) Core(TM) i9-13900H - Arch: AMD64 - OS: Windows 11
-[Crystools INFO] pynvml (NVIDIA) initialized.
-[Crystools INFO] GPU/s:
-[Crystools INFO] 0) NVIDIA GeForce RTX 4060 Laptop GPU
-[Crystools INFO] NVIDIA Driver: 581.80
-### Loading: ComfyUI-Impact-Pack (V8.28.2)
-[Impact Pack] Wildcard total size (0.00 MB) is within cache limit (50.00 MB). Using full cache mode.
-[Impact Pack] Wildcards loading done.
-### Loading: ComfyUI-Inspire-Pack (V1.23)
-Blocked by policy: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-Manager-main
-
-[ReActor] - STATUS - Running v0.6.2-b1 in ComfyUI
-Torch version: 2.10.0+cu130
-[ComfyUI-RMBG] v3.0.0 | 43 nodes Loaded
+100%|██████████| 10/10 [00:16<00:00,  1.62s/it]
+Requested to load AutoencodingEngine
+Unloaded partially: 2506.91 MB freed, 2915.62 MB remains loaded, 271.88 MB buffer reserved, lowvram patches: 278
+loaded completely; 361.74 MB usable, 159.87 MB loaded, full load: True
+!!! Exception during processing !!! Sizes of tensors must match except in dimension 0. Expected size 704 but got size 712 for tensor number 2 in the list.
 Traceback (most recent call last):
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 2216, in load_custom_node
-    module_spec.loader.exec_module(module)
-  File "<frozen importlib._bootstrap_external>", line 999, in exec_module
-  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_fnodes\__init__.py", line 5, in <module>
-    from .ipadapter import IPADAPTER_CLASS_MAPPINGS, IPADAPTER_NAME_MAPPINGS
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_fnodes\ipadapter.py", line 6, in <module>
-    from custom_nodes.ComfyUI_IPAdapter_plus.IPAdapterPlus import (
-ModuleNotFoundError: No module named 'custom_nodes.ComfyUI_IPAdapter_plus'
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_faceforge\nodes_detailer.py", line 208, in detail_faces
+    crop_tensor = batched_pil_to_tensor(crops) if crops else torch.zeros((1, 512, 512, 3))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_faceforge\utils.py", line 99, in batched_pil_to_tensor
+    return torch.cat(tensors, dim=0)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Sizes of tensors must match except in dimension 0. Expected size 704 but got size 712 for tensor number 2 in the list.
 
-Cannot import D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_fnodes module for custom nodes: No module named 'custom_nodes.ComfyUI_IPAdapter_plus'
-[h4_FaceForge] [12:35:28] [INFO] SFW State Loaded: NSFW ALLOWED
-
--------------------------------------------------------------------------------------
- 🚀 h4_Live ToolKit | Version: 2.6.2-beta
-    (Nuclear Logic & Persistent State for ComfyUI)
--------------------------------------------------------------------------------------
-| Node Name                                               | Global ID          | Load |
--------------------------------------------------------------------------------------
-| h4 Traffic Cop (Live Logic)                             | H4_TrafficCop      |  ✅   |
-| h4 Traffic Merge (Safe Select)                          | H4_TrafficMerge    |  ✅   |
-| h4 Traffic Router (The Nexus)                           | H4_TrafficRouter   |  ✅   |
-| h4 State Monitor                                        | H4_StateMonitor    |  ✅   |
-| h4 Context Hub (Mothership)                             | H4_ContextHub      |  ✅   |
-| h4 Context Unpack (Distributor)                         | H4_ContextUnpack   |  ✅   |
-| {h4 - DEBUGGER} - Inline Debugger {Smart Console}       | H4_SmartConsole    |  ✅   |
-| h4 Mission Control (Dashboard)                          | H4_MissionControl  |  ✅   |
-| h4 Linear Scheduler (Signal Gen)                        | H4_LinearScheduler |  ✅   |
-| h4 Seed Generator (Signal Gen)                          | H4_SeedGenerator   |  ✅   |
-| h4 Loop Incrementer (Hybrid)                            | H4_LoopIncrementer |  ✅   |
-| h4 Wireless Reset (Toggle)                              | H4_WirelessResetButton |  ✅   |
-| h4 Image Buffer (Anti-Lag)                              | H4_ImageBuffer     |  ✅   |
-| h4 - Gridinator 9001                                    | H4_Gridinator      |  ✅   |
-| 🔬 h4 Debug Error (TEST ONLY)                            | H4_DebugErrorGenerator |  ✅   |
-| h4 DataStream (Batch Loader)                            | H4_DataStream      |  ✅   |
-| h4 Axis Driver (Grid Tools)                             | H4_AxisDriver      |  ✅   |
-| h4 Varianator (Latent Riffler)                          | H4_Varianator      |  ✅   |
-| h4 Seed Sequencer (Chaos Control)                       | H4_SeedSequencer   |  ✅   |
-| h4 FaceForge (AIO Face Swap)                            | H4_FaceForge       |  ✅   |
-| h4 Load Face Model                                      | H4_LoadFaceModel   |  ✅   |
-| h4 Build Face Model                                     | H4_BuildFaceModel  |  ✅   |
-| h4 Save Face Model                                      | H4_SaveFaceModel   |  ✅   |
--------------------------------------------------------------------------------------
-
-Endless Sea of Stars Custom Nodes v1.5.0 loaded successfully!
-Nodes available under 'Endless 🌊✨' menu
-Unable to parse pyproject.toml due to lack dependency pydantic-settings, please run 'pip install -r requirements.txt': 1 validation error for PyProjectConfig
-project.dependencies
-  Input should be a valid list [type=list_type, input_value='', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.12/v/list_type
-
-[rgthree-comfy] Loaded 48 epic nodes. 🎉
-
-[rgthree-comfy] ComfyUI's new Node 2.0 rendering may be incompatible with some rgthree-comfy nodes and features, breaking some rendering as well as losing the ability to access a node's properties (a vital part of many nodes). It also appears to run MUCH more slowly spiking CPU usage and causing jankiness and unresponsiveness, especially with large workflows. Personally I am not planning to use the new Nodes 2.0 and, unfortunately, am not able to invest the time to investigate and overhaul rgthree-comfy where needed. If you have issues when Nodes 2.0 is enabled, I'd urge you to switch it off as well and join me in hoping ComfyUI is not planning to deprecate the existing, stable canvas rendering all together.
-
-
-Import times for custom nodes:
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\websocket_image_save.py
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\quick-connections
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_memory_cleanup
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-unload-model
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-base64-to-image
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_ipadapter_plus
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-autocomplete-plus
-   0.0 seconds (IMPORT FAILED): D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_fnodes
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\endless-nodes
-   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui
-   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\rgthree-comfy
-   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-inspire-pack
-   0.3 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\chaosaiart-nodes
-   0.5 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live
-   0.6 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-impact-pack
-   1.3 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-Crystools
-   3.5 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-reactor
-   4.5 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-rmbg
-
-Context impl SQLiteImpl.
-Will assume non-transactional DDL.
-Assets scan(roots=['models']) completed in 0.365s (created=0, skipped_existing=121, total_seen=121)
-Starting server
-
-To see the GUI go to: http://127.0.0.1:8190
-FETCH ComfyRegistry Data [DONE]
-[ComfyUI-Manager] default cache updated: https://api.comfy.org/nodes
-FETCH DATA from: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\__manager\cache\1514988643_custom-node-list.json [DONE]
-[ComfyUI-Manager] All startup tasks have been completed.
-[DEPRECATION WARNING] Detected import of deprecated legacy API: /scripts/ui.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
-[DEPRECATION WARNING] Detected import of deprecated legacy API: /scripts/ui/components/buttonGroup.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
-[DEPRECATION WARNING] Detected import of deprecated legacy API: /extensions/core/clipspace.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
-[ComfyUI-Manager] The ComfyRegistry cache update is still in progress, so an outdated cache is being used.
-FETCH DATA from: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\comfyui_manager\custom-node-list.json [DONE]
-[Autocomplete-Plus] CSV file status:
-  * Danbooru -> base: True, extra: []
-  * E621     -> base: False, extra: []
-got prompt
-[h4_FaceForge] [12:37:06] [INFO] DEBUG: SFW Check Result: SAFE
-[h4_FaceForge] [12:37:06] [INFO] Processing 1 image(s)...
-[h4_FaceForge] [12:37:06] [INFO]   Swap: True | Restore: True | Boost: True
-[h4_FaceForge] [12:37:06] [INFO]   Upscale: True | SAM Occlusion: True
-[h4_FaceForge] [12:37:06] [INFO] DEBUG: Target Indices: [0]
-[h4_FaceForge] [12:37:06] [INFO] DEBUG: Source Indices: [1]
-[h4_FaceForge] [12:37:06] [INFO] DEBUG: Swap Enabled. Resolving Source Face...
-[h4_FaceForge] [12:37:06] [INFO] DEBUG: Analyzing Source Image for faces...
-
+Prompt executed in 330.50 seconds

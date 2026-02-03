@@ -5,6 +5,11 @@
 
 from .nodes_utility import H4_LoadFaceModel, H4_BuildFaceModel, H4_SaveFaceModel
 from .nodes_faceforge import H4_FaceForge
+from .nodes_identity_engine import H4_IdentityEngine
+from .nodes_detailer import H4_FaceDetailer
+
+# Import API routes for Presets
+from . import presets_api
 
 # ==============================================================================
 # Web API Endpoints
@@ -56,6 +61,8 @@ NODE_CLASS_MAPPINGS = {
     "H4_LoadFaceModel": H4_LoadFaceModel,
     "H4_BuildFaceModel": H4_BuildFaceModel,
     "H4_SaveFaceModel": H4_SaveFaceModel,
+    "H4_IdentityEngine": H4_IdentityEngine,
+    "H4_FaceDetailer": H4_FaceDetailer,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -63,6 +70,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_LoadFaceModel": "h4 Load Face Model",
     "H4_BuildFaceModel": "h4 Build Face Model",
     "H4_SaveFaceModel": "h4 Save Face Model",
+    "H4_IdentityEngine": "h4 Identity Engine (Generator)",
+    "H4_FaceDetailer": "h4 Face Detailer (Pore Restorer)",
 }
 
 __all__ = [
@@ -70,6 +79,8 @@ __all__ = [
     "H4_LoadFaceModel", 
     "H4_BuildFaceModel",
     "H4_SaveFaceModel",
+    "H4_IdentityEngine",
+    "H4_FaceDetailer",
     "NODE_CLASS_MAPPINGS",
     "NODE_DISPLAY_NAME_MAPPINGS",
     "is_sfw_enabled",

@@ -73,15 +73,15 @@ class H4_Varianator:
         
         return {
             "required": {
-                "variation_count": ("INT", {"default": 4, "min": 1, "max": VARIANATOR_MAX_VARIATIONS}),
-                "variation_profile": (profile_keys, {"default": profile_default}),
-                "seed_mode": (["fixed", "increment", "random"], {"default": "increment"}),
-                "base_seed": ("INT", {"default": 123456789, "min": 0, "max": VARIANATOR_SEED_LIMIT}),
-                "sampler_name": (SAMPLER_CHOICES, {"default": sampler_default}),
-                "scheduler_name": (SCHEDULER_CHOICES, {"default": scheduler_default}),
-                "steps": ("INT", {"default": 18, "min": 1, "max": 150}),
-                "cfg": ("FLOAT", {"default": 7.0, "min": 1.0, "max": 30.0, "step": 0.1}),
-                "denoise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}), # Added override
+                "variation_count": ("INT", {"default": 4, "min": 1, "max": VARIANATOR_MAX_VARIATIONS, "tooltip": "How many remix versions do you want?"}),
+                "variation_profile": (profile_keys, {"default": profile_default, "tooltip": "How different should they be? Minimal = subtle, Major = big changes."}),
+                "seed_mode": (["fixed", "increment", "random"], {"default": "increment", "tooltip": "Control the randomness of the remixes."}),
+                "base_seed": ("INT", {"default": 123456789, "min": 0, "max": VARIANATOR_SEED_LIMIT, "tooltip": "The starting random seed."}),
+                "sampler_name": (SAMPLER_CHOICES, {"default": sampler_default, "tooltip": "The logic used to draw the variations."}),
+                "scheduler_name": (SCHEDULER_CHOICES, {"default": scheduler_default, "tooltip": "Controls the noise removal steps."}),
+                "steps": ("INT", {"default": 18, "min": 1, "max": 150, "tooltip": "Number of quality passes."}),
+                "cfg": ("FLOAT", {"default": 7.0, "min": 1.0, "max": 30.0, "step": 0.1, "tooltip": "Creativity strength."}),
+                "denoise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "Img2Img Strength. 1.0 = New Image, 0.5 = 50% remix."}), 
                 # "go_ultra": ("BOOLEAN", {"default": False, "label": " GO PLUS ULTRA?! "}), # Removed for simplicity in v1 port
             },
             "optional": {
