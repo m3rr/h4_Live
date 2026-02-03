@@ -5,8 +5,6 @@
 
 ---
 
----
-
 ### 🤔 What is "Live"?
 
 So... this started simply enough. Honestly, I just wanted a switch node. You know, something basic to swap between two inputs without rewiring the whole board.
@@ -19,30 +17,26 @@ It is no longer just a switch. It is a full utility belt. It is a suite of tools
 
 It allows your workflow to be Organic. It allows it to Count. It allows it to Remember. Most workflows just make an image and forget it ever happened. This doesn't. With this, you can tell ComfyUI: "Hey, make an image. Now, take that image and fix it. Now take that fixed image and upscale it. Do this 5 times, but on the 3rd time, change the settings to something weird."
 
-The Quality of Life (QoL) Enhancements
+### The Quality of Life (QoL) Enhancements
 To make the experience even smoother, I’ve baked in several UI and workflow enhancements that trigger automatically:
 
-Smart Node Snapping: Keeps your graph tidy by automatically aligning nodes as you move them.
+*   **Smart Node Snapping**: Keeps your graph tidy by automatically aligning nodes as you move them.
+*   **Dynamic Input/Output Coloring**: Instantly identifies data types at a glance to prevent mismatched connections.
+*   **Auto-Context Memory**: Remembers your last-used settings and paths across sessions so you don't have to re-enter the same directory for the 100th time.
+*   **Visual Debug Overlays**: Real-time data peeking that shows you exactly what’s flowing through your wires without needing a separate Preview node.
 
-Dynamic Input/Output Coloring: Instantly identifies data types at a glance to prevent mismatched connections.
-
-Auto-Context Memory: Remembers your last-used settings and paths across sessions so you don't have to re-enter the same directory for the 100th time.
-
-Visual Debug Overlays: Real-time data peeking that shows you exactly what’s flowing through your wires without needing a separate Preview node.
-
-How to Disable Them
+### How to Disable Them
 I know some of you are purists or just want to see the world burn. If the "help" is getting in your way, you can shut it all down:
-
-Navigate to the ComfyUI Settings (the gear icon).
-
-Look for the h4_Live Config section.
-
-Toggle the "Enable QoL Features" switch to Off.
-
-Alternatively, you can edit the config.yaml file inside the h4_live folder and set enable_qol: false.
+1.  Navigate to the ComfyUI Settings (the gear icon).
+2.  Look for the `h4_Live Config` section.
+3.  Toggle the "Enable QoL Features" switch to **Off**.
+4.  Alternatively, you can edit the `config.yaml` file inside the `h4_live` folder and set `enable_qol: false`.
 
 I hide the scary math and the complex logic behind friendly, easy-to-use nodes so you can focus on being an Artist, not a Programmer. This is probably the most fun you're going to have debugging. Dig in. Break things. Make cool shit.
 
+*(P.S. I have rewritten this README about 20 times now. If I have to write it again, I am going to scream into a pillow until the neighbors call the police. Please enjoy it.)*
+
+---
 
 # 📚 THE CASUAL GUIDE (For Humans)
 
@@ -57,9 +51,12 @@ This is the most important node in the pack. It combines a "Splitter" (deciding 
 *   **Why use it?** It automates the "Feedback Loop". You don't need to manually switch wires.
 *   **Bonus:** It also switches your "Denoise" setting automatically! (High denoise for the start, low denoise for the polishing loops).
 
-**Settings:**
-*   `first_denoise`: The denoise strength for the very first frame (creation).
-*   `loop_denoise`: The denoise strength for all subsequent frames (refinement).
+**Settings Explained:**
+*   `first_denoise`: The denoise strength (0.0 to 1.0) to use for the **creation** phase. Usually you want this high (1.0) so the AI creates something from nothing.
+*   `loop_denoise`: The denoise strength to use for the **refinement** phase. Usually you want this lower (0.3 - 0.5) so it modifies the image without destroying it.
+*   `restart`: A simple True/False switch. If set to **True**, the counter resets to 0 immediately. Useful if you want to force a fresh start without restarting ComfyUI.
+*   `first_run_in` (Input): Connect your **Starting Item** here (e.g., Empty Latent). This is used ONLY once.
+*   `loop_run_in` (Input): Connect your **Looping Item** here (e.g., the output of your sampler). This is used for every run after the first.
 
 ## 2. H4 Traffic Merge (The Zipper) 🤐
 **"The Safe Connector"**
@@ -69,8 +66,11 @@ This is the "Little Brother" of the Router. It only does one thing: It merges tw
 *   **What it does:** It listens to the Loop Counter. If it's Run 0, it opens Gate A. If it's Run 1+, it opens Gate B.
 *   **Why is it "Safe"?** ComfyUI hates empty wires. If you unplug something, it crashes. The Zipper ensures that *something* is always connected, so your workflow never explodes.
 
-**Settings:**
-*   `loop_input`: The data to use on Loop 1+. If not connected, it tries to grab the last image from memory (The Buffer).
+**Settings Explained:**
+*   `first_denoise` / `loop_denoise`: Same as the Router. It manages the denoise value for you.
+*   `run_once_input` (Input): The item to use on Run 0.
+*   `loop_input` (Input): **LEAVE THIS EMPTY.**
+    *   *Wait, what?* Yes. If you wire a loop directly here, ComfyUI panics because it sees a circle. Instead, use the **H4 Image Buffer** in "Wireless Mode" (see below), and this node will just magically find the data.
 
 ## 3. H4 Traffic Cop (Legacy Splitter) 👮
 **"The Old Reliable"**
@@ -80,6 +80,10 @@ This is the "Little Brother" of the Router. It only does one thing: It merges tw
 *   **What it does:** It takes ONE input and sends it to TWO places.
 *   **Feature:** It uses "Safe Passthrough". Even if a road is closed, it sends "Ghost Data" down it so your nodes dont turn red and cry.
 
+**Settings Explained:**
+*   `any_input`: Connect whatever you want to control here.
+*   `restart_on_true`: If **True**, traffic goes to the "Run Once" output. If **False**, traffic goes to the "Loop" output.
+
 ## 4. H4 Image Buffer (The Anti-Lag) 📦
 **"The Wireless Warehouse"**
 
@@ -88,11 +92,19 @@ Understanding this node is the key to preventing headaches.
 *   **The Problem:** When you make a loop in ComfyUI, data has to travel physically through wires. Sometimes, the data takes too long to get back to the start, and you get a "Cycle Error" (The Ouroboros Snake biting its own tail).
 *   **The Solution:** The Image Buffer catches the data and stores it in RAM (Memory). It effectively "Snips" the wire, allowing you to send data wirelessly from the end of your workflow back to the start without confusing ComfyUI.
 
+**Settings Explained:**
+*   `image_in`:
+    *   **If Connected**: It acts as a **Writer**. It takes whatever you send it and saves it to memory.
+    *   **If Empty**: It acts as a **Reader**. It effectively becomes a wireless receiver, outputting whatever was last saved.
+
 ## 5. H4 State Monitor (The Scoreboard) 🔢
 **"The Counter"**
 
 *   **What it does:** It just tells you what loop number you are on.
 *   **Use:** Connect it to a Text Display node to see "Run: 5" on your screen. Useful for knowing when to stop.
+
+**Settings Explained:**
+*   `Any_In` (Optional): If you connect something here, the Monitor will wait for that item to finish before updating the score. This is useful for timing (daisy-chaining).
 
 ## 6. H4 Loop Incrementer (The Clicker) ➕
 **"The Engine"**
@@ -101,12 +113,19 @@ Usually, the **Router** handles counting for you. But sometimes, you want manual
 *   **What it does:** Every time this node runs, it adds +1 to the global counter.
 *   **Feature:** It has a "Wireless Reset" port. If you press the Red Button (see below), this node catches the signal and resets the count to 0.
 
+**Settings Explained:**
+*   `pulse`: Connect any wire here. When data flows through this wire, the count goes up.
+*   `wireless_reset`: If **True**, it listens for the Wireless Reset Button.
+
 ## 7. H4 Wireless Reset (The Red Button) 🔴
 **"The Eject Seat"**
 
 *   **The Problem:** You are on Loop 50, but you want to start over.
 *   **The Solution:** Toggle this switch to `True`. The next time your workflow runs, it sends a wireless signal to the **Incrementer** or **Router** screaming "RESET!". The counter drops to 0, and you start fresh.
 *   **Tip:** Don't forget to turn it off after you reset!
+
+**Settings Explained:**
+*   `trigger_reset`: **True** = BOOM (Reset). **False** = Safe.
 
 ## 8. H4 Context Hub (The Mothership) 🛸
 **"The One Wire to Rule Them All"**
@@ -116,7 +135,9 @@ Tired of spaghetti workflows? Do you have 50 wires crossing over each other?
 *   **What it does:** It takes all your standard stuff (Model, VAE, CLIP, Positive Prompt, Negative Prompt, Latent, Image) and bundles them into ONE single blue wire called a `PIPE`.
 *   **Bonus:** It prints a detailed report in your console telling you exactly what is inside (Shapes, Types, etc).
 
-**Inputs:**
+**Settings Explained:**
+*   `base_pipe`: (Optional) Existing pipe to add to.
+*   `model`, `vae`, `clip`, `latent`, `image`: Standard ComfyUI types.
 *   `any_A`: A slot for literally anything else you want to pack (ControlNet, Mask, Lunch).
 *   `any_B`: Another slot for anything.
 
@@ -125,6 +146,9 @@ Tired of spaghetti workflows? Do you have 50 wires crossing over each other?
 
 *   **What it does:** It takes the single `PIPE` wire from the Mothership and unpacks it back into all the individual connections.
 *   **Use:** Put the Hub at the start of your workflow and the Unpack at the end. Now you have a clean, wire-free workspace in the middle!
+
+**Inputs**:
+*   `h4_pipe`: The bundled blue wire from the Hub.
 
 ## 10. H4 Smart Console (The X-Ray) 🧠
 **"The Truth Teller"**
@@ -157,37 +181,38 @@ A central place to see everything happening in your loop.
 
 Previously known as the "Broadcaster", this node handles your randomness.
 
-*   **Settings:**
-    *   `mode`:
-        *   `fixed`: Keeps the seed the same forever.
-        *   `increment`: Adds +1 every time.
-        *   `random`: Pure chaos.
-    *   `random_digits`: Want to generate a seed like "1999" but not "123456789"? Set this to 4. Good for hunting specific "vibes" in models that react to seed length.
+**Settings Explained:**
+*   `mode`:
+    *   `fixed`: Keeps the seed the same forever.
+    *   `increment`: Adds +1 every time.
+    *   `random`: Pure chaos.
+*   `random_digits`: Want to generate a seed like "1999" but not "123456789"? Set this to 4. Good for hunting specific "vibes" in models that react to seed length.
 
 ## 14. H4 Varianator (The Riff Machine) 🎸
 **"Play it again, Sam... but different."**
 
 This node takes an image (latent) and remixes it. It's like asking a jazz musician to play a specific song, but add their own flair.
 
-*   **Settings:**
-    *   `variation_count`: How many versions do you want? (1-16).
-    *   `variation_profile`:
-        *   `minimal`: Subtle changes. Same person, different expression.
-        *   `moderate`: Noticeable changes. Same person, different haircut.
-        *   `major`: Identity shift. Cousin of the person.
-    *   `seed_mode`: Should the variations follow a pattern or be totally random?
+**Settings Explained:**
+*   `variation_count`: How many versions do you want? (1-16).
+*   `variation_profile`:
+    *   `minimal`: Subtle changes. Same person, different expression.
+    *   `moderate`: Noticeable changes. Same person, different haircut.
+    *   `major`: Identity shift. Cousin of the person.
+*   `seed_mode`: Should the variations follow a pattern or be totally random?
 
 ## 15. H4 Gridinator 9001 (The Beast) 📊
 **"IT'S OVER 9000!?!?"**
 
 This is the ultimate testing tool. It takes your workflow and multiplies it into a giant grid.
 
-*   **What it does:** Want to see what your prompt looks like with `CFG` set to 5, 6, 7, and 8? Want to see it across 3 different Models at the same time? The Gridinator does this in one click.
-*   **Powers:**
-    *   **Fuzzy Match**: Type "pony" and it finds your PonyV6 checkpoint.
-    *   **Stutter**: Type a prompt like "A {cat|dog|fish}" and it makes a grid for each animal.
-    *   **Sliding Scale**: Auto-generates the numbers for you.
-    *   **Dynamic Layout**: Automatic label sizing with configurable `Margin` and `Padding` for perfect grids every time.
+**What it does:** Want to see what your prompt looks like with `CFG` set to 5, 6, 7, and 8? Want to see it across 3 different Models at the same time? The Gridinator does this in one click.
+
+**Powers Explained:**
+*   **Fuzzy Match**: Type "pony" into the Model box, and it will find your "PonyV6_XL.safetensors" checkpoint automatically.
+*   **Stutter Syntax**: Use `{cat|dog|fish}` in your prompt. The Gridinator will create a row for Cat, a row for Dog, and a row for Fish.
+*   **Sliding Scale**: Auto-generates the numbers for you.
+*   **Dynamic Layout**: Automatic label sizing with configurable `Margin` and `Padding` for perfect grids every time.
 
 ## 16. H4 DataStream (The Batch Loader) 📡
 **"Stream the feed. One frame at a time."**
@@ -199,37 +224,46 @@ This is the ultimate testing tool. It takes your workflow and multiplies it into
     2.  DataStream loads Image #1.
     3.  DataStream sees there are 49 more images.
     4.  It immediately presses the "Queue" button 49 more times for you.
-*   **Features:**
-    *   **📁 Browse Button**: Opens a real Windows folder picker (no more copy-pasting paths!).
-    *   **Live Preview**: Shows you exactly which image is processing and how far along you are.
 
 ## 17. h4 FaceForge (The Shapeshifter) 🎭
 **"The AIO Face Swap Engine"**
 
 This is not just a face swapper. It is a **Face Re-Engineering Engine**. It consolidates swapping, restoring, boosting, upscaling, and occlusion handling into a single, unified pipeline.
 
-*   **Powers:**
-    *   **Swap**: Auto-detects InsightFace, ReSwapper, or HyperSwap models.
-    *   **Restore**: Integrated face restoration (GFPGAN, CodeFormer) to fix low-res faces.
-    *   **Boost**: Enhances face detail *during* the swap process for better blending.
-    *   **Upscale**: Built-in 4x/8x upscaling (UltraSharp, NMKD) to make the result crisp.
-    *   **Occlusion Handling (SAM)**: Uses Segment Anything Model (SAM) to intelligently handle glasses, hair, and accessories.
-    *   **Memory Safe 🛡️**: Includes an aggressive "VRAM Flush" Protocol. It explicitly offloads models to CPU between steps, preventing crashes on 8GB cards.
+**Settings Explained:**
+*   `input_image`: The target (The Body/Scene).
+*   `source_image`: The source (The Donor Face).
+*   `face_model`: (Optional) A pre-built face model.
+*   `swap_enabled`: **True** to swap. **False** to pass through (useful for testing restoration only).
+*   `face_selection_mode`:
+    *   `index`: Pick by number (0=First face).
+    *   `center`: Pick the face in the middle.
+    *   `largest`: Pick the biggest face.
+*   `target_face_index`: "0" is first face. "0,1" swaps the first two faces.
+*   `source_face_index`: Usually "0".
+*   `restore_enabled`: **True** to run GFPGAN/CodeFormer.
+*   `restore_model`: Select the model type.
+*   `restore_visibility`: (0.0-1.0) How much of the original face to keep. 0.5 is a nice blend.
+*   `upscale_enabled`: **True** to upscale the result.
+*   `upscale_face_only`: **True** = Fast (Face only). **False** = Slow (Whole image).
+*   `occlusion_enabled`: **True** uses AI (SAM) to find things blocking the face (glasses, hair, hands).
+*   `preserve_glasses`: Finds glasses on the original face and pastes them *over* the new face.
+*   `preserve_hair`: Keeps original bangs/fringes.
 
 ## 18. h4 Identity Engine 3.0 (The Persona Engine) 🧬
 **"The Character Studio"**
 
 This node is designed to manage complex characters. It separates "Who they are" from "What they are doing".
 
-*   **The DNA System**:
-    *   **`positive_dna`**: This new box stores persistent character traits (e.g., "blonde, scar on left cheek, cybernetic eye").
-    *   **`positive` (Scene)**: This box describes the action (e.g., "riding a motorcycle").
-    *   **The Logic**: When you hit Queue, the node combines `DNA + Scene` automatically.
- 
-*   **The Preset System**:
-    *   You can **Save** your character settings as a preset (e.g., "MaLi").
-    *   **Smart Saving**: When you save a preset, it remembers the **DNA** but ignores the **Scene**.
-    *   **Benefit**: You can load your "MaLi" preset into a "Riding a Motorcycle" scene, and she will appear there instantly without erasing your scene prompt.
+**The DNA System:**
+*   **`positive_dna`**: This is where you describe the PERSON. (e.g., "blonde, scar on left cheek, cybernetic eye"). These traits should stay constant.
+*   **`positive`**: This is where you describe the SCENE. (e.g., "sitting in a cafe, drinking coffee"). This changes every shot.
+*   **The Magic**: When you hit Queue, the node combines `DNA + Scene` automatically.
+
+**The Preset System:**
+*   **Preset Widget**: A drop-down menu of saved characters.
+*   **Save Preset**: Saves your current settings (DNA, Face Model, etc.) to a file.
+*   **Smart Saving**: When you save, it explicitly **IGNORES** the Scene Prompt. This means you can load a character preset mid-workflow without overwriting your current scene description.
 
 ## 19. h4 Face Detailer (The Pore Restorer) 🔍
 **"Option B: The Texture King"**
@@ -238,13 +272,16 @@ Face Swapping (even with FaceForge) has a limit: The swapper model often creates
 
 **The Face Detailer fixes this by hallucinating pores back into existence.**
 
-*   **Workflow**: `FaceForge (Swap)` -> `Pixel Press (Upscale)` -> `Face Detailer`.
-*   **How it works**:
-    1.  It detects the face in your high-res image.
-    2.  It crops it out.
-    3.  It runs a standard Stable Diffusion "Img2Img" pass on *just that crop* using your original Model/LoRA.
-    4.  It blends the high-texture result back into the image.
-*   **Result**: 4K skin texture on a swapped face.
+**Settings Explained:**
+*   `image`: The upscaled image.
+*   `model/clip/vae`: Your main checkpoint (SDXL/Pony/SD1.5).
+*   `guide_size`: The resolution to process the face at (e.g., 512). Higher = More pores.
+*   `steps`: How many sampling steps to take (20 is standard).
+*   `denoise`: **CRITICAL SETTING**.
+    *   **0.0 - 0.2**: Nothing happens.
+    *   **0.25 - 0.35**: The Sweet Spot. Adds texture/pores without changing the face.
+    *   **0.4+**: The face starts to change (plastic surgery).
+*   `feather_mask`: Softens the edges of the paste so you don't see a visible line.
 
 ## 20. h4 Build/Load/Save Face Model 💾
 **"The Clone Vats"**
@@ -256,18 +293,6 @@ Stop loading the same "face.png" every time. Do it the pro way.
     *   Blends their math together.
     *   **Result**: A "Super-Embedding" that looks more like the person than any single photo.
     *   **Browse Button**: Yeah, we added a folder browser here too. Just point it at a directory of selfies.
-
-*   **H4 Save Face Model**: Saves your built model to disk.
-*   **H4 Load Face Model**: Loads it back in.
-
-## 21. H4 Big Brother (Ghost Layer) 👁️
-**"The Eye in the Sky"**
-
-This isn't a node. It's a **Visual Layer** for ComfyUI itself.
-
-*   **What it does:** It makes your wires **GLOW**. When you click a node, Big Brother highlights every connection going in and out of it in neon green (or pink, or whatever you want).
-*   **Why?** Because spaghetti workflows are hard to read. Big Brother makes them readable.
-*   **Death Modal**: If your workflow crashes, Big Brother catches the error and shows you a sanitized report that hides your PC Name and IP so you can screenshot it safely.
 
 ---
 
@@ -283,39 +308,42 @@ The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing
 ### 1. H4_TrafficRouter / Merge
 *   **Class**: `H4_TrafficRouter` / `H4_TrafficMerge`
 *   **Logic**: Implements conditional return tuples based on `loop_count`.
-*   **Wireless Protocol**: Uses a "Look-Behind" mechanism via `h4_core.get_buffered_image()` to break the Directed Acyclic Graph (DAG) cycle restriction.
+*   **Wireless Protocol**: Uses a "Look-Behind" mechanism via `h4_core.get_buffered_image()` to break the Directed Acyclic Graph (DAG) cycle restriction imposed by ComfyUI's execution engine.
+*   **Denoise Management**: Denoise is passed as a float and switched atomically with the logic flow, ensuring the sampler always receives the correct noise level for the current loop iteration.
 
 ### 2. H4_ImageBuffer
-*   **Storage**: `_H4_IMAGE_BUFFER` (Global Variable).
-*   **Optimization**: Stores references, not deep copies (zero-copy overhead).
+*   **Storage**: `_H4_IMAGE_BUFFER` (Global Variable in `h4_core.py`).
+*   **Optimization**: Stores Python object references, not deep copies. This means zero-copy overhead for large tensors.
+*   **Validation**: It is "Type Agnostic" (`ANY_TYPE`). It relies on runtime introspection (`type(obj).__name__`) to wrap and log the payload without deserialization.
 
 ### 3. H4_FaceForge (AIO Module)
 *   **Class**: `H4_FaceForge`
-*   **Architecture**: Sequential Pipeline.
-*   **Dependencies**: `insightface`, `onnxruntime-gpu`, `segment_anything`, `torch`.
-*   **Memory Safety**: Implements an aggressive `soft_empty_cache()` protocol. Models are moved to CPU or garbage collected between pipeline stages (Swap -> Restore -> Upscale) to ensure 8GB VRAM compatibility.
-*   **Normalization**: Explicitly normalizes embedding vectors (`L2 Norm`) before `Face` object reconstruction to prevent `AttributeError` in InsightFace.
+*   **Architecture**: Sequential Pipeline (Swap -> Restore -> Upscale -> Blend).
+*   **Dependencies**: `insightface` (swapping), `onnxruntime-gpu` (inference), `segment_anything` (SAM for occlusion), `torch` (tensors).
+*   **Memory Safety**: Implements an aggressive `soft_empty_cache()` protocol. Models are moved to CPU or garbage collected between pipeline stages to ensure 8GB VRAM compatibility.
+*   **Normalization**: Explicitly normalizes embedding vectors (`L2 Norm`) before `Face` object reconstruction to prevent `AttributeError` in InsightFace when dealing with custom-built models.
 
 ### 4. H4_IdentityEngine (Preset System)
 *   **Frontend**: `js/h4_IdentityEngine.js`.
 *   **Preset Logic**: Uses a custom `getSettings()` function that filters out `positive` (Scene) text widgets before serializing to JSON.
-*   **Validation**: Implements a `remove/create/replace` widget strategy to force `COMBO` widget rendering on browsers that cache the legacy `TEXT` widget definition. Backend validation implements permissive list checking (`None` vs `none`) to prevent casing crashes.
+*   **Validation**: Implements a `remove/create/replace` widget strategy to force `COMBO` widget rendering on browsers that cache the legacy `TEXT` widget definition.
+*   **Backend Validation**: Implements permissive list checking (accepts both `"None"` and `"none"`) to prevent case-sensitivity validation errors during graph execution.
 
 ### 5. H4_FaceDetailer (Integration)
 *   **Class**: `H4_FaceDetailer`
 *   **Pipeline**: Detect (InsightFace) -> Crop (Pillow) -> Resize (Lanczos) -> KSampler (Comfy Standard) -> Mask (Soft Ellipse with Feathering) -> Paste (Alpha Blend).
-*   **Safety**: Seed generation is explicitly capped at `2^63 - 1` (Signed INT64 Max) to prevent `OverflowError` during C++ unpacking in the KSampler backend.
-*   **Preview**: Enforces `512x512` resize on debug crops to ensure `torch.cat` valid tensor stacking.
+*   **Safety**: Seed generation is explicitly capped at `2^63 - 1` (Signed INT64 Max) to prevent `OverflowError` during C++ unpacking in the KSampler backend (C++ `long long` limit).
+*   **Preview**: Enforces `512x512` resize on debug crops (`torch.cat`) to ensure the preview tensor stack has uniform dimensions, preventing batch crashes.
 
 ### 6. H4_Varianator
 *   **Class**: `H4_Varianator`
-*   **Logic**: Wraps `nodes.KSampler` in a loop.
+*   **Logic**: Wraps `nodes.KSampler` in a `for` loop, generating a new seed for each iteration.
 *   **Profiles**: `minimal` (0.3-0.4 denoise), `moderate` (0.4-0.5), `major` (0.5+).
-*   **Randomness**: Uses a seeded `random.Random` instance separate from the global Torch seed for reproducibility of detail variations.
+*   **Randomness**: Uses a seeded `random.Random` instance separate from the global Torch seed. This ensures that variations are reproducible if the input seed is fixed, even if the global torch state changes.
 
 ### 7. H4_BigBrother (Frontend)
-*   **Type**: ComfyUI Frontend Extension.
-*   **Canvas**: Uses a `pointer-events: none` overlay canvas aligned via `ctx.setTransform` on every `requestAnimationFrame`.
+*   **Type**: ComfyUI Frontend Extension (`litegraph` hook).
+*   **Canvas**: Uses a `pointer-events: none` overlay canvas aligned via `ctx.setTransform` on every `requestAnimationFrame` to draw neon bezier curves over the existing connections.
 *   **Privacy**: Log sanitization uses regex to strip `%USERPROFILE%`, IPs, and Emails before display.
 *   **Note**: There is a hidden toggle in the settings. If you click it, it toggles a specific filter in the FaceForge backend. We won't say what it does, but if the console says "Boobies Activated", you know what time it is.
 
