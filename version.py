@@ -3,6 +3,6 @@
 # h4_Live Version Control
 # ------------------------------------------------------------------------------
 
-__version__ = "3.0-Beta"
+__version__ = "3.0.0"
 __author__ = "(h4)"
 __status__ = "Beta - Nuclear Logic - Persistent State"

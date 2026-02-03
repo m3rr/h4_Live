@@ -116,11 +116,107 @@ app.registerExtension({
 
         // 9. Easter Egg: The Boobies Switch (SFW Toggle)
         this.setupSfwToggle_v2();
+
+        // 10. Caffeine Mode: Wake Lock Toggle (User Request)
+        this.setupCaffeineButton();
     },
 
     // ==============================================================================
-    // SFW Toggle (The Boobies Switch) - Steganographic Mode
+    // CAFFEINE MODE (Screen Wake Lock)
     // ==============================================================================
+
+    _wakeLockSentinel: null,
+
+    async toggleCaffeineMode(btn) {
+        if (!('wakeLock' in navigator)) {
+            alert("Your browser does not support Wake Lock API. Please use Chrome/Edge.");
+            return;
+        }
+
+        if (this._wakeLockSentinel) {
+            // TURN OFF (Release Lock)
+            try {
+                await this._wakeLockSentinel.release();
+                this._wakeLockSentinel = null;
+                btn.textContent = "(-_-)zzz"; // Sleepy Kirby
+                btn.title = "Caffeine Mode: OFF (System can sleep)";
+                btn.style.color = "#888"; // Gray
+                btn.style.textShadow = "none";
+                console.log("[h4] Caffeine Mode: OFF (Releasing Wake Lock)");
+            } catch (err) {
+                console.error("[h4] Failed to release wake lock:", err);
+            }
+        } else {
+            // TURN ON (Request Lock)
+            try {
+                this._wakeLockSentinel = await navigator.wakeLock.request('screen');
+                btn.textContent = "(bO_O)b"; // Wide Awake Kirby
+                btn.title = "Caffeine Mode: ON (Screen kept awake)";
+                btn.style.color = "#00FF00"; // Neon Green
+                btn.style.textShadow = "0 0 5px #00FF00";
+
+                // Re-acquire on visibility change (tabs)
+                this._wakeLockSentinel.addEventListener('release', () => {
+                    // System released it?
+                    if (this._wakeLockSentinel !== null) {
+                        console.log('[h4] Wake Lock released by system.');
+                        // Reset UI if it wasn't manual
+                        // Actually, let's keep it null and let user toggle again if needed, 
+                        // mostly likely user minimized window or switched tabs.
+                        // But we want it persistent if possible.
+                    }
+                });
+                console.log("[h4] Caffeine Mode: ON (Wake Lock Active)");
+            } catch (err) {
+                console.error(`[h4] Failed to request wake lock: ${err.name}, ${err.message}`);
+                alert("Wake Lock Failed: " + err.message);
+            }
+        }
+    },
+
+    setupCaffeineButton() {
+        const btn = document.createElement("div");
+        btn.id = "h4-caffeine-toggle";
+        btn.textContent = "(-_-)zzz"; // Default: Sleep
+        btn.title = "Caffeine Mode: OFF (Click to keep PC awake)";
+
+        // Style: Fixed Top-Right (Toolbar Territory)
+        Object.assign(btn.style, {
+            position: "fixed",
+            top: "5px",
+            right: "140px", // Left of the Settings/Menu buttons usually
+            zIndex: "9999",
+            color: "#888",
+            fontFamily: "monospace",
+            fontWeight: "bold",
+            fontSize: "14px",
+            cursor: "pointer",
+            padding: "2px 6px",
+            background: "rgba(0,0,0,0.5)",
+            borderRadius: "4px",
+            border: "1px solid #333",
+            userSelect: "none"
+        });
+
+        btn.addEventListener("click", () => this.toggleCaffeineMode(btn));
+
+        // Re-acquire lock logic when tab comes back into focus
+        document.addEventListener('visibilitychange', async () => {
+            if (this._wakeLockSentinel !== null && document.visibilityState === 'visible') {
+                // If we think we have a lock but tab was hidden, we probably lost it.
+                // Try to re-request quietly if button shows ON.
+                if (btn.textContent.includes("O_O")) {
+                    try {
+                        this._wakeLockSentinel = await navigator.wakeLock.request('screen');
+                        console.log("[h4] Caffeine Mode: Lock Re-acquired after visibility change.");
+                    } catch (e) { console.log("Re-acquire failed", e); }
+                }
+            }
+        });
+
+        document.body.appendChild(btn);
+    },
+
 
     _sfwState: {
         KEY: "h4_sfw_mode"
