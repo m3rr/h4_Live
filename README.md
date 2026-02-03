@@ -5,25 +5,44 @@
 
 ---
 
+---
+
 ### 🤔 What is "Live"?
 
-So... this started simply enough. We just wanted a switch node. You know, something simple to swap between two inputs.
+So... this started simply enough. Honestly, I just wanted a switch node. You know, something basic to swap between two inputs without rewiring the whole board.
 
-But then we fell down a rabbit hole. A deep, heavily caffeinated rabbit hole. ☕🐇
+But then I fell down a rabbit hole. A deep, heavily caffeinated rabbit hole. ☕🐇
 
-We started adding features. Then we added more features. Then we realized "Hey, we need a better way to test this." So we built testing tools. Then we got bored and wanted to verify face swaps, so we built a face swap engine. It became a labor of love, hate, and the occasional pot break.
+I started adding features. Then I added more features. Then I realized, "Hey, I need a better way to test this," so I built testing tools. Then I got bored and wanted to verify face swaps, so I built a face swap engine. It became a labor of love, hate, and the occasional pot break.
 
-It is no longer just a switch. It is a **full utility belt**. A suite of tools that has taken on a life of its own.
+It is no longer just a switch. It is a full utility belt. It is a suite of tools that has taken on a life of its own. h4_Live gives your robot a brain. 🧠
 
-**h4_Live gives your robot a brain.** 🧠
+It allows your workflow to be Organic. It allows it to Count. It allows it to Remember. Most workflows just make an image and forget it ever happened. This doesn't. With this, you can tell ComfyUI: "Hey, make an image. Now, take that image and fix it. Now take that fixed image and upscale it. Do this 5 times, but on the 3rd time, change the settings to something weird."
 
-It allows your workflow to be **Organic**. It allows it to **Count**. It allows it to **Remember**.
-Instead of just making one image and forgetting it happened, you can tell ComfyUI:
-*"Hey, make an image. Now, take that image, and fix it. Now take that fixed image, and upscale it. Do this 5 times, but on the 3rd time, change the settings."*
+The Quality of Life (QoL) Enhancements
+To make the experience even smoother, I’ve baked in several UI and workflow enhancements that trigger automatically:
 
-We hide the scary math and the complex logic behind friendly, easy-to-use nodes so you can focus on being an Artist, not a Programmer.
+Smart Node Snapping: Keeps your graph tidy by automatically aligning nodes as you move them.
 
----
+Dynamic Input/Output Coloring: Instantly identifies data types at a glance to prevent mismatched connections.
+
+Auto-Context Memory: Remembers your last-used settings and paths across sessions so you don't have to re-enter the same directory for the 100th time.
+
+Visual Debug Overlays: Real-time data peeking that shows you exactly what’s flowing through your wires without needing a separate Preview node.
+
+How to Disable Them
+I know some of you are purists or just want to see the world burn. If the "help" is getting in your way, you can shut it all down:
+
+Navigate to the ComfyUI Settings (the gear icon).
+
+Look for the h4_Live Config section.
+
+Toggle the "Enable QoL Features" switch to Off.
+
+Alternatively, you can edit the config.yaml file inside the h4_live folder and set enable_qol: false.
+
+I hide the scary math and the complex logic behind friendly, easy-to-use nodes so you can focus on being an Artist, not a Programmer. This is probably the most fun you're going to have debugging. Dig in. Break things. Make cool shit.
+
 
 # 📚 THE CASUAL GUIDE (For Humans)
 
