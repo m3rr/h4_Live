@@ -56,6 +56,8 @@ class H4_IdentityEngine:
                 "clip_opt": ("CLIP",),
                 "vae_opt": ("VAE",),
                 "image_optional": ("IMAGE",), # Triggers Img2Img
+                "positive_text": ("STRING", {"forceInput": True, "multiline": True, "dynamicPrompts": True, "tooltip": "[Override] Connect external Scene Prompt here (e.g. from a Primitive)."}),
+                "negative_text": ("STRING", {"forceInput": True, "multiline": True, "dynamicPrompts": True, "tooltip": "[Override] Connect external Negative Prompt here."}),
             }
         }
 
@@ -71,7 +73,7 @@ class H4_IdentityEngine:
     def generate_identity(self, preset, ckpt_name, vae_name, clip_name, seed, steps, cfg, sampler_name, scheduler, denoise,
                          positive_dna, positive, negative, width, height, batch_size,
                          face_image, face_model, swap_enabled, face_similarity, restore_enabled, restore_visibility, restore_model,
-                         model_opt=None, clip_opt=None, vae_opt=None, image_optional=None):
+                         model_opt=None, clip_opt=None, vae_opt=None, image_optional=None, positive_text=None, negative_text=None):
 
         _log(f"--- IdentityEngine Started (Preset: {preset}) ---")
 
@@ -112,13 +114,17 @@ class H4_IdentityEngine:
 
         # 2. Text Encode
         # ----------------------------------------------------------------
-        final_positive = f"{positive_dna}, {positive}" if positive_dna.strip() else positive
+        # LOGIC: Input Wire > Widget
+        scene_prompt = positive_text if positive_text else positive
+        neg_prompt = negative_text if negative_text else negative
+        
+        final_positive = f"{positive_dna}, {scene_prompt}" if positive_dna.strip() else scene_prompt
         
         tokens_pos = final_clip.tokenize(final_positive)
         cond, pooled = final_clip.encode_from_tokens(tokens_pos, return_pooled=True)
         cond_pos = [[cond, {"pooled_output": pooled}]]
         
-        tokens_neg = final_clip.tokenize(negative)
+        tokens_neg = final_clip.tokenize(neg_prompt)
         cond, pooled = final_clip.encode_from_tokens(tokens_neg, return_pooled=True)
         cond_neg = [[cond, {"pooled_output": pooled}]]
 
