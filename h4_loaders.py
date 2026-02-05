@@ -349,10 +349,13 @@ class H4_UniversalLoader:
 
                 except Exception as e:
                     _log(f"Manual Wan UNET detection failed: {e}. Falling back to standard.")
-                    if 'sd' in locals(): del sd
-                    import gc; gc.collect(); 
-                    import torch; 
-                    if torch.cuda.is_available(): torch.cuda.empty_cache()
+                    if 'sd' in locals():
+                        del sd
+                    import gc
+                    gc.collect()
+                    import torch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
 
             if model is None:
                 # Standard Comfy Load
