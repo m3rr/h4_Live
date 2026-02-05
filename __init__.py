@@ -23,6 +23,7 @@ from .h4_axis import H4_AxisDriver
 from .h4_varianator import H4_Varianator
 from .h4_seed_sequencer import H4_SeedSequencer
 from .h4_pixel_press import H4_PixelPress
+from .h4_loaders import H4_UniversalLoader
 
 # FaceForge Module (AIO Face Swap Suite)
 from .h4_faceforge import (
@@ -68,6 +69,7 @@ NODE_CLASS_MAPPINGS = {
     **FACEFORGE_CLASS_MAPPINGS,
     # Logic
     "H4_DisplayAny": H4_DisplayAny,
+    "H4_UniversalLoader": H4_UniversalLoader,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -96,6 +98,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **FACEFORGE_DISPLAY_MAPPINGS,
     # Logic
     "H4_DisplayAny": "h4 Display Any+ (Universal Monitor)",
+    "H4_UniversalLoader": "h4 Universal Loader (Checkpoint/Diffusers)",
 }
 
 WEB_DIRECTORY = "./js"

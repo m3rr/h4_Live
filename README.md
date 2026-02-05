@@ -1,5 +1,5 @@
 # h4_Live: The Logic & Loop Controller v3.0 { Now with DNA! }
-![Version](https://img.shields.io/badge/version-3.1.0-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
+![Version](https://img.shields.io/badge/version-3.2.0-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
 > **"A Railway Switch for your Workflow."**
 
@@ -117,7 +117,16 @@ Usually, the **Router** handles counting for you. But sometimes, you want manual
 *   `pulse`: Connect any wire here. When data flows through this wire, the count goes up.
 *   `wireless_reset`: If **True**, it listens for the Wireless Reset Button.
 
-## 7. H4 Wireless Reset (The Red Button) 🔴
+## 7. Caffeine Mode (Wake Lock) ☕
+**"The Insomniac"**
+
+*   **What it does:** It keeps your computer awake while you work.
+*   **The Problem:** You start a 300-step batch run and walk away. Windows decides to go to sleep. Your workflow stops.
+*   **The Solution:** Click the little Kirby face in the top right corner: `(-_-)zzz` -> `(bO_O)b`.
+*   **Effect:** Uses the Browser Wake Lock API to prevent the screen from turning off and the system from throttling deeply.
+*   **Persistence:** If you switch tabs, he will momentarily lose focus, but he is programed to aggressively re-acquire the lock as soon as you come back.
+
+## 8. H4 Wireless Reset (The Red Button) 🔴
 **"The Eject Seat"**
 
 *   **The Problem:** You are on Loop 50, but you want to start over.
@@ -257,7 +266,9 @@ This node is designed to manage complex characters. It separates "Who they are" 
 
 **The DNA System:**
 *   **`positive_dna`**: This is where you describe the PERSON. (e.g., "blonde, scar on left cheek, cybernetic eye"). These traits should stay constant.
-*   **`positive`**: This is where you describe the SCENE. (e.g., "sitting in a cafe, drinking coffee"). This changes every shot.
+*   **`positive` (Widget)**: This is where you describe the SCENE. (e.g., "sitting in a cafe, drinking coffee"). This changes every shot.
+*   **`positive_text` (Input)**: *New in v3.1!* You can now connect a wire here (e.g., from **Dual CLIP Encode** or **Primitive**) to override the widget. This connects the Scene description.
+*   **`negative_text` (Input)**: Connect your negative prompt wire here to override the negative widget.
 *   **The Magic**: When you hit Queue, the node combines `DNA + Scene` automatically.
 
 **The Preset System:**
@@ -293,6 +304,15 @@ Stop loading the same "face.png" every time. Do it the pro way.
     *   Blends their math together.
     *   **Result**: A "Super-Embedding" that looks more like the person than any single photo.
     *   **Browse Button**: Yeah, we added a folder browser here too. Just point it at a directory of selfies.
+
+## 21. h4 Dual CLIP Text Encode 🔀
+**"The Bridge"**
+
+*   **Problem:** Before v3.1, if you wanted to send your prompt to the Sampler (as Conditioning) AND to the Identity Engine (as Text), you needed two nodes and manual copy-pasting.
+*   **Solution:** This node does both.
+*   **Inputs:** `text` (String), `clip` (CLIP Model).
+*   **Outputs:** `CONDITIONING` (Vector Soup) + `TEXT_OUT` (Raw String).
+*   **Use:** Connect `TEXT_OUT` -> `Identity Engine (positive_text)`. Connect `CONDITIONING` -> `KSampler (positive)`. Done.
 
 ---
 
@@ -346,6 +366,12 @@ The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing
 *   **Canvas**: Uses a `pointer-events: none` overlay canvas aligned via `ctx.setTransform` on every `requestAnimationFrame` to draw neon bezier curves over the existing connections.
 *   **Privacy**: Log sanitization uses regex to strip `%USERPROFILE%`, IPs, and Emails before display.
 *   **Note**: There is a hidden toggle in the settings. If you click it, it toggles a specific filter in the FaceForge backend. We won't say what it does, but if the console says "Boobies Activated", you know what time it is.
+*   **Caffeine Integration**: Injects a fixed-position DOM element (`#h4-caffeine-toggle`) that calls `navigator.wakeLock.request('screen')`. It maintains a `_wakeLockSentinel` reference and listens for `visibilitychange` events to re-acquire the lock if the user minimizes or tabs away from the browser.
+
+### 8. H4_DualCLIPTextEncode
+*   **Class**: `H4_DualCLIPTextEncode`
+*   **Purpose**: Topological bridge for simultaneous Sampler/Identity connectivity.
+*   **Logic**: Performs standard CLIP encoding (`clip.tokenize` -> `clip.encode_from_tokens`), but creates a return tuple that includes the unmodified input string as a secondary output. This bypasses the need for primitive node synchronization when driving both generation and character logic from a single source.
 
 ---
 

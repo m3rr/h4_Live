@@ -1,8 +1,193 @@
-100%|██████████| 10/10 [00:16<00:00,  1.62s/it]
-Requested to load AutoencodingEngine
-Unloaded partially: 2506.91 MB freed, 2915.62 MB remains loaded, 271.88 MB buffer reserved, lowvram patches: 278
-loaded completely; 361.74 MB usable, 159.87 MB loaded, full load: True
-!!! Exception during processing !!! Sizes of tensors must match except in dimension 0. Expected size 704 but got size 712 for tensor number 2 in the list.
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1067, in sample
+    return cfg_guider.sample(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1049, in sample
+    output = executor.execute(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 993, in outer_sample
+    output = self.inner_sample(noise, latent_image, device, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 979, in inner_sample
+    samples = executor.execute(self, sigmas, extra_args, callback, noise, latent_image, denoise_mask, disable_pbar)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 751, in sample
+    samples = self.sampler_function(model_k, noise, sigmas, extra_args=extra_args, callback=k_callback, disable=disable_pbar, **self.extra_options)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 973, in sample_dpmpp_3m_sde_gpu
+    return sample_dpmpp_3m_sde(model, x, sigmas, extra_args=extra_args, callback=callback, disable=disable, eta=eta, s_noise=s_noise, noise_sampler=noise_sampler)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 925, in sample_dpmpp_3m_sde
+    denoised = model(x, sigmas[i] * s_in, **extra_args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 400, in __call__
+    out = self.inner_model(x, sigma, model_options=model_options, seed=seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 952, in __call__
+    return self.outer_predict_noise(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 959, in outer_predict_noise
+    ).execute(x, timestep, model_options, seed)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 962, in predict_noise
+    return sampling_function(self.inner_model, x, timestep, self.conds.get("negative", None), self.conds.get("positive", None), self.cfg, model_options=model_options, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 380, in sampling_function
+    out = calc_cond_batch(model, conds, x, timestep, model_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 205, in calc_cond_batch
+    return _calc_cond_batch_outer(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 213, in _calc_cond_batch_outer
+    return executor.execute(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 325, in _calc_cond_batch
+    output = model.apply_model(input_x, timestep_, **c).chunk(batch_chunks)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 167, in apply_model
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 209, in _apply_model
+    model_output = self.diffusion_model(xc, t, context=context, control=control, transformer_options=transformer_options, **extra_conds)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 803, in forward
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 840, in _forward
+    img, mask, img_size, cap_size, freqs_cis, timestep_zero_index = self.patchify_and_embed(x, cap_feats, cap_mask, adaln_input, num_tokens, ref_latents=ref_latents, ref_contexts=ref_contexts, siglip_feats=siglip_feats, transformer_options=transformer_options)
+                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 737, in patchify_and_embed
+    out = self.embed_all(x, cap_feats, main_siglip, offset=start_t, omni=omni, transformer_options=transformer_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 659, in embed_all
+    embeds, freqs_cis, cap_feats_len = self.embed_cap(cap_feats, offset=offset, bsz=bsz, device=device, dtype=x.dtype)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 641, in embed_cap
+    cap_feats = self.cap_embedder(cap_feats)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 479, in forward
+    return self.forward_comfy_cast_weights(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 471, in forward_comfy_cast_weights
+    x = comfy.rmsnorm.rms_norm(input, weight, self.eps)  # TODO: switch to commented out line when old torch is deprecated
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\rmsnorm.py", line 21, in rms_norm
+    return rms_norm_torch(x, weight.shape, weight=comfy.model_management.cast_to(weight, dtype=x.dtype, device=x.device), eps=eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\functional.py", line 2954, in rms_norm
+    return torch.rms_norm(input, normalized_shape, weight, eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Given normalized_shape=[2560], expected input with shape [*2560], but got input of size[1, 319, 4096]
+
+Prompt executed in 77.79 seconds
+got prompt
+Failed to validate prompt for output 45:
+* (prompt):
+  - Required input is missing: image
+* Save image with extra metadata [Crystools] 45:
+  - Required input is missing: image
+Output will be ignored
+Failed to validate prompt for output 57:
+* LoraLoader 47:
+  - Required input is missing: clip
+Output will be ignored
+Failed to validate prompt for output 58:
+Output will be ignored
+Failed to validate prompt for output 50:
+Output will be ignored
+Failed to validate prompt for output 53:
+Output will be ignored
+Failed to validate prompt for output 65:
+Output will be ignored
+Failed to validate prompt for output 32:
+Output will be ignored
+invalid prompt: {'type': 'prompt_outputs_failed_validation', 'message': 'Prompt outputs failed validation', 'details': 'Required input is missing: image', 'extra_info': {}}
+got prompt
+Failed to validate prompt for output 45:
+* (prompt):
+  - Required input is missing: image
+* Save image with extra metadata [Crystools] 45:
+  - Required input is missing: image
+Output will be ignored
+Using pytorch attention in VAE
+Using pytorch attention in VAE
+VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
+[h4_Live][CORE][12:06:06.158] [Seed Sequencer] Manual override detected; adopting seed 455081476659297
+[h4_Live][CORE][12:06:06.158] [Seed Sequencer] mode=random auto=on emitted seed 455081476659297
+[h4_Live][CORE][12:06:06.167] UniversalLoader: Mode [Diffusers (Component)]
+[h4_Live][CORE][12:06:06.167] UniversalLoader Inputs: ckpt='1.5\dreamshaper_8LCM.safetensors', unet='zImageFp8_base.safetensors', clip='clip_l.safetensors'
+[h4_Live][CORE][12:06:06.167] Loading Components: UNET=zImageFp8_base.safetensors, VAE=Baked / None, CLIP=clip_l.safetensors
+[h4_Live][CORE][12:06:06.169] UniversalLoader: Wan/UMT5 context detected. Checking zImageFp8_base.safetensors for Wan signature...
+[h4_Live][CORE][12:06:06.171] Manual Wan UNET detection failed: cannot access local variable 'comfy' where it is not associated with a value. Falling back to standard.
+Found quantization metadata version 1
+Detected mixed precision quantization
+Using mixed precision operations
+model weight dtype torch.bfloat16, manual cast: torch.bfloat16
+model_type FLOW
+clip missing: ['text_projection.weight']
+Requested to load SD1ClipModel
+loaded completely;  235.84 MB loaded, full load: True
+CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
+[h4_Live][CORE][12:06:07.453] Warning: No VAE selected in Diffusers mode!
+开始清理RAM - 当前使用率: 63.7%, 可用: 5817.8MB
+清理后内存使用率: 57.3%, 可用: 6838.0MB
+清理后内存使用率: 56.3%, 可用: 7001.0MB
+清理后内存使用率: 55.6%, 可用: 7112.2MB
+清理完成 - 最终内存使用率: 55.6%, 可用: 7112.2MB
+已发送内存清理信号
+[h4_FaceForge] [12:06:12] [INFO] Dual Encode: 'blurry, bad quality,...'
+Requested to load SD1ClipModel
+loaded completely;  235.84 MB loaded, full load: True
+[h4_FaceForge] [12:06:13] [INFO] Dual Encode: 'Serene cinematic med...'
+Requested to load Lumina2
+loaded partially; 5613.55 MB usable, 5388.55 MB loaded, 1521.00 MB offloaded, 225.00 MB buffer reserved, lowvram patches: 55
+  0%|          | 0/50 [00:00<?, ?it/s]
+!!! Exception during processing !!! Given normalized_shape=[2560], expected input with shape [*2560], but got input of size[1, 308, 768]
 Traceback (most recent call last):
   File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
     output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
@@ -15,12 +200,1121 @@ Traceback (most recent call last):
   File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
     result = f(**inputs)
              ^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_faceforge\nodes_detailer.py", line 208, in detail_faces
-    crop_tensor = batched_pil_to_tensor(crops) if crops else torch.zeros((1, 512, 512, 3))
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_faceforge\utils.py", line 99, in batched_pil_to_tensor
-    return torch.cat(tensors, dim=0)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-RuntimeError: Sizes of tensors must match except in dimension 0. Expected size 704 but got size 712 for tensor number 2 in the list.
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 2244, in sample_adv
+    return super().sample(model, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 741, in sample
+    samples, images, gifs, preview = process_latent_image(model, seed, steps, cfg, sampler_name, scheduler,
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 563, in process_latent_image
+    samples = KSamplerAdvanced().sample(model, add_noise, seed, steps, cfg, sampler_name, scheduler,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 1624, in sample
+    return common_ksampler(model, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise=denoise, disable_noise=disable_noise, start_step=start_at_step, last_step=end_at_step, force_full_denoise=force_full_denoise)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 1555, in common_ksampler
+    samples = comfy.sample.sample(model, noise, steps, cfg, sampler_name, scheduler, positive, negative, latent_image,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\sample.py", line 66, in sample
+    samples = sampler.sample(noise, positive, negative, cfg=cfg, latent_image=latent_image, start_step=start_step, last_step=last_step, force_full_denoise=force_full_denoise, denoise_mask=noise_mask, sigmas=sigmas, callback=callback, disable_pbar=disable_pbar, seed=seed)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1177, in sample
+    return sample(self.model, noise, positive, negative, cfg, self.device, sampler, sigmas, self.model_options, latent_image=latent_image, denoise_mask=denoise_mask, callback=callback, disable_pbar=disable_pbar, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1067, in sample
+    return cfg_guider.sample(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1049, in sample
+    output = executor.execute(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 993, in outer_sample
+    output = self.inner_sample(noise, latent_image, device, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 979, in inner_sample
+    samples = executor.execute(self, sigmas, extra_args, callback, noise, latent_image, denoise_mask, disable_pbar)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 751, in sample
+    samples = self.sampler_function(model_k, noise, sigmas, extra_args=extra_args, callback=k_callback, disable=disable_pbar, **self.extra_options)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 973, in sample_dpmpp_3m_sde_gpu
+    return sample_dpmpp_3m_sde(model, x, sigmas, extra_args=extra_args, callback=callback, disable=disable, eta=eta, s_noise=s_noise, noise_sampler=noise_sampler)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 925, in sample_dpmpp_3m_sde
+    denoised = model(x, sigmas[i] * s_in, **extra_args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 400, in __call__
+    out = self.inner_model(x, sigma, model_options=model_options, seed=seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 952, in __call__
+    return self.outer_predict_noise(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 959, in outer_predict_noise
+    ).execute(x, timestep, model_options, seed)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 962, in predict_noise
+    return sampling_function(self.inner_model, x, timestep, self.conds.get("negative", None), self.conds.get("positive", None), self.cfg, model_options=model_options, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 380, in sampling_function
+    out = calc_cond_batch(model, conds, x, timestep, model_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 205, in calc_cond_batch
+    return _calc_cond_batch_outer(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 213, in _calc_cond_batch_outer
+    return executor.execute(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 325, in _calc_cond_batch
+    output = model.apply_model(input_x, timestep_, **c).chunk(batch_chunks)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 167, in apply_model
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 209, in _apply_model
+    model_output = self.diffusion_model(xc, t, context=context, control=control, transformer_options=transformer_options, **extra_conds)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 803, in forward
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 840, in _forward
+    img, mask, img_size, cap_size, freqs_cis, timestep_zero_index = self.patchify_and_embed(x, cap_feats, cap_mask, adaln_input, num_tokens, ref_latents=ref_latents, ref_contexts=ref_contexts, siglip_feats=siglip_feats, transformer_options=transformer_options)
+                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 737, in patchify_and_embed
+    out = self.embed_all(x, cap_feats, main_siglip, offset=start_t, omni=omni, transformer_options=transformer_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 659, in embed_all
+    embeds, freqs_cis, cap_feats_len = self.embed_cap(cap_feats, offset=offset, bsz=bsz, device=device, dtype=x.dtype)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 641, in embed_cap
+    cap_feats = self.cap_embedder(cap_feats)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 479, in forward
+    return self.forward_comfy_cast_weights(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 471, in forward_comfy_cast_weights
+    x = comfy.rmsnorm.rms_norm(input, weight, self.eps)  # TODO: switch to commented out line when old torch is deprecated
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\rmsnorm.py", line 21, in rms_norm
+    return rms_norm_torch(x, weight.shape, weight=comfy.model_management.cast_to(weight, dtype=x.dtype, device=x.device), eps=eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\functional.py", line 2954, in rms_norm
+    return torch.rms_norm(input, normalized_shape, weight, eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Given normalized_shape=[2560], expected input with shape [*2560], but got input of size[1, 308, 768]
 
-Prompt executed in 330.50 seconds
+Prompt executed in 24.64 seconds
+got prompt
+Failed to validate prompt for output 45:
+* (prompt):
+  - Required input is missing: image
+* Save image with extra metadata [Crystools] 45:
+  - Required input is missing: image
+Output will be ignored
+Using pytorch attention in VAE
+Using pytorch attention in VAE
+VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
+[h4_Live][CORE][12:07:19.011] [Seed Sequencer] Manual override detected; adopting seed 982140363788677
+[h4_Live][CORE][12:07:19.011] [Seed Sequencer] mode=random auto=on emitted seed 982140363788677
+[h4_Live][CORE][12:07:19.020] UniversalLoader: Mode [Diffusers (Component)]
+[h4_Live][CORE][12:07:19.020] UniversalLoader Inputs: ckpt='1.5\dreamshaper_8LCM.safetensors', unet='zImageFp8_base.safetensors', clip='t5xxl_fp8_e4m3fn_scaled.safetensors'
+[h4_Live][CORE][12:07:19.020] Loading Components: UNET=zImageFp8_base.safetensors, VAE=Baked / None, CLIP=t5xxl_fp8_e4m3fn_scaled.safetensors
+[h4_Live][CORE][12:07:19.021] UniversalLoader: Wan/UMT5 context detected. Checking zImageFp8_base.safetensors for Wan signature...
+[h4_Live][CORE][12:07:19.023] Manual Wan UNET detection failed: cannot access local variable 'comfy' where it is not associated with a value. Falling back to standard.
+Found quantization metadata version 1
+Detected mixed precision quantization
+Using mixed precision operations
+model weight dtype torch.bfloat16, manual cast: torch.bfloat16
+model_type FLOW
+Found quantization metadata version 1
+Using MixedPrecisionOps for text encoder
+Requested to load MochiTEModel_
+loaded completely;  4667.39 MB loaded, full load: True
+CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
+[h4_Live][CORE][12:07:20.328] Warning: No VAE selected in Diffusers mode!
+开始清理RAM - 当前使用率: 54.0%, 可用: 7366.9MB
+清理后内存使用率: 49.6%, 可用: 8069.6MB
+清理后内存使用率: 48.9%, 可用: 8186.1MB
+清理后内存使用率: 48.3%, 可用: 8272.6MB
+清理完成 - 最终内存使用率: 48.3%, 可用: 8272.6MB
+已发送内存清理信号
+[h4_FaceForge] [12:07:25] [INFO] Dual Encode: 'blurry, bad quality,...'
+Requested to load MochiTEModel_
+loaded completely;  4667.39 MB loaded, full load: True
+[h4_FaceForge] [12:07:44] [INFO] Dual Encode: 'Serene cinematic med...'
+Requested to load Lumina2
+loaded partially; 5613.55 MB usable, 5388.55 MB loaded, 1521.00 MB offloaded, 225.00 MB buffer reserved, lowvram patches: 55
+  0%|          | 0/50 [00:00<?, ?it/s]
+!!! Exception during processing !!! Given normalized_shape=[2560], expected input with shape [*2560], but got input of size[1, 319, 4096]
+Traceback (most recent call last):
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 2244, in sample_adv
+    return super().sample(model, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 741, in sample
+    samples, images, gifs, preview = process_latent_image(model, seed, steps, cfg, sampler_name, scheduler,
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 563, in process_latent_image
+    samples = KSamplerAdvanced().sample(model, add_noise, seed, steps, cfg, sampler_name, scheduler,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 1624, in sample
+    return common_ksampler(model, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise=denoise, disable_noise=disable_noise, start_step=start_at_step, last_step=end_at_step, force_full_denoise=force_full_denoise)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 1555, in common_ksampler
+    samples = comfy.sample.sample(model, noise, steps, cfg, sampler_name, scheduler, positive, negative, latent_image,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\sample.py", line 66, in sample
+    samples = sampler.sample(noise, positive, negative, cfg=cfg, latent_image=latent_image, start_step=start_step, last_step=last_step, force_full_denoise=force_full_denoise, denoise_mask=noise_mask, sigmas=sigmas, callback=callback, disable_pbar=disable_pbar, seed=seed)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1177, in sample
+    return sample(self.model, noise, positive, negative, cfg, self.device, sampler, sigmas, self.model_options, latent_image=latent_image, denoise_mask=denoise_mask, callback=callback, disable_pbar=disable_pbar, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1067, in sample
+    return cfg_guider.sample(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1049, in sample
+    output = executor.execute(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 993, in outer_sample
+    output = self.inner_sample(noise, latent_image, device, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 979, in inner_sample
+    samples = executor.execute(self, sigmas, extra_args, callback, noise, latent_image, denoise_mask, disable_pbar)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 751, in sample
+    samples = self.sampler_function(model_k, noise, sigmas, extra_args=extra_args, callback=k_callback, disable=disable_pbar, **self.extra_options)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 973, in sample_dpmpp_3m_sde_gpu
+    return sample_dpmpp_3m_sde(model, x, sigmas, extra_args=extra_args, callback=callback, disable=disable, eta=eta, s_noise=s_noise, noise_sampler=noise_sampler)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 925, in sample_dpmpp_3m_sde
+    denoised = model(x, sigmas[i] * s_in, **extra_args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 400, in __call__
+    out = self.inner_model(x, sigma, model_options=model_options, seed=seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 952, in __call__
+    return self.outer_predict_noise(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 959, in outer_predict_noise
+    ).execute(x, timestep, model_options, seed)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 962, in predict_noise
+    return sampling_function(self.inner_model, x, timestep, self.conds.get("negative", None), self.conds.get("positive", None), self.cfg, model_options=model_options, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 380, in sampling_function
+    out = calc_cond_batch(model, conds, x, timestep, model_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 205, in calc_cond_batch
+    return _calc_cond_batch_outer(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 213, in _calc_cond_batch_outer
+    return executor.execute(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 325, in _calc_cond_batch
+    output = model.apply_model(input_x, timestep_, **c).chunk(batch_chunks)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 167, in apply_model
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 209, in _apply_model
+    model_output = self.diffusion_model(xc, t, context=context, control=control, transformer_options=transformer_options, **extra_conds)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 803, in forward
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 840, in _forward
+    img, mask, img_size, cap_size, freqs_cis, timestep_zero_index = self.patchify_and_embed(x, cap_feats, cap_mask, adaln_input, num_tokens, ref_latents=ref_latents, ref_contexts=ref_contexts, siglip_feats=siglip_feats, transformer_options=transformer_options)
+                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 737, in patchify_and_embed
+    out = self.embed_all(x, cap_feats, main_siglip, offset=start_t, omni=omni, transformer_options=transformer_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 659, in embed_all
+    embeds, freqs_cis, cap_feats_len = self.embed_cap(cap_feats, offset=offset, bsz=bsz, device=device, dtype=x.dtype)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 641, in embed_cap
+    cap_feats = self.cap_embedder(cap_feats)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 479, in forward
+    return self.forward_comfy_cast_weights(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 471, in forward_comfy_cast_weights
+    x = comfy.rmsnorm.rms_norm(input, weight, self.eps)  # TODO: switch to commented out line when old torch is deprecated
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\rmsnorm.py", line 21, in rms_norm
+    return rms_norm_torch(x, weight.shape, weight=comfy.model_management.cast_to(weight, dtype=x.dtype, device=x.device), eps=eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\functional.py", line 2954, in rms_norm
+    return torch.rms_norm(input, normalized_shape, weight, eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Given normalized_shape=[2560], expected input with shape [*2560], but got input of size[1, 319, 4096]
+
+Prompt executed in 78.05 seconds
+[Crystools ERROR] Could not get GPU utilization. Unknown Error
+[Crystools ERROR] Monitor of GPU is turning off.
+Exception in callback _ProactorBasePipeTransport._call_connection_lost(None)
+handle: <Handle _ProactorBasePipeTransport._call_connection_lost(None)>
+Traceback (most recent call last):
+  File "D:\LocalAI\StabilityMatrix\Assets\Python\cpython-3.12.11-windows-x86_64-none\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "D:\LocalAI\StabilityMatrix\Assets\Python\cpython-3.12.11-windows-x86_64-none\Lib\asyncio\proactor_events.py", line 165, in _call_connection_lost
+    self._sock.shutdown(socket.SHUT_RDWR)
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+got prompt
+Failed to validate prompt for output 45:
+* (prompt):
+  - Required input is missing: image
+* Save image with extra metadata [Crystools] 45:
+  - Required input is missing: image
+Output will be ignored
+Using pytorch attention in VAE
+Using pytorch attention in VAE
+VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
+[h4_Live][CORE][13:01:59.377] [Seed Sequencer] Manual override detected; adopting seed 769493135808221
+[h4_Live][CORE][13:01:59.380] [Seed Sequencer] mode=random auto=on emitted seed 769493135808221
+[h4_Live][CORE][13:01:59.387] UniversalLoader: Mode [Checkpoint (Standard)]
+[h4_Live][CORE][13:01:59.388] UniversalLoader Inputs: ckpt='Z Image\z-image-turbo-fp8-aio.safetensors', unet='zImageFp8_base.safetensors', clip='t5xxl_fp8_e4m3fn_scaled.safetensors'
+[h4_Live][CORE][13:01:59.389] Loading Checkpoint: Z Image\z-image-turbo-fp8-aio.safetensors
+!!! Exception during processing !!! cannot access local variable 'comfy' where it is not associated with a value
+Traceback (most recent call last):
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_loaders.py", line 54, in load
+    out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
+          ^^^^^
+UnboundLocalError: cannot access local variable 'comfy' where it is not associated with a value
+
+Prompt executed in 0.98 seconds
+got prompt
+Failed to validate prompt for output 45:
+* (prompt):
+  - Required input is missing: image
+* Save image with extra metadata [Crystools] 45:
+  - Required input is missing: image
+Output will be ignored
+[h4_Live][CORE][13:17:29.829] [Seed Sequencer] mode=random auto=on emitted seed 364556370561417
+[h4_Live][CORE][13:17:29.843] UniversalLoader: Mode [Checkpoint (Standard)]
+[h4_Live][CORE][13:17:29.845] UniversalLoader Inputs: ckpt='Z Image\z-image-turbo-fp8-aio.safetensors', unet='zImageFp8_base.safetensors', clip='t5xxl_fp8_e4m3fn_scaled.safetensors'
+[h4_Live][CORE][13:17:29.847] Loading Checkpoint: Z Image\z-image-turbo-fp8-aio.safetensors
+!!! Exception during processing !!! cannot access local variable 'comfy' where it is not associated with a value
+Traceback (most recent call last):
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_loaders.py", line 54, in load
+    out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
+          ^^^^^
+UnboundLocalError: cannot access local variable 'comfy' where it is not associated with a value
+
+Prompt executed in 0.30 seconds
+=== ERROR MESSAGE ===
+cannot access local variable 'comfy' where it is not associated with a value
+
+=== STACK TRACE ===
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_loaders.py", line 54, in load
+    out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
+          ^^^^^
+
+
+=== FULL CONSOLE LOG ===
+[2026-02-05T17:03:55.082Z] [LOG] 👁️ h4 Big Brother v12 [BUILD: 2026-01-08T09:45:00_LOG_CAPTURE] Initializing... color: #00FF00; background: #000; font-size: 14px; padding: 4px;
+[2026-02-05T17:03:55.086Z] [WARN] [DEPRECATED] Monkey-patching getCanvasMenuOptions is deprecated. (Extension: "rgthree.QueueNode")
+Please use the new context menu API instead.
+
+See: https://docs.comfy.org/custom-nodes/js/context-menu-migration color: orange; font-weight: bold color: inherit
+[2026-02-05T17:03:55.091Z] [NETWORK] FETCH /api/crystools/monitor PATCH 7ms Response: [binary data/stream]
+[2026-02-05T17:03:55.092Z] [NETWORK] FETCH /api/crystools/monitor PATCH 8ms Response: [binary data/stream]
+[2026-02-05T17:03:55.092Z] [NETWORK] FETCH /api/crystools/monitor PATCH 7ms Response: [binary data/stream]
+[2026-02-05T17:03:55.092Z] [NETWORK] FETCH /api/crystools/monitor PATCH 7ms Response: [binary data/stream]
+[2026-02-05T17:03:55.093Z] [LOG] [Autocomplete-Plus] Loaded 0 Embeddings
+[2026-02-05T17:03:55.094Z] [INFO] [Autocomplete-Plus] Building 24 index for lora took 1.00ms.
+[2026-02-05T17:03:55.094Z] [LOG] [Autocomplete-Plus] Loaded 24 LoRA models
+[2026-02-05T17:03:55.300Z] [NETWORK] FETCH /api/crystools/monitor/HDD GET 215ms Response: ["C:\\", "D:%NETWORKSHARE%\n\n- **Model Loading Fixes**\n  Resolved crashes when loading certain third-party safetensors models and checkpoint saving issues\n\n- **Enhanced 3D Node Support**\n  Load3D node now outputs File3DAny format, with SaveGLB node accepting this input type\n\n- **ACE Step 1.5 Improvements**\n  Fixed NaN issues on specific hardware configurations and added LLM sampling options with reference audio suppor... (truncated)
+[2026-02-05T17:03:55.649Z] [NETWORK] XHR POST https://api.comfy.org/bulk/nodes/versions 348ms Status: 200 Response: {"node_versions":[{"identifier":{"node_id":"chaosaiart-nodes","version":"1.4.1"},"node_version":{"changelog":"","createdAt":"2025-01-31T12:25:31.571448Z","dependencies":["opencv-python","tqdm"],"deprecated":false,"downloadUrl":"https://cdn.comfy.org/chaosaiart/chaosaiart-nodes/1.4.1/node.zip","id":"217ec502-0004-46b0-af7f-01add4ad2829","node_id":"chaosaiart-nodes","status":"NodeVersionStatusActive","supported_accelerators":null,"supported_comfyui_frontend_version":"","supported_comfyui_version":... (truncated)
+[2026-02-05T17:03:55.649Z] [WARN] [ConflictDetection] No Registry data found for comfyui-h4-live, using fallback
+[2026-02-05T17:03:55.649Z] [WARN] [ConflictDetection] No Registry data found for comfyui-h4-live, using fallback
+[2026-02-05T17:03:56.048Z] [NETWORK] FETCH /autocomplete-plus/csv/danbooru/tags_cooccurrence/base GET 953ms Response: tag_a,tag_b,count
+1girl,solo,3816210.0
+1girl,long_hair,2801554.0
+1girl,breasts,2698892.0
+1girl,looking_at_viewer,2491351.0
+long_hair,solo,2242342.0
+looking_at_viewer,solo,2214758.0
+breasts,solo,2063967.0
+1girl,blush,2025924.0
+breasts,long_hair,1958684.0
+long_hair,looking_at_viewer,1754757.0
+1girl,smile,1700205.0
+breasts,looking_at_viewer,1686943.0
+blush,breasts,1521808.0
+blush,long_hair,1521165.0
+blush,solo,1520112.0
+breasts,large_breasts,1471472.0
+smile,solo,1406706.0
+long_hai... (truncated)
+[2026-02-05T17:03:56.211Z] [NETWORK] FETCH /api/crystools/monitor PATCH 880ms Response: [binary data/stream]
+[2026-02-05T17:03:56.211Z] [NETWORK] FETCH /api/crystools/monitor/GPU/0 PATCH 880ms Response: [binary data/stream]
+[2026-02-05T17:03:56.211Z] [NETWORK] FETCH /api/crystools/monitor/GPU/0 PATCH 879ms Response: [binary data/stream]
+[2026-02-05T17:03:56.211Z] [NETWORK] FETCH /api/crystools/monitor/GPU/0 PATCH 879ms Response: [binary data/stream]
+[2026-02-05T17:03:56.641Z] [NETWORK] XHR GET assets/sorted-custom-node-map.json 67ms Status: 200 Response: {
+  "PreviewImage": 4314,
+  "LoadImage": 3474,
+  "CLIPTextEncode": 2435,
+  "SaveImage": 1762,
+  "VAEDecode": 1754,
+  "KSampler": 1511,
+  "CheckpointLoaderSimple": 1293,
+  "VAEEncode": 1067,
+  "LoraLoader": 861,
+  "EmptyLatentImage": 857,
+  "VHS_VideoCombine": 631,
+  "UpscaleModelLoader": 629,
+  "UNETLoader": 606,
+  "VAELoader": 604,
+  "ShowText|pysssss": 527.5526981023964,
+  "ImageUpscaleWithModel": 523,
+  "ControlNetApplyAdvanced": 513,
+  "ControlNetLoader": 499,
+  "ImageBatch": 494,
+  "ImageSc... (truncated)
+[2026-02-05T17:03:56.644Z] [NETWORK] XHR POST /api/v2/customnode/import_fail_info_bulk 994ms Status: 200 Response: {"chaosaiart-nodes": null, "comfyui-autocomplete-plus": null, "comfyui-base64-to-image": null, "ComfyUI-Crystools": null, "comfyui-frame-interpolation": null, "ComfyUI-GGUF": null, "comfyui-impact-pack": null, "comfyui-impact-subpack": null, "comfyui-inspire-pack": null, "comfyui-rmbg": null, "comfyui-superbeasts": null, "comfyui-unload-model": null, "comfyui-videohelpersuite": null, "comfyui_fnodes": null, "comfyui-h4-live": null, "comfyui_image_metadata_extension": null, "comfyui_ipadapter_plu... (truncated)
+[2026-02-05T17:03:56.644Z] [WARN] [ConflictDetection] Python import failure detected for seedvr2_videoupscaler: Traceback (most recent call last):
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\diffusers\utils\import_utils.py", line 953, in _get_module
+    return importlib.import_module("." + module_name, self.__name__)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LocalAI\StabilityMatrix\Assets\Python\cpython-3.12.11-windows-x86_64-none\Lib\importlib\__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "", line 1387, in _gcd_import
+  File "", line 1360, in _find_and_load
+  File "", line 1331, in _find_and_load_unlocked
+  File "", line 935, in _load_unlocked
+  File "", line 999, in exec_module
+  File "", line 488, in _call_with_frames_removed
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\diffusers\loaders\peft.py", line 39, in 
+    from .lora_base import _fetch_state_dict, _func_optionally_disable_offloading
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\diffusers\loaders\lora_base.py", line 56, in 
+    from peft.tuners.tuners_utils import BaseTunerLayer
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\peft\__init__.py", line 17, in 
+    from .auto import (
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\peft\auto.py", line 32, in 
+    from .peft_model import (
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\peft\peft_model.py", line 37, in 
+    from transformers import Cache, DynamicCache, EncoderDecoderCache, HybridCache, PreTrainedModel
+ImportError: cannot import... [LOG TRUNCATED]
+[2026-02-05T17:03:56.750Z] [WARN] 'execution_start' fired before prompt was made.
+[2026-02-05T17:03:56.818Z] [NETWORK] FETCH /api/prompt POST 943ms Response: {"prompt_id": "b9b85be1-a2f4-499a-8905-02bd5743f87a", "number": 0, "node_errors": {"45": {"errors": [{"type": "required_input_missing", "message": "Required input is missing", "details": "image", "extra_info": {"input_name": "image"}}], "dependent_outputs": ["45"], "class_type": "Save image with extra metadata [Crystools]"}}}
+[2026-02-05T17:03:56.823Z] [NETWORK] FETCH /api/experiment/models GET 250ms Response: [{"name": "checkpoints", "folders": ["D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\models\\checkpoints", "D:\\LocalAI\\StabilityMatrix\\Models\\StableDiffusion", "D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\output\\checkpoints"]}, {"name": "loras", "folders": ["D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\models\\loras", "D:\\LocalAI\\StabilityMatrix\\Models\\Lora", "D:\\LocalAI\\StabilityMatrix\\Models\\LyCORIS", "D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\output%NETWORKSHARE%\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 2244, in sample_adv
+    return super().sample(model, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 741, in sample
+    samples, images, gifs, preview = process_latent_image(model, seed, steps, cfg, sampler_name, scheduler,
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 563, in process_latent_image
+    samples = KSamplerAdvanced().sample(model, add_noise, seed, steps, cfg, sampler_name, scheduler,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 1624, in sample
+    return common_ksampler(model, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise=denoise, disable_noise=disable_noise, start_step=start_at_step, last_step=end_at_step, force_full_denoise=force_full_denoise)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 1555, in common_ksampler
+    samples = comfy.sample.sample(model, noise, steps, cfg, sampler_name, scheduler, positive, negative, latent_image,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\sample.py", line 66, in sample
+    samples = sampler.sample(noise, positive, negative, cfg=cfg, latent_image=latent_image, start_step=start_step, last_step=last_step, force_full_denoise=force_full_denoise, denoise_mask=noise_mask, sigmas=sigmas, callback=callback, disable_pbar=disable_pbar, seed=seed)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1177, in sample
+    return sample(self.model, noise, positive, negative, cfg, self.device, sampler, sigmas, self.model_options, latent_image=latent_image, denoise_mask=denoise_mask, callback=callback, disable_pbar=disable_pbar, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1067, in sample
+    return cfg_guider.sample(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1049, in sample
+    output = executor.execute(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 993, in outer_sample
+    output = self.inner_sample(noise, latent_image, device, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 979, in inner_sample
+    samples = executor.execute(self, sigmas, extra_args, callback, noise, latent_image, denoise_mask, disable_pbar)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 751, in sample
+    samples = self.sampler_function(model_k, noise, sigmas, extra_args=extra_args, callback=k_callback, disable=disable_pbar, **self.extra_options)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 973, in sample_dpmpp_3m_sde_gpu
+    return sample_dpmpp_3m_sde(model, x, sigmas, extra_args=extra_args, callback=callback, disable=disable, eta=eta, s_noise=s_noise, noise_sampler=noise_sampler)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 925, in sample_dpmpp_3m_sde
+    denoised = model(x, sigmas[i] * s_in, **extra_args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 400, in __call__
+    out = self.inner_model(x, sigma, model_options=model_options, seed=seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 952, in __call__
+    return self.outer_predict_noise(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 959, in outer_predict_noise
+    ).execute(x, timestep, model_options, seed)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 962, in predict_noise
+    return sampling_function(self.inner_model, x, timestep, self.conds.get("negative", None), self.conds.get("positive", None), self.cfg, model_options=model_options, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 380, in sampling_function
+    out = calc_cond_batch(model, conds, x, timestep, model_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 205, in calc_cond_batch
+    return _calc_cond_batch_outer(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 213, in _calc_cond_batch_outer
+    return executor.execute(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 325, in _calc_cond_batch
+    output = model.apply_model(input_x, timestep_, **c).chunk(batch_chunks)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 167, in apply_model
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 209, in _apply_model
+    model_output = self.diffusion_model(xc, t, context=context, control=control, transformer_options=transformer_options, **extra_conds)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 803, in forward
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 840, in _forward
+    img, mask, img_size, cap_size, freqs_cis, timestep_zero_index = self.patchify_and_embed(x, cap_feats, cap_mask, adaln_input, num_tokens, ref_latents=ref_latents, ref_contexts=ref_contexts, siglip_feats=siglip_feats, transformer_options=transformer_options)
+                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 737, in patchify_and_embed
+    out = self.embed_all(x, cap_feats, main_siglip, offset=start_t, omni=omni, transformer_options=transformer_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 659, in embed_all
+    embeds, freqs_cis, cap_feats_len = self.embed_cap(cap_feats, offset=offset, bsz=bsz, device=device, dtype=x.dtype)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 641, in embed_cap
+    cap_feats = self.cap_embedder(cap_feats)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 479, in forward
+    return self.forward_comfy_cast_weights(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 471, in forward_comfy_cast_weights
+    x = comfy.rmsnorm.rms_norm(input, weight, self.eps)  # TODO: switch to commented out line when old torch is deprecated
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\rmsnorm.py", line 21, in rms_norm
+    return rms_norm_torch(x, weight.shape, weight=comfy.model_management.cast_to(weight, dtype=x.dtype, device=x.device), eps=eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\functional.py", line 2954, in rms_norm
+    return torch.rms_norm(input, normalized_shape, weight, eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+[2026-02-05T17:05:20.384Z] [NETWORK] XHR GET /internal/logs 5152ms Status: 200 Response: "2026-02-05T12:03:25.262342 - [Impact Pack/Subpack] Using folder_paths to determine whitelist path: D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\user\\default\\ComfyUI-Impact-Subpack%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\user\\default%NETWORKSHARE%\\LocalAI\\StabilityMatrix%NETWORKSHARE%\n2026-02-05T12:03:31.308999 - \ud83d\ude80 h4_Live Server: Registering Routes... (Presets Dir: D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\custom_nodes\\comfyui_h4_live%NETWORKSHARE%\n------------------------------------------------------------------... (truncated)
+[2026-02-05T17:06:02.575Z] [ERROR] 👁️ [h4-BB] EXECUTION ERROR on Node GLOBAL: Unhandled Promise Rejection
+[2026-02-05T17:06:02.575Z] [CRITICAL] ERROR: Unhandled Promise Rejection 
+ TRACE: undefined
+[2026-02-05T17:06:03.410Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 17ms Response: {"path": "workflows/Char_Generator.json", "size": 56822, "modified": 1770311163.399446, "created": 1770141291.4995646}
+[2026-02-05T17:06:05.497Z] [NETWORK] FETCH /api/prompt POST 58ms Response: {"prompt_id": "3444df6d-0fa3-4531-affc-12f4a1007774", "number": 2, "node_errors": {"45": {"errors": [{"type": "required_input_missing", "message": "Required input is missing", "details": "image", "extra_info": {"input_name": "image"}}], "dependent_outputs": ["45"], "class_type": "Save image with extra metadata [Crystools]"}}}
+[2026-02-05T17:06:05.542Z] [NETWORK] FETCH /api/queue GET 23ms Response: {"queue_running": [[2, "3444df6d-0fa3-4531-affc-12f4a1007774", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]}, "class_type": "KSampler Adv. (... (truncated)
+[2026-02-05T17:06:05.542Z] [NETWORK] FETCH /api/history?max_items=64 GET 22ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T17:06:05.545Z] [NETWORK] FETCH /api/queue GET 22ms Response: {"queue_running": [[2, "3444df6d-0fa3-4531-affc-12f4a1007774", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]}, "class_type": "KSampler Adv. (... (truncated)
+[2026-02-05T17:06:05.550Z] [NETWORK] FETCH /api/history?max_items=64 GET 27ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T17:06:06.699Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 186ms Response: {"path": "workflows/Char_Generator.json", "size": 56822, "modified": 1770311166.6915376, "created": 1770141291.4995646}
+[2026-02-05T17:06:11.888Z] [LOG] 收到内存清理请求
+[2026-02-05T17:06:11.901Z] [NETWORK] FETCH /free POST 13ms Response: [binary data/stream]
+[2026-02-05T17:06:11.901Z] [LOG] 内存清理请求已发送
+[2026-02-05T17:06:30.158Z] [ERROR] 👁️ [h4-BB] EXECUTION ERROR on Node 32: Given normalized_shape=[2560], expected input with shape [*2560], but got input of size[1, 308, 768]
+
+[2026-02-05T17:06:30.158Z] [CRITICAL] ERROR: Given normalized_shape=[2560], expected input with shape [*2560], but got input of size[1, 308, 768]
+ 
+ TRACE:   File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 2244, in sample_adv
+    return super().sample(model, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 741, in sample
+    samples, images, gifs, preview = process_latent_image(model, seed, steps, cfg, sampler_name, scheduler,
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 563, in process_latent_image
+    samples = KSamplerAdvanced().sample(model, add_noise, seed, steps, cfg, sampler_name, scheduler,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 1624, in sample
+    return common_ksampler(model, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise=denoise, disable_noise=disable_noise, start_step=start_at_step, last_step=end_at_step, force_full_denoise=force_full_denoise)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 1555, in common_ksampler
+    samples = comfy.sample.sample(model, noise, steps, cfg, sampler_name, scheduler, positive, negative, latent_image,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\sample.py", line 66, in sample
+    samples = sampler.sample(noise, positive, negative, cfg=cfg, latent_image=latent_image, start_step=start_step, last_step=last_step, force_full_denoise=force_full_denoise, denoise_mask=noise_mask, sigmas=sigmas, callback=callback, disable_pbar=disable_pbar, seed=seed)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1177, in sample
+    return sample(self.model, noise, positive, negative, cfg, self.device, sampler, sigmas, self.model_options, latent_image=latent_image, denoise_mask=denoise_mask, callback=callback, disable_pbar=disable_pbar, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1067, in sample
+    return cfg_guider.sample(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1049, in sample
+    output = executor.execute(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 993, in outer_sample
+    output = self.inner_sample(noise, latent_image, device, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 979, in inner_sample
+    samples = executor.execute(self, sigmas, extra_args, callback, noise, latent_image, denoise_mask, disable_pbar)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 751, in sample
+    samples = self.sampler_function(model_k, noise, sigmas, extra_args=extra_args, callback=k_callback, disable=disable_pbar, **self.extra_options)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 973, in sample_dpmpp_3m_sde_gpu
+    return sample_dpmpp_3m_sde(model, x, sigmas, extra_args=extra_args, callback=callback, disable=disable, eta=eta, s_noise=s_noise, noise_sampler=noise_sampler)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 925, in sample_dpmpp_3m_sde
+    denoised = model(x, sigmas[i] * s_in, **extra_args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 400, in __call__
+    out = self.inner_model(x, sigma, model_options=model_options, seed=seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 952, in __call__
+    return self.outer_predict_noise(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 959, in outer_predict_noise
+    ).execute(x, timestep, model_options, seed)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 962, in predict_noise
+    return sampling_function(self.inner_model, x, timestep, self.conds.get("negative", None), self.conds.get("positive", None), self.cfg, model_options=model_options, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 380, in sampling_function
+    out = calc_cond_batch(model, conds, x, timestep, model_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 205, in calc_cond_batch
+    return _calc_cond_batch_outer(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 213, in _calc_cond_batch_outer
+    return executor.execute(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 325, in _calc_cond_batch
+    output = model.apply_model(input_x, timestep_, **c).chunk(batch_chunks)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 167, in apply_model
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 209, in _apply_model
+    model_output = self.diffusion_model(xc, t, context=context, control=control, transformer_options=transformer_options, **extra_conds)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 803, in forward
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 840, in _forward
+    img, mask, img_size, cap_size, freqs_cis, timestep_zero_index = self.patchify_and_embed(x, cap_feats, cap_mask, adaln_input, num_tokens, ref_latents=ref_latents, ref_contexts=ref_contexts, siglip_feats=siglip_feats, transformer_options=transformer_options)
+                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 737, in patchify_and_embed
+    out = self.embed_all(x, cap_feats, main_siglip, offset=start_t, omni=omni, transformer_options=transformer_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 659, in embed_all
+    embeds, freqs_cis, cap_feats_len = self.embed_cap(cap_feats, offset=offset, bsz=bsz, device=device, dtype=x.dtype)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 641, in embed_cap
+    cap_feats = self.cap_embedder(cap_feats)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 479, in forward
+    return self.forward_comfy_cast_weights(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 471, in forward_comfy_cast_weights
+    x = comfy.rmsnorm.rms_norm(input, weight, self.eps)  # TODO: switch to commented out line when old torch is deprecated
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\rmsnorm.py", line 21, in rms_norm
+    return rms_norm_torch(x, weight.shape, weight=comfy.model_management.cast_to(weight, dtype=x.dtype, device=x.device), eps=eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\functional.py", line 2954, in rms_norm
+    return torch.rms_norm(input, normalized_shape, weight, eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+[2026-02-05T17:06:30.287Z] [NETWORK] XHR GET /internal/logs 58ms Status: 200 Response: "2026-02-05T12:03:31.310053 -    |2026-02-05T12:03:31.310053 - \n2026-02-05T12:03:31.310053 - | h4 Wireless Reset (Toggle)                              | H4_WirelessResetButton |  2026-02-05T12:03:31.310053 - \u27052026-02-05T12:03:31.310053 -    |2026-02-05T12:03:31.310053 - \n2026-02-05T12:03:31.310053 - | h4 Image Buffer (Anti-Lag)                              | H4_ImageBuffer     |  2026-02-05T12:03:31.310053 - \u27052026-02-05T12:03:31.310053 -    |2026-02-05T12:03:31.310053 - \n2026-02-05T... (truncated)
+[2026-02-05T17:06:30.310Z] [NETWORK] FETCH /api/queue GET 31ms Response: {"queue_running": [], "queue_pending": []}
+[2026-02-05T17:06:30.312Z] [NETWORK] FETCH /api/history?max_items=64 GET 31ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T17:06:51.737Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 16ms Response: {"path": "workflows/Char_Generator.json", "size": 56825, "modified": 1770311211.7347946, "created": 1770141291.4995646}
+[2026-02-05T17:06:54.374Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 7ms Response: {"path": "workflows/Char_Generator.json", "size": 56825, "modified": 1770311214.371016, "created": 1770141291.4995646}
+[2026-02-05T17:07:14.183Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 6ms Response: {"path": "workflows/Char_Generator.json", "size": 56842, "modified": 1770311234.181361, "created": 1770141291.4995646}
+[2026-02-05T17:07:18.408Z] [NETWORK] FETCH /api/prompt POST 57ms Response: {"prompt_id": "7cf23155-b084-4785-867e-d7c5b2276eac", "number": 3, "node_errors": {"45": {"errors": [{"type": "required_input_missing", "message": "Required input is missing", "details": "image", "extra_info": {"input_name": "image"}}], "dependent_outputs": ["45"], "class_type": "Save image with extra metadata [Crystools]"}}}
+[2026-02-05T17:07:18.449Z] [NETWORK] FETCH /api/queue GET 17ms Response: {"queue_running": [[3, "7cf23155-b084-4785-867e-d7c5b2276eac", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]}, "class_type": "KSampler Adv. (... (truncated)
+[2026-02-05T17:07:18.450Z] [NETWORK] FETCH /api/queue GET 15ms Response: {"queue_running": [[3, "7cf23155-b084-4785-867e-d7c5b2276eac", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]}, "class_type": "KSampler Adv. (... (truncated)
+[2026-02-05T17:07:18.454Z] [NETWORK] FETCH /api/history?max_items=64 GET 19ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T17:07:18.457Z] [NETWORK] FETCH /api/history?max_items=64 GET 25ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T17:07:19.572Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 133ms Response: {"path": "workflows/Char_Generator.json", "size": 56842, "modified": 1770311239.531299, "created": 1770141291.4995646}
+[2026-02-05T17:07:24.474Z] [LOG] 收到内存清理请求
+[2026-02-05T17:07:24.486Z] [NETWORK] FETCH /free POST 12ms Response: [binary data/stream]
+[2026-02-05T17:07:24.486Z] [LOG] 内存清理请求已发送
+[2026-02-05T17:08:37.108Z] [ERROR] 👁️ [h4-BB] EXECUTION ERROR on Node 32: Given normalized_shape=[2560], expected input with shape [*2560], but got input of size[1, 319, 4096]
+
+[2026-02-05T17:08:37.118Z] [CRITICAL] ERROR: Given normalized_shape=[2560], expected input with shape [*2560], but got input of size[1, 319, 4096]
+ 
+ TRACE:   File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 2244, in sample_adv
+    return super().sample(model, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 741, in sample
+    samples, images, gifs, preview = process_latent_image(model, seed, steps, cfg, sampler_name, scheduler,
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui\efficiency_nodes.py", line 563, in process_latent_image
+    samples = KSamplerAdvanced().sample(model, add_noise, seed, steps, cfg, sampler_name, scheduler,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 1624, in sample
+    return common_ksampler(model, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise=denoise, disable_noise=disable_noise, start_step=start_at_step, last_step=end_at_step, force_full_denoise=force_full_denoise)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 1555, in common_ksampler
+    samples = comfy.sample.sample(model, noise, steps, cfg, sampler_name, scheduler, positive, negative, latent_image,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\sample.py", line 66, in sample
+    samples = sampler.sample(noise, positive, negative, cfg=cfg, latent_image=latent_image, start_step=start_step, last_step=last_step, force_full_denoise=force_full_denoise, denoise_mask=noise_mask, sigmas=sigmas, callback=callback, disable_pbar=disable_pbar, seed=seed)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1177, in sample
+    return sample(self.model, noise, positive, negative, cfg, self.device, sampler, sigmas, self.model_options, latent_image=latent_image, denoise_mask=denoise_mask, callback=callback, disable_pbar=disable_pbar, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1067, in sample
+    return cfg_guider.sample(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 1049, in sample
+    output = executor.execute(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 993, in outer_sample
+    output = self.inner_sample(noise, latent_image, device, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 979, in inner_sample
+    samples = executor.execute(self, sigmas, extra_args, callback, noise, latent_image, denoise_mask, disable_pbar)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 751, in sample
+    samples = self.sampler_function(model_k, noise, sigmas, extra_args=extra_args, callback=k_callback, disable=disable_pbar, **self.extra_options)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 973, in sample_dpmpp_3m_sde_gpu
+    return sample_dpmpp_3m_sde(model, x, sigmas, extra_args=extra_args, callback=callback, disable=disable, eta=eta, s_noise=s_noise, noise_sampler=noise_sampler)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\k_diffusion\sampling.py", line 925, in sample_dpmpp_3m_sde
+    denoised = model(x, sigmas[i] * s_in, **extra_args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 400, in __call__
+    out = self.inner_model(x, sigma, model_options=model_options, seed=seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 952, in __call__
+    return self.outer_predict_noise(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 959, in outer_predict_noise
+    ).execute(x, timestep, model_options, seed)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 962, in predict_noise
+    return sampling_function(self.inner_model, x, timestep, self.conds.get("negative", None), self.conds.get("positive", None), self.cfg, model_options=model_options, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 380, in sampling_function
+    out = calc_cond_batch(model, conds, x, timestep, model_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 205, in calc_cond_batch
+    return _calc_cond_batch_outer(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 213, in _calc_cond_batch_outer
+    return executor.execute(model, conds, x_in, timestep, model_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\samplers.py", line 325, in _calc_cond_batch
+    output = model.apply_model(input_x, timestep_, **c).chunk(batch_chunks)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 167, in apply_model
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\model_base.py", line 209, in _apply_model
+    model_output = self.diffusion_model(xc, t, context=context, control=control, transformer_options=transformer_options, **extra_conds)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 803, in forward
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 840, in _forward
+    img, mask, img_size, cap_size, freqs_cis, timestep_zero_index = self.patchify_and_embed(x, cap_feats, cap_mask, adaln_input, num_tokens, ref_latents=ref_latents, ref_contexts=ref_contexts, siglip_feats=siglip_feats, transformer_options=transformer_options)
+                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 737, in patchify_and_embed
+    out = self.embed_all(x, cap_feats, main_siglip, offset=start_t, omni=omni, transformer_options=transformer_options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 659, in embed_all
+    embeds, freqs_cis, cap_feats_len = self.embed_cap(cap_feats, offset=offset, bsz=bsz, device=device, dtype=x.dtype)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ldm\lumina\model.py", line 641, in embed_cap
+    cap_feats = self.cap_embedder(cap_feats)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 479, in forward
+    return self.forward_comfy_cast_weights(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\ops.py", line 471, in forward_comfy_cast_weights
+    x = comfy.rmsnorm.rms_norm(input, weight, self.eps)  # TODO: switch to commented out line when old torch is deprecated
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\comfy\rmsnorm.py", line 21, in rms_norm
+    return rms_norm_torch(x, weight.shape, weight=comfy.model_management.cast_to(weight, dtype=x.dtype, device=x.device), eps=eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\nn\functional.py", line 2954, in rms_norm
+    return torch.rms_norm(input, normalized_shape, weight, eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+[2026-02-05T17:08:39.288Z] [NETWORK] XHR GET /internal/logs 1506ms Status: 200 Response: "2026-02-05T12:03:31.311051 - \n2026-02-05T12:03:31.311051 - | h4 Dual CLIP Text Encode                                | H4_DualCLIPTextEncode |  2026-02-05T12:03:31.311051 - \u27052026-02-05T12:03:31.311051 -    |2026-02-05T12:03:31.311051 - \n2026-02-05T12:03:31.311051 - | h4 Display Any+ (Universal Monitor)                     | H4_DisplayAny      |  2026-02-05T12:03:31.311051 - \u27052026-02-05T12:03:31.311051 -    |2026-02-05T12:03:31.311051 - \n2026-02-05T12:03:31.311051 - | h4 Universal L... (truncated)
+[2026-02-05T17:08:39.297Z] [NETWORK] FETCH /api/queue GET 1172ms Response: {"queue_running": [], "queue_pending": []}
+[2026-02-05T17:08:39.298Z] [NETWORK] FETCH /api/history?max_items=64 GET 1172ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T17:32:45.356Z] [LOG] redraw timeout
+[2026-02-05T17:33:36.996Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 34ms Response: {"path": "workflows/Char_Generator.json", "size": 56844, "modified": 1770312816.987134, "created": 1770141291.4995646}
+[2026-02-05T17:33:41.086Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 7ms Response: {"path": "workflows/Char_Generator.json", "size": 56853, "modified": 1770312821.0835845, "created": 1770141291.4995646}
+[2026-02-05T17:33:45.184Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 12ms Response: {"path": "workflows/Char_Generator.json", "size": 56851, "modified": 1770312825.177771, "created": 1770141291.4995646}
+[2026-02-05T17:33:53.608Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 16ms Response: {"path": "workflows/Char_Generator.json", "size": 56851, "modified": 1770312833.5969298, "created": 1770141291.4995646}
+[2026-02-05T18:01:58.461Z] [NETWORK] FETCH /api/prompt POST 334ms Response: {"prompt_id": "4440d99a-b20d-4b83-8cda-76118023ef37", "number": 4, "node_errors": {"45": {"errors": [{"type": "required_input_missing", "message": "Required input is missing", "details": "image", "extra_info": {"input_name": "image"}}], "dependent_outputs": ["45"], "class_type": "Save image with extra metadata [Crystools]"}}}
+[2026-02-05T18:01:58.548Z] [NETWORK] FETCH /api/queue GET 57ms Response: {"queue_running": [[4, "4440d99a-b20d-4b83-8cda-76118023ef37", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]}, "class_type": "KSampler Adv. (... (truncated)
+[2026-02-05T18:01:58.593Z] [NETWORK] FETCH /api/history?max_items=64 GET 102ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T18:01:58.594Z] [NETWORK] FETCH /api/queue GET 94ms Response: {"queue_running": [[4, "4440d99a-b20d-4b83-8cda-76118023ef37", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]}, "class_type": "KSampler Adv. (... (truncated)
+[2026-02-05T18:01:58.612Z] [NETWORK] FETCH /api/history?max_items=64 GET 112ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T18:01:59.451Z] [ERROR] 👁️ [h4-BB] EXECUTION ERROR on Node 69: cannot access local variable 'comfy' where it is not associated with a value
+
+[2026-02-05T18:01:59.451Z] [CRITICAL] ERROR: cannot access local variable 'comfy' where it is not associated with a value
+ 
+ TRACE:   File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_loaders.py", line 54, in load
+    out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
+          ^^^^^
+
+[2026-02-05T18:02:02.080Z] [NETWORK] XHR GET /internal/logs 2591ms Status: 200 Response: "2026-02-05T12:03:34.417595 - \u26a1 SeedVR2 optimizations check: SageAttention \u2705 | Flash Attention \u274c | Triton \u27052026-02-05T12:03:34.417595 - \n2026-02-05T12:03:34.417595 - \ud83d\udca1 Optional: pip install flash-attn2026-02-05T12:03:34.417595 - \n2026-02-05T12:03:34.417595 - \ud83d\udd27 Conv3d workaround active: PyTorch 2.10.0, cuDNN 91200 (fixing VAE 3x memory bug)2026-02-05T12:03:34.417595 - \n2026-02-05T12:03:34.634597 - \ud83d\udcca Initial CUDA memory: 6.87GB free / 8.00GB ... (truncated)
+[2026-02-05T18:02:02.085Z] [NETWORK] FETCH /api/queue GET 2587ms Response: {"queue_running": [], "queue_pending": []}
+[2026-02-05T18:02:02.090Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 2574ms Response: {"path": "workflows/Char_Generator.json", "size": 56849, "modified": 1770314522.0866802, "created": 1770141291.4995646}
+[2026-02-05T18:02:02.112Z] [NETWORK] FETCH /api/history?max_items=64 GET 2613ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T18:17:29.587Z] [NETWORK] FETCH /api/prompt POST 346ms Response: {"prompt_id": "5d73ba7d-53b9-48f2-8408-511219b544ae", "number": 5, "node_errors": {"45": {"errors": [{"type": "required_input_missing", "message": "Required input is missing", "details": "image", "extra_info": {"input_name": "image"}}], "dependent_outputs": ["45"], "class_type": "Save image with extra metadata [Crystools]"}}}
+[2026-02-05T18:17:29.622Z] [NETWORK] FETCH /api/queue GET 12ms Response: {"queue_running": [[5, "5d73ba7d-53b9-48f2-8408-511219b544ae", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]}, "class_type": "KSampler Adv. (... (truncated)
+[2026-02-05T18:17:29.674Z] [NETWORK] FETCH /api/queue GET 63ms Response: {"queue_running": [[5, "5d73ba7d-53b9-48f2-8408-511219b544ae", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]}, "class_type": "KSampler Adv. (... (truncated)
+[2026-02-05T18:17:29.736Z] [NETWORK] FETCH /api/history?max_items=64 GET 125ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T18:17:29.743Z] [NETWORK] FETCH /api/history?max_items=64 GET 133ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T18:17:29.894Z] [ERROR] 👁️ [h4-BB] EXECUTION ERROR on Node 69: cannot access local variable 'comfy' where it is not associated with a value
+
+[2026-02-05T18:17:29.894Z] [CRITICAL] ERROR: cannot access local variable 'comfy' where it is not associated with a value
+ 
+ TRACE:   File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_loaders.py", line 54, in load
+    out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
+          ^^^^^
+
+[2026-02-05T18:17:32.164Z] [NETWORK] XHR GET /internal/logs 2258ms Status: 200 Response: "2026-02-05T12:03:34.962487 -    0.0 seconds: D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\custom_nodes%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\custom_nodes%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\custom_nodes%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\custom_nodes\\comf... (truncated)
+[2026-02-05T18:17:32.166Z] [NETWORK] FETCH /api/queue GET 2216ms Response: {"queue_running": [], "queue_pending": []}
+[2026-02-05T18:17:32.174Z] [NETWORK] FETCH /api/history?max_items=64 GET 2224ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T18:17:32.179Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 1577ms Response: {"path": "workflows/Char_Generator.json", "size": 56849, "modified": 1770315452.1747496, "created": 1770141291.4995646}
+[2026-02-05T18:26:37.136Z] [NETWORK] XHR GET /internal/logs/raw 14ms Status: 200 Response: {"entries": [{"t": "2026-02-05T12:03:34.962487", "m": "   0.0 seconds: D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\custom_nodes%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\custom_nodes%NETWORKSHARE%\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\custom_nodes%NETWORKSHARE%\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+,  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_loaders.py", line 54, in load
+    out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
+          ^^^^^
+
+[2026-02-05T18:26:50.719Z] [NETWORK] FETCH /api/queue GET 483ms Response: {"queue_running": [], "queue_pending": []}
+[2026-02-05T18:26:50.719Z] [NETWORK] XHR GET /internal/logs 517ms Status: 200 Response: "2026-02-05T12:03:34.962487 -    3.5 seconds (IMPORT FAILED): D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\custom_nodes%NETWORKSHARE%\n2026-02-05T12:03:34.995361 - Context impl SQLiteImpl.\n2026-02-05T12:03:34.995361 - Will assume non-transactional DDL.\n2026-02-05T12:03:35.295971 - Assets scan(roots=['models']) completed in 0.291s (created=0, skipped_existing=133, orphans_pruned=0, total_seen=133)\n2026-02-05T12:03:35.499622 - Starting server\n\n2026-... (truncated)
+[2026-02-05T18:26:50.727Z] [NETWORK] FETCH /api/history?max_items=64 GET 491ms Response: {"b9b85be1-a2f4-499a-8905-02bd5743f87a": {"prompt": [0, "b9b85be1-a2f4-499a-8905-02bd5743f87a", {"32": {"inputs": {"add_noise": "enable", "noise_seed": ["35", 0], "steps": 50, "cfg": 4.5, "sampler_name": "dpmpp_3m_sde_gpu", "scheduler": "karras", "start_at_step": 0, "end_at_step": 50, "return_with_leftover_noise": "enable", "preview_method": "auto", "vae_decode": "true (tiled)", "model": ["47", 0], "positive": ["49", 0], "negative": ["48", 0], "latent_image": ["46", 0], "optional_vae": ["68", 0]... (truncated)
+[2026-02-05T18:26:51.085Z] [NETWORK] FETCH /api/userdata/workflows%2FChar_Generator.json?overwrite=true&full_info=true POST 7ms Response: {"path": "workflows/Char_Generator.json", "size": 56847, "modified": 1770316011.0816524, "created": 1770141291.4995646}

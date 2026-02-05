@@ -25,10 +25,10 @@ class H4_DisplayAny:
         return {
             "required": {},
             "optional": {
-                "source_1": (any_type, {"lazy": True, "tooltip": "Connect anything here (Image, Text, Latent). It will show up on the screen."}),
-                "source_2": (any_type, {"lazy": True, "tooltip": "Connect another thing here."}),
-                "source_3": (any_type, {"lazy": True, "tooltip": "Connect a third thing here."}),
-                "source_4": (any_type, {"lazy": True, "tooltip": "Connect a fourth thing here."}),
+                "source_1": (any_type, {"tooltip": "Connect anything here (Image, Text, Latent). It will show up on the screen."}),
+                "source_2": (any_type, {"tooltip": "Connect another thing here."}),
+                "source_3": (any_type, {"tooltip": "Connect a third thing here."}),
+                "source_4": (any_type, {"tooltip": "Connect a fourth thing here."}),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
@@ -93,13 +93,22 @@ class H4_DisplayAny:
                 # Latent or other tensor
                 return {"type": "text", "content": f"Tensor Shape: {list(data.shape)}\nDtype: {data.dtype}"}
 
-        # 2. Lists
+            # 2. Lists
         if isinstance(data, list):
             if not data:
                 return {"type": "text", "content": "[] (Empty List)"}
             
             # Peek first item
             first = data[0]
+            
+            # Check for ComfyUI Conditioning: [[Tensor, Dict], ...]
+            if isinstance(first, list) and len(first) >= 2:
+                if isinstance(first[0], torch.Tensor) and isinstance(first[1], dict):
+                     # Conditioning detected
+                     cond_len = len(data)
+                     first_shape = list(first[0].shape)
+                     return {"type": "text", "content": f"CONDITIONING ({cond_len})\nTensor Shape: {first_shape}\nParams: {str(first[1].keys())}"}
+
             if isinstance(first, torch.Tensor) and first.ndim >= 3:
                  # List of Images?
                  # Convert up to 4

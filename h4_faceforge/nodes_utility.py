@@ -462,6 +462,10 @@ class H4_DualCLIPTextEncode:
 
     def encode(self, clip, text):
         _log(f"Dual Encode: '{text[:20]}...'")
+
+        if clip is None:
+            raise ValueError("H4_DualCLIPTextEncode: 'clip' input is None! Check your Loader node (UniversalLoader might have failed to load a CLIP model).")
+        
         
         # Standard ComfyUI CLIP Encode Logic
         tokens = clip.tokenize(text)
