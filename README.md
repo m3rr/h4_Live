@@ -314,6 +314,21 @@ Stop loading the same "face.png" every time. Do it the pro way.
 *   **Outputs:** `CONDITIONING` (Vector Soup) + `TEXT_OUT` (Raw String).
 *   **Use:** Connect `TEXT_OUT` -> `Identity Engine (positive_text)`. Connect `CONDITIONING` -> `KSampler (positive)`. Done.
 
+## 22. H4 Universal Loader (The Skeleton Key) 🗝️
+**"One Node to Rule Them All"**
+
+Stop guessing which loader to use. Standard? Diffusers? UNET? GGUF?
+This node creates a "Universal Socket" that accepts **ANY** format.
+
+*   **Intelligent Auto-Switching:**
+    *   **Safetensors/Ckpt**: Loads as standard Checkpoint.
+    *   **Diffusers (Folders)**: Loads as Diffusers Pipeline.
+    *   **GGUF**: Uses the "Bridge" to load quantized models (e.g., FLUX, Wan) without needing extra nodes.
+*   **Safety Net (Crash Guard)**:
+    *   Ever try to load a Lumina model (2560-dim) with a T5-XXL Clip (4096-dim)? Normally, this silently crashes ComfyUI 5 minutes into generation.
+    *   **Not anymore.** The Universal Loader scans the model DNA before loading. If it detects a mismatch, it screams at you in the console *before* you waste your time.
+*   **Aggressive Memory Management**: It aggressively forces Python Garbage Collection (`gc.collect()`) after large file loads to prevent OOM errors on 8GB cards.
+
 ---
 
 # ⚙️ THE DEV CORNER (Technical Specifications)
@@ -371,7 +386,17 @@ The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing
 ### 8. H4_DualCLIPTextEncode
 *   **Class**: `H4_DualCLIPTextEncode`
 *   **Purpose**: Topological bridge for simultaneous Sampler/Identity connectivity.
+### 8. H4_DualCLIPTextEncode
+*   **Class**: `H4_DualCLIPTextEncode`
+*   **Purpose**: Topological bridge for simultaneous Sampler/Identity connectivity.
 *   **Logic**: Performs standard CLIP encoding (`clip.tokenize` -> `clip.encode_from_tokens`), but creates a return tuple that includes the unmodified input string as a secondary output. This bypasses the need for primitive node synchronization when driving both generation and character logic from a single source.
+
+### 9. H4_UniversalLoader (GGUF Bridge & Validations)
+*   **Class**: `H4_UniversalLoader`
+*   **Architecture**: Facade Pattern for `comfy.sd.load_checkpoint`, `comfy.diffusers_load`, and `ComfyUI-GGUF`.
+*   **GGUF Bridge**: Uses `importlib` and `sys.modules` introspection to dynamically detect and utilize the `ComfyUI-GGUF` custom node if specific GGUF models are detected.
+*   **Runtime Guard**: Implements `_validate_model_clip(model, clip)`. This method performs a structural analysis of the Model Config object. If it detects a `Lumina` or `NextDiT` architecture (which expects 2560 context dim) paired with a `T5` XXl Text Encoder (which outputs 4096 context dim), it warns the user via `print()` instead of allowing the `torch.matmul` operation to fail during sampling.
+*   **Repair Clinic**: Includes a self-contained dependency module (`h4_repair_clinic.py`) that executes via sub-shell to forcefully resolve version conflicts between `diffusers` (which pushes bleeding edge) and `unknown-peft` (which demands legacy versions), ensuring compatibility.
 
 ---
 

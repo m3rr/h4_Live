@@ -41,6 +41,58 @@ class H4_UniversalLoader:
     def VALIDATE_INPUTS(s, input_types):
         return True
 
+    def _validate_model_clip(self, model, clip, unet_name, clip_name):
+        """
+        Runtime Guard to prevent Silent Crashes during Sampling.
+        Specifically targets the Lumina (2560) vs T5 (4096) mismatch.
+        """
+        if model is None or clip is None:
+            return
+
+        try:
+            # Detect Lumina / Z-Image Architecture
+            # We check typical classes or config signatures
+            is_lumina = False
+            model_class = model.model.diffusion_model.__class__.__name__
+            
+            # Known Lumina variants
+            if "NextDiT" in model_class or "Lumina" in model_class:
+                is_lumina = True
+            
+            # GGUF models might not expose class clearly, check config
+            if hasattr(model.model, "model_config"):
+                conf_class = model.model.model_config.__class__.__name__
+                if "Lumina" in conf_class or "Gemma" in conf_class:
+                    is_lumina = True
+            
+            # Heuristic: Check name
+            if unet_name and ("zimage" in unet_name.lower() or "lumina" in unet_name.lower()):
+                is_lumina = True
+
+            if is_lumina:
+                # Check CLIP Dimension via dummy encode? 
+                # Or just check if T5 is present in name/type
+                # Lumina expects 2560 (Gemma). T5 XXL is 4096.
+                
+                # Check Clip Name Check
+                is_t5 = False
+                if clip_name and ("t5" in clip_name.lower() or "xxl" in clip_name.lower()):
+                    is_t5 = True
+                
+                if is_t5:
+                     _log("\n" + "="*60)
+                     _log("🚨 FATAL CONFIGURATION ERROR DETECTED 🚨")
+                     _log(f"Model seems to be Lumina/Z-Image (Expects 2560-dim Embeddings).")
+                     _log(f"CLIP seems to be T5/XXL (Provides 4096-dim Embeddings).")
+                     _log("This WILL cause a crash during Sampling: 'RuntimeError: Given normalized_shape=[2560]...'")
+                     _log("SOLUTION: Use a Gemma 2B based text encoder (e.g. 'gemmas_2b_v1.safetensors') or the specific Z-Image encoder.")
+                     _log("="*60 + "\n")
+                     # We do not raise error here to allow 'lucky' users to proceed if our detection is wrong,
+                     # but we screamed in the log.
+                     
+        except Exception as e:
+            _log(f"Validation Warning: Could not validate Model/CLIP compatibility: {e}")
+
     def load(self, load_mode, ckpt_name=None, unet_name=None, vae_name="Baked / None", clip_name="Baked / None"):
         _log(f"UniversalLoader: Mode [{load_mode}]")
         _log(f"UniversalLoader Inputs: ckpt='{ckpt_name}', unet='{unet_name}', clip='{clip_name}'")
@@ -497,5 +549,8 @@ class H4_UniversalLoader:
             else:
                  _log("Warning: No VAE selected in Diffusers mode!")
                  vae = None
+
+            # 4. Final Validation (Runtime Guard)
+            self._validate_model_clip(model, clip, unet_name if unet_name else ckpt_name, clip_name)
 
             return (model, clip, vae)
