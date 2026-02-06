@@ -40,6 +40,12 @@ from .h4_faceforge import (
 # DisplayAny Module
 from .h4_display_any import H4_DisplayAny
 
+# DocuScribe Module
+from .h4_docuscribe import H4_DocuScribe
+
+# SmartSave Module
+from .h4_smart_save import H4_SmartSave
+
 # Server / API Logic (Presets)
 from . import h4_server
 
@@ -70,6 +76,8 @@ NODE_CLASS_MAPPINGS = {
     # Logic
     "H4_DisplayAny": H4_DisplayAny,
     "H4_UniversalLoader": H4_UniversalLoader,
+    "H4_DocuScribe": H4_DocuScribe,
+    "H4_SmartSave": H4_SmartSave,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -99,6 +107,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     # Logic
     "H4_DisplayAny": "h4 Display Any+ (Universal Monitor)",
     "H4_UniversalLoader": "h4 Universal Loader (Checkpoint/Diffusers)",
+    "H4_DocuScribe": "📜 H4 DocuScribe (Workflow Reporter)",
+    "H4_SmartSave": "💾 H4 SmartSave (Preview/Save)",
 }
 
 WEB_DIRECTORY = "./js"

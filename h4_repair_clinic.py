@@ -34,11 +34,12 @@ def main():
     log("--- Phase 1: Missing & Deprecated Packages ---")
     run_pip(["install", "pydantic-settings", "nvidia-ml-py"])
     
-    # 2. Fix Diffusers / PEFT Conflict (Option A: Update All)
-    log("--- Phase 2: Resolving Diffusers/PEFT Conflict ---")
-    log("Updating diffusers, peft, and clean-fid to latest compatible versions...")
-    # clean-fid often causes issues too, good to refresh
-    run_pip(["install", "--upgrade", "diffusers", "peft", "accelerate", "transformers"])
+    # 2. Fix Diffusers / PEFT Conflict (Option C: Downgrade / Stability Pin)
+    log("--- Phase 2: Resolving Diffusers/PEFT/Transformers Conflict ---")
+    log("Downgrading transformers to 4.48.3 to fix 'HybridCache' ImportError...")
+    # Transformers > 4.49 broke PEFT integration.
+    # Diffusers 0.32.1 is generally stable.
+    run_pip(["install", "transformers==4.48.3", "diffusers==0.32.2", "peft==0.14.0", "accelerate==1.3.0"])
 
     # 3. Validation
     log("--- Phase 3: Validation ---")

@@ -25,7 +25,7 @@ Adding extra search path sams D:\LocalAI\StabilityMatrix\Models\Sams
 Adding extra search path diffusion_models D:\LocalAI\StabilityMatrix\Models\DiffusionModels
 [START] Security scan
 [DONE] Security scan
-** ComfyUI startup time: 2026-02-05 14:13:00.106
+** ComfyUI startup time: 2026-02-06 05:18:11.989
 ** Platform: Windows
 ** Python version: 3.12.11 (main, Jul 23 2025, 00:32:20) [MSC v.1944 64 bit (AMD64)]
 ** Python executable: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Scripts\python.exe
@@ -43,8 +43,8 @@ D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\cuda\__
   import pynvml  # type: ignore[import]
 Checkpoint files will always be loaded safely.
 Found comfy_kitchen backend triton: {'available': True, 'disabled': True, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8']}
-Found comfy_kitchen backend eager: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_nvfp4']}
 Found comfy_kitchen backend cuda: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_nvfp4']}
+Found comfy_kitchen backend eager: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_nvfp4']}
 Total VRAM 8188 MB, total RAM 16011 MB
 pytorch version: 2.10.0+cu130
 Set vram state to: LOW_VRAM
@@ -90,46 +90,15 @@ Blocked by policy: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\Comf
 [ReActor] - STATUS - Running v0.6.2-b1 in ComfyUI
 Torch version: 2.10.0+cu130
 [ComfyUI-RMBG] v3.0.0 | 43 nodes Loaded
-[h4_FaceForge] [14:13:29] [INFO] SFW State Loaded: NSFW ALLOWED
-🚀 h4_Live Server: Registering Routes... (Presets Dir: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\presets)
+Traceback (most recent call last):
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 2216, in load_custom_node
+    module_spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1132, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1190, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\custom_nodes\\comfyui_h4_live\\__init__.py'
 
--------------------------------------------------------------------------------------
- 🚀 h4_Live ToolKit | Version: 3.2.1
-    (Nuclear Logic & Persistent State for ComfyUI)
--------------------------------------------------------------------------------------
-| Node Name                                               | Global ID          | Load |
--------------------------------------------------------------------------------------
-| h4 Traffic Cop (Live Logic)                             | H4_TrafficCop      |  ✅   |
-| h4 Traffic Merge (Safe Select)                          | H4_TrafficMerge    |  ✅   |
-| h4 Traffic Router (The Nexus)                           | H4_TrafficRouter   |  ✅   |
-| h4 State Monitor                                        | H4_StateMonitor    |  ✅   |
-| h4 Context Hub (Mothership)                             | H4_ContextHub      |  ✅   |
-| h4 Context Unpack (Distributor)                         | H4_ContextUnpack   |  ✅   |
-| {h4 - DEBUGGER} - Inline Debugger {Smart Console}       | H4_SmartConsole    |  ✅   |
-| h4 Mission Control (Dashboard)                          | H4_MissionControl  |  ✅   |
-| h4 Linear Scheduler (Signal Gen)                        | H4_LinearScheduler |  ✅   |
-| h4 Seed Generator (Signal Gen)                          | H4_SeedGenerator   |  ✅   |
-| h4 Loop Incrementer (Hybrid)                            | H4_LoopIncrementer |  ✅   |
-| h4 Wireless Reset (Toggle)                              | H4_WirelessResetButton |  ✅   |
-| h4 Image Buffer (Anti-Lag)                              | H4_ImageBuffer     |  ✅   |
-| h4 - Gridinator 9001                                    | H4_Gridinator      |  ✅   |
-| 🔬 h4 Debug Error (TEST ONLY)                            | H4_DebugErrorGenerator |  ✅   |
-| h4 DataStream (Batch Loader)                            | H4_DataStream      |  ✅   |
-| h4 Axis Driver (Grid Tools)                             | H4_AxisDriver      |  ✅   |
-| h4 Varianator (Latent Riffler)                          | H4_Varianator      |  ✅   |
-| h4 Seed Sequencer (Chaos Control)                       | H4_SeedSequencer   |  ✅   |
-| h4 Pixel Press (Density)                                | H4_PixelPress      |  ✅   |
-| h4 FaceForge (AIO Face Swap)                            | H4_FaceForge       |  ✅   |
-| h4 Load Face Model                                      | H4_LoadFaceModel   |  ✅   |
-| h4 Build Face Model                                     | H4_BuildFaceModel  |  ✅   |
-| h4 Save Face Model                                      | H4_SaveFaceModel   |  ✅   |
-| h4 Identity Engine (Generator)                          | H4_IdentityEngine  |  ✅   |
-| h4 Face Detailer (Pore Restorer)                        | H4_FaceDetailer    |  ✅   |
-| h4 Dual CLIP Text Encode                                | H4_DualCLIPTextEncode |  ✅   |
-| h4 Display Any+ (Universal Monitor)                     | H4_DisplayAny      |  ✅   |
-| h4 Universal Loader (Checkpoint/Diffusers)              | H4_UniversalLoader |  ✅   |
--------------------------------------------------------------------------------------
-
+Cannot import D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live module for custom nodes: [Errno 2] No such file or directory: 'D:\\LocalAI\\StabilityMatrix\\Packages\\ComfyUI\\custom_nodes\\comfyui_h4_live\\__init__.py'
 Endless Sea of Stars Custom Nodes v1.5.0 loaded successfully!
 Nodes available under 'Endless 🌊✨' menu
 Unable to parse pyproject.toml due to lack dependency pydantic-settings, please run 'pip install -r requirements.txt': 1 validation error for PyProjectConfig
@@ -137,7 +106,7 @@ project.dependencies
   Input should be a valid list [type=list_type, input_value='', input_type=str]
     For further information visit https://errors.pydantic.dev/2.12/v/list_type
 
-[rgthree-comfy] Loaded 48 epic nodes. 🎉
+[rgthree-comfy] Loaded 48 magnificent nodes. 🎉
 
 [rgthree-comfy] ComfyUI's new Node 2.0 rendering may be incompatible with some rgthree-comfy nodes and features, breaking some rendering as well as losing the ability to access a node's properties (a vital part of many nodes). It also appears to run MUCH more slowly spiking CPU usage and causing jankiness and unresponsiveness, especially with large workflows. Personally I am not planning to use the new Nodes 2.0 and, unfortunately, am not able to invest the time to investigate and overhaul rgthree-comfy where needed. If you have issues when Nodes 2.0 is enabled, I'd urge you to switch it off as well and join me in hoping ComfyUI is not planning to deprecate the existing, stable canvas rendering all together.
 
@@ -220,34 +189,34 @@ cannot import name 'HybridCache' from 'transformers' (D:\LocalAI\StabilityMatrix
 Import times for custom nodes:
    0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\websocket_image_save.py
    0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\quick-connections
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-base64-to-image
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_memory_cleanup
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\seedvarianceenhancer
+   0.0 seconds (IMPORT FAILED): D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live
    0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-unload-model
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_ipadapter_plus
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_memory_cleanup
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-base64-to-image
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\seedvarianceenhancer
    0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-autocomplete-plus
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_ipadapter_plus
    0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-superbeasts
    0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\endless-nodes
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_fnodes
    0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-frame-interpolation
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_fnodes
    0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui
    0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_image_metadata_extension
-   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-GGUF
    0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\rgthree-comfy
-   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-inspire-pack
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-GGUF
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-inspire-pack
    0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\chaosaiart-nodes
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-videohelpersuite
    0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-impact-subpack
-   0.2 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-videohelpersuite
-   0.4 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-impact-pack
-   0.5 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live
-   1.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-Crystools
-   2.2 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-reactor
-   3.2 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-rmbg
-   3.9 seconds (IMPORT FAILED): D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\seedvr2_videoupscaler
+   0.3 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-impact-pack
+   0.8 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-Crystools
+   1.7 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-reactor
+   2.6 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-rmbg
+   3.0 seconds (IMPORT FAILED): D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\seedvr2_videoupscaler
 
 Context impl SQLiteImpl.
 Will assume non-transactional DDL.
-Assets scan(roots=['models']) completed in 0.401s (created=0, skipped_existing=133, orphans_pruned=0, total_seen=133)
+Assets scan(roots=['models']) completed in 0.080s (created=0, skipped_existing=133, orphans_pruned=0, total_seen=133)
 Starting server
 
 To see the GUI go to: http://127.0.0.1:8190

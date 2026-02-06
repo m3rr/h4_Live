@@ -22,6 +22,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 .env
+h4_repair_clinic.py
 
 # ComfyUI
 output/

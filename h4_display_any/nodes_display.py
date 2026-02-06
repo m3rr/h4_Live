@@ -25,10 +25,7 @@ class H4_DisplayAny:
         return {
             "required": {},
             "optional": {
-                "source_1": (any_type, {"tooltip": "Connect anything here (Image, Text, Latent). It will show up on the screen."}),
-                "source_2": (any_type, {"tooltip": "Connect another thing here."}),
-                "source_3": (any_type, {"tooltip": "Connect a third thing here."}),
-                "source_4": (any_type, {"tooltip": "Connect a fourth thing here."}),
+                "source_1": (any_type, {"tooltip": "Connect anything here. New slots will appear automatically."}),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
@@ -41,13 +38,35 @@ class H4_DisplayAny:
     CATEGORY = "h4/Logic"
     OUTPUT_NODE = True
 
-    def process_display(self, unique_id, extra_pnginfo, source_1=None, source_2=None, source_3=None, source_4=None):
+    def process_display(self, unique_id, extra_pnginfo, **kwargs):
         
         # Prepare payload
         payload = []
-        inputs = [source_1, source_2, source_3, source_4]
         
-        for idx, val in enumerate(inputs):
+        # 1. Dynamic Key Harvesting
+        # We look for ANY key starting with "source_" and sort them by number
+        # kwargs = {'source_1': val, 'source_2': val, ...}
+        
+        sources = []
+        for key, value in kwargs.items():
+            if key.startswith("source_"):
+                try:
+                    idx = int(key.split("_")[1])
+                    sources.append((idx, value))
+                except:
+                    continue
+                    
+        # Sort by index (source_1, source_2, ...)
+        sources.sort(key=lambda x: x[0])
+        
+        # Extract values in order
+        inputs = [val for _, val in sources]
+        
+        # Add a "node_id" to the payload for frontend navigation
+        # We can't easily get the source node ID here without expensive graph traversal
+        # BUT, the frontend can deduce it from link data.
+        
+        for val in inputs:
             if val is None:
                 payload.append({"type": "empty", "content": "No Input"})
                 continue
