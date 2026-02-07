@@ -23,6 +23,8 @@ from .h4_axis import H4_AxisDriver
 from .h4_varianator import H4_Varianator
 from .h4_seed_sequencer import H4_SeedSequencer
 from .h4_pixel_press import H4_PixelPress
+from .h4_comparinator import H4_Comparinator
+from .h4_visual_tokenizer import H4_VisualTokenizer
 from .h4_loaders import H4_UniversalLoader
 
 # FaceForge Module (AIO Face Swap Suite)
@@ -71,6 +73,8 @@ NODE_CLASS_MAPPINGS = {
     "H4_Varianator": H4_Varianator,
     "H4_SeedSequencer": H4_SeedSequencer,
     "H4_PixelPress": H4_PixelPress,
+    "H4_Comparinator": H4_Comparinator,
+    "H4_VisualTokenizer": H4_VisualTokenizer,
     # FaceForge Suite
     **FACEFORGE_CLASS_MAPPINGS,
     # Logic
@@ -109,6 +113,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_UniversalLoader": "h4 Universal Loader (Checkpoint/Diffusers)",
     "H4_DocuScribe": "📜 H4 DocuScribe (Workflow Reporter)",
     "H4_SmartSave": "💾 H4 SmartSave (Preview/Save)",
+    "H4_Comparinator": "⚔️ h4 Comparinator (A/B Test)",
+    "H4_VisualTokenizer": "👁️ h4 Visual Tokenizer (Weights)",
 }
 
 WEB_DIRECTORY = "./js"

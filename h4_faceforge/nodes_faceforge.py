@@ -745,21 +745,42 @@ class H4_FaceForge:
     
     def _upscale_full(self, img_bgr: np.ndarray, model_name: str, device) -> np.ndarray:
         """
-        Upscale the full image.
+        Upscale the full image using ComfyUI standard wrapper.
         """
         upscaler = get_upscaler(model_name, device)
         if upscaler is None:
             return img_bgr
         
         try:
-            # Convert to tensor
-            img_t = torch.from_numpy(img_bgr[:, :, ::-1].copy()).float() / 255.0
-            img_t = img_t.permute(2, 0, 1).unsqueeze(0).to(device)
+            # Prepare BHWC tensor (Comfy Internal Format)
+            # img_bgr is (H, W, 3)
+            img_rgb = img_bgr[:, :, ::-1].copy()
+            img_t = torch.from_numpy(img_rgb).float() / 255.0
+            img_t = img_t.unsqueeze(0).to(device) # (1, H, W, 3)
             
-            with torch.no_grad():
-                output = upscaler(img_t)
-            
-            output = output.squeeze(0).permute(1, 2, 0).cpu().numpy()
+            # Use ComfyUI's internal Upscale Node logic to handle "ImageModelDescriptor" vs "Model"
+            try:
+                from comfy_extras.nodes_upscale_model import ImageUpscaleWithModel
+                worker = ImageUpscaleWithModel()
+                # worker.upscale returns tuple (image,)
+                output_t = worker.upscale(upscaler, img_t)[0]
+            except ImportError:
+                # Fallback if comfy_extras missing (rare) - try direct call but might fail if Descriptor
+                if hasattr(upscaler, "model"):
+                    # likely ImageModelDescriptor
+                    # It usually needs NCHW ? Or depends. 
+                    # Let's try standard NCHW approach if manual
+                    img_nchw = img_t.permute(0, 3, 1, 2)
+                    output_t = upscaler.model(img_nchw)
+                    output_t = output_t.permute(0, 2, 3, 1) # Back to BHWC
+                else:
+                    # Raw model
+                    img_nchw = img_t.permute(0, 3, 1, 2)
+                    output_t = upscaler(img_nchw)
+                    output_t = output_t.permute(0, 2, 3, 1)
+
+            # Convert back to BGR Numpy
+            output = output_t.squeeze(0).cpu().numpy()
             output = (output * 255.0).clip(0, 255).astype(np.uint8)
             output = output[:, :, ::-1]  # RGB to BGR
             
@@ -799,16 +820,30 @@ class H4_FaceForge:
             face_crop = img_bgr[y1:y2, x1:x2]
             
             try:
-                # Upscale
-                face_t = torch.from_numpy(face_crop[:, :, ::-1].copy()).float() / 255.0
-                face_t = face_t.permute(2, 0, 1).unsqueeze(0).to(device)
+                # Upscale Face Crop
+                # Comfy Format (1, H, W, 3) RGB
+                face_rgb = face_crop[:, :, ::-1].copy()
+                face_t = torch.from_numpy(face_rgb).float() / 255.0
+                face_t = face_t.unsqueeze(0).to(device)
                 
-                with torch.no_grad():
-                    upscaled = upscaler(face_t)
+                # Use wrapper
+                try:
+                    from comfy_extras.nodes_upscale_model import ImageUpscaleWithModel
+                    worker = ImageUpscaleWithModel()
+                    upscaled_t = worker.upscale(upscaler, face_t)[0]
+                except ImportError:
+                    # Manual fallback
+                    face_nchw = face_t.permute(0, 3, 1, 2)
+                    if hasattr(upscaler, "model"):
+                        upscaled_t = upscaler.model(face_nchw)
+                    else:
+                        upscaled_t = upscaler(face_nchw)
+                    upscaled_t = upscaled_t.permute(0, 2, 3, 1)
                 
-                upscaled = upscaled.squeeze(0).permute(1, 2, 0).cpu().numpy()
+                # Convert back
+                upscaled = upscaled_t.squeeze(0).cpu().numpy()
                 upscaled = (upscaled * 255.0).clip(0, 255).astype(np.uint8)
-                upscaled = upscaled[:, :, ::-1]
+                upscaled = upscaled[:, :, ::-1] # BGR
                 
                 # Resize back to original face size and paste
                 upscaled = cv2.resize(upscaled, (x2 - x1, y2 - y1), interpolation=cv2.INTER_LANCZOS4)
