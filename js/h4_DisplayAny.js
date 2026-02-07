@@ -7,7 +7,8 @@ import { app } from "../../scripts/app.js";
  * - Dynamic Input Spawning (1 -> 10)
  * - Adaptive Grid Layout
  * - Lightbox Overlay (Left Click Image)
- * - Navigation Jump (Left Click Node)
+ * - Text Inspector (Left Click Text)
+ * - Navigation Jump (Left Click Header/Label)
  * - Open in New Tab (Right Click Image)
  */
 
@@ -133,11 +134,8 @@ app.registerExtension({
             if (event.button === 2) {
                 // Open Image in New Tab
                 if ((data.type === "image" || data.type === "image_list") && data.content) {
-                    // If list, open first? Or cycle?
-                    // Just open the main content
                     const src = Array.isArray(data.content) ? data.content[0] : data.content;
                     if (src.startsWith("data:image")) {
-                        // Open in new tab
                         const win = window.open();
                         if (win) {
                             win.document.write(`<img src="${src}" style="max-width:100%"/>`);
@@ -145,20 +143,7 @@ app.registerExtension({
                         }
                     }
                 }
-                // Determine source node 
-                // We know input index = clickedIndex
-                // Find link
-                if (this.inputs[clickedIndex] && this.inputs[clickedIndex].link !== null) {
-                    const linkId = this.inputs[clickedIndex].link;
-                    const link = app.graph.links[linkId];
-                    if (link) {
-                        const originNode = app.graph.getNodeById(link.origin_id);
-                        if (originNode) {
-                            // alert(`Source: ${originNode.title}`);
-                        }
-                    }
-                }
-                return false; // Let normal context menu happen? Maybe suppress?
+                return false; // Allow default menu for other things?
             }
 
             // --- LEFT CLICK ---
@@ -169,8 +154,29 @@ app.registerExtension({
                     return true; // Capture event
                 }
 
-                // Action 2: Jump to Node (Data/Text)
-                // Trace link back to origin
+                // Action 2: Text Inspector (Data/Strings)
+                if (data.type !== "image" && data.type !== "image_list" && data.type !== "empty") {
+                    // Check if it's the "Label" area (bottom) or content area?
+                    // Let's just make the whole slot click open inspector
+                    // BUT we also want Jump to Node.
+
+                    // Compromise: 
+                    // Main body -> Inspector
+                    // Bottom Label -> Jump to Node? 
+                    // It's hard to hit small targets. 
+
+                    // New logic: 
+                    // If complex text/long text -> Always Inspector.
+                    // If simple scalar -> Jump?
+
+                    // Let's default to Inspector for ALL text data. 
+                    // Add a "Jump" button INSIDE the inspector? Or just header click?
+
+                    createTextLightbox(data.content, data.type);
+                    return true;
+                }
+
+                // Fallback: Jump to Node (if empty or other)
                 if (this.inputs[clickedIndex] && this.inputs[clickedIndex].link !== null) {
                     const linkId = this.inputs[clickedIndex].link;
                     const link = app.graph.links[linkId];
@@ -179,7 +185,7 @@ app.registerExtension({
                         if (originNode) {
                             app.canvas.centerOnNode(originNode);
                             app.canvas.selectNode(originNode);
-                            return true; // Capture
+                            return true;
                         }
                     }
                 }
@@ -233,8 +239,15 @@ app.registerExtension({
                 const x = start_x + (c * slot_w);
                 const y = start_y + (r * slot_h);
 
-                // Draw Box Background
+                // Default Background
                 ctx.fillStyle = "#111";
+
+                // Style specific backgrounds
+                if (data.type !== "image" && data.type !== "image_list" && data.type !== "empty") {
+                    // Text Data: Code Editor Look
+                    ctx.fillStyle = "#0d1117"; // GitHub Dark Dimmedish
+                }
+
                 ctx.fillRect(x + 2, y + 2, slot_w - 4, slot_h - 4);
 
                 // Content Rendering
@@ -255,10 +268,6 @@ app.registerExtension({
                     }
                 }
                 else if (data.type === "image_list" && data.content) {
-                    // Draw mini grid of images (upto 4 logic is fine, or cycle?)
-                    // Let's just draw the first one large for clarity in small slots
-                    // Or split quad?
-                    // Split quad if we have space, otherwise first.
                     const imgs = data.content;
                     if (imgs.length > 0) {
                         // Draw first image as cover
@@ -278,13 +287,25 @@ app.registerExtension({
                 }
                 else {
                     // Text / List / JSON
-                    ctx.fillStyle = "#ccc";
-                    ctx.font = "12px Consolas, monospace";
+                    // Terminal Style Text
+                    ctx.fillStyle = "#00ff00"; // Hacker Green title? No, subtle
+
+                    // Type Badge
+                    ctx.fillStyle = "#222";
+                    ctx.fillRect(x + 4, y + 4, slot_w - 8, 16);
+                    ctx.fillStyle = "#888";
+                    ctx.font = "bold 10px monospace";
+                    ctx.textAlign = "left";
+                    ctx.fillText(data.type.toUpperCase(), x + 8, y + 15);
+
+                    // Body Text
+                    ctx.fillStyle = "#e6e6e6";
+                    ctx.font = "11px Consolas, monospace";
                     ctx.textAlign = "left";
 
-                    // Word wrap primitive
+                    // Word wrap primitive (Full width, no truncation per line logic, just vertical clip)
                     const text = String(data.content);
-                    wrapText(ctx, text, x + 10, y + 10, slot_w - 20, 14);
+                    wrapText(ctx, text, x + 10, y + 30, slot_w - 20, 14, slot_h - 40);
                 }
 
                 // Draw Border
@@ -292,12 +313,16 @@ app.registerExtension({
                 ctx.lineWidth = 1;
                 ctx.strokeRect(x + 2, y + 2, slot_w - 4, slot_h - 4);
 
-                // Draw Label
-                ctx.fillStyle = "#888";
-                ctx.font = "10px Arial";
-                ctx.textAlign = "left";
-                // Shorten labels
-                ctx.fillText(`${i + 1}:${data.type.substr(0, 4)}`, x + 5, y + slot_h - 5);
+                // Draw Label / Index (Bottom overlay)
+                // Only if not text type (since text type has top badge)
+                if (data.type === "image" || data.type === "image_list" || data.type === "empty") {
+                    ctx.fillStyle = "rgba(0,0,0,0.5)";
+                    ctx.fillRect(x + 2, y + slot_h - 18, 30, 16);
+                    ctx.fillStyle = "#ddd";
+                    ctx.font = "10px Arial";
+                    ctx.textAlign = "left";
+                    ctx.fillText(`#${i + 1}`, x + 5, y + slot_h - 6);
+                }
             }
         };
     }
@@ -314,25 +339,43 @@ function drawImageContain(ctx, img, x, y, w, h) {
     ctx.drawImage(img, x + offset_x, y + offset_y, flow_w, flow_h);
 }
 
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-    // Basic wrap logic
-    const lines = text.split("\n");
-    let cursorY = y + lineHeight;
+function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxHeight) {
+    // Advanced wrap logic: Fit as much as possible, break words if needed
+    // Split by newlines first to respect formatting
+    const paragraphs = text.split("\n");
+    let cursorY = y;
+    const endY = y + maxHeight; // Clip limit
 
-    // Safety cap
-    const max_lines_allowed = Math.floor(150 / lineHeight);
-    let lines_drawn = 0;
+    ctx.textBaseline = "top";
 
-    for (let l of lines) {
-        if (l.length > 100) { l = l.substring(0, 100) + "..."; }
-        ctx.fillText(l, x, cursorY);
+    for (let p of paragraphs) {
+        const words = p.split(" ");
+        let line = "";
+
+        for (let n = 0; n < words.length; n++) {
+            const testLine = line + words[n] + " ";
+            const metrics = ctx.measureText(testLine);
+            const testWidth = metrics.width;
+
+            if (testWidth > maxWidth && n > 0) {
+                // Line full, print it
+                ctx.fillText(line, x, cursorY);
+                line = words[n] + " ";
+                cursorY += lineHeight;
+
+                if (cursorY > endY) return; // Vertical Clip
+            } else {
+                line = testLine;
+            }
+        }
+        // Print remaining line
+        ctx.fillText(line, x, cursorY);
         cursorY += lineHeight;
-        lines_drawn++;
-        if (lines_drawn > max_lines_allowed) break;
+        if (cursorY > endY) return;
     }
 }
 
-// --- LIGHTBOX OVERLAY ---
+// --- LIGHTBOX OVERLAY (IMAGES) ---
 function createLightbox(content) {
     // If multiple images, content is list
     const images = Array.isArray(content) ? content : [content];
@@ -349,7 +392,7 @@ function createLightbox(content) {
         position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
         backgroundColor: "rgba(0,0,0,0.9)", zIndex: 10000,
         display: "flex", justifyContent: "center", alignItems: "center",
-        flexDirection: "column"
+        flexDirection: "column", userSelect: "none"
     });
 
     // Image Element
@@ -358,11 +401,13 @@ function createLightbox(content) {
         maxWidth: "90%", maxHeight: "85%", borderRadius: "4px", boxShadow: "0 0 20px #000"
     });
 
+    // Prevent drag ghost
+    imgEl.ondragstart = () => false;
+
     // Update Logic
     const updateImage = () => {
         imgEl.src = images[currentIndex];
         infoEl.innerText = `${currentIndex + 1} / ${images.length}`;
-        // Preload next?
     };
 
     // Close Button
@@ -416,11 +461,129 @@ function createLightbox(content) {
             return;
         }
         if (e.key === "Escape") document.body.removeChild(overlay);
-        if (e.key === "ArrowLeft") prevBtn.click();
-        if (e.key === "ArrowRight") nextBtn.click();
+        if (e.key === "ArrowLeft" && images.length > 1) prevBtn.click();
+        if (e.key === "ArrowRight" && images.length > 1) nextBtn.click();
     };
     window.addEventListener("keydown", keyHandler);
 
     document.body.appendChild(overlay);
     updateImage();
+}
+
+// --- TEXT LIGHTBOX (INSPECTOR) ---
+function createTextLightbox(content, type) {
+    const textContent = typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content);
+
+    const id = "h4-text-inspector";
+    let overlay = document.getElementById(id);
+    if (overlay) document.body.removeChild(overlay);
+
+    overlay = document.createElement("div");
+    overlay.id = id;
+    Object.assign(overlay.style, {
+        position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
+        backgroundColor: "rgba(0,0,0,0.85)", zIndex: 10000,
+        display: "flex", justifyContent: "center", alignItems: "center",
+        flexDirection: "column", backdropFilter: "blur(5px)"
+    });
+
+    // Main Window
+    const windowDiv = document.createElement("div");
+    Object.assign(windowDiv.style, {
+        width: "80%", height: "80%",
+        backgroundColor: "#1e1e1e",
+        color: "#d4d4d4",
+        borderRadius: "8px",
+        boxShadow: "0 0 30px rgba(0,0,0,0.8)",
+        display: "flex", flexDirection: "column",
+        overflow: "hidden",
+        border: "1px solid #444",
+        fontFamily: "'Consolas', 'Monaco', 'Courier New', monospace"
+    });
+
+    // Header
+    const header = document.createElement("div");
+    Object.assign(header.style, {
+        padding: "10px 20px",
+        backgroundColor: "#2d2d2d",
+        borderBottom: "1px solid #444",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        flexShrink: 0
+    });
+
+    const title = document.createElement("span");
+    title.innerHTML = `📝 Data Inspector <span style="color:#666; font-size:12px; margin-left:10px">Type: ${type}</span>`;
+    title.style.fontWeight = "bold";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "CLOSE (ESC)";
+    Object.assign(closeBtn.style, {
+        background: "transparent", border: "1px solid #555", color: "#888",
+        padding: "4px 10px", borderRadius: "4px", cursor: "pointer"
+    });
+    closeBtn.onclick = () => document.body.removeChild(overlay);
+    closeBtn.onmouseover = () => { closeBtn.style.borderColor = "#fff"; closeBtn.style.color = "#fff"; };
+    closeBtn.onmouseout = () => { closeBtn.style.borderColor = "#555"; closeBtn.style.color = "#888"; };
+
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+
+    // Content Area (Scrollable)
+    const contentArea = document.createElement("pre");
+    contentArea.textContent = textContent;
+    Object.assign(contentArea.style, {
+        flexGrow: 1,
+        padding: "20px",
+        margin: 0,
+        overflow: "auto",
+        whiteSpace: "pre-wrap", // or 'pre' for scrolling horizontal? Let's use pre-wrap for reading
+        wordBreak: "break-all",
+        fontSize: "14px",
+        lineHeight: "1.5"
+    });
+
+    // Copy to Clipboard Footer
+    const footer = document.createElement("div");
+    Object.assign(footer.style, {
+        padding: "10px", backgroundColor: "#252526",
+        borderTop: "1px solid #333", display: "flex", justifyContent: "flex-end"
+    });
+
+    const copyBtn = document.createElement("button");
+    copyBtn.textContent = "📋 Copy to Clipboard";
+    Object.assign(copyBtn.style, {
+        backgroundColor: "#0e639c", color: "white", border: "none",
+        padding: "6px 12px", borderRadius: "2px", cursor: "pointer", fontWeight: "bold"
+    });
+
+    copyBtn.onclick = () => {
+        navigator.clipboard.writeText(textContent).then(() => {
+            copyBtn.textContent = "✅ Copied!";
+            setTimeout(() => copyBtn.textContent = "📋 Copy to Clipboard", 2000);
+        });
+    };
+
+    footer.appendChild(copyBtn);
+
+    windowDiv.appendChild(header);
+    windowDiv.appendChild(contentArea);
+    windowDiv.appendChild(footer);
+    overlay.appendChild(windowDiv);
+
+    // Close on click outside
+    overlay.onclick = (e) => {
+        if (e.target === overlay) document.body.removeChild(overlay);
+    };
+
+    // ESC to close
+    const keyHandler = (e) => {
+        if (!document.getElementById(id)) {
+            window.removeEventListener("keydown", keyHandler);
+            return;
+        }
+        if (e.key === "Escape") document.body.removeChild(overlay);
+    };
+    window.addEventListener("keydown", keyHandler);
+
+    document.body.appendChild(overlay);
 }
