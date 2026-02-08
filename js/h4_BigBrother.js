@@ -19,11 +19,11 @@ app.registerExtension({
 
     // State Configuration
     _config: {
-        enabled: true,
+        enabled: false,
         monitorEnabled: false,
         debugMode: false, // [h4 DEBUG PROTOCOL] NUCLEAR debug logging toggle
         showErrorPopup: false, // Show the Death Modal on execution errors
-        showGrid: true, // Grid is still "cool" so maybe leave it? User said "debugger in general". Let's disable grid too if it counts as debug overlay. User said "nothing is there... just their good ol fashioned nodes". Grid is cosmetic but intrusive. I'll disable it.
+        showGrid: false, // Default to OFF
         wireColorSelect: "#00FF00",
         wireColorError: "#FF0000",
         gridColor: "rgba(255, 200, 0, 0.15)",
@@ -716,7 +716,7 @@ app.registerExtension({
             id: `${id}.ShowWires`,
             name: "👁️ BB: Show Wires",
             type: "boolean",
-            defaultValue: true,
+            defaultValue: false,
             onChange: (v) => { this._state.showWires = v; }
         });
     },

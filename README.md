@@ -229,7 +229,7 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 ### Data processing and batch tools
 - [H4_DataStream (Batch Loader)](#h4_datastream-batch-loader)
-- [H4_PixelPress (Density)](#h4_pixelpress-density)
+- [H4_PixelPress (SSAA/HDR)](#h4_pixelpress-ssaahdr)
 - [H4_Varianator (Latent Riffler)](#h4_varianator-latent-riffler)
 - [H4_VisualTokenizer (Weights)](#h4_visualtokenizer-weights)
 
@@ -251,6 +251,7 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 - [H4_DocuScribe (Workflow Reporter)](#h4_docuscribe-workflow-reporter)
 - [H4_DebugErrorGenerator (Test Only)](#h4_debugerrorgenerator-test-only)
 - [H4_Discombobulator (Use with caution)](#h4_discombobulator-use-with-caution)
+- [H4_NoteInjector (Visuals)](#h4_noteinjector-visuals)
 
 ---
 
@@ -504,12 +505,16 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 ---
 
-### H4_PixelPress (Density)
-**What it is:** resolution and density controller.
+### H4_PixelPress (SSAA/HDR)
+**What it is:** The "Retina" engine.
+
+**What it does:**
+- **Supersampling**: Scales up (2x/3x/4x) -> Sharpens -> Scales down.
+- **HDR**: optional dynamic range expansion (Shadows/Highlights).
 
 **When to use it:**
-- Normalizing inputs.
-- Keeping output sizes consistent across batches.
+- When you want dense, tailored details without aliasing.
+- To fix lighting on bland images.
 
 ---
 
@@ -640,6 +645,21 @@ Displays anything, type-agnostic.
 Generates documentation from your workflow structure.
 
 This is the “help I need to explain this to future me” node.
+
+---
+
+### H4_NoteInjector (Visuals)
+**What it is:** adds professional title bars to images.
+
+**Features:**
+- Top/Bottom bars.
+- Auto-centering for Title/Subtitle.
+- Custom fonts and colors.
+
+**When to use it:**
+- Memes.
+- Workflow documentation.
+- "Cinematic" subtitles.
 
 ---
 
