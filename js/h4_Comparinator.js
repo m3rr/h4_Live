@@ -936,20 +936,28 @@ class ComparinatorUI {
     }
 
     selectHistoryItem(item) {
+        if (!item || !item.filename_a || !item.filename_b) return;
+
         const t = item.timestamp;
-        const url = `/view?filename=${item.filename_b}&type=temp&t=${t}`;
-        this.historyImageUrl = url;
+        const urlA = `/view?filename=${item.filename_a}&type=temp&t=${t}`;
+        const urlB = `/view?filename=${item.filename_b}&type=temp&t=${t}`;
 
-        // Update Layer B in Left Pane
-        this.paneLeft.imgB.src = url;
-        // Update Right Pane Reference
-        this.paneRight.imgHistoryDisplay.src = url; // used for compare mode history
+        // Update both images to recreate the full historic comparison
+        this.paneLeft.imgA.src = urlA;
+        this.paneLeft.imgB.src = urlB;
 
-        // [FIX] If in Inspect Mode, also update imgA to this history item
+        // Update Right Pane Reference (for standard view usage)
+        this.historyImageUrl = urlB;
+        this.paneRight.imgHistoryDisplay.src = urlB;
+
+        // [FIX] If in Inspect Mode, we usually stick to one image (B or A).
+        // Let's default to B (Result) for the Zoom View.
         if (this.inspectMode) {
-            this.currentImageUrl = url;
-            this.paneLeft.imgA.src = url;
-            this.paneRight.zoomCanvas.style.backgroundImage = `url("${url}")`;
+            this.currentImageUrl = urlB;
+            // In Inspect Mode, imgA is the only visible image (Source Map).
+            // We set it to urlB so the reticle tracks the Result image.
+            this.paneLeft.imgA.src = urlB;
+            this.paneRight.zoomCanvas.style.backgroundImage = `url("${urlB}")`;
 
             this.paneLeft.imgA.onload = () => {
                 if (this.inspectMode && this.lastMouseX !== undefined) {
