@@ -1,5 +1,5 @@
 # h4_Live: The Logic & Loop Controller v3.0 { Now with DNA! }
-![Version](https://img.shields.io/badge/version-4.6.7-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
+![Version](https://img.shields.io/badge/version-4.7.0-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
 > **"A Railway Switch for your Workflow."**
 
