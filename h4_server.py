@@ -106,5 +106,23 @@ def register_routes():
             print(f"[h4_server] Error deleting preset: {e}")
             return web.json_response({"error": str(e)}, status=500)
 
+    # 5. Get History for Node
+    @PromptServer.instance.routes.get("/h4/history")
+    async def get_history(request):
+        try:
+            node_id = request.query.get("node_id")
+            if not node_id:
+                return web.json_response({"error": "Missing node_id"}, status=400)
+            
+            # Import here to avoid circular dependency at top level
+            from .h4_comparinator import H4_Comparinator
+            
+            history = list(H4_Comparinator.HISTORY_CACHE.get(node_id, []))
+            return web.json_response({"history": history})
+            
+        except Exception as e:
+            print(f"[h4_server] Error fetching history: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
 # Register on import
 register_routes()

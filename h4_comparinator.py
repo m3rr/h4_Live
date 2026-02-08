@@ -30,11 +30,12 @@ class H4_Comparinator:
         return {
             "required": {
                 "image_a": ("IMAGE", {"tooltip": "The 'Before' or 'Control' image"}),
-                "image_b": ("IMAGE", {"tooltip": "The 'After' or 'Test' image"}),
                 "save_mode": ("BOOLEAN", {"default": False, "label_on": "💾 SAVE", "label_off": "PREVIEW", "tooltip": "Save images to Output folder?"}),
                 "filename_prefix": ("STRING", {"default": "h4_compare"}),
             },
             "optional": {
+                "image_b": ("IMAGE", {"tooltip": "The 'After' or 'Test' image"}),
+                "frozen_image": ("IMAGE", {"tooltip": "Overrides Image B. Useful for freezing a comparison state."}),
                 "metadata_text": ("STRING", {"multiline": True, "default": "", "tooltip": "Custom metadata to embed"}),
             },
             "hidden": {
@@ -57,9 +58,18 @@ class H4_Comparinator:
     Keeps a history of the last 10 comparisons for reference.
     """
 
-    def compare_images(self, image_a, image_b, save_mode=False, filename_prefix="h4_compare", metadata_text="", unique_id=None, extra_pnginfo=None):
+    def compare_images(self, image_a, save_mode=False, filename_prefix="h4_compare", image_b=None, frozen_image=None, metadata_text="", unique_id=None, extra_pnginfo=None):
         node_id = str(unique_id)
-        _log(f"[{node_id}] ⚔️ Comparinator Active - Mode: {'SAVE' if save_mode else 'PREVIEW'}")
+        
+        # Logic: Frozen Image overrides Image B
+        final_b = frozen_image if frozen_image is not None else image_b
+        
+        # If neither B nor Frozen is provided, use A (Compare against self? Or error?)
+        # Let's fallback to A for safety, effectively showing NO difference.
+        if final_b is None:
+            final_b = image_a
+            
+        _log(f"[{node_id}] ⚔️ Comparinator Active - Mode: {'SAVE' if save_mode else 'PREVIEW'} - Frozen: {'YES' if frozen_image is not None else 'NO'}")
         
         # 1. Standardize Temp Save (For UI History)
         # Always save temp WebP for the UI to display.
@@ -67,7 +77,7 @@ class H4_Comparinator:
         timestamp = int(time.time() * 1000)
         
         temp_a_name, temp_a_path = self._save_image(image_a, f"h4_comp_{node_id}_{timestamp}_A", folder_paths.get_temp_directory(), "WEBP")
-        temp_b_name, temp_b_path = self._save_image(image_b, f"h4_comp_{node_id}_{timestamp}_B", folder_paths.get_temp_directory(), "WEBP")
+        temp_b_name, temp_b_path = self._save_image(final_b, f"h4_comp_{node_id}_{timestamp}_B", folder_paths.get_temp_directory(), "WEBP")
         
         # 2. Handle Permanent Save (Output Folder)
         if save_mode:

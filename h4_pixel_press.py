@@ -50,6 +50,11 @@ class H4_PixelPress:
                     "default": True, 
                     "tooltip": "After compressing, do you want to blow it back up to the original size? (True = High Fidelity 4K Look, False = Extremely Dense 2K Look)."
                 }),
+                
+                "sharpness": ("FLOAT", {
+                    "default": 0.3, "min": 0.0, "max": 1.0, "step": 0.05,
+                    "tooltip": "Post-restoration sharpening intensity. 0.0 = None, 1.0 = Max. Use carefully."
+                }),
             },
             "optional": {
                 "upscale_model": ("UPSCALE_MODEL", {"tooltip": "Optional: Use an AI Uppscaler logic instead of math to re-inflate the image. Adds hallucinated details."}),
@@ -61,7 +66,7 @@ class H4_PixelPress:
     FUNCTION = "execute"
     CATEGORY = "h4_Live/Image"
     
-    def execute(self, image: torch.Tensor, press_level: str, press_cycles: int, restore_finish: bool, upscale_model=None):
+    def execute(self, image: torch.Tensor, press_level: str, press_cycles: int, restore_finish: bool, sharpness: float, upscale_model=None):
         _log(f"--- PixelPress Started ({press_level}) ---")
         
         # Determine strictness
@@ -82,67 +87,38 @@ class H4_PixelPress:
         original_height = image.shape[1]
         original_width = image.shape[2]
         
+        # Initialize Progress Bar
+        total_steps = press_cycles
+        pbar = comfy.utils.ProgressBar(total_steps)
+        
         for i in range(press_cycles):
             _log(f"Cycle {i+1}/{press_cycles}: Compressing...")
             
             # --- STEP 1: The Squish (Downscale) ---
-            # We use "area" interpolation (or Bicubic/Lanczos if available via comfy)
-            # 'area' is mathematically correct for downscaling (averaging pixels).
-            
-            # Calculate target size
             target_h = int(result.shape[1] * factor)
             target_w = int(result.shape[2] * factor)
             
-            # Use Comfy's internal resize handling to be safe
-            # Input is (B, H, W, C) -> Permute to (B, C, H, W) for torch F.interpolate
             permuted = result.permute(0, 3, 1, 2)
-            
-            # "Area" is the best for squishing (Pixel Binning)
             downscaled = F.interpolate(permuted, size=(target_h, target_w), mode="area")
-            
-            # Permute back
             compressed_image = downscaled.permute(0, 2, 3, 1)
             
             # --- STEP 2: The Re-Inflation (Upscale) ---
-            # Only do this if it's NOT the last cycle, OR if restore_finish is True
             if i < press_cycles - 1 or restore_finish:
                 _log(f"Cycle {i+1}: Re-inflating...")
                 
                 if upscale_model is not None:
                     # AI Upscale Logic
-                    # Move to GPU for model
                     device = comfy.model_management.get_torch_device()
                     upscale_model.to(device)
                     
                     try:
-                        # Use standard ComfyUI upscale model interface
-                        # Most loaded upscale models have an .upscale method
-                        
-                        # Note: upscale_model.upscale expects (B, C, H, W) or (B, H, W, C)?
-                        # Checking comfy_extras/nodes_upscale_model.py:
-                        # memory_required = model.memory_required.
-                        # upscaled = model.upscale(image)
-                        
-                        # The image passed to model.upscale is expected to be standard Tensor layout?
-                        # Usually Comfy passes (B, H, W, C) or (B, C, H, W).
-                        # Let's try passing the image directly as we have it (B, H, W, C)
-                        # Comfy's common_input is (B, H, W, C).
-                        
-                        # Wait, Comfy upscale models (ESRGAN etc) usually expect the image to be moved to device inside the call or before.
-                        # And they often expect (1, C, H, W) or similar.
-                        
-                        # SAFE WAY: Use the internal wrapper if possible, or replicate the standard valid call.
-                        # Standard Comfy upscale models take (B, H, W, C) and return (B, H, W, C).
-                        
                         upscaled_image = upscale_model.upscale(compressed_image)
-
-                        
                     except Exception as e:
                         _log(f"AI Upscale failed: {e}. Fallback to Bicubic.", level="ERROR")
                         upscale_model = None # Disable for this run
                         upscaled_image = self._bicubic_restore(compressed_image, original_width, original_height)
 
-                    # If AI upscaled it 4x, it might be HUGE now. Resize to target original.
+                    # Resize to target original
                     if upscaled_image.shape[1] != original_height or upscaled_image.shape[2] != original_width:
                          upscaled_perm = upscaled_image.permute(0, 3, 1, 2)
                          # Bicubic is good for "shrinking" a 4x AI result back to 1x target
@@ -150,7 +126,6 @@ class H4_PixelPress:
                          result = resized_back.permute(0, 2, 3, 1)
                     else:
                         result = upscaled_image
-
                 else:
                     # Standard Math Upscale (Bicubic)
                     result = self._bicubic_restore(compressed_image, original_width, original_height)
@@ -159,6 +134,14 @@ class H4_PixelPress:
                 # Last cycle and restore_finish is False
                 _log("Finishing with compressed density.")
                 result = compressed_image
+            
+            # Update Progress
+            pbar.update(1)
+                
+        # --- STEP 3: The Sharpening Pass (Unsharp Mask) ---
+        if restore_finish and sharpness > 0.0:
+            _log(f"Applying Unsharp Mask (Strength: {sharpness})...")
+            result = self._apply_sharpening(result, sharpness)
                 
         # Move upscale model back to CPU if used
         if upscale_model is not None:
@@ -174,3 +157,47 @@ class H4_PixelPress:
         permuted = image.permute(0, 3, 1, 2)
         upscaled = F.interpolate(permuted, size=(height, width), mode="bicubic", align_corners=False)
         return upscaled.permute(0, 2, 3, 1)
+
+    def _apply_sharpening(self, image, strength):
+        """
+        Simple unsharp mask implementation using heavy gaussian blur subtraction.
+        """
+        # (B, H, W, C) -> (B, C, H, W)
+        img_perm = image.permute(0, 3, 1, 2)
+        
+        # Blur it (Gaussian Kernel approximation)
+        # Standard unsharp mask: Original + (Original - Blurred) * Amount
+        
+        # Create a simple blur via avg pool or manual key
+        # Using a small kernel for fine detail sharpening
+        blurred = self._gaussian_blur(img_perm, kernel_size=5, sigma=1.0)
+        
+        # Detail = Original - Blurred
+        detail = img_perm - blurred
+        
+        # Sharpened = Original + Detail * Strength
+        sharpened = img_perm + (detail * strength)
+        
+        # Clamp
+        sharpened = torch.clamp(sharpened, 0, 1)
+        
+        return sharpened.permute(0, 2, 3, 1)
+
+    def _gaussian_blur(self, x, kernel_size=5, sigma=1.0):
+        # Create 1D Gaussian kernel
+        k = torch.tensor([np.exp(-0.5 * (i - kernel_size // 2)**2 / sigma**2) for i in range(kernel_size)], dtype=torch.float32)
+        k /= k.sum()
+        k = k.to(x.device)
+        
+        # Separateable 2D conv: 1xK then Kx1
+        k_x = k.view(1, 1, 1, kernel_size).repeat(x.shape[1], 1, 1, 1)
+        k_y = k.view(1, 1, kernel_size, 1).repeat(x.shape[1], 1, 1, 1)
+        
+        padding = kernel_size // 2
+        
+        # Apply X
+        x_blurred = F.conv2d(x, k_x, padding=(0, padding), groups=x.shape[1])
+        # Apply Y
+        x_blurred = F.conv2d(x_blurred, k_y, padding=(padding, 0), groups=x.shape[1])
+        
+        return x_blurred

@@ -1,0 +1,179 @@
+Adding extra search path checkpoints D:\LocalAI\StabilityMatrix\Models\StableDiffusion
+Adding extra search path diffusers D:\LocalAI\StabilityMatrix\Models\Diffusers
+Adding extra search path loras D:\LocalAI\StabilityMatrix\Models\Lora
+Adding extra search path loras D:\LocalAI\StabilityMatrix\Models\LyCORIS
+Adding extra search path clip D:\LocalAI\StabilityMatrix\Models\TextEncoders
+Adding extra search path clip_vision D:\LocalAI\StabilityMatrix\Models\ClipVision
+Adding extra search path embeddings D:\LocalAI\StabilityMatrix\Models\Embeddings
+Adding extra search path vae D:\LocalAI\StabilityMatrix\Models\VAE
+Adding extra search path vae_approx D:\LocalAI\StabilityMatrix\Models\ApproxVAE
+Adding extra search path controlnet D:\LocalAI\StabilityMatrix\Models\ControlNet
+Adding extra search path controlnet D:\LocalAI\StabilityMatrix\Models\T2IAdapter
+Adding extra search path gligen D:\LocalAI\StabilityMatrix\Models\GLIGEN
+Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\ESRGAN
+Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\RealESRGAN
+Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\SwinIR
+Adding extra search path hypernetworks D:\LocalAI\StabilityMatrix\Models\Hypernetwork
+Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdapter
+Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdapters15
+Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdaptersXl
+Adding extra search path prompt_expansion D:\LocalAI\StabilityMatrix\Models\PromptExpansion
+Adding extra search path ultralytics D:\LocalAI\StabilityMatrix\Models\Ultralytics
+Adding extra search path ultralytics_bbox D:\LocalAI\StabilityMatrix\Models\Ultralytics\bbox
+Adding extra search path ultralytics_segm D:\LocalAI\StabilityMatrix\Models\Ultralytics\segm
+Adding extra search path sams D:\LocalAI\StabilityMatrix\Models\Sams
+Adding extra search path diffusion_models D:\LocalAI\StabilityMatrix\Models\DiffusionModels
+[START] Security scan
+[DONE] Security scan
+** ComfyUI startup time: 2026-02-08 00:23:40.911
+** Platform: Windows
+** Python version: 3.12.11 (main, Jul 23 2025, 00:32:20) [MSC v.1944 64 bit (AMD64)]
+** Python executable: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Scripts\python.exe
+** ComfyUI Path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI
+** ComfyUI Base Folder Path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI
+** User directory: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user
+** ComfyUI-Manager config path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\__manager\config.ini
+** Log path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\comfyui.log
+[PRE] ComfyUI-Manager
+
+Prestartup times for custom nodes:
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\rgthree-comfy
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-easy-use
+
+D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\cuda\__init__.py:65: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+Checkpoint files will always be loaded safely.
+Found comfy_kitchen backend eager: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_nvfp4']}
+Found comfy_kitchen backend cuda: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_nvfp4']}
+Found comfy_kitchen backend triton: {'available': True, 'disabled': True, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8']}
+Total VRAM 8188 MB, total RAM 16011 MB
+pytorch version: 2.10.0+cu130
+Set vram state to: LOW_VRAM
+Device: cuda:0 NVIDIA GeForce RTX 4060 Laptop GPU : cudaMallocAsync
+Using async weight offloading with 2 streams
+Enabled pinned memory 7204.0
+working around nvidia conv3d memory bug.
+Using sage attention
+Python version: 3.12.11 (main, Jul 23 2025, 00:32:20) [MSC v.1944 64 bit (AMD64)]
+ComfyUI version: 0.12.3
+ComfyUI frontend version: 1.37.11
+[Prompt Server] web root: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\comfyui_frontend_package\static
+[START] ComfyUI-Manager
+[ComfyUI-Manager] network_mode: public
+
+
+
+         🔶Chaosaiart: visit our Discord. https://chaosaiart.com/discord
+
+
+
+[Crystools INFO] Crystools version: 1.27.4
+[Crystools INFO] Platform release: 11
+[Crystools INFO] JETSON: Not detected.
+[Crystools INFO] CPU: 13th Gen Intel(R) Core(TM) i9-13900H - Arch: AMD64 - OS: Windows 11
+[Crystools INFO] pynvml (NVIDIA) initialized.
+[Crystools INFO] GPU/s:
+[Crystools INFO] 0) NVIDIA GeForce RTX 4060 Laptop GPU
+[Crystools INFO] NVIDIA Driver: 581.80
+[ComfyUI-Easy-Use] server: v1.3.6 Loaded
+[ComfyUI-Easy-Use] web root: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-easy-use\web_version/v2 Loaded
+ComfyUI-GGUF: Allowing full torch compile
+### Loading: ComfyUI-Impact-Pack (V8.28.2)
+[Impact Pack] Wildcard total size (0.00 MB) is within cache limit (50.00 MB). Using full cache mode.
+[Impact Pack] Wildcards loading done.
+### Loading: ComfyUI-Impact-Subpack (V1.3.5)
+[Impact Pack/Subpack] Using folder_paths to determine whitelist path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\default\ComfyUI-Impact-Subpack\model-whitelist.txt
+[Impact Pack/Subpack] Ensured whitelist directory exists: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\default\ComfyUI-Impact-Subpack
+[Impact Pack/Subpack] Loaded 0 model(s) from whitelist: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\default\ComfyUI-Impact-Subpack\model-whitelist.txt
+[Impact Subpack] ultralytics_bbox: D:\LocalAI\StabilityMatrix\Models\Ultralytics\bbox, D:\LocalAI\StabilityMatrix\Packages\ComfyUI\models\ultralytics\bbox
+[Impact Subpack] ultralytics_segm: D:\LocalAI\StabilityMatrix\Models\Ultralytics\segm, D:\LocalAI\StabilityMatrix\Packages\ComfyUI\models\ultralytics\segm
+### Loading: ComfyUI-Inspire-Pack (V1.23)
+Blocked by policy: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-Manager-main
+D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\timm\models\layers\__init__.py:48: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[ComfyUI-RMBG] v3.0.0 | 43 nodes Loaded
+[h4_FaceForge] [00:24:06] [INFO] SFW State Loaded: NSFW ALLOWED
+Traceback (most recent call last):
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\nodes.py", line 2216, in load_custom_node
+    module_spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 999, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\__init__.py", line 26, in <module>
+    from .h4_comparinator import H4_Comparinator
+  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live\h4_comparinator.py", line 30
+    return {
+           ^
+SyntaxError: '{' was never closed
+
+Cannot import D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live module for custom nodes: '{' was never closed (h4_comparinator.py, line 30)
+Endless Sea of Stars Custom Nodes v1.5.0 loaded successfully!
+Nodes available under 'Endless 🌊✨' menu
+Unable to parse pyproject.toml due to lack dependency pydantic-settings, please run 'pip install -r requirements.txt': 1 validation error for PyProjectConfig
+project.dependencies
+  Input should be a valid list [type=list_type, input_value='', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/list_type
+
+[rgthree-comfy] Loaded 48 extraordinary nodes. 🎉
+
+[rgthree-comfy] ComfyUI's new Node 2.0 rendering may be incompatible with some rgthree-comfy nodes and features, breaking some rendering as well as losing the ability to access a node's properties (a vital part of many nodes). It also appears to run MUCH more slowly spiking CPU usage and causing jankiness and unresponsiveness, especially with large workflows. Personally I am not planning to use the new Nodes 2.0 and, unfortunately, am not able to invest the time to investigate and overhaul rgthree-comfy where needed. If you have issues when Nodes 2.0 is enabled, I'd urge you to switch it off as well and join me in hoping ComfyUI is not planning to deprecate the existing, stable canvas rendering all together.
+
+[scromfyUI] Failed to load module image_mask_nodes: No module named 'largestinteriorrectangle'
+[scromfyUI] Failed to load module misc_nodes: No module named 'shortuuid'
+[scromfyUI] Loaded modules: civitai_browser (1), civsearch_browser (1), clipchat (1), danbooru_browser (1), genur_browser (1), json_utils (4), logic (1), lora_nodes (2), model_code (3), moire_nodes (16), prompts (1), text_utils (3), tubes (17), vae_decode_plusplus (1)
+[scromfyUI] Total nodes initialized: 53
+⚡ SeedVR2 optimizations check: SageAttention ✅ | Flash Attention ❌ | Triton ✅
+💡 Optional: pip install flash-attn
+🔧 Conv3d workaround active: PyTorch 2.10.0, cuDNN 91200 (fixing VAE 3x memory bug)
+📊 Initial CUDA memory: 6.87GB free / 8.00GB total
+
+Import times for custom nodes:
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\quick-connections
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_memory_cleanup
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\websocket_image_save.py
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-base64-to-image
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\seedvarianceenhancer
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-unload-model
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-GGUF
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-autocomplete-plus
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_ipadapter_plus
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-custom-scripts
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\endless-nodes
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-superbeasts
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-kjnodes
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-frame-interpolation
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\rgthree-comfy
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\scromfyUI_Nodes
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_image_metadata_extension
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-inspire-pack
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\chaosaiart-nodes
+   0.2 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-impact-subpack
+   0.2 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-videohelpersuite
+   0.4 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\seedvr2_videoupscaler
+   0.5 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-detail-daemon
+   0.5 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-impact-pack
+   0.9 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-Crystools
+   1.3 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-rmbg
+   1.5 seconds (IMPORT FAILED): D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_h4_live
+   5.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-easy-use
+
+Context impl SQLiteImpl.
+Will assume non-transactional DDL.
+Assets scan(roots=['models']) completed in 0.173s (created=0, skipped_existing=137, orphans_pruned=0, total_seen=137)
+Starting server
+
+To see the GUI go to: http://127.0.0.1:8190
+FETCH ComfyRegistry Data [DONE]
+[ComfyUI-Manager] default cache updated: https://api.comfy.org/nodes
+FETCH DATA from: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\__manager\cache\1514988643_custom-node-list.json [DONE]
+[ComfyUI-Manager] All startup tasks have been completed.
+[DEPRECATION WARNING] Detected import of deprecated legacy API: /scripts/ui.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
+[DEPRECATION WARNING] Detected import of deprecated legacy API: /scripts/ui/components/buttonGroup.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
+[DEPRECATION WARNING] Detected import of deprecated legacy API: /extensions/core/clipspace.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
+[DEPRECATION WARNING] Detected import of deprecated legacy API: /extensions/core/widgetInputs.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
+[ComfyUI-Manager] The ComfyRegistry cache update is still in progress, so an outdated cache is being used.
+FETCH DATA from: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\comfyui_manager\custom-node-list.json [DONE]
+[Autocomplete-Plus] CSV file status:
+  * Danbooru -> base: True, extra: []
+  * E621     -> base: False, extra: []
+[DEPRECATION WARNING] Detected import of deprecated legacy API: /scripts/ui/components/button.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
