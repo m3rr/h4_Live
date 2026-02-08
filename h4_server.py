@@ -61,6 +61,23 @@ def register_routes():
             print(f"[h4_server] Error saving preset: {e}")
             return web.json_response({"error": str(e)}, status=500)
 
+    # 2.5 Comparinator Manual Save
+    @PromptServer.instance.routes.post("/h4/comparinator/save_now")
+    async def comparinator_save_now(request):
+        try:
+            data = await request.json()
+            node_id = str(data.get("node_id"))
+            settings = data.get("settings", {})
+            
+            from .h4_comparinator import H4_Comparinator
+            
+            result = H4_Comparinator.trigger_manual_save(node_id, settings)
+            return web.json_response(result)
+            
+        except Exception as e:
+            print(f"[h4_server] Error saving comparinator: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
     # 3. Load Preset
     @PromptServer.instance.routes.post("/h4/presets/load")
     async def load_preset(request):

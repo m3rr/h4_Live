@@ -18,6 +18,7 @@ const STYLE = `
     height: 100%;
     box-sizing: border-box;
     transition: border-color 0.3s;
+    pointer-events: auto; /* [FIX] Enable mouse interaction for Blink check */
 }
 
 /* MODES */
@@ -33,6 +34,7 @@ const STYLE = `
     position: relative;
     overflow: hidden;
     border-bottom: 2px solid #555;
+    min-height: 0; /* [FIX] Flexbox overflow fix */
 }
 
 /* VIEWPORT (Left/Right) */
@@ -77,7 +79,7 @@ const STYLE = `
 .h4-img-layer {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: contain; /* [FIX] Dynamic Fit: Ensure image scales without crop */
     user-select: none;
     pointer-events: none;
     display: block;
@@ -151,6 +153,9 @@ const STYLE = `
     gap: 5px;
     box-sizing: border-box;
     transition: height 0.3s;
+    /* Hide scrollbar but allow scroll */
+    scrollbar-width: thin;
+    scrollbar-color: #555 #222;
 }
 .h4-history-strip.hidden { height: 0; padding: 0; border: none; }
 
@@ -170,6 +175,20 @@ const STYLE = `
 }
 .h4-history-thumb:hover { opacity: 1.0; border-color: #fff; }
 .h4-history-thumb.active { border-color: #0f0; opacity: 1.0; box-shadow: 0 0 10px #0f0; }
+
+.h4-history-thumb.locked-ref {
+    border: 2px solid #fd0 !important; /* Gold */
+    box-shadow: 0 0 10px #fd0;
+    opacity: 1.0;
+}
+.h4-history-thumb.locked-ref::after {
+    content: "🔒";
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 12px;
+    text-shadow: 0 0 3px #000;
+}
 
 .h4-history-timestamp {
     position: absolute;
@@ -258,23 +277,186 @@ const STYLE = `
     height: 0;
     transition: height 0.3s ease;
     border-top: 1px solid #444;
+    display: flex;
+    flex-direction: column;
 }
-.h4-meta-drawer.open { height: 100px; }
+.h4-meta-drawer.open { height: 350px; } /* Increased height for settings */
+
+.h4-drawer-content {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    overflow: hidden;
+}
+.h4-drawer-col {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-sizing: border-box;
+    overflow-y: auto; /* Scroll if needed */
+}
+.h4-drawer-col.meta { width: 50%; border-right: 1px solid #333; }
+.h4-drawer-col.settings { width: 50%; }
+
 .h4-meta-input {
     width: 100%;
     height: 100%;
     background: #000;
     color: #0f0;
     font-family: monospace;
-    border: none;
+    border: 1px solid #333;
     padding: 5px;
     resize: none;
     font-size: 11px;
     box-sizing: border-box;
 }
-.h4-meta-input:focus { outline: none; border-left: 2px solid #0f0; }
+.h4-meta-input:focus { outline: none; border-color: #0f0; }
+
+.h4-drawer-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    color: #ccc;
+}
+.h4-drawer-input {
+    background: #222;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 2px 5px;
+    font-family: monospace;
+    width: 100px;
+}
+
+.h4-action-btn {
+    margin-top: auto;
+    background: #004400;
+    color: #0f0;
+    border: 1px solid #0f0;
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: background 0.2s;
+}
+.h4-action-btn:hover { background: #006600; color: #fff; }
+.h4-action-btn:active { background: #0f0; color: #000; }
 
 /* LIGHTBOX OVERLAY */
+/* LIGHTBOX OVERLAY */
+.h4-slider-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px; /* Thin */
+    background: #f00; /* Red LED */
+    box-shadow: 0 0 5px #f00, 0 0 10px #f00; /* Glow */
+    cursor: col-resize;
+    z-index: 100; /* [FIX] Ensure above everything */
+    left: 50%;
+    transform: translateX(-50%); /* Center strictly on the line */
+    pointer-events: none; /* Let mouse pass through to container listener? No, we drag via container */
+}
+
+/* Knob in the middle for gripping */
+.h4-slider-handle::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 30px;
+    background: #f00;
+    border: 1px solid #000;
+    box-shadow: 0 0 10px #f00;
+    left: 100%;
+}
+
+/* TOGGLE SWITCH STYLE (For Top Bar) */
+.h4-switch-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 11px;
+    font-weight: bold;
+    color: #ccc;
+    text-transform: uppercase;
+}
+.h4-switch {
+    width: 36px;
+    height: 18px;
+    background: #333;
+    border-radius: 20px;
+    position: relative;
+    transition: background 0.3s;
+    border: 1px solid #555;
+}
+.h4-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 12px; height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+.h4-switch.active {
+    background: #0f0;
+    border-color: #0f0;
+}
+.h4-switch.active::after {
+    transform: translateX(18px);
+    background: #000;
+}
+.h4-switch-wrap:hover .h4-switch {
+    border-color: #fff;
+}
+
+/* CYBERPUNK ACTION BUTTON (Updated) */
+.h4-action-btn {
+    margin-top: auto;
+    background: linear-gradient(180deg, #003300, #005500);
+    color: #0f0;
+    border: 1px solid #0f0;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    letter-spacing: 3px;
+    text-shadow: 0 0 5px #0f0;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.2), inset 0 0 20px rgba(0,0,0,0.5);
+    font-family: monospace;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.h4-action-btn:hover {
+    background: #0f0;
+    color: #000;
+    box-shadow: 0 0 20px #0f0;
+    text-shadow: none;
+}
+.h4-action-btn::before {
+    content: "";
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+.h4-action-btn:hover::before {
+    left: 100%;
+}
+
 .h4-lightbox-overlay {
     position: fixed;
     top: 0;
@@ -364,6 +546,13 @@ class ComparinatorUI {
         // Cache for images
         this.currentImageUrl = "";
         this.historyImageUrl = "";
+        this.liveNodeData = null;
+
+        // State Flags
+        this.zoomLocked = false;
+        this.blinkMode = false;
+        this.lockedReferenceItem = null;
+        this.currentHistoryList = [];
 
         // --- DOM Construction ---
         this.container = document.createElement("div");
@@ -391,14 +580,8 @@ class ComparinatorUI {
 
         this.buildControls();
 
-        // Metadata Drawer
-        this.drawer = document.createElement("div");
-        this.drawer.className = "h4-meta-drawer";
-        this.metaInput = document.createElement("textarea");
-        this.metaInput.className = "h4-meta-input";
-        this.metaInput.placeholder = "Enter custom metadata here...";
-        this.metaInput.addEventListener("input", (e) => this.syncMetadata(e.target.value));
-        this.drawer.appendChild(this.metaInput);
+        // Settings Drawer (Metadata + Save Options)
+        this.buildDrawer();
 
         this.container.appendChild(this.stage);
         this.container.appendChild(this.historyStrip);
@@ -412,6 +595,20 @@ class ComparinatorUI {
             }
         };
         api.addEventListener("h4.comparinator.update", this.onUpdate);
+
+        // [NEW] History Strip Horizontal Scroll
+        this.historyStrip.addEventListener("wheel", (e) => {
+            if (e.deltaY !== 0) {
+                e.preventDefault();
+                this.historyStrip.scrollLeft += e.deltaY;
+            }
+        });
+
+        // [NEW] Keyboard Shortcuts
+        // Store bind so we can remove listener if needed (though node usually persists)
+        this.boundHandleKey = this.handleKey.bind(this);
+        window.addEventListener("keydown", this.boundHandleKey);
+        window.addEventListener("keyup", this.boundHandleKey);
 
         // Fetch Initial History
         setTimeout(() => {
@@ -427,6 +624,9 @@ class ComparinatorUI {
                     console.log("[H4 Comparinator] History data received:", data);
                     if (data.history && data.history.length > 0) {
                         this.renderStrip(data.history);
+                        // [FIX] Initialize Live Node Data from latest history item
+                        // This ensures that even after reload, "Live" (A) compares against the last known generation.
+                        this.liveNodeData = data.history[0];
                         // Convert first history item to "current" if no current exists?
                         // Or just wait for update. 
                         // If we have history, let's at least populate the strip.
@@ -485,11 +685,18 @@ class ComparinatorUI {
         el.addEventListener("mousemove", (e) => {
             if (this.inspectMode) {
                 // INSPECT MODE: Move Reticle
-                // Ensure we don't process if blocked? No, mousemove is fine.
                 requestAnimationFrame(() => this.handleMouseMoveInspect(e, el, reticle));
             } else {
                 // COMPARE MODE: Move Slider
                 this.handleMouseMoveCompare(e, el, imgB, handle);
+            }
+        });
+
+        // [NEW] Zoom Lock Trigger (Mouse3 / Middle Click)
+        el.addEventListener("mousedown", (e) => {
+            if (this.inspectMode && e.button === 1) { // Middle Click
+                e.preventDefault();
+                this.toggleZoomLock();
             }
         });
 
@@ -533,77 +740,261 @@ class ComparinatorUI {
         return { el, imgHistoryDisplay, zoomCanvas, tag };
     }
 
+    handleKey(e) {
+        // Ignore if user is typing in metadata drawer
+        if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+
+        // Blink Mode (Spacebar)
+        if (e.code === "Space") {
+            // Only active if mouse is hovering container
+            if (!this.container.matches(':hover')) return;
+
+            e.preventDefault();
+            if (e.type === "keydown" && !this.blinkMode) {
+                this.toggleBlinkMode(true);
+            } else if (e.type === "keyup") {
+                this.toggleBlinkMode(false);
+            }
+            return;
+        }
+
+        // Shortcuts (Shift + Number)
+        if (e.shiftKey && e.type === "keydown") {
+            switch (e.key) {
+                case "1": this.setSliderMode("A"); break;
+                case "2": this.setSliderMode("B"); break;
+                case "3": this.setSliderMode("Split"); break;
+            }
+        }
+    }
+
     buildControls() {
-        // Save Toggle
-        const saveToggle = this.createToggle("Save Output", (isOn) => this.toggleSaveMode(isOn));
+        // [FIX] Restore Top Controls as SWITCH TOGGLES
+        this.controlPanel.innerHTML = "";
 
-        // Inspect Toggle
-        const inspectToggle = this.createToggle("INSPECT DETAILS", (isOn) => this.toggleInspectMode(isOn), "inspect-on");
+        // Helper to create switch
+        const createSwitch = (label, onChange, isActive = false) => {
+            const wrap = document.createElement("div");
+            wrap.className = "h4-switch-wrap";
 
-        // Zoom Slider (Hidden initially)
+            const switchEl = document.createElement("div");
+            switchEl.className = "h4-switch" + (isActive ? " active" : "");
+
+            const text = document.createElement("span");
+            text.textContent = label;
+
+            wrap.onclick = () => {
+                const newState = !switchEl.classList.contains("active");
+                switchEl.classList.toggle("active", newState);
+                onChange(newState);
+            };
+
+            wrap.appendChild(switchEl);
+            wrap.appendChild(text);
+            return { wrap, switchEl };
+        };
+
+        // 1. SAVE OUTPUT / SETTINGS
+        const toggleSettings = createSwitch("SAVE OUTPUT / SETTINGS", (active) => {
+            this.toggleDrawer(active);
+        });
+        this.controlPanel.appendChild(toggleSettings.wrap);
+        this.toggleSettingsSwitch = toggleSettings.switchEl;
+
+        // 2. INSPECTINATOR MODE
+        const toggleInspect = createSwitch("INSPECTINATOR", (active) => {
+            this.toggleInspectMode(active);
+        });
+        this.controlPanel.appendChild(toggleInspect.wrap);
+        this.toggleInspectSwitch = toggleInspect.switchEl;
+
+        // Zoom Slider (Only visible in Inspect)
         this.zoomControl = document.createElement("div");
         this.zoomControl.className = "h4-slider-wrap hidden";
-        this.zoomControl.innerHTML = `<span>ZM: 200%</span><input type="range" min="100" max="400" value="200">`;
+        this.zoomControl.style.marginLeft = "auto";
+        this.zoomControl.innerHTML = `<span>ZM: 200%</span><input type="range" min="100" max="1000" value="200">`;
         const range = this.zoomControl.querySelector("input");
         const label = this.zoomControl.querySelector("span");
 
         range.oninput = (e) => {
             this.zoomLevel = e.target.value / 100;
             label.textContent = `ZM: ${e.target.value}%`;
-            // Force update if we have a valid reticle position, 
-            // otherwise just wait for mouse move.
-            // Better yet, dispatch a fake mousemove or store last position?
-            // For now, let's just let the next interaction handle it or use the wheel.
+            if (this.lastMouseX !== undefined) this.updateReticle(this.lastMouseX, this.lastMouseY);
         };
+        this.controlPanel.appendChild(this.zoomControl);
 
-        // Wheel Zoom Support for global container (or just right pane?)
-        // Let's add it to the paneRight element in createRightPane
-
-
-        // Metadata Button
-        this.metaBtn = document.createElement("button");
-        this.metaBtn.className = "h4-btn";
-        this.metaBtn.textContent = "METADATA";
-        this.metaBtn.onclick = () => this.toggleDrawer();
-
-        this.controlPanel.appendChild(saveToggle);
-        this.controlPanel.appendChild(inspectToggle);
-        this.controlPanel.appendChild(this.zoomControl); // Insert Slider
-        this.controlPanel.appendChild(this.metaBtn);
-
-        // [FIX] Add Wheel Listener HERE (Global for this instance)
-        // We attach it to the zoomCanvas (Right Pane) but need to ensure it works
-        // even if we haven't hovered yet? No, zoomCanvas is the target.
-        // [FIX] Attach Wheel Listener to the MAIN CONTAINER
-        // This ensures it works whether we hover the Source (Left) or Result (Right).
+        // Global Wheel Listener (Attached to Container)
         this.container.addEventListener("wheel", (e) => {
             if (!this.inspectMode) return;
             e.preventDefault();
             e.stopPropagation();
-
-            const delta = Math.sign(e.deltaY) * -0.5; // Up = Zoom In
+            const delta = Math.sign(e.deltaY) * -0.5;
             let newZoom = this.zoomLevel + delta;
-            newZoom = Math.max(1.0, Math.min(5.0, newZoom)); // Clamp 1x to 5x
-
+            newZoom = Math.max(1.0, Math.min(5.0, newZoom));
             this.zoomLevel = newZoom;
-
-            // Update UI
             this.paneRight.tag.textContent = `ZOOM VIEW ${Math.round(this.zoomLevel * 100)}%`;
-            const range = this.zoomControl.querySelector("input");
-            const label = this.zoomControl.querySelector("span");
             if (range) range.value = Math.round(newZoom * 100);
             if (label) label.textContent = `ZM: ${Math.round(newZoom * 100)}%`;
-
-            // Trigger update
-            if (this.lastMouseX !== undefined && this.lastMouseY !== undefined) {
-                this.updateReticle(this.lastMouseX, this.lastMouseY);
-            }
+            if (this.lastMouseX !== undefined) this.updateReticle(this.lastMouseX, this.lastMouseY);
         }, { passive: false });
     }
 
-    // --------------------------------------------------------------------------
-    // Core Logic
-    // --------------------------------------------------------------------------
+
+
+
+    buildDrawer() {
+        this.drawer = document.createElement("div");
+        this.drawer.className = "h4-meta-drawer";
+
+        const content = document.createElement("div");
+        content.className = "h4-drawer-content";
+
+        // Col 1: Metadata
+        const colMeta = document.createElement("div");
+        colMeta.className = "h4-drawer-col meta";
+        this.metaInput = document.createElement("textarea");
+        this.metaInput.className = "h4-meta-input";
+        this.metaInput.placeholder = "Enter custom metadata here... (Attached to saved files)";
+        this.metaInput.addEventListener("input", (e) => this.syncMetadata(e.target.value));
+        colMeta.appendChild(this.metaInput);
+
+        // Col 2: Settings
+        const colSettings = document.createElement("div");
+        colSettings.className = "h4-drawer-col settings";
+
+        const createCheck = (label, key, def) => {
+            const row = document.createElement("div");
+            row.className = "h4-drawer-row";
+            const cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.checked = def;
+            cb.id = `h4_chk_${key}`;
+            cb.addEventListener("change", () => this.updateSaveSettings());
+            const lb = document.createElement("label");
+            lb.textContent = label;
+            lb.htmlFor = `h4_chk_${key}`;
+            row.appendChild(cb);
+            row.appendChild(lb);
+            colSettings.appendChild(row);
+            return cb;
+        };
+
+        const createInput = (label, key, def, placeholder) => {
+            const row = document.createElement("div");
+            row.className = "h4-drawer-row";
+            const lb = document.createElement("label");
+            lb.textContent = label;
+            const inp = document.createElement("input");
+            inp.type = "text";
+            inp.className = "h4-drawer-input";
+            inp.value = def;
+            inp.placeholder = placeholder || "";
+            inp.addEventListener("input", () => this.updateSaveSettings());
+            row.appendChild(lb);
+            row.appendChild(inp);
+            colSettings.appendChild(row);
+            return inp;
+        };
+
+        // Auto-Save
+        const wSaveMode = this.node.widgets.find(w => w.name === "save_mode");
+        const initAutoSave = wSaveMode ? wSaveMode.value : false;
+        this.chkAutoSave = createCheck("Auto-Save on Workflow Run", "auto_save", initAutoSave);
+        this.chkAutoSave.addEventListener("change", (e) => this.toggleSaveMode(e.target.checked));
+
+        // Options
+        this.chkSaveA = createCheck("Save A (Live)", "save_a", false);
+        this.chkSaveB = createCheck("Save B (History)", "save_b", false);
+        this.chkSaveComp = createCheck("Save Comparison (Side-by-Side)", "save_comp", false);
+        this.chkSaveWF = createCheck("Save with Workflow", "save_wf", false);
+        this.chkSaveMeta = createCheck("Save with Metadata", "save_meta", false);
+        this.chkSavePrompt = createCheck("Save with Prompt", "save_prompt", false);
+
+        // Toggle All
+        const rowAll = document.createElement("div");
+        rowAll.className = "h4-drawer-row";
+        const btnAll = document.createElement("button");
+        btnAll.textContent = "Toggle All Extras";
+        btnAll.className = "h4-btn";
+        btnAll.style.fontSize = "9px";
+        btnAll.onclick = () => {
+            const val = !this.chkSaveWF.checked;
+            this.chkSaveWF.checked = val;
+            this.chkSaveMeta.checked = val;
+            this.chkSavePrompt.checked = val;
+            this.updateSaveSettings();
+        };
+        rowAll.appendChild(btnAll);
+        colSettings.appendChild(rowAll);
+
+        // Paths
+        this.inpPrefix = createInput("Prefix:", "prefix", "h4_");
+        this.inpPath = createInput("Subfolder:", "path", "comparisons");
+
+        // Save Button (Centered, No Emoji)
+        this.btnSaveNow = document.createElement("div");
+        this.btnSaveNow.className = "h4-action-btn";
+        this.btnSaveNow.textContent = "SAVE NOW";
+        this.btnSaveNow.onclick = () => this.triggerManualSave();
+        colSettings.appendChild(this.btnSaveNow);
+
+        content.appendChild(colMeta);
+        content.appendChild(colSettings);
+        this.drawer.appendChild(content);
+
+        if (this.node.widgets) setTimeout(() => this.updateSaveSettings(), 1000);
+    }
+
+    updateSaveSettings() {
+        const settings = {
+            save_a: this.chkSaveA.checked,
+            save_b: this.chkSaveB.checked,
+            save_comp: this.chkSaveComp.checked,
+            save_wf: this.chkSaveWF.checked,
+            save_meta: this.chkSaveMeta.checked,
+            save_prompt: this.chkSavePrompt.checked,
+            prefix: this.inpPrefix.value,
+            path: this.inpPath.value
+        };
+        const json = JSON.stringify(settings);
+        if (this.node.widgets) {
+            const w = this.node.widgets.find(w => w.name === "save_settings");
+            if (w) w.value = json;
+        }
+    }
+
+    triggerManualSave() {
+        const settings = {
+            save_a: this.chkSaveA.checked,
+            save_b: this.chkSaveB.checked,
+            save_comp: this.chkSaveComp.checked,
+            save_wf: this.chkSaveWF.checked,
+            save_meta: this.chkSaveMeta.checked,
+            save_prompt: this.chkSavePrompt.checked,
+            prefix: this.inpPrefix.value,
+            path: this.inpPath.value
+        };
+
+        api.fetchApi('/h4/comparinator/save_now', {
+            method: 'POST',
+            body: JSON.stringify({ node_id: this.node.id, settings: settings })
+        }).then(res => res.json()).then(data => {
+            if (data.success) {
+                this.btnSaveNow.textContent = "✅ SAVED!";
+                this.btnSaveNow.style.background = "#0f0";
+                this.btnSaveNow.style.color = "#000";
+                setTimeout(() => {
+                    this.btnSaveNow.textContent = "SAVE NOW";
+                    this.btnSaveNow.style.background = "";
+                    this.btnSaveNow.style.color = "";
+                }, 1000);
+            } else {
+                alert("Save Failed: " + data.error);
+            }
+        }).catch(err => alert("Save Error: " + err));
+    }
+
+
 
     handleMouseMoveCompare(e, container, imgB, handle) {
         const rect = container.getBoundingClientRect();
@@ -617,6 +1008,9 @@ class ComparinatorUI {
     }
 
     handleMouseMoveInspect(e, container, reticle) {
+        // [NEW] Zoom Lock Check
+        if (this.zoomLocked) return;
+
         // Just store position and call updater
         this.lastMouseX = e.clientX;
         this.lastMouseY = e.clientY;
@@ -861,9 +1255,9 @@ class ComparinatorUI {
     }
 
     updateData(data) {
-        // Update Current Image (Left Pane)
-        // Update Current Image (Left Pane)
+
         if (data.current) {
+            this.liveNodeData = data.current;
             const t = data.current.timestamp || new Date().getTime();
 
             // --------------------------------------------------------
@@ -872,8 +1266,18 @@ class ComparinatorUI {
             // we should set them up for comparison immediately!
             // --------------------------------------------------------
             if (data.current.filename_a && data.current.filename_b && data.current.filename_a !== data.current.filename_b) {
-                const urlA = `/view?filename=${data.current.filename_a}&type=temp&t=${t}`;
+                let urlA = `/view?filename=${data.current.filename_a}&type=temp&t=${t}`;
                 const urlB = `/view?filename=${data.current.filename_b}&type=temp&t=${t}`;
+
+                // [NEW] History Lock Logic
+                // If we have a locked reference, IT becomes the 'Before' image (A)
+                // regardless of what the backend sent as 'A'.
+                if (this.lockedReferenceItem) {
+                    const refT = this.lockedReferenceItem.timestamp;
+                    // Use filename_b of the reference (the result of that past gen) as our new A
+                    urlA = `/view?filename=${this.lockedReferenceItem.filename_b}&type=temp&t=${refT}`;
+                    console.log("[Comparinator] Using Locked Reference as Image A:", urlA);
+                }
 
                 // Set Background (A)
                 this.paneLeft.imgA.src = urlA;
@@ -890,7 +1294,18 @@ class ComparinatorUI {
                 // Ensure we are NOT in full mode (Slider active)
                 this.stage.classList.remove("full-mode");
 
+                // [FIX] If we are viewing history, and a new live generation comes in,
+                // we should probably reset to show the new live generation?
+                // "live view needs to not change , it needs to stay the same."
+                // "The only view that changes is the second one"
+                // This implies the slider is typically comparing Live (A) vs History (B).
+                // Currently updateData sets A and B based on the payload.
+                // If data.current HAS distinct A/B (e.g. from node input), we show that.
+
+                // If we have a lockedReferenceItem, we already handle that in updateData logic (lines 1000+)
+
             } else {
+                // FALLBACK logic...
                 // FALLBACK: Single Image (Standard Preview behavior)
                 // Use 'filename_b' as the primary result usually
                 this.currentImageUrl = `/view?filename=${data.current.filename_b}&type=temp&t=${t}`;
@@ -942,22 +1357,36 @@ class ComparinatorUI {
         const urlA = `/view?filename=${item.filename_a}&type=temp&t=${t}`;
         const urlB = `/view?filename=${item.filename_b}&type=temp&t=${t}`;
 
-        // Update both images to recreate the full historic comparison
-        this.paneLeft.imgA.src = urlA;
-        this.paneLeft.imgB.src = urlB;
+        // [NEW] Logic: Compare Live (Left) vs History Result (Right)
+
+        // 1. Determine Image A (Left Pane)
+        // Default to the LIVE image if available
+        let finalUrlA = urlA; // Default to history's A if no live data?
+
+        if (this.liveNodeData && this.liveNodeData.filename_b) {
+            // User wants to compare "Live" vs "Past".
+            // "Live" usually means the latest Result (B of the live pair).
+            const liveT = this.liveNodeData.timestamp;
+            finalUrlA = `/view?filename=${this.liveNodeData.filename_b}&type=temp&t=${liveT}`;
+        }
+
+        // 2. Determine Image B (Right Pane)
+        // This is the History item's Result
+        const finalUrlB = urlB;
+
+        // Update Images
+        this.paneLeft.imgA.src = finalUrlA;
+        this.paneLeft.imgB.src = finalUrlB;
 
         // Update Right Pane Reference (for standard view usage)
-        this.historyImageUrl = urlB;
-        this.paneRight.imgHistoryDisplay.src = urlB;
+        this.historyImageUrl = finalUrlB;
+        this.paneRight.imgHistoryDisplay.src = finalUrlB;
 
-        // [FIX] If in Inspect Mode, we usually stick to one image (B or A).
-        // Let's default to B (Result) for the Zoom View.
+        // [FIX] Inspect Mode
         if (this.inspectMode) {
-            this.currentImageUrl = urlB;
-            // In Inspect Mode, imgA is the only visible image (Source Map).
-            // We set it to urlB so the reticle tracks the Result image.
-            this.paneLeft.imgA.src = urlB;
-            this.paneRight.zoomCanvas.style.backgroundImage = `url("${urlB}")`;
+            this.currentImageUrl = finalUrlB;
+            this.paneLeft.imgA.src = finalUrlB; // Show B in main if inspecting
+            this.paneRight.zoomCanvas.style.backgroundImage = `url("${finalUrlB}")`;
 
             this.paneLeft.imgA.onload = () => {
                 if (this.inspectMode && this.lastMouseX !== undefined) {
@@ -965,9 +1394,14 @@ class ComparinatorUI {
                 }
             };
         }
+
+        // Ensure Slider is Visible (Split Mode)
+        this.setSliderMode("Split");
+        this.stage.classList.remove("full-mode");
     }
 
     renderStrip(historyList) {
+        this.currentHistoryList = historyList; // [NEW] Store for re-rendering
         this.historyStrip.innerHTML = "";
 
         historyList.forEach((item, index) => {
@@ -979,35 +1413,41 @@ class ComparinatorUI {
 
             const num = index + 1;
 
+            // Check if this item is the locked reference
+            if (this.lockedReferenceItem && item.timestamp === this.lockedReferenceItem.timestamp) {
+                thumb.classList.add("locked-ref");
+            }
+
             thumb.onclick = () => {
                 const isSelected = thumb.classList.contains("active");
                 Array.from(this.historyStrip.children).forEach(c => c.classList.remove("active"));
-
                 thumb.classList.add("active");
 
                 // INSPECT MODE LOGIC
                 if (this.inspectMode) {
-                    // Update EVERYTHING to reflect this new image
                     this.currentImageUrl = url;
-
-                    // 1. Update Zoom Background
                     this.paneRight.zoomCanvas.style.backgroundImage = `url("${url}")`;
-
-                    // 2. Update Source Map (Left Pane) so reticle works on correct image
                     this.paneLeft.imgA.src = url;
-
-                    // Optional: Visual feedback that this is the "Inspected" image?
                     return;
                 }
 
                 // COMPARE MODE LOGIC
-                if (isSelected) {
+                if (isSelected && !this.lockedReferenceItem) {
+                    // Only toggle full mode if NOT dealing with complex lock
                     this.stage.classList.add("full-mode");
-                    thumb.classList.remove("active"); // Toggle off
+                    thumb.classList.remove("active");
                 } else {
                     this.stage.classList.remove("full-mode");
                     this.selectHistoryItem(item);
                 }
+            };
+
+            // [NEW] Right-Click to Lock Reference
+            thumb.oncontextmenu = (e) => {
+                e.preventDefault();
+                this.toggleReferenceLock(item);
+                // Re-render to show lock icon? Or just toggle class here manually for speed
+                this.renderStrip(this.currentHistoryList || historyList);
             };
 
             thumb.ondblclick = (e) => {
@@ -1049,6 +1489,92 @@ class ComparinatorUI {
         wrap.appendChild(txt);
         wrap.appendChild(sw);
         return wrap;
+    }
+
+    // --- UX HANDLERS ---
+
+    handleKey(e) {
+        // Ignore if user is typing in metadata drawer
+        if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+
+        // Blink Mode (Spacebar)
+        if (e.code === "Space") {
+            // Only active if mouse is hovering container
+            if (!this.container.matches(':hover')) return;
+
+            e.preventDefault();
+            if (e.type === "keydown" && !this.blinkMode) {
+                this.toggleBlinkMode(true);
+            } else if (e.type === "keyup") {
+                this.toggleBlinkMode(false);
+            }
+            return;
+        }
+
+        // Shortcuts (Shift + Number)
+        if (e.shiftKey && e.type === "keydown") {
+            switch (e.key) {
+                case "1": this.setSliderMode("A"); break;
+                case "2": this.setSliderMode("B"); break;
+                case "3": this.setSliderMode("Split"); break;
+                case "4": /* Reserved for Blink Toggle if needed */ break;
+            }
+        }
+    }
+
+    toggleZoomLock() {
+        this.zoomLocked = !this.zoomLocked;
+        // Visual Feedback?
+        this.paneRight.el.style.borderColor = this.zoomLocked ? "#f00" : ""; // Red border when locked
+        // Also fix reticle color?
+        this.paneLeft.reticle.style.borderColor = this.zoomLocked ? "#f00" : "#0ff";
+        this.paneLeft.reticle.style.boxShadow = this.zoomLocked ? "0 0 5px #f00" : "0 0 5px #0ff";
+    }
+
+    toggleBlinkMode(active) {
+        this.blinkMode = active;
+        // Logic: Keep A visible, Toggle B visibility
+        // If Active: Hide B (Show A). Validate with user "Blink" usually means "Show Ref"?
+        // Actually, if we are looking at B (Slider > 50%), Space should show A.
+        // If we are looking at A, Space should show B.
+        // Simplest: Force B opacity to 0 when active.
+
+        if (this.paneLeft.imgB) {
+            this.paneLeft.imgB.style.opacity = active ? "0" : "1";
+        }
+    }
+
+    setSliderMode(mode) {
+        if (!this.paneLeft.handle || !this.paneLeft.imgB) return;
+
+        // Disable Inspect Mode if active?
+        if (this.inspectMode) this.toggleInspectMode(false);
+
+        if (mode === "A") {
+            this.paneLeft.handle.style.left = "100%";
+            this.paneLeft.imgB.style.clipPath = "inset(0 0 0 100%)"; // Hide B
+        } else if (mode === "B") {
+            this.paneLeft.handle.style.left = "0%";
+            this.paneLeft.imgB.style.clipPath = "inset(0 0 0 0%)"; // Show B
+        } else if (mode === "Split") {
+            this.paneLeft.handle.style.left = "50%";
+            this.paneLeft.imgB.style.clipPath = "inset(0 0 0 50%)"; // Split
+        }
+    }
+
+
+    toggleReferenceLock(item) {
+        if (this.lockedReferenceItem && this.lockedReferenceItem.timestamp === item.timestamp) {
+            // Unlock
+            this.lockedReferenceItem = null;
+            console.log("[Comparinator] Reference Unlocked");
+        } else {
+            // Lock New
+            this.lockedReferenceItem = item;
+            console.log("[Comparinator] Reference Locked:", item);
+        }
+        // Force Re-render to update UI
+        if (this.currentHistoryList) this.renderStrip(this.currentHistoryList);
     }
 
     openLightbox(item) {
@@ -1173,14 +1699,66 @@ app.registerExtension({
                 this.setSize([640, 580]);
                 const hideWidget = (wName) => {
                     const w = this.widgets.find(w => w.name === wName);
-                    if (w) { w.type = "hidden"; w.computeSize = () => [0, -4]; w.visible = false; }
+                    if (w) {
+                        w.type = "converted-widget";
+                        w.computeSize = () => [0, -4];
+                        w.visible = false;
+                        w.disabled = true;
+                        w.draw = () => { }; // [FIX] Prevent canvas rendering
+                        // SAFE DOM HIDING
+                        if (w.inputEl) { w.inputEl.style.display = "none"; w.inputEl.style.visibility = "hidden"; }
+                        if (w.element) { w.element.style.display = "none"; w.element.style.visibility = "hidden"; }
+                    }
                 };
-                setTimeout(() => {
+
+                // Keep trying for a moment as widgets init
+                let attempts = 0;
+                const hider = () => {
                     hideWidget("save_mode");
                     hideWidget("metadata_text");
+                    hideWidget("save_settings");
+                    hideWidget("filename_prefix");
+
+                    // Retrigger resize & dirty
                     this.onResize && this.onResize(this.size);
                     app.graph.setDirtyCanvas(true, true);
-                }, 100);
+
+                    attempts++;
+                    if (attempts < 5) setTimeout(hider, 200);
+                };
+                setTimeout(hider, 100);
+
+            };
+
+            // [NEW] Hook onConfigure for graph loading
+            const onConfigure = nodeType.prototype.onConfigure;
+            nodeType.prototype.onConfigure = function () {
+                if (onConfigure) onConfigure.apply(this, arguments);
+                if (this.comparinatorUI) {
+                    try {
+                        const hider = () => {
+                            const hide = (wName) => {
+                                const w = this.widgets?.find(w => w.name === wName);
+                                if (w) {
+                                    w.type = "converted-widget";
+                                    w.computeSize = () => [0, -4];
+                                    w.visible = false;
+                                    w.disabled = true;
+                                    w.draw = () => { }; // [FIX] Prevent canvas rendering
+                                    // SAFE DOM HIDING
+                                    if (w.inputEl) { w.inputEl.style.display = "none"; w.inputEl.style.visibility = "hidden"; }
+                                    if (w.element) { w.element.style.display = "none"; w.element.style.visibility = "hidden"; }
+                                }
+                            };
+                            hide("save_mode");
+                            hide("metadata_text");
+                            hide("save_settings");
+                            hide("filename_prefix");
+                            this.onResize && this.onResize(this.size);
+                        };
+                        setTimeout(hider, 100);
+                    } catch (e) { }
+                }
             };
         }
     }

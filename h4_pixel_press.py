@@ -1,203 +1,177 @@
-# h4_pixel_press.py - The "Supersampling" Engine
-# ==============================================================================
-# H4_PixelPress - "Squish pixels for higher density."
-# ==============================================================================
-
 import torch
-import torch.nn.functional as F
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter, ImageCms, ImageOps
 import comfy.utils
-from comfy.utils import common_upscale
+import folder_paths
 
-from .h4_faceforge.utils import _log, tensor_to_pil, batched_pil_to_tensor
+# --- HDR HELPER FUNCTIONS (Ported from SuperBeasts) ---
 
-# ==============================================================================
-# H4_PixelPress Node
-# ==============================================================================
+def adjust_shadows_non_linear(luminance, shadow_intensity, max_shadow_adjustment=1.5):
+    lum_array = np.array(luminance, dtype=np.float32) / 255.0
+    shadows = lum_array ** (1 / (1 + shadow_intensity * max_shadow_adjustment))
+    return np.clip(shadows * 255, 0, 255).astype(np.uint8)
+
+def adjust_highlights_non_linear(luminance, highlight_intensity, max_highlight_adjustment=1.5):
+    lum_array = np.array(luminance, dtype=np.float32) / 255.0
+    highlights = 1 - (1 - lum_array) ** (1 + highlight_intensity * max_highlight_adjustment)
+    return np.clip(highlights * 255, 0, 255).astype(np.uint8)
+
+def apply_gamma_correction(lum_array, gamma):
+    if gamma == 0: return np.clip(lum_array, 0, 255).astype(np.uint8)
+    gamma_corrected = 1 / (1.1 - gamma)
+    adjusted = 255 * ((lum_array / 255) ** gamma_corrected)
+    return np.clip(adjusted, 0, 255).astype(np.uint8)
+
+def merge_adjustments_with_blend_modes(luminance, shadows, highlights, hdr_intensity, shadow_intensity, highlight_intensity):
+    base = np.array(luminance, dtype=np.float32)
+    
+    scaled_shadow_intensity = shadow_intensity ** 2 * hdr_intensity
+    scaled_highlight_intensity = highlight_intensity ** 2 * hdr_intensity
+    
+    shadow_mask = np.clip((1 - (base / 255)) ** 2, 0, 1)
+    highlight_mask = np.clip((base / 255) ** 2, 0, 1)
+    
+    adjusted_shadows = np.clip(base * (1 - shadow_mask * scaled_shadow_intensity), 0, 255)
+    adjusted_highlights = np.clip(base + (255 - base) * highlight_mask * scaled_highlight_intensity, 0, 255)
+    
+    adjusted_luminance = np.clip(adjusted_shadows + adjusted_highlights - base, 0, 255)
+    final_luminance = np.clip(base * (1 - hdr_intensity) + adjusted_luminance * hdr_intensity, 0, 255).astype(np.uint8)
+    return Image.fromarray(final_luminance)
+
+# --- MAIN NODE ---
 
 class H4_PixelPress:
     """
-    Imagine running a video game at 8K resolution on a 4K monitor.
-    That is what this node does for your AI images.
-    
-    It takes your image, magically "squishes" the pixels together using high-quality
-    compression (Lanczos), which merges noise patterns into smooth textures 
-    and eliminates jagged edges (Aliasing).
-    
-    "Pixel Compression" = The secret to "thick", premium-looking images.
+    True Supersampling Node (SSAA).
+    Upscales -> Enhances (HDR/Sharpen) -> Downscales (Lanczos).
     """
-    
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "image": ("IMAGE", {"tooltip": "The image you want to density-press."}),
-                
-                "press_level": ([
-                    "2x (Quality Mode)", 
-                    "4x (Ultra Mode)", 
-                    "1.5x (Balanced)"
-                ], {"default": "2x (Quality Mode)", 
-                    "tooltip": "How hard do we squish? 2x means we take 4 pixels and merge them into 1 perfect pixel. (Like SSAA x2 in games)."}),
-                
-                "press_cycles": ("INT", {
-                    "default": 1, "min": 1, "max": 3, 
-                    "tooltip": "How many times do we wash the image? More cycles = cleaner, 'creamier' look, but might lose tiny details."
-                }),
-                
-                "restore_finish": ("BOOLEAN", {
-                    "default": True, 
-                    "tooltip": "After compressing, do you want to blow it back up to the original size? (True = High Fidelity 4K Look, False = Extremely Dense 2K Look)."
-                }),
-                
-                "sharpness": ("FLOAT", {
-                    "default": 0.3, "min": 0.0, "max": 1.0, "step": 0.05,
-                    "tooltip": "Post-restoration sharpening intensity. 0.0 = None, 1.0 = Max. Use carefully."
-                }),
+                "image": ("IMAGE",),
+                "supersample_scale": (["2x", "3x", "4x"], {"default": "2x"}),
+                "sharpness": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 2.0, "step": 0.1}),
+                "enable_hdr": ("BOOLEAN", {"default": False}),
+                # HDR Settings (Hidden unless enable_hdr is True via JS)
+                "hdr_intensity": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 5.0, "step": 0.1}),
+                "shadow_intensity": ("FLOAT", {"default": 0.25, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "highlight_intensity": ("FLOAT", {"default": 0.75, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "gamma_intensity": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "contrast": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "enhance_color": ("FLOAT", {"default": 0.25, "min": 0.0, "max": 1.0, "step": 0.05}),
             },
             "optional": {
-                "upscale_model": ("UPSCALE_MODEL", {"tooltip": "Optional: Use an AI Uppscaler logic instead of math to re-inflate the image. Adds hallucinated details."}),
+                "upscale_model": ("UPSCALE_MODEL",),
             }
         }
-    
+
     RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("PRESSED_IMAGE",)
+    RETURN_NAMES = ("pressed_image",)
     FUNCTION = "execute"
     CATEGORY = "h4_Live/Image"
-    
-    def execute(self, image: torch.Tensor, press_level: str, press_cycles: int, restore_finish: bool, sharpness: float, upscale_model=None):
-        _log(f"--- PixelPress Started ({press_level}) ---")
+
+    def execute(self, image, supersample_scale, sharpness, enable_hdr, hdr_intensity, shadow_intensity, highlight_intensity, gamma_intensity, contrast, enhance_color, upscale_model=None):
         
-        # Determine strictness
-        if "4x" in press_level:
-            factor = 0.25  # 1/4 size
-            inverse_factor = 4.0
-            algo_desc = "Ultra (4:1)"
-        elif "2x" in press_level:
-            factor = 0.5   # 1/2 size
-            inverse_factor = 2.0
-            algo_desc = "Quality (2:1)"
-        else:
-            factor = 0.66  # roughly 2/3 size
-            inverse_factor = 1.5
-            algo_desc = "Balanced (1.5:1)"
-            
-        result = image.clone()
-        original_height = image.shape[1]
-        original_width = image.shape[2]
+        # Parse Scale
+        scale_map = {"2x": 2, "3x": 3, "4x": 4}
+        scale = scale_map.get(supersample_scale, 2)
         
-        # Initialize Progress Bar
-        total_steps = press_cycles
-        pbar = comfy.utils.ProgressBar(total_steps)
+        results = []
+        batch_size = image.shape[0]
         
-        for i in range(press_cycles):
-            _log(f"Cycle {i+1}/{press_cycles}: Compressing...")
+        # Profiles for HDR
+        sRGB_profile = ImageCms.createProfile("sRGB")
+        Lab_profile = ImageCms.createProfile("LAB")
+
+        for i in range(batch_size):
+            # 1. Convert to PIL
+            img_tensor = image[i]
+            img_np = (img_tensor.cpu().numpy() * 255).astype(np.uint8)
+            pil_img = Image.fromarray(img_np)
             
-            # --- STEP 1: The Squish (Downscale) ---
-            target_h = int(result.shape[1] * factor)
-            target_w = int(result.shape[2] * factor)
+            orig_w, orig_h = pil_img.size
             
-            permuted = result.permute(0, 3, 1, 2)
-            downscaled = F.interpolate(permuted, size=(target_h, target_w), mode="area")
-            compressed_image = downscaled.permute(0, 2, 3, 1)
-            
-            # --- STEP 2: The Re-Inflation (Upscale) ---
-            if i < press_cycles - 1 or restore_finish:
-                _log(f"Cycle {i+1}: Re-inflating...")
+            # 2. Upscale (Phase 1)
+            if upscale_model:
+                # Use Model
+                # Need to permute to [1, C, H, W] for model
+                # image[i] is [H, W, C]
+                input_tensor = img_tensor.permute(2, 0, 1).unsqueeze(0)
+                device = comfy.model_management.get_torch_device()
+                upscale_model.to(device)
                 
-                if upscale_model is not None:
-                    # AI Upscale Logic
-                    device = comfy.model_management.get_torch_device()
-                    upscale_model.to(device)
+                try:
+                    # Model expects [B, C, H, W]
+                    upscaled_tensor = upscale_model(input_tensor.to(device))
+                    # Result is [B, C, H, W] -> [H, W, C] (squeeze batch)
+                    u_tensor = upscaled_tensor.squeeze(0).permute(1, 2, 0).cpu()
                     
-                    try:
-                        upscaled_image = upscale_model.upscale(compressed_image)
-                    except Exception as e:
-                        _log(f"AI Upscale failed: {e}. Fallback to Bicubic.", level="ERROR")
-                        upscale_model = None # Disable for this run
-                        upscaled_image = self._bicubic_restore(compressed_image, original_width, original_height)
-
-                    # Resize to target original
-                    if upscaled_image.shape[1] != original_height or upscaled_image.shape[2] != original_width:
-                         upscaled_perm = upscaled_image.permute(0, 3, 1, 2)
-                         # Bicubic is good for "shrinking" a 4x AI result back to 1x target
-                         resized_back = F.interpolate(upscaled_perm, size=(original_height, original_width), mode="bicubic", align_corners=False)
-                         result = resized_back.permute(0, 2, 3, 1)
-                    else:
-                        result = upscaled_image
-                else:
-                    # Standard Math Upscale (Bicubic)
-                    result = self._bicubic_restore(compressed_image, original_width, original_height)
-            
-            else:
-                # Last cycle and restore_finish is False
-                _log("Finishing with compressed density.")
-                result = compressed_image
-            
-            # Update Progress
-            pbar.update(1)
-                
-        # --- STEP 3: The Sharpening Pass (Unsharp Mask) ---
-        if restore_finish and sharpness > 0.0:
-            _log(f"Applying Unsharp Mask (Strength: {sharpness})...")
-            result = self._apply_sharpening(result, sharpness)
-                
-        # Move upscale model back to CPU if used
-        if upscale_model is not None:
-            try:
+                    # Convert result back to PIL
+                    u_np = (u_tensor.numpy() * 255).astype(np.uint8)
+                    upscaled_img = Image.fromarray(u_np)
+                except Exception as e:
+                    print(f"Model Upscale Failed: {e}")
+                    upscaled_img = pil_img.resize((orig_w * scale, orig_h * scale), Image.Resampling.LANCZOS)
+                    
                 upscale_model.to("cpu")
-            except:
-                pass
-
-        _log(f"PixelPress Complete. Output Size: {result.shape[1]}x{result.shape[2]}")
-        return (result,)
-
-    def _bicubic_restore(self, image, width, height):
-        permuted = image.permute(0, 3, 1, 2)
-        upscaled = F.interpolate(permuted, size=(height, width), mode="bicubic", align_corners=False)
-        return upscaled.permute(0, 2, 3, 1)
-
-    def _apply_sharpening(self, image, strength):
-        """
-        Simple unsharp mask implementation using heavy gaussian blur subtraction.
-        """
-        # (B, H, W, C) -> (B, C, H, W)
-        img_perm = image.permute(0, 3, 1, 2)
-        
-        # Blur it (Gaussian Kernel approximation)
-        # Standard unsharp mask: Original + (Original - Blurred) * Amount
-        
-        # Create a simple blur via avg pool or manual key
-        # Using a small kernel for fine detail sharpening
-        blurred = self._gaussian_blur(img_perm, kernel_size=5, sigma=1.0)
-        
-        # Detail = Original - Blurred
-        detail = img_perm - blurred
-        
-        # Sharpened = Original + Detail * Strength
-        sharpened = img_perm + (detail * strength)
-        
-        # Clamp
-        sharpened = torch.clamp(sharpened, 0, 1)
-        
-        return sharpened.permute(0, 2, 3, 1)
-
-    def _gaussian_blur(self, x, kernel_size=5, sigma=1.0):
-        # Create 1D Gaussian kernel
-        k = torch.tensor([np.exp(-0.5 * (i - kernel_size // 2)**2 / sigma**2) for i in range(kernel_size)], dtype=torch.float32)
-        k /= k.sum()
-        k = k.to(x.device)
-        
-        # Separateable 2D conv: 1xK then Kx1
-        k_x = k.view(1, 1, 1, kernel_size).repeat(x.shape[1], 1, 1, 1)
-        k_y = k.view(1, 1, kernel_size, 1).repeat(x.shape[1], 1, 1, 1)
-        
-        padding = kernel_size // 2
-        
-        # Apply X
-        x_blurred = F.conv2d(x, k_x, padding=(0, padding), groups=x.shape[1])
-        # Apply Y
-        x_blurred = F.conv2d(x_blurred, k_y, padding=(padding, 0), groups=x.shape[1])
-        
-        return x_blurred
+            else:
+                # Lanczos Upsale
+                upscaled_img = pil_img.resize((orig_w * scale, orig_h * scale), Image.Resampling.LANCZOS)
+            
+            # 3. HDR Pass (Phase 2)
+            current_img = upscaled_img
+            if enable_hdr:
+                # RGB -> LAB
+                try:
+                    img_lab = ImageCms.profileToProfile(current_img, sRGB_profile, Lab_profile, outputMode='LAB')
+                    luminance, a, b = img_lab.split()
+                    
+                    lum_array = np.array(luminance, dtype=np.float32)
+                    
+                    # Adjust
+                    shad_adj = adjust_shadows_non_linear(luminance, shadow_intensity)
+                    high_adj = adjust_highlights_non_linear(luminance, highlight_intensity)
+                    
+                    merged = merge_adjustments_with_blend_modes(lum_array, shad_adj, high_adj, hdr_intensity, shadow_intensity, highlight_intensity)
+                    
+                    gamma_corr = apply_gamma_correction(np.array(merged), gamma_intensity)
+                    gamma_corr = Image.fromarray(gamma_corr).resize(a.size)
+                    
+                    adj_lab = Image.merge('LAB', (gamma_corr, a, b))
+                    current_img = ImageCms.profileToProfile(adj_lab, Lab_profile, sRGB_profile, outputMode='RGB')
+                    
+                    # Contrast
+                    enhancer = ImageEnhance.Contrast(current_img)
+                    current_img = enhancer.enhance(1 + contrast)
+                    
+                    # Color
+                    enhancer = ImageEnhance.Color(current_img)
+                    current_img = enhancer.enhance(1 + enhance_color * 0.2)
+                    
+                except Exception as e:
+                    print(f"HDR Failed: {e}")
+            
+            # 4. Sharpen (Phase 3)
+            # Unsharp Mask at high res
+            if sharpness > 0:
+                # Radius depends on scale?
+                radius = scale # larger radius for larger image
+                percent = int(sharpness * 100) # UnsharpMask takes percent?
+                # PIL UnsharpMask: radius, percent, threshold
+                # Default percent is usually 150.
+                # Sharpness input 0.5 -> 50%? Or 1.0 -> 100%?
+                # Let's say max 2.0 -> 200%.
+                
+                # Using ImageFilter.UnsharpMask
+                current_img = current_img.filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=3))
+            
+            # 5. Downscale (Phase 4 - THe Press)
+            # Lanczos to original size
+            final_img = current_img.resize((orig_w, orig_h), Image.Resampling.LANCZOS)
+            
+            # Convert to Tensor
+            final_np = np.array(final_img).astype(np.float32) / 255.0
+            results.append(torch.from_numpy(final_np))
+            
+        return (torch.stack(results),)

@@ -9,10 +9,12 @@ import torch
 import numpy as np
 import folder_paths
 import time
+import json
 from collections import deque, defaultdict
 from PIL import Image, ImageOps
 from server import PromptServer
 from .h4_core import _log
+
 
 class H4_Comparinator:
     """
@@ -24,6 +26,141 @@ class H4_Comparinator:
     
     # Persistent History Cache: { node_id: deque([{a, b, timestamp}, ...]) }
     HISTORY_CACHE = defaultdict(lambda: deque(maxlen=50))
+
+    @classmethod
+    def trigger_manual_save(cls, node_id, settings):
+        """
+        Manually triggers a save for the latest history item of the given node.
+        Used by the API endpoint /h4/comparinator/save_now
+        """
+        try:
+            if node_id not in cls.HISTORY_CACHE or not cls.HISTORY_CACHE[node_id]:
+                return {"error": "No history found for this node."}
+
+            # Get latest item (index 0)
+            item = cls.HISTORY_CACHE[node_id][0]
+            filename_a = item["filename_a"]
+            filename_b = item["filename_b"]
+            
+            # Extract Metadata
+            extra_pnginfo = item.get("extra_pnginfo", None)
+            prompt = item.get("prompt", None)
+            metadata_text = item.get("metadata_text", "")
+            
+            # Load images from Temp
+            temp_dir = folder_paths.get_temp_directory()
+            path_a = os.path.join(temp_dir, filename_a)
+            path_b = os.path.join(temp_dir, filename_b)
+            
+            if not os.path.exists(path_a) or not os.path.exists(path_b):
+                 return {"error": "Source temp files missing."}
+                 
+            img_a = Image.open(path_a)
+            img_b = Image.open(path_b)
+            
+            # Use Instance method? No, make it static or class method helper
+            results = cls._process_save_logic(img_a, img_b, settings, node_id, extra_pnginfo, prompt, metadata_text)
+            return {"success": True, "saved": results}
+            
+        except Exception as e:
+            _log(f"[{node_id}] ❌ Manual Save Error: {e}")
+            return {"error": str(e)}
+
+    @staticmethod
+    def _process_save_logic(img_a, img_b, settings, node_id="Manual", extra_pnginfo=None, prompt=None, user_meta_text=""):
+        """
+        Core saving logic for PIL images.
+        """
+        saved_files = []
+        try:
+            # Defaults
+            do_save_a = settings.get("save_a", True)
+            do_save_b = settings.get("save_b", True)
+            do_save_comp = settings.get("save_comp", False)
+            custom_path = settings.get("path", "comparisons")
+            custom_prefix = settings.get("prefix", "h4_compare")
+            
+            output_dir = folder_paths.get_output_directory()
+            full_output_dir = os.path.join(output_dir, custom_path)
+            os.makedirs(full_output_dir, exist_ok=True)
+            
+            ts_sec = int(time.time())
+            prefix = custom_prefix if custom_prefix else "h4_compare"
+            
+            # Use metadata if passed? (Not easily available in manual mode unless stored in history)
+            # For now, simplistic save
+            
+            # Prepare Metadata
+            png_metadata = None
+            if settings.get("save_wf", True) or settings.get("save_meta", True) or settings.get("save_prompt", True):
+                from PIL.PngImagePlugin import PngInfo
+                png_metadata = PngInfo()
+                
+                # 1. Workflow (workflow)
+                if settings.get("save_wf", True) and extra_pnginfo is not None:
+                    for k, v in extra_pnginfo.items():
+                         if isinstance(v, (dict, list)):
+                             png_metadata.add_text(k, json.dumps(v))
+                         else:
+                             png_metadata.add_text(k, str(v))
+                             
+                # 2. Prompt (prompt)
+                if settings.get("save_prompt", True) and prompt is not None:
+                     png_metadata.add_text("prompt", json.dumps(prompt))
+                     
+                # 3. User Metadata (Comment)
+                if settings.get("save_meta", True) and user_meta_text:
+                    png_metadata.add_text("Comment", str(user_meta_text))
+                    # Also generic "parameters" if standard format preferred?
+                    # Comfy usually puts just workflow/prompt. 
+                    # "Comment" is visible in many viewers.
+
+            # Save A
+            if do_save_a:
+                name_a = f"{prefix}_{ts_sec}_A.png"
+                path_a = os.path.join(full_output_dir, name_a)
+                path_a = os.path.join(full_output_dir, name_a)
+                img_a.save(path_a, pnginfo=png_metadata)
+                saved_files.append(path_a)
+
+            # Save B
+            if do_save_b:
+                name_b = f"{prefix}_{ts_sec}_B.png"
+                path_b = os.path.join(full_output_dir, name_b)
+                path_b = os.path.join(full_output_dir, name_b)
+                img_b.save(path_b, pnginfo=png_metadata)
+                saved_files.append(path_b)
+
+            # Save Comparison
+            if do_save_comp:
+                wA, hA = img_a.size
+                wB, hB = img_b.size
+                
+                # Resize B to match A height
+                if hA != hB:
+                    new_w = int(wB * (hA / hB))
+                    img_b_resized = img_b.resize((new_w, hA), Image.Resampling.LANCZOS)
+                else:
+                    img_b_resized = img_b
+                    new_w = wB
+
+                comp_img = Image.new('RGB', (wA + new_w, hA))
+                comp_img.paste(img_a, (0, 0))
+                comp_img.paste(img_b_resized, (wA, 0))
+                
+                name_c = f"{prefix}_{ts_sec}_VS.png"
+                path_c = os.path.join(full_output_dir, name_c)
+                path_c = os.path.join(full_output_dir, name_c)
+                comp_img.save(path_c, pnginfo=png_metadata)
+                saved_files.append(path_c)
+
+            _log(f"[{node_id}] 💾 Saved {len(saved_files)} images to {full_output_dir}")
+            return saved_files
+
+        except Exception as e:
+            _log(f"[{node_id}] ❌ Process Save Error: {e}")
+            return []
+
     
     @classmethod
     def INPUT_TYPES(s):
@@ -31,16 +168,18 @@ class H4_Comparinator:
             "required": {
                 "image_a": ("IMAGE", {"tooltip": "The 'Before' or 'Control' image"}),
                 "save_mode": ("BOOLEAN", {"default": False, "label_on": "💾 SAVE", "label_off": "PREVIEW", "tooltip": "Save images to Output folder?"}),
-                "filename_prefix": ("STRING", {"default": "h4_compare"}),
+                "filename_prefix": ("STRING", {"default": "h4_"}),
             },
             "optional": {
                 "image_b": ("IMAGE", {"tooltip": "The 'After' or 'Test' image"}),
                 "frozen_image": ("IMAGE", {"tooltip": "Overrides Image B. Useful for freezing a comparison state."}),
                 "metadata_text": ("STRING", {"multiline": True, "default": "", "tooltip": "Custom metadata to embed"}),
+                "save_settings": ("STRING", {"default": "", "multiline": False}),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
-                "extra_pnginfo": "EXTRA_PNGINFO"
+                "extra_pnginfo": "EXTRA_PNGINFO",
+                "prompt": "PROMPT"
             }
         }
     
@@ -58,7 +197,7 @@ class H4_Comparinator:
     Keeps a history of the last 10 comparisons for reference.
     """
 
-    def compare_images(self, image_a, save_mode=False, filename_prefix="h4_compare", image_b=None, frozen_image=None, metadata_text="", unique_id=None, extra_pnginfo=None):
+    def compare_images(self, image_a, save_mode=False, filename_prefix="h4_compare", image_b=None, frozen_image=None, metadata_text="", save_settings="", unique_id=None, extra_pnginfo=None, prompt=None):
         node_id = str(unique_id)
         
         # Logic: Frozen Image overrides Image B
@@ -82,45 +221,38 @@ class H4_Comparinator:
         # 2. Handle Permanent Save (Output Folder)
         if save_mode:
             try:
-                output_dir = folder_paths.get_output_directory()
-                subfolder = "comparisons"
-                full_output_dir = os.path.join(output_dir, subfolder)
-                os.makedirs(full_output_dir, exist_ok=True)
+                # Parse Settings
+                settings = {}
+                if save_settings and save_settings.strip():
+                    try:
+                        settings = json.loads(save_settings)
+                    except:
+                        pass
                 
-                # Timestamp for file uniqueness
-                ts_sec = int(time.time())
-                prefix = filename_prefix if filename_prefix else "h4_compare"
+                # Save Logic using Helper
+                # Convert Tensors to PIL first
+                # (Batch 0 assumed)
+                pil_a = Image.fromarray((image_a[0].cpu().numpy() * 255).astype(np.uint8))
                 
-                # Metadata
-                png_info = None
-                if metadata_text or extra_pnginfo:
-                    from PIL.PngImagePlugin import PngInfo
-                    png_info = PngInfo()
-                    if metadata_text:
-                        png_info.add_text("parameters", metadata_text)
-                    if extra_pnginfo:
-                        for k, v in extra_pnginfo.items():
-                             png_info.add_text(k, str(v))
+                # final_b might be tensor or None (handled at start)
+                pil_b = Image.fromarray((final_b[0].cpu().numpy() * 255).astype(np.uint8))
                 
-                # Save A
-                name_a = f"{prefix}_{ts_sec}_A"
-                self._save_image(image_a, name_a, full_output_dir, "PNG", png_info=png_info)
-                
-                # Save B
-                name_b = f"{prefix}_{ts_sec}_B"
-                self._save_image(image_b, name_b, full_output_dir, "PNG", png_info=png_info)
-                
-                _log(f"[{node_id}] 💾 Saved comparison pair to {full_output_dir}")
+                # Use class static method
+                self._process_save_logic(pil_a, pil_b, settings, node_id)
                 
             except Exception as e:
-                _log(f"[{node_id}] ❌ Save Error: {e}")
+                _log(f"[{node_id}] ❌ Save Logic Error: {e}")
 
         # 3. Update History (Using Temp Files)
         history_entry = {
             "id": f"{timestamp}",
             "filename_a": temp_a_name,
             "filename_b": temp_b_name,
-            "timestamp": timestamp
+            "filename_b": temp_b_name,
+            "timestamp": timestamp,
+            "extra_pnginfo": extra_pnginfo,
+            "prompt": prompt,
+            "metadata_text": metadata_text
         }
         
         H4_Comparinator.HISTORY_CACHE[node_id].appendleft(history_entry)

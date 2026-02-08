@@ -22,6 +22,7 @@ from .h4_datastream import H4_DataStream
 from .h4_axis import H4_AxisDriver
 from .h4_varianator import H4_Varianator
 from .h4_seed_sequencer import H4_SeedSequencer
+from .h4_notes import H4_NoteInjector
 from .h4_pixel_press import H4_PixelPress
 from .h4_comparinator import H4_Comparinator
 from .h4_visual_tokenizer import H4_VisualTokenizer
@@ -72,6 +73,7 @@ NODE_CLASS_MAPPINGS = {
     "H4_AxisDriver": H4_AxisDriver,
     "H4_Varianator": H4_Varianator,
     "H4_SeedSequencer": H4_SeedSequencer,
+    "H4_NoteInjector": H4_NoteInjector,
     "H4_PixelPress": H4_PixelPress,
     "H4_Comparinator": H4_Comparinator,
     "H4_VisualTokenizer": H4_VisualTokenizer,
@@ -82,6 +84,7 @@ NODE_CLASS_MAPPINGS = {
     "H4_UniversalLoader": H4_UniversalLoader,
     "H4_DocuScribe": H4_DocuScribe,
     "H4_SmartSave": H4_SmartSave,
+    "H4_NoteInjector": H4_NoteInjector,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -114,6 +117,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_DocuScribe": "📜 H4 DocuScribe (Workflow Reporter)",
     "H4_SmartSave": "💾 H4 SmartSave (Preview/Save)",
     "H4_Comparinator": "⚔️ h4 Comparinator (A/B Test)",
+    "H4_NoteInjector": "📝 H4 Note Injector (Title Bar)",
     "H4_VisualTokenizer": "👁️ h4 Visual Tokenizer (Weights)",
 }
 

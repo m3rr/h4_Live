@@ -1,5 +1,5 @@
 # h4_Live: The Logic & Loop Controller v3.0 { Now with DNA! }
-![Version](https://img.shields.io/badge/version-4.6.6-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
+![Version](https://img.shields.io/badge/version-4.6.7-blueviolet) ![Status](https://img.shields.io/badge/status-Nuclear-red) ![ComfyUI](https://img.shields.io/badge/platform-ComfyUI-succes)
 
 > **"A Railway Switch for your Workflow."**
 
@@ -331,6 +331,27 @@ This node creates a "Universal Socket" that accepts **ANY** format.
 
 ---
 
+## 23. H4 Note Injector 📝
+**"The Headline Maker"**
+
+*   **What it does:** It adds a slick, professional black bar to the top or bottom of your image and writes your text in it.
+*   **Why use it?** Perfect for labeling your generations, creating memes, or adding "Cinematic Subtitles" to your movie frames.
+*   **Features:**
+    *   **Auto-Layout**: Handles Titles and Subtitles automatically.
+    *   **Smart Fonts**: Tries to find your system fonts (Arial, Roboto) so it doesn't look like a potato.
+    *   **Custom Colors**: Classic white-on-black or anything you want.
+
+## 24. H4 Pixel Press 🧊
+**"The Density Engine"**
+
+*   **What it does:** This is a **Supersampling** node. It takes your image, blows it up to a huge resolution (e.g. 4K), applies high-dynamic range (HDR) lighting and sharpening, and then "squishes" it back down to standard size.
+*   **The Result:** "Retina" quality images with incredibly dense details and zero aliasing (jagged edges).
+*   **Controls:**
+    *   `supersample_scale`: How big to go before squishing (2x, 3x, 4x).
+    *   `enable_hdr`: Unlocks a secret panel of HDR sliders (Shadows, Highlights, Gamma) to fix lighting issues.
+
+---
+
 # ⚙️ THE DEV CORNER (Technical Specifications)
 
 *> "Show me the code."*
@@ -397,6 +418,21 @@ The toolkit relies on a singleton pattern dictionary `_H4_GLOBAL_STATE` residing
 *   **GGUF Bridge**: Uses `importlib` and `sys.modules` introspection to dynamically detect and utilize the `ComfyUI-GGUF` custom node if specific GGUF models are detected.
 *   **Runtime Guard**: Implements `_validate_model_clip(model, clip)`. This method performs a structural analysis of the Model Config object. If it detects a `Lumina` or `NextDiT` architecture (which expects 2560 context dim) paired with a `T5` XXl Text Encoder (which outputs 4096 context dim), it warns the user via `print()` instead of allowing the `torch.matmul` operation to fail during sampling.
 *   **Repair Clinic**: Includes a self-contained dependency module (`h4_repair_clinic.py`) that executes via sub-shell to forcefully resolve version conflicts between `diffusers` (which pushes bleeding edge) and `unknown-peft` (which demands legacy versions), ensuring compatibility.
+
+### 10. H4_NoteInjector
+*   **Class**: `H4_NoteInjector`
+*   **Library**: `Pillow` (PIL).
+*   **Font Logic**: Implements a cascading font loader (`arial.ttf`, `Roboto-Regular.ttf`, `DejaVuSans.ttf`). If it fails to find a TTF, it gracefully falls back to the default PIL bitmap font to prevent hard crash.
+*   **Compositing**: Uses `Image.new` to create the text bar and pastes it relative to the original image tensor. Text centering is calculated using `draw.textbbox` for precise alignment regardless of font size.
+
+### 11. H4_PixelPress (SSAA/HDR)
+*   **Class**: `H4_PixelPress`
+*   **Algorithm**: **Supersampling Anti-Aliasing (SSAA)** pipeline.
+    1.  **Upscale**: Uses `torch.nn.Upsample` (Bilinear) OR external `UPSCALE_MODEL` (ESRGAN/SwinIR) if provided.
+    2.  **Color Space**: Converts RGB -> LAB (CIELAB) using `ImageCms` for luminance-independent lighting adjustments.
+    3.  **Tonemapping**: Applies non-linear gamma curves to `L` channel to boost shadows/highlights without shifting chromaticity.
+    4.  **Downscale**: Uses `LANCZOS` filter during the final resize step to preserve high-frequency detail while eliminating aliasing artifacts.
+*   **Dynamic UI**: Frontend `h4_PixelPress.js` hooks into `onNodeCreated` to dynamically toggle the visibility of HDR widgets based on the `enable_hdr` boolean, keeping the UI clean.
 
 ---
 
