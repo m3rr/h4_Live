@@ -215,6 +215,87 @@ app.registerExtension({
         });
 
         document.body.appendChild(btn);
+
+        // --- KICK IT BUTTON (>_<)!! ---
+        this.setupKickItButton(btn);
+    },
+
+    // ==============================================================================
+    // KICK IT BUTTON (>_<)!! (Canvas Defibrillator)
+    // ==============================================================================
+    setupKickItButton(caffeineBtn) {
+        const btn = document.createElement("div");
+        btn.textContent = "(>_<)!!";
+        btn.title = "Give the Grid a kick to refresh the canvas (Fixes frozen noodles)";
+
+        // Style: Left of Caffeine Button
+        Object.assign(btn.style, {
+            position: "fixed",
+            top: "5px",
+            right: "220px", // 140px (Caffeine) + ~80px
+            zIndex: "9999",
+            color: "#ffaa00",
+            fontFamily: "monospace",
+            fontWeight: "bold",
+            fontSize: "14px",
+            cursor: "pointer",
+            padding: "2px 6px",
+            background: "rgba(0,0,0,0.5)",
+            borderRadius: "4px",
+            border: "1px solid #333",
+            userSelect: "none",
+            transition: "all 0.1s"
+        });
+
+        btn.addEventListener("click", () => {
+            // 1. Flash Face
+            const origText = btn.textContent;
+            btn.textContent = "(0_0)!!!";
+            btn.style.color = "#ff0000";
+            btn.style.borderColor = "#ff0000";
+            btn.style.transform = "scale(1.1)";
+
+            // 2. The Kick (Aggressive)
+            console.log("[h4] KICKING THE GRID (Aggressive Reset)...");
+
+            this._isHandlingError = false;
+
+            if (app.canvas) {
+                // A. Force Dirty
+                app.canvas.setDirty(true, true);
+
+                // B. Force Resize (often triggers layout recalcs)
+                window.dispatchEvent(new Event('resize'));
+
+                // C. Restart Loop if Dead
+                // LiteGraph main loop can stop if an exception occurs
+                if (app.canvas.rendering_frame === false) {
+                    console.log("[h4] Render loop was stopped. Restarting...");
+                }
+
+                // Bruteforce restart: Stop then Start
+                try {
+                    app.canvas.stopMainLoop();
+                    setTimeout(() => {
+                        app.canvas.startMainLoop();
+                        app.canvas.draw(true, true); // Force one immediate frame
+                        console.log("[h4] Grid Restarted.");
+                    }, 10);
+                } catch (e) {
+                    console.error("[h4] Kick failed:", e);
+                }
+            }
+
+            // 3. Reset Button
+            setTimeout(() => {
+                btn.textContent = origText;
+                btn.style.color = "#ffaa00";
+                btn.style.borderColor = "#333";
+                btn.style.transform = "scale(1)";
+            }, 300);
+        });
+
+        document.body.appendChild(btn);
     },
 
 

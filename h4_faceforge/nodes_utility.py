@@ -354,7 +354,7 @@ class H4_SaveFaceModel:
         return {
             "required": {
                 "face_model": ("FACE_MODEL", {"tooltip": "Connect the Face Model from Build Face Model here."}),
-                "filename": ("STRING", {"default": "my_face_model", "tooltip": "Name your file (e.g. 'ElonMusk'). No need for .safetensors extension."}),
+                "filename": ("STRING", {"default": "h4_FaceModel_", "tooltip": "Name your file (e.g. 'ElonMusk'). No need for .safetensors extension."}),
             },
             "optional": {
                 "overwrite": ("BOOLEAN", {"default": False, "tooltip": "Allow overwriting if the file already exists? Be careful."}),

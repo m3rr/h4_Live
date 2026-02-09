@@ -20,7 +20,7 @@ class H4_DocuScribe:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "filename": ("STRING", {"default": "workflow_report", "multiline": False}),
+                "filename": ("STRING", {"default": "h4_Report_", "multiline": False}),
                 "path": ("STRING", {"default": "h4_reports", "multiline": False}),
             },
             "optional": {

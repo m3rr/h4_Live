@@ -25,7 +25,7 @@ class H4_SmartSave:
         return {
             "required": {
                 "images": ("IMAGE", ),
-                "filename_prefix": ("STRING", {"default": "h4_capture", "multiline": False}),
+                "filename_prefix": ("STRING", {"default": "h4_", "multiline": False}),
                 "save_mode": ("BOOLEAN", {"default": False, "label_on": "💾 SAVE TO DISK", "label_off": "👁️ PREVIEW ONLY"}),
             },
             "optional": {

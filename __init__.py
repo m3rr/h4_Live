@@ -27,6 +27,8 @@ from .h4_pixel_press import H4_PixelPress
 from .h4_comparinator import H4_Comparinator
 from .h4_visual_tokenizer import H4_VisualTokenizer
 from .h4_loaders import H4_UniversalLoader
+from .h4_model_merger import H4_ModelMerger
+from .h4_model_save import H4_ModelSave
 
 # FaceForge Module (AIO Face Swap Suite)
 from .h4_faceforge import (
@@ -77,6 +79,8 @@ NODE_CLASS_MAPPINGS = {
     "H4_PixelPress": H4_PixelPress,
     "H4_Comparinator": H4_Comparinator,
     "H4_VisualTokenizer": H4_VisualTokenizer,
+    "H4_ModelMerger": H4_ModelMerger,
+    "H4_ModelSave": H4_ModelSave,
     # FaceForge Suite
     **FACEFORGE_CLASS_MAPPINGS,
     # Logic
@@ -119,6 +123,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_Comparinator": "⚔️ h4 Comparinator (A/B Test)",
     "H4_NoteInjector": "📝 H4 Note Injector (Title Bar)",
     "H4_VisualTokenizer": "👁️ h4 Visual Tokenizer (Weights)",
+    "H4_ModelMerger": "🧪 H4 Model Merger (Mad Science!)",
+    "H4_ModelSave": "💾 H4 Model Save (Simple)",
 }
 
 WEB_DIRECTORY = "./js"

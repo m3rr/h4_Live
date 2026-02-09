@@ -69,7 +69,7 @@ class H4_VisualTokenizer:
         # We use the internal function Comfy uses for weight parsing
         # comfy.sd1_clip.parse_parentheses(text) -> returns list of (text, weight)
         
-        weighted_segments = comfy.sd1_clip.parse_parentheses(text)
+        weighted_segments = comfy.sd1_clip.token_weights(text, 1.0)
         
         # 3. Tokenize Each Segment
         # We need to reconstruct the token list.

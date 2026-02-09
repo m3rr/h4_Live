@@ -168,7 +168,7 @@ class H4_Comparinator:
             "required": {
                 "image_a": ("IMAGE", {"tooltip": "The 'Before' or 'Control' image"}),
                 "save_mode": ("BOOLEAN", {"default": False, "label_on": "💾 SAVE", "label_off": "PREVIEW", "tooltip": "Save images to Output folder?"}),
-                "filename_prefix": ("STRING", {"default": "h4_"}),
+                "filename_prefix": ("STRING", {"default": "h4_Compare_"}),
             },
             "optional": {
                 "image_b": ("IMAGE", {"tooltip": "The 'After' or 'Test' image"}),
