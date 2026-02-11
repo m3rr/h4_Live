@@ -24,11 +24,13 @@ from .h4_varianator import H4_Varianator
 from .h4_seed_sequencer import H4_SeedSequencer
 from .h4_notes import H4_NoteInjector
 from .h4_pixel_press import H4_PixelPress
+from .h4_pixel_visualizer import H4_PixelVisualizer
 from .h4_comparinator import H4_Comparinator
 from .h4_visual_tokenizer import H4_VisualTokenizer
 from .h4_loaders import H4_UniversalLoader
 from .h4_model_merger import H4_ModelMerger
 from .h4_model_save import H4_ModelSave
+from .h4_latent_selector import H4_LatentSelector
 
 # FaceForge Module (AIO Face Swap Suite)
 from .h4_faceforge import (
@@ -81,6 +83,7 @@ NODE_CLASS_MAPPINGS = {
     "H4_VisualTokenizer": H4_VisualTokenizer,
     "H4_ModelMerger": H4_ModelMerger,
     "H4_ModelSave": H4_ModelSave,
+    "H4_LatentSelector": H4_LatentSelector,
     # FaceForge Suite
     **FACEFORGE_CLASS_MAPPINGS,
     # Logic
@@ -89,6 +92,7 @@ NODE_CLASS_MAPPINGS = {
     "H4_DocuScribe": H4_DocuScribe,
     "H4_SmartSave": H4_SmartSave,
     "H4_NoteInjector": H4_NoteInjector,
+    "H4_PixelVisualizer": H4_PixelVisualizer,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -125,6 +129,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_VisualTokenizer": "👁️ h4 Visual Tokenizer (Weights)",
     "H4_ModelMerger": "🧪 H4 Model Merger (Mad Science!)",
     "H4_ModelSave": "💾 H4 Model Save (Simple)",
+    "H4_LatentSelector": "📐 h4 Latent Selector (Resolutions)",
 }
 
 WEB_DIRECTORY = "./js"
@@ -139,12 +144,12 @@ def print_status():
     reset = "\033[0m"
     check = f"{green}✅{reset}"
     
-    print(f"\n-------------------------------------------------------------------------------------")
+    print(f"\n---------------------------------------------------------------------------------------------------------")
     print(f" 🚀 h4_Live ToolKit | Version: {__version__}")
     print(f"    (Nuclear Logic & Persistent State for ComfyUI)")
-    print(f"-------------------------------------------------------------------------------------")
-    print(f"| {'Node Name':<55} | {'Global ID':<18} | {'Load':<5}|")
-    print(f"-------------------------------------------------------------------------------------")
+    print(f"---------------------------------------------------------------------------------------------------------")
+    print(f"| {'Node Name':<70} | {'Global ID':<22} | {'Load':<6}|")
+    print(f"---------------------------------------------------------------------------------------------------------")
     
     for key, val in NODE_DISPLAY_NAME_MAPPINGS.items():
         # Hide the stealth nodes from the terminal status list
@@ -153,8 +158,8 @@ def print_status():
             
         # Clean up the name for display
         name = val
-        print(f"| {name:<55} | {key:<18} |  {check}   |")
+        print(f"| {name:<70} | {key:<22} |  {check}   |")
         
-    print(f"-------------------------------------------------------------------------------------\n")
+    print(f"---------------------------------------------------------------------------------------------------------\n")
 
 print_status()

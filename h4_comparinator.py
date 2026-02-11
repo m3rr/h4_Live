@@ -248,7 +248,7 @@ class H4_Comparinator:
             "id": f"{timestamp}",
             "filename_a": temp_a_name,
             "filename_b": temp_b_name,
-            "filename_b": temp_b_name,
+
             "timestamp": timestamp,
             "extra_pnginfo": extra_pnginfo,
             "prompt": prompt,

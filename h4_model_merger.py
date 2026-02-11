@@ -171,17 +171,25 @@ class H4_ModelMerger:
 
                 # Apply Merge
                 if mode == "Weighted Average":
-                    m.add_patches({k: kp[k]}, 1.0 - ratio, ratio)
+                    # add_patches(patches, strength_patch, strength_model)
+                    # We want: Result = Base * (1 - ratio) + Target * ratio
+                    # So: strength_model = (1 - ratio), strength_patch = ratio
+                    m.add_patches({k: kp[k]}, ratio, 1.0 - ratio)
                     
                 elif mode == "Add Difference":
-                     m.add_patches({k: kp[k]}, 1.0, ratio)
+                     # Result = Base + (Target * ratio)
+                     # strength_model = 1.0, strength_patch = ratio
+                     m.add_patches({k: kp[k]}, ratio, 1.0)
                 
                 elif mode == "Subtract":
-                     m.add_patches({k: kp[k]}, 1.0, -ratio)
+                     # Result = Base - (Target * ratio)
+                     m.add_patches({k: kp[k]}, -ratio, 1.0)
                 
                 elif mode == "Add":
-                     m.add_patches({k: kp[k]}, 1.0, ratio)
+                     # Result = Base + (Target * ratio)
+                     m.add_patches({k: kp[k]}, ratio, 1.0)
 
+            print(f"[H4_ModelMerger] Merged {model_idx} with mode {mode}. Logic: Base * (1-R) + Target * R")
             return m
 
         # --- Main Loop ---

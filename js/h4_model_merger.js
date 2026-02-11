@@ -73,7 +73,7 @@ app.registerExtension({
                         display: "none",
                         flexDirection: "column",
                         gap: "10px",
-                        zIndex: "10000",
+                        zIndex: "1",
                         boxShadow: "5px 5px 20px rgba(0,0,0,0.8)",
                         color: "#eee",
                         color: "#eee",

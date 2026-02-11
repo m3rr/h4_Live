@@ -503,6 +503,61 @@ const STYLE = `
     pointer-events: none;
     font-family: monospace;
 }
+/* PARAMETER DRAWER */
+.h4-param-drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 100%;
+    background: #1a1a1a;
+    border-left: 1px solid #444;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: width 0.3s ease;
+    z-index: 50;
+    font-family: monospace;
+    font-size: 11px;
+    color: #ccc;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+}
+.h4-param-drawer.open { width: 300px; border-left: 1px solid #0f0; }
+
+.h4-param-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+.h4-param-table th {
+    text-align: left;
+    color: #0f0;
+    border-bottom: 1px solid #333;
+    padding: 5px;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+.h4-param-table td {
+    padding: 4px 5px;
+    border-bottom: 1px solid #222;
+    word-break: break-all;
+    vertical-align: top;
+}
+.h4-param-key { color: #888; width: 80px; font-weight: bold; }
+.h4-param-val { color: #eee; }
+
+.h4-param-section {
+    padding: 10px;
+    border-bottom: 1px solid #333;
+}
+.h4-param-title {
+    color: #0ff;
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 1px;
+}
 `;
 
 // Inject Styles
@@ -550,6 +605,7 @@ class ComparinatorUI {
 
         // State Flags
         this.zoomLocked = false;
+        this.metadataCache = {};
         this.blinkMode = false;
         this.lockedReferenceItem = null;
         this.currentHistoryList = [];
@@ -579,6 +635,9 @@ class ComparinatorUI {
         this.controlPanel.className = "h4-control-panel";
 
         this.buildControls();
+
+        // Parameter Drawer (Right Side)
+        this.buildParamDrawer();
 
         // Settings Drawer (Metadata + Save Options)
         this.buildDrawer();
@@ -801,6 +860,12 @@ class ComparinatorUI {
         this.controlPanel.appendChild(toggleSettings.wrap);
         this.toggleSettingsSwitch = toggleSettings.switchEl;
 
+        // [NEW] PARAMETERS TOGGLE
+        const toggleParams = createSwitch("PARAMETERS", (active) => {
+            this.toggleParamDrawer(active);
+        });
+        this.controlPanel.appendChild(toggleParams.wrap);
+
         // 2. INSPECTINATOR MODE
         const toggleInspect = createSwitch("INSPECTINATOR", (active) => {
             this.toggleInspectMode(active);
@@ -963,35 +1028,332 @@ class ComparinatorUI {
         }
     }
 
-    triggerManualSave() {
-        const settings = {
-            save_a: this.chkSaveA.checked,
-            save_b: this.chkSaveB.checked,
-            save_comp: this.chkSaveComp.checked,
-            save_wf: this.chkSaveWF.checked,
-            save_meta: this.chkSaveMeta.checked,
-            save_prompt: this.chkSavePrompt.checked,
-            prefix: this.inpPrefix.value,
-            path: this.inpPath.value
+    // --------------------------------------------------------------------------
+    // Parameter Panel Logic
+    // --------------------------------------------------------------------------
+
+    buildParamDrawer() {
+        this.paramDrawer = document.createElement("div");
+        this.paramDrawer.className = "h4-param-drawer";
+        this.container.appendChild(this.paramDrawer);
+    }
+
+    toggleParamDrawer(active) {
+        if (active) {
+            // Expand Node
+            const currentW = this.node.size[0];
+            const currentH = this.node.size[1];
+            this.node.setSize([currentW + 300, currentH]);
+
+            this.paramDrawer.classList.add("open");
+
+            // Populate Data
+            this.updateParams(this.liveNodeData);
+        } else {
+            // Shrink Node
+            const currentW = this.node.size[0];
+            const currentH = this.node.size[1];
+            // Ensure we don't shrink below min width
+            this.node.setSize([Math.max(400, currentW - 300), currentH]);
+
+            this.paramDrawer.classList.remove("open");
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // GRAPH TRAVERSAL: Helper Methods (Class Level)
+    // ----------------------------------------------------------------------
+
+    findUpstreamSamplers(node, found = [], visited = new Set(), depth = 10) {
+        if (!node || depth <= 0 || visited.has(node.id)) return found;
+        visited.add(node.id);
+
+        // Check if this is a Sampler
+        if (node.type === "KSampler" || node.type === "KSamplerAdvanced" || (node.type && node.type.includes("Sampler"))) {
+            if (!found.find(n => n.id === node.id)) {
+                found.push(node);
+            }
+        }
+
+        // Walk Inputs
+        if (node.inputs) {
+            for (const input of node.inputs) {
+                const linkId = input.link;
+                if (linkId !== null) {
+                    const link = app.graph.links[linkId];
+                    if (link) {
+                        const originNode = app.graph.getNodeById(link.origin_id);
+                        if (originNode) {
+                            this.findUpstreamSamplers(originNode, found, visited, depth - 1);
+                        }
+                    }
+                }
+            }
+        }
+        return found;
+    }
+
+    extractWidgetValue(node, widgetName) {
+        if (!node.widgets) return null;
+        const w = node.widgets.find(w => w.name === widgetName);
+        return w ? w.value : null;
+    }
+
+    findPromptText(node, inputName, visited = new Set()) {
+        if (!node || !node.inputs) return null;
+
+        const input = node.inputs.find(i => i.name === inputName);
+        if (!input || !input.link) return null;
+
+        const link = app.graph.links[input.link];
+        if (!link) return null;
+
+        const originNode = app.graph.getNodeById(link.origin_id);
+        if (!originNode || visited.has(originNode.id)) return null;
+        visited.add(originNode.id);
+
+        // check if this is the text node
+        if (originNode.widgets) {
+            const textWidget = originNode.widgets.find(w => w.name === "text" || w.name === "string" || w.name === "prompt");
+            if (textWidget) {
+                return textWidget.value;
+            }
+            // Fallback for Primitive Node (value is in widgets[0])
+            if (originNode.type === "PrimitiveNode" && originNode.widgets[0]) {
+                return originNode.widgets[0].value;
+            }
+        }
+
+        // Handle Reroute / Pass-through
+        // Only recurse if it's explicitly a routing node to avoid infinite loops
+        if (originNode.type === "Reroute" || originNode.type === "Note") {
+            if (originNode.inputs && originNode.inputs.length > 0) {
+                return this.findPromptText(originNode, originNode.inputs[0].name, visited);
+            }
+        }
+
+        return null;
+    }
+
+    extractSamplerData(samplerNode) {
+        const data = [];
+        data.push({ k: "Type", v: samplerNode.type });
+
+        // Common Widgets
+        const seed = this.extractWidgetValue(samplerNode, "seed");
+        if (seed !== null) data.push({ k: "Seed", v: seed });
+
+        const steps = this.extractWidgetValue(samplerNode, "steps");
+        if (steps !== null) data.push({ k: "Steps", v: steps });
+
+        const cfg = this.extractWidgetValue(samplerNode, "cfg");
+        if (cfg !== null) data.push({ k: "CFG", v: cfg });
+
+        const sampler = this.extractWidgetValue(samplerNode, "sampler_name");
+        if (sampler !== null) data.push({ k: "Sampler", v: sampler });
+
+        const scheduler = this.extractWidgetValue(samplerNode, "scheduler");
+        if (scheduler !== null) data.push({ k: "Scheduler", v: scheduler });
+
+        const denoise = this.extractWidgetValue(samplerNode, "denoise");
+        if (denoise !== null) data.push({ k: "Denoise", v: denoise });
+
+        // [NEW] Extract Prompts
+        const posPrompt = this.findPromptText(samplerNode, "positive");
+        if (posPrompt) data.push({ k: "Positive Prompt", v: posPrompt });
+
+        const negPrompt = this.findPromptText(samplerNode, "negative");
+        if (negPrompt) data.push({ k: "Negative Prompt", v: negPrompt });
+
+        return data;
+    }
+
+    captureGraphMetadata() {
+        const result = { A: [], B: [] };
+
+        // Find Inputs
+        const inputA = this.node.inputs.find(i => i.name === "image_a");
+        const inputB = this.node.inputs.find(i => i.name === "image_b");
+
+        // Scan A
+        if (inputA && inputA.link) {
+            const linkA = app.graph.links[inputA.link];
+            if (linkA) {
+                const originA = app.graph.getNodeById(linkA.origin_id);
+                const nodesA = this.findUpstreamSamplers(originA);
+                result.A = nodesA.map(n => this.extractSamplerData(n));
+            }
+        }
+
+        // Scan B
+        if (inputB && inputB.link) {
+            const linkB = app.graph.links[inputB.link];
+            if (linkB) {
+                const originB = app.graph.getNodeById(linkB.origin_id);
+                const nodesB = this.findUpstreamSamplers(originB);
+                result.B = nodesB.map(n => this.extractSamplerData(n));
+            }
+        }
+        return result;
+    }
+
+    updateParams(data) {
+        this.paramDrawer.innerHTML = "";
+
+        if (!data) {
+            this.paramDrawer.innerHTML = "<div style='padding:20px; color:#666;'>No Generation Data Found.<br>Connect an image generation flow.</div>";
+            return;
+        }
+
+        const prompt = data.prompt;
+        const info = data.extra_pnginfo;
+
+        // Helper to build table
+        const createTable = (title, rows) => {
+            const sect = document.createElement("div");
+            sect.className = "h4-param-section";
+
+            const head = document.createElement("span");
+            head.className = "h4-param-title";
+            head.textContent = title;
+            sect.appendChild(head);
+
+            const tbl = document.createElement("table");
+            tbl.className = "h4-param-table";
+            // Ensure table layout fixed for long text wrapping
+            tbl.style.tableLayout = "fixed";
+            tbl.style.width = "100%";
+
+            rows.forEach(r => {
+                const tr = document.createElement("tr");
+
+                if (r.k.includes("Prompt")) {
+                    // Full-Width Prompt Display
+                    const td = document.createElement("td");
+                    td.colSpan = 2;
+                    td.className = "h4-param-prompt-cell";
+                    td.style.padding = "6px 2px";
+                    td.style.borderTop = "1px solid rgba(255,255,255,0.1)";
+
+                    const label = document.createElement("div");
+                    label.textContent = r.k;
+                    label.style.fontWeight = "bold";
+                    label.style.color = r.k.includes("Negative") ? "#ff6b6b" : "#4dabf7";
+                    label.style.fontSize = "10px";
+                    label.style.marginBottom = "3px";
+                    label.style.textTransform = "uppercase";
+                    label.style.letterSpacing = "0.5px";
+
+                    const val = document.createElement("div");
+                    val.textContent = r.v;
+                    val.style.whiteSpace = "pre-wrap";
+                    val.style.fontSize = "11px";
+                    val.style.color = "#eee";
+                    val.style.lineHeight = "1.4";
+                    val.style.maxHeight = "150px";
+                    val.style.overflowY = "auto";
+                    val.style.background = "rgba(0,0,0,0.25)";
+                    val.style.padding = "6px";
+                    val.style.borderRadius = "4px";
+                    val.style.fontFamily = "monospace";
+                    val.title = r.v; // Tooltip for full text if needed
+
+                    td.appendChild(label);
+                    td.appendChild(val);
+                    tr.appendChild(td);
+                } else {
+                    // Standard Key-Value Row
+                    const tdK = document.createElement("td");
+                    tdK.className = "h4-param-key";
+                    tdK.textContent = r.k;
+
+                    const tdV = document.createElement("td");
+                    tdV.className = "h4-param-val";
+                    tdV.textContent = r.v;
+
+                    tr.appendChild(tdK);
+                    tr.appendChild(tdV);
+                }
+                tbl.appendChild(tr);
+            });
+            sect.appendChild(tbl);
+            this.paramDrawer.appendChild(sect);
         };
 
-        api.fetchApi('/h4/comparinator/save_now', {
-            method: 'POST',
-            body: JSON.stringify({ node_id: this.node.id, settings: settings })
-        }).then(res => res.json()).then(data => {
-            if (data.success) {
-                this.btnSaveNow.textContent = "✅ SAVED!";
-                this.btnSaveNow.style.background = "#0f0";
-                this.btnSaveNow.style.color = "#000";
-                setTimeout(() => {
-                    this.btnSaveNow.textContent = "SAVE NOW";
-                    this.btnSaveNow.style.background = "";
-                    this.btnSaveNow.style.color = "";
-                }, 1000);
-            } else {
-                alert("Save Failed: " + data.error);
-            }
-        }).catch(err => alert("Save Error: " + err));
+        // 1. Resolve Metadata Sources
+        let metaA = null;
+        let metaB = null;
+
+        // Priority 1: Data passed directly (Live)
+        if (data.metaA) metaA = data.metaA;
+        if (data.metaB) metaB = data.metaB;
+
+        // Priority 2: Cache Lookup (History)
+        if (!metaA && data.filename_a && this.metadataCache[data.filename_a]) {
+            metaA = this.metadataCache[data.filename_a].A;
+        }
+        if (!metaB && data.filename_b && this.metadataCache[data.filename_b]) {
+            metaB = this.metadataCache[data.filename_b].B;
+        }
+
+        // Priority 3: Scan Live Graph (Last Resort fallback)
+        if (!metaA && !metaB) {
+            const captured = this.captureGraphMetadata();
+            metaA = captured.A;
+            metaB = captured.B;
+        }
+
+        // 2. Context Awareness UI
+        if (!this.metaViewContext) this.metaViewContext = "B";
+
+        const ctxDiv = document.createElement("div");
+        ctxDiv.className = "h4-param-section";
+        ctxDiv.style.textAlign = "center";
+        ctxDiv.style.marginBottom = "10px";
+
+        const btnA = document.createElement("button");
+        btnA.className = `h4-btn ${this.metaViewContext === "A" ? "active" : ""}`;
+        btnA.textContent = "IMAGE A (Input)";
+        btnA.style.width = "48%";
+        btnA.onclick = () => { this.metaViewContext = "A"; this.updateParams(data); };
+
+        const btnB = document.createElement("button");
+        btnB.className = `h4-btn ${this.metaViewContext === "B" ? "active" : ""}`;
+        btnB.textContent = "IMAGE B (Result)";
+        btnB.style.width = "48%";
+        btnB.style.marginLeft = "4%";
+        btnB.onclick = () => { this.metaViewContext = "B"; this.updateParams(data); };
+
+        ctxDiv.appendChild(btnA);
+        ctxDiv.appendChild(btnB);
+        this.paramDrawer.appendChild(ctxDiv);
+
+        // 3. Select Active Params
+        let activeParams = [];
+        let activeLabel = "";
+
+        if (this.metaViewContext === "A") {
+            activeParams = metaA || [];
+            activeLabel = "IMAGE A CHAIN";
+        } else {
+            activeParams = metaB || [];
+            activeLabel = "IMAGE B CHAIN";
+        }
+
+        // 4. Render Tables
+        if (activeParams.length > 0) {
+            activeParams.forEach((params, i) => {
+                const title = activeParams.length > 1 ? `${activeLabel} - SAMPLER ${i + 1}` : activeLabel;
+                createTable(title, params);
+            });
+        } else {
+            this.paramDrawer.innerHTML += `<div style='padding:20px; color:#888; text-align:center;'>No Sampler Parameters Found for ${activeLabel}.<br><span style='font-size:10px opacity:0.7'>(Graph traversal returned no KSamplers)</span></div>`;
+        }
+
+        // Raw Fallback
+        if (activeParams.length === 0 && info && info.workflow) {
+            this.paramDrawer.innerHTML += "<div style='padding:10px; font-size:10px; color:#666;'>No KSampler found in direct ancestry. However, raw workflow data is available in the output file.</div>";
+        }
     }
 
 
@@ -1159,6 +1521,58 @@ class ComparinatorUI {
         this.paneRight.zoomCanvas.style.backgroundSize = `${this.zoomLevel * 100}%`;
     }
 
+    // -------------------------------------------------------------------
+    // BLINK MODE: Hold Spacebar to swap between Image A and Image B
+    // -------------------------------------------------------------------
+    toggleBlinkMode(isOn) {
+        this.blinkMode = isOn;
+
+        if (!this.paneLeft.imgA || !this.paneLeft.imgB) return;
+
+        if (isOn) {
+            // Show ONLY Image A (hide B entirely by removing clip and hiding)
+            this.paneLeft.imgB.style.opacity = "0";
+            this.paneLeft.handle.style.opacity = "0";
+            this.paneLeft.tag.textContent = "BLINK: IMAGE A";
+        } else {
+            // Restore normal slider view (B visible, clipped)
+            this.paneLeft.imgB.style.opacity = "1";
+            this.paneLeft.handle.style.opacity = "1";
+            this.paneLeft.tag.textContent = "COMPARE: LIVE VS HISTORY";
+        }
+    }
+
+    // -------------------------------------------------------------------
+    // SLIDER MODE: Shift+1 = A only, Shift+2 = B only, Shift+3 = Split
+    // -------------------------------------------------------------------
+    setSliderMode(mode) {
+        if (!this.paneLeft.imgB || !this.paneLeft.handle) return;
+
+        switch (mode) {
+            case "A":
+                // Show only A: clip B entirely
+                this.paneLeft.imgB.style.clipPath = "inset(0 0 0 100%)";
+                this.paneLeft.handle.style.left = "100%";
+                this.paneLeft.tag.textContent = "VIEW: IMAGE A";
+                break;
+            case "B":
+                // Show only B: no clip on B
+                this.paneLeft.imgB.style.clipPath = "inset(0 0 0 0%)";
+                this.paneLeft.handle.style.left = "0%";
+                this.paneLeft.tag.textContent = "VIEW: IMAGE B";
+                break;
+            case "Split":
+            default:
+                // Standard 50/50 slider
+                this.paneLeft.imgB.style.clipPath = "inset(0 0 0 50%)";
+                this.paneLeft.handle.style.left = "50%";
+                this.paneLeft.imgB.style.display = "block";
+                this.paneLeft.handle.style.display = "block";
+                this.paneLeft.tag.textContent = "COMPARE: LIVE VS HISTORY";
+                break;
+        }
+    }
+
     toggleInspectMode(isOn) {
         this.inspectMode = isOn;
 
@@ -1223,6 +1637,12 @@ class ComparinatorUI {
             // Hide reticle
             this.paneLeft.reticle.style.display = "none";
 
+            // [FIX] Always restore slider visibility when both images have sources
+            if (this.paneLeft.imgA.src && this.paneLeft.imgB.src) {
+                this.paneLeft.imgB.style.display = "block";
+                this.paneLeft.handle.style.display = "block";
+            }
+
             // If we have a selected history active, stay split. If not, go full.
             const hasActiveHistory = this.historyStrip.querySelector(".active");
             if (!hasActiveHistory) {
@@ -1259,6 +1679,20 @@ class ComparinatorUI {
         if (data.current) {
             this.liveNodeData = data.current;
             const t = data.current.timestamp || new Date().getTime();
+
+            // [NEW] Capture and Cache Metadata IMMEDIATELY
+            const captured = this.captureGraphMetadata();
+            // Cache per filename
+            if (data.current.filename_a) {
+                this.metadataCache[data.current.filename_a] = { A: captured.A };
+            }
+            if (data.current.filename_b) {
+                // For B, usually "result".
+                this.metadataCache[data.current.filename_b] = { B: captured.B };
+            }
+            // Also attach to live data for immediate use
+            data.current.metaA = captured.A;
+            data.current.metaB = captured.B;
 
             // --------------------------------------------------------
             // SLIDER LOGIC Check
@@ -1433,9 +1867,14 @@ class ComparinatorUI {
 
                 // COMPARE MODE LOGIC
                 if (isSelected && !this.lockedReferenceItem) {
-                    // Only toggle full mode if NOT dealing with complex lock
+                    // Deselect: go full-mode but keep slider if both images loaded
                     this.stage.classList.add("full-mode");
                     thumb.classList.remove("active");
+                    // [FIX] Restore slider in full-mode so user can still compare A vs B
+                    if (this.paneLeft.imgA.src && this.paneLeft.imgB.src) {
+                        this.paneLeft.imgB.style.display = "block";
+                        this.paneLeft.handle.style.display = "block";
+                    }
                 } else {
                     this.stage.classList.remove("full-mode");
                     this.selectHistoryItem(item);
@@ -1690,75 +2129,81 @@ app.registerExtension({
         if (nodeData.name === "H4_Comparinator") {
             const onNodeCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function () {
-                if (onNodeCreated) onNodeCreated.apply(this, arguments);
-                const ui = new ComparinatorUI(this);
-                this.comparinatorUI = ui;
-                if (this.addDOMWidget) {
-                    this.addDOMWidget("h4_comparinator_ui", "custom", ui.container, { serialize: false, hideOnZoom: false });
-                }
-                this.setSize([640, 580]);
-                const hideWidget = (wName) => {
-                    const w = this.widgets.find(w => w.name === wName);
-                    if (w) {
-                        w.type = "converted-widget";
-                        w.computeSize = () => [0, -4];
-                        w.visible = false;
-                        w.disabled = true;
-                        w.draw = () => { }; // [FIX] Prevent canvas rendering
-                        // SAFE DOM HIDING
-                        if (w.inputEl) { w.inputEl.style.display = "none"; w.inputEl.style.visibility = "hidden"; }
-                        if (w.element) { w.element.style.display = "none"; w.element.style.visibility = "hidden"; }
+                try {
+                    if (onNodeCreated) onNodeCreated.apply(this, arguments);
+                    const ui = new ComparinatorUI(this);
+                    this.comparinatorUI = ui;
+                    if (this.addDOMWidget) {
+                        this.addDOMWidget("h4_comparinator_ui", "custom", ui.container, { serialize: false, hideOnZoom: false });
                     }
-                };
+                    this.setSize([640, 580]);
 
-                // Keep trying for a moment as widgets init
-                let attempts = 0;
-                const hider = () => {
-                    hideWidget("save_mode");
-                    hideWidget("metadata_text");
-                    hideWidget("save_settings");
-                    hideWidget("filename_prefix");
+                    const hideWidget = (wName) => {
+                        if (!this.widgets) return;
+                        const w = this.widgets.find(w => w.name === wName);
+                        if (w) {
+                            w.type = "converted-widget";
+                            w.computeSize = () => [0, -4];
+                            w.visible = false;
+                            w.disabled = true;
+                            w.draw = () => { };
+                            if (w.inputEl) { w.inputEl.style.display = "none"; w.inputEl.style.visibility = "hidden"; }
+                            if (w.element) { w.element.style.display = "none"; w.element.style.visibility = "hidden"; }
+                        }
+                    };
 
-                    // Retrigger resize & dirty
-                    this.onResize && this.onResize(this.size);
-                    app.graph.setDirtyCanvas(true, true);
+                    let attempts = 0;
+                    const hider = () => {
+                        try {
+                            hideWidget("save_mode");
+                            hideWidget("metadata_text");
+                            hideWidget("save_settings");
+                            hideWidget("filename_prefix");
 
-                    attempts++;
-                    if (attempts < 5) setTimeout(hider, 200);
-                };
-                setTimeout(hider, 100);
+                            if (this.onResize && this.size) this.onResize(this.size);
+                            if (app.graph) app.graph.setDirtyCanvas(true, true);
 
+                            attempts++;
+                            if (attempts < 5) setTimeout(hider, 200);
+                        } catch (e) { console.error("[H4 Comparinator] Hider Error:", e); }
+                    };
+                    setTimeout(hider, 100);
+                } catch (e) {
+                    console.error("[H4 Comparinator] onNodeCreated Crit Fail:", e);
+                }
             };
 
             // [NEW] Hook onConfigure for graph loading
             const onConfigure = nodeType.prototype.onConfigure;
             nodeType.prototype.onConfigure = function () {
-                if (onConfigure) onConfigure.apply(this, arguments);
-                if (this.comparinatorUI) {
-                    try {
+                try {
+                    if (onConfigure) onConfigure.apply(this, arguments);
+                    if (this.comparinatorUI) {
                         const hider = () => {
-                            const hide = (wName) => {
-                                const w = this.widgets?.find(w => w.name === wName);
-                                if (w) {
-                                    w.type = "converted-widget";
-                                    w.computeSize = () => [0, -4];
-                                    w.visible = false;
-                                    w.disabled = true;
-                                    w.draw = () => { }; // [FIX] Prevent canvas rendering
-                                    // SAFE DOM HIDING
-                                    if (w.inputEl) { w.inputEl.style.display = "none"; w.inputEl.style.visibility = "hidden"; }
-                                    if (w.element) { w.element.style.display = "none"; w.element.style.visibility = "hidden"; }
-                                }
-                            };
-                            hide("save_mode");
-                            hide("metadata_text");
-                            hide("save_settings");
-                            hide("filename_prefix");
-                            this.onResize && this.onResize(this.size);
+                            try {
+                                const hide = (wName) => {
+                                    if (!this.widgets) return;
+                                    const w = this.widgets.find(w => w.name === wName);
+                                    if (w) {
+                                        w.type = "converted-widget";
+                                        w.computeSize = () => [0, -4];
+                                        w.visible = false;
+                                        w.disabled = true;
+                                        w.draw = () => { };
+                                        if (w.inputEl) { w.inputEl.style.display = "none"; w.inputEl.style.visibility = "hidden"; }
+                                        if (w.element) { w.element.style.display = "none"; w.element.style.visibility = "hidden"; }
+                                    }
+                                };
+                                hide("save_mode");
+                                hide("metadata_text");
+                                hide("save_settings");
+                                hide("filename_prefix");
+                                if (this.onResize && this.size) this.onResize(this.size);
+                            } catch (e) { console.error("[H4 Comparinator] Configure Hider Error:", e); }
                         };
                         setTimeout(hider, 100);
-                    } catch (e) { }
-                }
+                    }
+                } catch (e) { console.error("[H4 Comparinator] onConfigure Error:", e); }
             };
         }
     }

@@ -1,321 +1,135 @@
-0 models unloaded.
-Unloaded partially: 90.02 MB freed, 0.00 MB remains loaded, 13.50 MB buffer reserved, lowvram patches: 0
-Model Upscale Failed: Allocation on device 0 would exceed allowed memory. (out of memory)
-Currently allocated     : 7.70 GiB
-Requested               : 6.03 GiB
-Device limit            : 8.00 GiB
-Free (according to CUDA): 0 bytes
-PyTorch limit (set by user-supplied memory fraction)
-                        : 17179869184.00 GiB
-loaded completely; 992.44 MB usable, 159.56 MB loaded, full load: True
-Requested to load SDXL
-Unloaded partially: 87.54 MB freed, 72.02 MB remains loaded, 13.50 MB buffer reserved, lowvram patches: 0
-loaded completely; 5402.22 MB usable, 4897.05 MB loaded, full load: True
-100%|██████████| 15/15 [00:13<00:00,  1.08it/s]
-0 models unloaded.
-Unloaded partially: 72.02 MB freed, 0.00 MB remains loaded, 13.50 MB buffer reserved, lowvram patches: 0
-[h4_Live][CORE][15:32:54.154] [230] ⚔️ Comparinator Active - Mode: PREVIEW - Frozen: NO
-Prompt executed in 181.90 seconds
-[h4_Live][CORE][15:32:59.360] UniversalLoader: Mode [Checkpoint (Standard)]
-[h4_Live][CORE][15:32:59.361] UniversalLoader Inputs: ckpt='XL\h4_ToonSR2.8D-SLIDER.safetensors', unet='umt5_xxl_fp8_e4m3fn_scaled.safetensors', clip='Baked / None'
-[h4_Live][CORE][15:32:59.361] Loading Checkpoint: XL\h4_ToonSR2.8D-SLIDER.safetensors
-model weight dtype torch.float16, manual cast: None
-model_type EPS
-Using pytorch attention in VAE
-Using pytorch attention in VAE
-VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
-Requested to load SDXLClipModel
-loaded completely;  1560.80 MB loaded, full load: True
-CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
-[h4_FaceForge] [15:33:07] [INFO] Dual Encode: 'bad quality, low res...'
-[h4_FaceForge] [15:33:09] [INFO] Dual Encode: 'masterpiece, best qu...'
-[h4_Live][CORE][15:33:12.460] UniversalLoader: Mode [Checkpoint (Standard)]
-[h4_Live][CORE][15:33:12.460] UniversalLoader Inputs: ckpt='XL\Illustrious\Chaos_Illustrious_v2.safetensors', unet='umt5_xxl_fp8_e4m3fn_scaled.safetensors', clip='Baked / None'
-[h4_Live][CORE][15:33:12.460] Loading Checkpoint: XL\Illustrious\Chaos_Illustrious_v2.safetensors
-model weight dtype torch.float16, manual cast: None
-model_type EPS
-Using pytorch attention in VAE
-Using pytorch attention in VAE
-VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
-Requested to load SDXLClipModel
-loaded completely;  1560.80 MB loaded, full load: True
-CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
-loaded diffusion model directly to GPU
-Requested to load SDXL
-loaded completely;  4897.05 MB loaded, full load: True
-开始清理RAM - 当前使用率: 70.0%, 可用: 4799.8MB
-清理后内存使用率: 67.1%, 可用: 5272.0MB
-清理后内存使用率: 66.2%, 可用: 5404.0MB
-清理后内存使用率: 65.9%, 可用: 5465.6MB
-清理完成 - 最终内存使用率: 65.9%, 可用: 5465.6MB
-已发送内存清理信号
-Requested to load SDXL
-Unloaded partially: 4784.54 MB freed, 112.54 MB remains loaded, 98.44 MB buffer reserved, lowvram patches: 0
-loaded completely; 5488.00 MB usable, 4897.05 MB loaded, full load: True
-100%|██████████| 30/30 [00:08<00:00,  3.44it/s]
-100%|██████████| 20/20 [00:05<00:00,  3.51it/s]
-Requested to load AutoencoderKL
-Unloaded partially: 300.25 MB freed, 4596.83 MB remains loaded, 9.38 MB buffer reserved, lowvram patches: 0
-loaded completely; 185.00 MB usable, 159.56 MB loaded, full load: True
+Adding extra search path checkpoints D:\LocalAI\StabilityMatrix\Models\StableDiffusion
+Adding extra search path diffusers D:\LocalAI\StabilityMatrix\Models\Diffusers
+Adding extra search path loras D:\LocalAI\StabilityMatrix\Models\Lora
+Adding extra search path loras D:\LocalAI\StabilityMatrix\Models\LyCORIS
+Adding extra search path clip D:\LocalAI\StabilityMatrix\Models\TextEncoders
+Adding extra search path clip_vision D:\LocalAI\StabilityMatrix\Models\ClipVision
+Adding extra search path embeddings D:\LocalAI\StabilityMatrix\Models\Embeddings
+Adding extra search path vae D:\LocalAI\StabilityMatrix\Models\VAE
+Adding extra search path vae_approx D:\LocalAI\StabilityMatrix\Models\ApproxVAE
+Adding extra search path controlnet D:\LocalAI\StabilityMatrix\Models\ControlNet
+Adding extra search path controlnet D:\LocalAI\StabilityMatrix\Models\T2IAdapter
+Adding extra search path gligen D:\LocalAI\StabilityMatrix\Models\GLIGEN
+Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\ESRGAN
+Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\RealESRGAN
+Adding extra search path upscale_models D:\LocalAI\StabilityMatrix\Models\SwinIR
+Adding extra search path hypernetworks D:\LocalAI\StabilityMatrix\Models\Hypernetwork
+Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdapter
+Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdapters15
+Adding extra search path ipadapter D:\LocalAI\StabilityMatrix\Models\IpAdaptersXl
+Adding extra search path prompt_expansion D:\LocalAI\StabilityMatrix\Models\PromptExpansion
+Adding extra search path ultralytics D:\LocalAI\StabilityMatrix\Models\Ultralytics
+Adding extra search path ultralytics_bbox D:\LocalAI\StabilityMatrix\Models\Ultralytics\bbox
+Adding extra search path ultralytics_segm D:\LocalAI\StabilityMatrix\Models\Ultralytics\segm
+Adding extra search path sams D:\LocalAI\StabilityMatrix\Models\Sams
+Adding extra search path diffusion_models D:\LocalAI\StabilityMatrix\Models\DiffusionModels
+[START] Security scan
+[DONE] Security scan
+** ComfyUI startup time: 2026-02-10 14:04:29.607
+** Platform: Windows
+** Python version: 3.12.11 (main, Jul 23 2025, 00:32:20) [MSC v.1944 64 bit (AMD64)]
+** Python executable: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Scripts\python.exe
+** ComfyUI Path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI
+** ComfyUI Base Folder Path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI
+** User directory: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user
+** ComfyUI-Manager config path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\__manager\config.ini
+** Log path: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\comfyui.log
+[PRE] ComfyUI-Manager
+D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\torch\cuda\__init__.py:65: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+Checkpoint files will always be loaded safely.
+Found comfy_kitchen backend eager: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_nvfp4']}
+Found comfy_kitchen backend triton: {'available': True, 'disabled': True, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8']}
+Found comfy_kitchen backend cuda: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_nvfp4']}
+Total VRAM 8188 MB, total RAM 16011 MB
+pytorch version: 2.10.0+cu130
+Set vram state to: LOW_VRAM
+Device: cuda:0 NVIDIA GeForce RTX 4060 Laptop GPU : cudaMallocAsync
+Using async weight offloading with 2 streams
+Enabled pinned memory 7204.0
+working around nvidia conv3d memory bug.
+Using sage attention
+Python version: 3.12.11 (main, Jul 23 2025, 00:32:20) [MSC v.1944 64 bit (AMD64)]
+ComfyUI version: 0.12.3
+ComfyUI frontend version: 1.37.11
+[Prompt Server] web root: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\comfyui_frontend_package\static
+[START] ComfyUI-Manager
+[ComfyUI-Manager] network_mode: public
 
-0: 448x640 1 person, 26.2ms
-Speed: 25.9ms preprocess, 26.2ms inference, 19.9ms postprocess per image at shape (1, 3, 448, 640)
-Model Upscale Failed: Allocation on device 0 would exceed allowed memory. (out of memory)
-Currently allocated     : 6.65 GiB
-Requested               : 1.50 GiB
-Device limit            : 8.00 GiB
-Free (according to CUDA): 0 bytes
-PyTorch limit (set by user-supplied memory fraction)
-                        : 17179869184.00 GiB
-Unloaded partially: 3857.48 MB freed, 739.35 MB remains loaded, 75.06 MB buffer reserved, lowvram patches: 0
-Requested to load SDXL
-Unloaded partially: 69.54 MB freed, 90.02 MB remains loaded, 13.50 MB buffer reserved, lowvram patches: 0
-loaded completely; 5401.94 MB usable, 4897.05 MB loaded, full load: True
-100%|██████████| 15/15 [00:14<00:00,  1.04it/s]
-0 models unloaded.
-Unloaded partially: 90.02 MB freed, 0.00 MB remains loaded, 13.50 MB buffer reserved, lowvram patches: 0
-Model Upscale Failed: Allocation on device 0 would exceed allowed memory. (out of memory)
-Currently allocated     : 1.67 GiB
-Requested               : 6.03 GiB
-Device limit            : 8.00 GiB
-Free (according to CUDA): 0 bytes
-PyTorch limit (set by user-supplied memory fraction)
-                        : 17179869184.00 GiB
-loaded completely; 992.44 MB usable, 159.56 MB loaded, full load: True
-Requested to load SDXL
-Unloaded partially: 87.54 MB freed, 72.02 MB remains loaded, 13.50 MB buffer reserved, lowvram patches: 0
-loaded completely; 5402.22 MB usable, 4897.05 MB loaded, full load: True
-100%|██████████| 15/15 [00:13<00:00,  1.08it/s]
-0 models unloaded.
-Unloaded partially: 72.02 MB freed, 0.00 MB remains loaded, 13.50 MB buffer reserved, lowvram patches: 0
-[h4_Live][CORE][15:36:28.817] [230] ⚔️ Comparinator Active - Mode: PREVIEW - Frozen: NO
-Prompt executed in 210.57 seconds
-[ComfyUI-Manager] The ComfyRegistry cache update is still in progress, so an outdated cache is being used.
-FETCH DATA from: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\comfyui_manager\custom-node-list.json [DONE]
+
+
+         🔶Chaosaiart: visit our Discord. https://chaosaiart.com/discord
+
+
+
+ComfyUI-GGUF: Allowing full torch compile
+### Loading: ComfyUI-Inspire-Pack (V1.23)
+Blocked by policy: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-Manager-main
+D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\timm\models\layers\__init__.py:48: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[ComfyUI-RMBG] v3.0.0 | 43 nodes Loaded
+Endless Sea of Stars Custom Nodes v1.5.0 loaded successfully!
+Nodes available under 'Endless 🌊✨' menu
+Unable to parse pyproject.toml due to lack dependency pydantic-settings, please run 'pip install -r requirements.txt': 1 validation error for PyProjectConfig
+project.dependencies
+  Input should be a valid list [type=list_type, input_value='', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/list_type
+[scromfyUI] Failed to load module image_mask_nodes: No module named 'largestinteriorrectangle'
+[scromfyUI] Failed to load module misc_nodes: No module named 'shortuuid'
+[scromfyUI] Loaded modules: civitai_browser (1), civsearch_browser (1), clipchat (1), danbooru_browser (1), genur_browser (1), json_utils (4), logic (1), lora_nodes (2), model_code (3), moire_nodes (16), prompts (1), text_utils (3), tubes (17), vae_decode_plusplus (1)
+[scromfyUI] Total nodes initialized: 53
+⚡ SeedVR2 optimizations check: SageAttention ✅ | Flash Attention ❌ | Triton ✅
+💡 Optional: pip install flash-attn
+🔧 Conv3d workaround active: PyTorch 2.10.0, cuDNN 91200 (fixing VAE 3x memory bug)
+📊 Initial CUDA memory: 6.87GB free / 8.00GB total
+
+Import times for custom nodes:
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\websocket_image_save.py
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\quick-connections
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-base64-to-image
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-unload-model
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\seedvarianceenhancer
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_memory_cleanup
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-autocomplete-plus
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-superbeasts
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_ipadapter_plus
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-leMouf
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-custom-scripts
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\endless-nodes
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\ComfyUI-GGUF
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\efficiency-nodes-comfyui
+   0.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-frame-interpolation
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-inspire-pack
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\scromfyUI_Nodes
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui_image_metadata_extension
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-kjnodes
+   0.1 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\chaosaiart-nodes
+   0.2 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-videohelpersuite
+   0.4 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-detail-daemon
+   3.0 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\comfyui-rmbg
+   4.7 seconds: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\seedvr2_videoupscaler
+
+Context impl SQLiteImpl.
+Will assume non-transactional DDL.
+Assets scan(roots=['models']) completed in 0.168s (created=0, skipped_existing=133, orphans_pruned=5, total_seen=133)
+Starting server
+
+To see the GUI go to: http://127.0.0.1:8190
+FETCH ComfyRegistry Data [DONE]
+[ComfyUI-Manager] default cache updated: https://api.comfy.org/nodes
+FETCH DATA from: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\user\__manager\cache\1514988643_custom-node-list.json [DONE]
+[ComfyUI-Manager] All startup tasks have been completed.
+Exception in callback _ProactorBasePipeTransport._call_connection_lost(None)
+handle: <Handle _ProactorBasePipeTransport._call_connection_lost(None)>
+Traceback (most recent call last):
+  File "D:\LocalAI\StabilityMatrix\Assets\Python\cpython-3.12.11-windows-x86_64-none\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "D:\LocalAI\StabilityMatrix\Assets\Python\cpython-3.12.11-windows-x86_64-none\Lib\asyncio\proactor_events.py", line 165, in _call_connection_lost
+    self._sock.shutdown(socket.SHUT_RDWR)
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+[DEPRECATION WARNING] Detected import of deprecated legacy API: /scripts/ui.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
+[DEPRECATION WARNING] Detected import of deprecated legacy API: /extensions/core/widgetInputs.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
 [Autocomplete-Plus] CSV file status:
   * Danbooru -> base: True, extra: []
   * E621     -> base: False, extra: []
-got prompt
-[h4_Live][CORE][15:45:18.730] UniversalLoader: Mode [Checkpoint (Standard)]
-[h4_Live][CORE][15:45:19.052] UniversalLoader Inputs: ckpt='XL\h4_ToonSR2.8D-SLIDER.safetensors', unet='umt5_xxl_fp8_e4m3fn_scaled.safetensors', clip='Baked / None'
-[h4_Live][CORE][15:45:19.052] Loading Checkpoint: XL\h4_ToonSR2.8D-SLIDER.safetensors
-model weight dtype torch.float16, manual cast: None
-model_type EPS
-Using pytorch attention in VAE
-Using pytorch attention in VAE
-VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
-Requested to load SDXLClipModel
-loaded completely;  1560.80 MB loaded, full load: True
-CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
-[h4_Live][CORE][15:45:28.066] [269] 👁️ Visual Tokenizer: Analyzing '...'
-[h4_FaceForge] [15:45:28] [INFO] Dual Encode: 'bad quality, low res...'
-[h4_FaceForge] [15:45:30] [INFO] Dual Encode: 'masterpiece, best qu...'
-[h4_Live][CORE][15:45:33.113] UniversalLoader: Mode [Checkpoint (Standard)]
-[h4_Live][CORE][15:45:33.114] UniversalLoader Inputs: ckpt='XL\Illustrious\Chaos_Illustrious_v2.safetensors', unet='umt5_xxl_fp8_e4m3fn_scaled.safetensors', clip='Baked / None'
-[h4_Live][CORE][15:45:33.114] Loading Checkpoint: XL\Illustrious\Chaos_Illustrious_v2.safetensors
-model weight dtype torch.float16, manual cast: None
-model_type EPS
-Interrupting prompt b6f13da1-3fb3-43d9-9ab4-2458da721719
-got prompt
-Using pytorch attention in VAE
-Using pytorch attention in VAE
-VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
-Requested to load SDXLClipModel
-loaded completely;  1560.80 MB loaded, full load: True
-CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
-loaded diffusion model directly to GPU
-Requested to load SDXL
-loaded completely;  4897.05 MB loaded, full load: True
-Processing interrupted
-Prompt executed in 34.95 seconds
-开始清理RAM - 当前使用率: 75.3%, 可用: 3957.9MB
-清理后内存使用率: 73.0%, 可用: 4316.3MB
-清理后内存使用率: 72.7%, 可用: 4377.3MB
-清理后内存使用率: 73.4%, 可用: 4261.1MB
-清理完成 - 最终内存使用率: 73.4%, 可用: 4261.1MB
-已发送内存清理信号
-[h4_Live][CORE][15:46:01.371] [269] 👁️ Visual Tokenizer: Analyzing 'masterpiece, best quality, amazing quality, very a...'
-!!! Exception during processing !!! too many values to unpack (expected 2)
-Traceback (most recent call last):
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
-    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
-    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
-    await process_inputs(input_dict, i)
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
-    result = f(**inputs)
-             ^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\h4_Live\h4_visual_tokenizer.py", line 84, in visualize_tokens
-    for segment_text, segment_weight in weighted_segments:
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-ValueError: too many values to unpack (expected 2)
-
-Prompt executed in 4.92 seconds
-got prompt
-[h4_Live][CORE][15:46:45.618] UniversalLoader: Mode [Checkpoint (Standard)]
-[h4_Live][CORE][15:46:45.619] UniversalLoader Inputs: ckpt='XL\h4_ToonSR2.8D-SLIDER.safetensors', unet='umt5_xxl_fp8_e4m3fn_scaled.safetensors', clip='Baked / None'
-[h4_Live][CORE][15:46:45.619] Loading Checkpoint: XL\h4_ToonSR2.8D-SLIDER.safetensors
-model weight dtype torch.float16, manual cast: None
-model_type EPS
-Using pytorch attention in VAE
-Using pytorch attention in VAE
-VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
-Requested to load SDXLClipModel
-loaded completely;  1560.80 MB loaded, full load: True
-CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
-[h4_Live][CORE][15:46:55.535] [269] 👁️ Visual Tokenizer: Analyzing '...'
-[h4_FaceForge] [15:46:55] [INFO] Dual Encode: 'bad quality, low res...'
-[h4_FaceForge] [15:46:57] [INFO] Dual Encode: 'masterpiece, best qu...'
-[h4_Live][CORE][15:47:00.468] UniversalLoader: Mode [Checkpoint (Standard)]
-[h4_Live][CORE][15:47:00.468] UniversalLoader Inputs: ckpt='XL\Illustrious\Chaos_Illustrious_v2.safetensors', unet='umt5_xxl_fp8_e4m3fn_scaled.safetensors', clip='Baked / None'
-[h4_Live][CORE][15:47:00.468] Loading Checkpoint: XL\Illustrious\Chaos_Illustrious_v2.safetensors
-model weight dtype torch.float16, manual cast: None
-model_type EPS
-Using pytorch attention in VAE
-Using pytorch attention in VAE
-VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
-Requested to load SDXLClipModel
-loaded completely;  1560.80 MB loaded, full load: True
-CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
-loaded diffusion model directly to GPU
-Requested to load SDXL
-loaded completely;  4897.05 MB loaded, full load: True
-开始清理RAM - 当前使用率: 61.8%, 可用: 6108.6MB
-清理后内存使用率: 59.8%, 可用: 6441.4MB
-清理后内存使用率: 59.7%, 可用: 6452.5MB
-清理后内存使用率: 59.7%, 可用: 6450.7MB
-清理完成 - 最终内存使用率: 59.7%, 可用: 6450.7MB
-已发送内存清理信号
-Requested to load SDXL
-Unloaded partially: 4784.54 MB freed, 112.54 MB remains loaded, 98.44 MB buffer reserved, lowvram patches: 0
-loaded completely; 5488.00 MB usable, 4897.05 MB loaded, full load: True
-100%|██████████| 30/30 [00:08<00:00,  3.40it/s]
-100%|██████████| 20/20 [00:05<00:00,  3.54it/s]
-Requested to load AutoencoderKL
-Unloaded partially: 300.25 MB freed, 4596.83 MB remains loaded, 9.38 MB buffer reserved, lowvram patches: 0
-loaded completely; 185.00 MB usable, 159.56 MB loaded, full load: True
-
-0: 448x640 3 persons, 23.9ms
-Speed: 22.1ms preprocess, 23.9ms inference, 78.3ms postprocess per image at shape (1, 3, 448, 640)
-Model Upscale Failed: Allocation on device 0 would exceed allowed memory. (out of memory)
-Currently allocated     : 5.15 GiB
-Requested               : 1.50 GiB
-Device limit            : 8.00 GiB
-Free (according to CUDA): 0 bytes
-PyTorch limit (set by user-supplied memory fraction)
-                        : 17179869184.00 GiB
-Unloaded partially: 3857.48 MB freed, 739.35 MB remains loaded, 75.06 MB buffer reserved, lowvram patches: 0
-Requested to load SDXL
-Unloaded partially: 69.54 MB freed, 90.02 MB remains loaded, 13.50 MB buffer reserved, lowvram patches: 0
-loaded completely; 5401.39 MB usable, 4897.05 MB loaded, full load: True
-100%|██████████| 15/15 [00:14<00:00,  1.04it/s]
-0 models unloaded.
-Unloaded partially: 90.02 MB freed, 0.00 MB remains loaded, 13.50 MB buffer reserved, lowvram patches: 0
-Model Upscale Failed: Allocation on device 0 would exceed allowed memory. (out of memory)
-Currently allocated     : 1.67 GiB
-Requested               : 6.03 GiB
-Device limit            : 8.00 GiB
-Free (according to CUDA): 0 bytes
-PyTorch limit (set by user-supplied memory fraction)
-                        : 17179869184.00 GiB
-loaded completely; 991.89 MB usable, 159.56 MB loaded, full load: True
-Requested to load SDXL
-Unloaded partially: 87.54 MB freed, 72.02 MB remains loaded, 13.50 MB buffer reserved, lowvram patches: 0
-loaded completely; 5401.68 MB usable, 4897.05 MB loaded, full load: True
-100%|██████████| 15/15 [00:14<00:00,  1.07it/s]
-0 models unloaded.
-Unloaded partially: 72.02 MB freed, 0.00 MB remains loaded, 13.50 MB buffer reserved, lowvram patches: 0
-[h4_Live][CORE][15:50:10.279] [230] ⚔️ Comparinator Active - Mode: PREVIEW - Frozen: NO
-Prompt executed in 205.69 seconds
-got prompt
-[h4_Live][CORE][16:00:00.363] UniversalLoader: Mode [Checkpoint (Standard)]
-[h4_Live][CORE][16:00:00.367] UniversalLoader Inputs: ckpt='XL\h4_ToonSR2.8D-SLIDER.safetensors', unet='umt5_xxl_fp8_e4m3fn_scaled.safetensors', clip='Baked / None'
-[h4_Live][CORE][16:00:00.367] Loading Checkpoint: XL\h4_ToonSR2.8D-SLIDER.safetensors
-model weight dtype torch.float16, manual cast: None
-model_type EPS
-Using pytorch attention in VAE
-Using pytorch attention in VAE
-VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
-Requested to load SDXLClipModel
-loaded completely;  1560.80 MB loaded, full load: True
-CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
-loaded diffusion model directly to GPU
-Requested to load SDXL
-loaded completely;  4897.05 MB loaded, full load: True
-[h4_FaceForge] [16:00:23] [INFO] Dual Encode: 'bad quality, low res...'
-[h4_FaceForge] [16:00:25] [INFO] Dual Encode: 'masterpiece, best qu...'
-[h4_Live][CORE][16:00:28.479] [269] 👁️ Visual Tokenizer: Analyzing 'masterpiece, best quality, amazing quality, very a...'
-!!! Exception during processing !!! too many values to unpack (expected 2)
-Traceback (most recent call last):
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
-    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
-    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
-    await process_inputs(input_dict, i)
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
-    result = f(**inputs)
-             ^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\h4_Live\h4_visual_tokenizer.py", line 84, in visualize_tokens
-    for segment_text, segment_weight in weighted_segments:
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-ValueError: too many values to unpack (expected 2)
-
-Prompt executed in 28.43 seconds
-[ComfyUI-Manager] The ComfyRegistry cache update is still in progress, so an outdated cache is being used.
-FETCH DATA from: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\comfyui_manager\custom-node-list.json [DONE]
-[Autocomplete-Plus] CSV file status:
-  * Danbooru -> base: True, extra: []
-  * E621     -> base: False, extra: []
-got prompt
-[h4_Live][CORE][16:00:44.171] [269] 👁️ Visual Tokenizer: Analyzing 'masterpiece, best quality, amazing quality, very a...'
-!!! Exception during processing !!! too many values to unpack (expected 2)
-Traceback (most recent call last):
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
-    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
-    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
-    await process_inputs(input_dict, i)
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
-    result = f(**inputs)
-             ^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\h4_Live\h4_visual_tokenizer.py", line 84, in visualize_tokens
-    for segment_text, segment_weight in weighted_segments:
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-ValueError: too many values to unpack (expected 2)
-
-Prompt executed in 0.04 seconds
-[Autocomplete-Plus] CSV file status:
-  * Danbooru -> base: True, extra: []
-  * E621     -> base: False, extra: []
-[ComfyUI-Manager] The ComfyRegistry cache update is still in progress, so an outdated cache is being used.
-FETCH DATA from: D:\LocalAI\StabilityMatrix\Packages\ComfyUI\venv\Lib\site-packages\comfyui_manager\custom-node-list.json [DONE]
-got prompt
-[h4_Live][CORE][16:00:55.045] [269] 👁️ Visual Tokenizer: Analyzing 'masterpiece, best quality, amazing quality, very a...'
-!!! Exception during processing !!! too many values to unpack (expected 2)
-Traceback (most recent call last):
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 527, in execute
-    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 331, in get_output_data
-    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 305, in _async_map_node_over_list
-    await process_inputs(input_dict, i)
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\execution.py", line 293, in process_inputs
-    result = f(**inputs)
-             ^^^^^^^^^^^
-  File "D:\LocalAI\StabilityMatrix\Packages\ComfyUI\custom_nodes\h4_Live\h4_visual_tokenizer.py", line 84, in visualize_tokens
-    for segment_text, segment_weight in weighted_segments:
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-ValueError: too many values to unpack (expected 2)
-
-Prompt executed in 0.03 seconds
+[DEPRECATION WARNING] Detected import of deprecated legacy API: /scripts/ui/components/button.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
