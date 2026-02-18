@@ -4,7 +4,6 @@ import comfy.utils
 import comfy.model_management
 
 class H4_LatentSelector:
-    "H4_LatentSelector": "h4 Latent_Presets",
     TITLE = "h4 Latent_Presets"
     
     @classmethod
