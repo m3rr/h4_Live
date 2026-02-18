@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter, ImageCms, ImageOps
 import comfy.utils
 import folder_paths
+import gc
 
 # --- HDR HELPER FUNCTIONS (Ported from SuperBeasts) ---
 
@@ -64,6 +65,7 @@ class H4_PixelPress:
             },
             "optional": {
                 "upscale_model": ("UPSCALE_MODEL",),
+                "tile_size": ("INT", {"default": 512, "min": 256, "max": 2048, "step": 64, "tooltip": "Tile size for HDR processing. Lower if OOM."}),
             }
         }
 
@@ -113,7 +115,95 @@ class H4_PixelPress:
             traceback.print_exc()
             return tile_img
 
-    def execute(self, image, supersample_scale, sharpness, enable_hdr, tiled_processing, hdr_intensity, shadow_intensity, highlight_intensity, gamma_intensity, contrast, enhance_color, upscale_model=None):
+    def _tiled_upscale(self, img_tensor, model, scale, tile_size, overlap):
+        """
+        Upscales an image tensor using a model in tiles to save VRAM.
+        img_tensor: (H, W, C) [Standard Comfy format is B,H,W,C but here we process single image H,W,C from loop]
+        Wait, loop passes `img_tensor = image[i]`. Shape is (H,W,C).
+        """
+        h, w, c = img_tensor.shape
+        
+        # Output canvas
+        target_h, target_w = h * scale, w * scale
+        output = np.zeros((target_h, target_w, c), dtype=np.uint8)
+        
+        device = comfy.model_management.get_torch_device()
+        model.to(device)
+        
+        try:
+             # Iterate tiles
+            for y in range(0, h, tile_size):
+                for x in range(0, w, tile_size):
+                    # Input Box (with overlap)
+                    box_x = max(0, x - overlap)
+                    box_y = max(0, y - overlap)
+                    box_w = min(w, x + tile_size + overlap)
+                    box_h = min(h, y + tile_size + overlap)
+                    
+                    # Extract Input Tile
+                    # img_tensor is (H,W,C)
+                    # slice: [y:y+h, x:x+w, :]
+                    tile_input = img_tensor[box_y:box_h, box_x:box_w, :]
+                    
+                    # Prepare for Model: (1, C, H, W)
+                    tile_input = tile_input.permute(2, 0, 1).unsqueeze(0)
+                    
+                    # Run Model
+                    with torch.no_grad():
+                        tile_output = model(tile_input.to(device))
+                        
+                    # Process Output
+                    # Shape: (1, C, H*scale, W*scale)
+                    tile_output = tile_output.squeeze(0).permute(1, 2, 0).cpu().numpy()
+                    
+                    # Output is 0-1 float usually from model execution in Comfy? 
+                    # Comfy upscale models return matching input range.
+                    # My input was from `valid tensor` (0-1).
+                    # So output is 0-1.
+                    tile_output = np.clip(tile_output * 255, 0, 255).astype(np.uint8)
+                    
+                    # Calculate Valid Region (removing overlap) in Output Space
+                    # Valid region in Input Space
+                    valid_x = overlap if x > 0 else 0
+                    valid_y = overlap if y > 0 else 0
+                    valid_w = (box_w - box_x) - (overlap if box_w < w else 0)
+                    valid_h = (box_h - box_y) - (overlap if box_h < h else 0)
+                    
+                    # Scale to Output Space
+                    out_valid_x = valid_x * scale
+                    out_valid_y = valid_y * scale
+                    out_valid_w = valid_w * scale
+                    out_valid_h = valid_h * scale
+                    
+                    # Crop from Output Tile
+                    # We assume model output corresponds exact scaling
+                    # Output Tile Box
+                    # We just take the corresponding region from the result
+                    # Tile result size should be (box_h*scale, box_w*scale, C)
+                    
+                    term_x = out_valid_x
+                    term_y = out_valid_y
+                    term_w = out_valid_w
+                    term_h = out_valid_h
+                    
+                    tile_crop = tile_output[term_y:term_y+term_h, term_x:term_x+term_w, :]
+                    
+                    # Paste into Canvas
+                    paste_x = (box_x + valid_x) * scale
+                    paste_y = (box_y + valid_y) * scale
+                    
+                    output[paste_y:paste_y+term_h, paste_x:paste_x+term_w, :] = tile_crop
+                    
+                    del tile_input, tile_output, tile_crop
+            
+            return Image.fromarray(output)
+            
+        finally:
+            model.to("cpu")
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+    def execute(self, image, supersample_scale, sharpness, enable_hdr, tiled_processing, hdr_intensity, shadow_intensity, highlight_intensity, gamma_intensity, contrast, enhance_color, upscale_model=None, tile_size=512):
         
         # Parse Scale
         scale_map = {"2x": 2, "3x": 3, "4x": 4}
@@ -128,123 +218,106 @@ class H4_PixelPress:
         
         hdr_params = (hdr_intensity, shadow_intensity, highlight_intensity, gamma_intensity, contrast, enhance_color)
 
-        for i in range(batch_size):
-            # 1. Convert to PIL
-            img_tensor = image[i]
-            img_np = (img_tensor.cpu().numpy() * 255).astype(np.uint8)
-            pil_img = Image.fromarray(img_np).convert("RGB")
-            
-            if i == 0 and enable_hdr:
-                print(f"[H4_PixelPress] Processing Batch {i+1}/{batch_size} with HDR Enabled. Tiled: {tiled_processing}")
-            
-            orig_w, orig_h = pil_img.size
-            target_w, target_h = orig_w * scale, orig_h * scale
-            
-            # 2. Upscale (Phase 1)
-            # Upscaling is usually fast enough on GPU, but if we use a model we might OOM.
-            # For now, let's assume Model Upscale handles itself or is tiled internally by Comfy/Model.
-            # If not, we might need tiling there too. But user complained about HDR step OOM.
-            
-            if upscale_model:
-                # Use Model
-                input_tensor = img_tensor.permute(2, 0, 1).unsqueeze(0)
-                device = comfy.model_management.get_torch_device()
-                upscale_model.to(device)
-                try:
-                    upscaled_tensor = upscale_model(input_tensor.to(device))
-                    u_tensor = upscaled_tensor.squeeze(0).permute(1, 2, 0).cpu()
-                    u_np = (u_tensor.numpy() * 255).astype(np.uint8)
-                    upscaled_img = Image.fromarray(u_np)
-                except Exception as e:
-                    print(f"Model Upscale Failed/OOM, falling back to Lanczos: {e}")
-                    upscaled_img = pil_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
-                upscale_model.to("cpu")
-            else:
-                upscaled_img = pil_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
-            
-            # 3. HDR Pass (Phase 2)
-            current_img = upscaled_img
-            
-            if enable_hdr:
-                if tiled_processing:
-                    # --- TILED MODE ---
-                    tile_size = 512
-                    overlap = 64
-                    
-                    iw, ih = current_img.size
-                    
-                    # Create canvas
-                    new_img = Image.new("RGB", (iw, ih))
-                    
-                    # Loop tiles
-                    for y in range(0, ih, tile_size):
-                         for x in range(0, iw, tile_size):
-                             # Define box with overlap
-                             box_x = max(0, x - overlap)
-                             box_y = max(0, y - overlap)
-                             box_w = min(iw, x + tile_size + overlap)
-                             box_h = min(ih, y + tile_size + overlap)
-                             
-                             box = (box_x, box_y, box_w, box_h)
-                             tile = current_img.crop(box)
-                             
-                             # Process Tile
-                             processed_tile = self.process_tile(tile, sRGB_profile, Lab_profile, hdr_params)
-                             
-                             # Calculate paste position excluding blend overlap to keep it simple?
-                             # Or just paste valid center region.
-                             # Simple 2-pass: extract center valid region.
-                             
-                             # Valid Region logic:
-                             # The 'valid' part of this tile relative to itself
-                             valid_x = overlap if x > 0 else 0
-                             valid_y = overlap if y > 0 else 0
-                             valid_w = (box_w - box_x) - (overlap if box_w < iw else 0)
-                             valid_h = (box_h - box_y) - (overlap if box_h < ih else 0)
-                             
-                             # Crop valid center from processed tile
-                             # Wait, simple overlap paste works better if we feather, but verify complexity.
-                             # Simplest functional approach: Cut cleanly.
-                             # If we cut cleanly, we might see seams due to HDR local contrast.
-                             # But 64px padding usually absorbs the boundary effects of operations like UnsharpMask/Contrast.
-                             
-                             # Let's try simple crop-paste of valid center.
-                             center_tile = processed_tile.crop((valid_x, valid_y, valid_w, valid_h))
-                             
-                             # Paste into main image
-                             # Target coords
-                             paste_x = box_x + valid_x
-                             paste_y = box_y + valid_y
-                             
-                             new_img.paste(center_tile, (paste_x, paste_y))
-                             
-                             # GC
-                             del tile, processed_tile, center_tile
-                    
-                    current_img = new_img
-                    # Aggressive GC
-                    import gc
-                    gc.collect()
-                    
+        try:
+            for i in range(batch_size):
+                # 1. Convert to PIL
+                img_tensor = image[i]
+                img_np = (img_tensor.cpu().numpy() * 255).astype(np.uint8)
+                pil_img = Image.fromarray(img_np).convert("RGB")
+                
+                if i == 0 and enable_hdr:
+                    print(f"[H4_PixelPress] Processing Batch {i+1}/{batch_size} with HDR Enabled. Tiled: {tiled_processing} (Size: {tile_size})")
+                    comfy.model_management.soft_empty_cache()
+                
+                orig_w, orig_h = pil_img.size
+                target_w, target_h = orig_w * scale, orig_h * scale
+                
+                # 2. Upscale (Phase 1)
+                upscaled_img = None
+                
+                if upscale_model:
+                    try:
+                        if tiled_processing:
+                            # Tiled Model Upscale
+                            upscaled_img = self._tiled_upscale(img_tensor, upscale_model, scale, tile_size, 32)
+                        else:
+                            # Full Frame Model Upscale
+                            input_tensor = img_tensor.permute(2, 0, 1).unsqueeze(0)
+                            device = comfy.model_management.get_torch_device()
+                            upscale_model.to(device)
+                            
+                            upscaled_tensor = upscale_model(input_tensor.to(device))
+                            u_tensor = upscaled_tensor.squeeze(0).permute(1, 2, 0).cpu()
+                            u_np = (u_tensor.numpy() * 255).astype(np.uint8)
+                            upscaled_img = Image.fromarray(u_np)
+
+                    except Exception as e:
+                        print(f"[H4_PixelPress] Model OOM/Fail, fallback to Lanczos. Error: {e}")
+                        upscaled_img = pil_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+                    finally:
+                        upscale_model.to("cpu")
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
                 else:
-                    # --- FULL FRAME MODE ---
-                    current_img = self.process_tile(current_img, sRGB_profile, Lab_profile, hdr_params)
-            
-            # 4. Sharpen (Phase 3)
-            if sharpness > 0:
-                radius = scale 
-                percent = int(sharpness * 100) 
-                current_img = current_img.filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=3))
-            
-            # 5. Downscale (Phase 4)
-            final_img = current_img.resize((orig_w, orig_h), Image.Resampling.LANCZOS)
-            
-            final_np = np.array(final_img).astype(np.float32) / 255.0
-            results.append(torch.from_numpy(final_np))
-            
-            # Cleanup per batch
-            del current_img, upscaled_img, final_img, final_np
-            import gc
-            gc.collect()
+                    upscaled_img = pil_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+                
+                # 3. HDR Pass (Phase 2)
+                current_img = upscaled_img
+                
+                if enable_hdr:
+                    if tiled_processing:
+                         # Reuse tiling logic for HDR?
+                         # The existing logic below iterates on `current_img` which is now upscaled.
+                         # We should ensure `tile_size` is appropriate for the UPSCALE resolution.
+                         # If tile_size is 512, and image is 4K, that's fine.
+                         
+                         overlap = 64
+                         iw, ih = current_img.size
+                         new_img = Image.new("RGB", (iw, ih))
+                         
+                         for y in range(0, ih, tile_size):
+                             for x in range(0, iw, tile_size):
+                                 box_x = max(0, x - overlap)
+                                 box_y = max(0, y - overlap)
+                                 box_w = min(iw, x + tile_size + overlap)
+                                 box_h = min(ih, y + tile_size + overlap)
+                                 
+                                 tile = current_img.crop((box_x, box_y, box_w, box_h))
+                                 processed_tile = self.process_tile(tile, sRGB_profile, Lab_profile, hdr_params)
+                                 
+                                 valid_x = overlap if x > 0 else 0
+                                 valid_y = overlap if y > 0 else 0
+                                 valid_w = (box_w - box_x) - (overlap if box_w < iw else 0)
+                                 valid_h = (box_h - box_y) - (overlap if box_h < ih else 0)
+                                 
+                                 center_tile = processed_tile.crop((valid_x, valid_y, valid_w, valid_h))
+                                 new_img.paste(center_tile, (box_x + valid_x, box_y + valid_y))
+                                 
+                                 del tile, processed_tile, center_tile
+                         
+                         current_img = new_img
+                         gc.collect()
+                        
+                    else:
+                        current_img = self.process_tile(current_img, sRGB_profile, Lab_profile, hdr_params)
+                
+                # 4. Sharpen (Phase 3)
+                if sharpness > 0:
+                    radius = scale 
+                    percent = int(sharpness * 100) 
+                    current_img = current_img.filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=3))
+                
+                # 5. Downscale (Phase 4)
+                final_img = current_img.resize((orig_w, orig_h), Image.Resampling.LANCZOS)
+                
+                final_np = np.array(final_img).astype(np.float32) / 255.0
+                results.append(torch.from_numpy(final_np))
+                
+                del current_img, upscaled_img, final_img, final_np
+                gc.collect()
+                
+        except Exception as e:
+            print(f"[H4_PixelPress] Critical Execute Error: {e}")
+            raise e
             
         return (torch.stack(results),)

@@ -24,7 +24,7 @@ def dequantize_tensor(tensor, dtype=None, dequant_dtype=None):
     else:
         # this is incredibly slow
         tqdm.write(f"Falling back to numpy dequant for qtype: {getattr(qtype, 'name', repr(qtype))}")
-        new = gguf.quants.dequantize(tensor.cpu().numpy(), qtype)
+        new = gguf.quants.dequantize(tensor.cpu().float().numpy(), qtype)
         return torch.from_numpy(new).to(tensor.device, dtype=dtype)
 
 def dequantize(data, qtype, oshape, dtype=None):

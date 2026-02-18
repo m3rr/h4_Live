@@ -85,13 +85,8 @@ app.registerExtension({
                                 }
                             };
 
-                            // Add to top, shifting button down
-                            const btnIdx = targetNode.widgets.findIndex(w => w.name === "Upload Image");
-                            if (btnIdx > -1) {
-                                targetNode.widgets.splice(btnIdx, 0, prevWidget);
-                            } else {
-                                targetNode.widgets.unshift(prevWidget);
-                            }
+                            // Add to END, never shift indices
+                            targetNode.addCustomWidget(prevWidget);
                         } else {
                             // Update existing
                             prevWidget.value = imageUrl;
@@ -166,12 +161,15 @@ app.registerExtension({
 
                     btn.name = "Upload Image"; // Correct Internal Name now
 
-                    // Move to Top
+                    // Move to Top logic REMOVED to prevent index shifting
+                    // The button will now stay at the bottom, preserving widget order.
+                    /* 
                     const btnIdx = node.widgets.indexOf(btn);
                     if (btnIdx > -1) {
                         node.widgets.splice(btnIdx, 1);
                         node.widgets.unshift(btn);
                     }
+                    */
 
                     node.onResize && node.onResize(node.size);
                     node.setDirtyCanvas(true, true);

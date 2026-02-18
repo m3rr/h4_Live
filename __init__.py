@@ -1,7 +1,7 @@
-# FILE: custom_nodes/comfyui_h4_live/__init__.py
-# ------------------------------------------------------------------------------
-# 🚀 h4_Live ToolKit | Nuclear Logic & Persistent State
-# ------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------
+# 🚀 h4_Live ToolKit | Nuclear Logic & Persistent State & Some other stuff. NOW WITH QoL Enhancements
+# ----------------------------------------------------------------------------------------------------
 import sys
 
 # Version Check
@@ -31,6 +31,7 @@ from .h4_loaders import H4_UniversalLoader
 from .h4_model_merger import H4_ModelMerger
 from .h4_model_save import H4_ModelSave
 from .h4_latent_selector import H4_LatentSelector
+from .h4_node_translator import H4_NodeTranslator
 
 # FaceForge Module (AIO Face Swap Suite)
 from .h4_faceforge import (
@@ -87,6 +88,7 @@ NODE_CLASS_MAPPINGS = {
     # FaceForge Suite
     **FACEFORGE_CLASS_MAPPINGS,
     # Logic
+    "H4_NodeTranslator": H4_NodeTranslator,
     "H4_DisplayAny": H4_DisplayAny,
     "H4_UniversalLoader": H4_UniversalLoader,
     "H4_DocuScribe": H4_DocuScribe,
@@ -120,6 +122,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     # FaceForge Suite
     **FACEFORGE_DISPLAY_MAPPINGS,
     # Logic
+    "H4_NodeTranslator": "🌐 h4 Node Translator (WIP)",
     "H4_DisplayAny": "h4 Display Any+ (Universal Monitor)",
     "H4_UniversalLoader": "h4 Universal Loader (Checkpoint/Diffusers)",
     "H4_DocuScribe": "📜 H4 DocuScribe (Workflow Reporter)",

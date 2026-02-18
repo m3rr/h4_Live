@@ -12,6 +12,7 @@ A stateful, loop-friendly utility belt for ComfyUI, built to make workflows feel
 - [FAQ](#faq)
 - [Troubleshooting](#troubleshooting)
 - [Dev Corner (technical deep dive)](#dev-corner-technical-deep-dive)
+- [The Book of H4 (In-App Help)](#the-book-of-h4-in-app-help)
 
 ---
 
@@ -230,6 +231,7 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 ### Data processing and batch tools
 - [H4_DataStream (Batch Loader)](#h4_datastream-batch-loader)
 - [H4_PixelPress (SSAA/HDR)](#h4_pixelpress-ssaahdr)
+- [H4_PixelVisualizer (Diff Inspector)](#h4_pixelvisualizer-diff-inspector)
 - [H4_Varianator (Latent Riffler)](#h4_varianator-latent-riffler)
 - [H4_VisualTokenizer (Weights)](#h4_visualtokenizer-weights)
 
@@ -252,10 +254,29 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 - [H4_DebugErrorGenerator (Test Only)](#h4_debugerrorgenerator-test-only)
 - [H4_Discombobulator (Use with caution)](#h4_discombobulator-use-with-caution)
 - [H4_NoteInjector (Visuals)](#h4_noteinjector-visuals)
+- [H4_LatentSelector (Resolutions)](#h4_latentselector-resolutions)
+- [H4_ModelMerger (Mad Science)](#h4_modelmerger-mad-science)
+- [H4_NodeTranslator (The Babel Fish)](#h4_nodetranslator-the-babel-fish)
+
 
 ---
 
 ## Nodes (friendly guide, minimal jargon)
+
+### The Book of H4 (In-App Help)
+**What it is:** A massive, built-in documentation system inside the node pack itself.
+
+**How to use it:**
+- Look at the top-right of **ANY** h4_Live node.
+- See that little `?` button? Click it.
+- A drawer slides out and explains **everything** about that node. Inputs, outputs, pro-tips, and what the hell "Occlusion Enabled" actually means.
+
+**Why we made it:**
+- Because Alt-Tabbing to a wiki sucks.
+- Because I (the dev) forget what my own nodes do sometimes.
+- It reads from a central "Lore" file that we keep updated with the code.
+
+---
 
 ### H4_TrafficRouter (The Nexus)
 **What it is:** the main “brain switch” for loop workflows.
@@ -480,11 +501,72 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 ---
 
 ### H4_Comparinator (A/B Test)
-**What it is:** side-by-side comparison tool with custom UI.
+**What it is:** a full-featured, in-node comparison suite with its own custom UI. Think of it as a lightbox, diff viewer, generation parameter inspector, and history browser all crammed into one node.
 
-**What it’s for:**
-- “Which one is better?” without guessing.
+**What it's for:**
+- "Which one is better?" without guessing.
 - Visual diff analysis so your eyes do less lying.
+- Keeping a running history of every generation so you can compare current vs past.
+- Inspecting the exact KSampler parameters (Steps, CFG, Seed, Sampler, Scheduler, Denoise) and full Positive/Negative prompts that produced each image.
+
+**The Main View (Compare Mode):**
+- The node shows **Image A** (your input/original) and **Image B** (the result) stacked with a draggable slider down the middle.
+- Drag the red slider line left/right to reveal more of A or B. This is real-time, no lag, just pure pixel comparison.
+- The slider uses a glowing red line with a grab handle so you cannot lose it.
+- When you select a history thumbnail, the view splits: left pane shows the current live image vs the historical image you clicked.
+- If no history is selected, the node goes into **Full Mode** where the left pane fills the entire node, but the slider still works between A and B.
+
+**Keyboard Shortcuts:**
+- **Spacebar (Hold):** Blink Mode. While holding spacebar and hovering over the node, Image B disappears entirely, showing only Image A. Release to restore the slider view. This is the fastest way to spot differences, your brain catches the "flash" of change instantly.
+- **Shift+1:** Show only Image A (slider pushed fully right).
+- **Shift+2:** Show only Image B (slider pushed fully left).
+- **Shift+3:** Reset to 50/50 split view.
+
+**History Strip:**
+- Every generation is stored as a thumbnail in the strip at the bottom.
+- **Single click** a thumbnail to compare it against the current live image.
+- **Click again** to deselect and return to full-mode (live A vs B with slider).
+- **Double-click** a thumbnail to open it in a full-screen lightbox overlay.
+- **Right-click** a thumbnail to **lock it as reference**. Once locked (gold border with lock icon), that image becomes the permanent "before" for all future comparisons until you unlock it.
+- The strip scrolls horizontally. Mouse wheel over the strip scrolls it.
+
+**Inspectinator Mode (Zoom Inspector):**
+- Toggle the **INSPECTINATOR** switch in the control panel.
+- The right pane becomes a zoom canvas. Hover over the left pane and a cyan crosshair reticle follows your cursor.
+- The right pane shows a magnified view of exactly where the reticle is pointing.
+- Scroll wheel to zoom from 100% to 500%.
+- Middle-click to lock the zoom position so you can study a specific area without moving the reticle.
+- Great for checking fine details: skin texture, edge aliasing, artifact hunting.
+
+**Parameter Drawer:**
+- Toggle the **PARAMETERS** switch in the control panel.
+- A drawer slides out from the right showing the generation parameters that produced the current images.
+- **Smart Graph Scanner**: The node traces upstream through your workflow graph to find the KSampler nodes connected to each input image. It does not rely on embedded metadata, it reads the live graph.
+- **Context-Aware Toggle**: Two buttons at the top of the drawer let you switch between **IMAGE A (Input)** and **IMAGE B (Result)** parameters. Each shows the specific KSampler settings for that particular image chain.
+- **Displayed Parameters**: Type, Seed, Steps, CFG, Sampler, Scheduler, Denoise.
+- **Prompt Display**: Positive and Negative prompts are extracted from upstream CLIPTextEncode nodes and displayed in full-width, scrollable, monospace text blocks. Positive prompts are labeled in blue, Negative prompts in red.
+- **History Persistence**: When you capture a generation, the metadata is cached. Even if you change your workflow graph later, clicking a history thumbnail still shows the correct parameters from when that image was generated.
+
+**Settings Drawer (Save Output):**
+- Toggle the **SAVE OUTPUT / SETTINGS** switch.
+- Choose what to save: Image A, Image B, Side-by-Side composite.
+- Optionally include workflow data, metadata, and prompt information.
+- Set filename prefix and subfolder.
+- **Auto-Save** toggle: save automatically on every workflow run.
+- **SAVE NOW** button for manual saves.
+- The metadata text area lets you attach custom JSON metadata to saved files.
+
+**Reference Lock System:**
+- Right-click any history thumbnail to lock it as your permanent reference.
+- A gold border and lock icon appears on the locked thumbnail.
+- All new generations will now compare against this locked reference instead of the previous generation.
+- Right-click again to unlock.
+- This is invaluable for A/B testing: lock your baseline, then tweak settings and see every result compared against that same baseline.
+
+**Lightbox:**
+- Double-click any history thumbnail to open a full-screen overlay.
+- Click the X or press Escape to close.
+- The lightbox shows the image at maximum resolution.
 
 ---
 
@@ -515,6 +597,36 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 **When to use it:**
 - When you want dense, tailored details without aliasing.
 - To fix lighting on bland images.
+
+---
+
+### H4_PixelVisualizer (Diff Inspector)
+**What it is:** a pixel-level difference analyzer that shows you exactly what changed between two images.
+
+**What it does:**
+- Takes Image A (original) and Image B (processed) and produces four outputs:
+  1. **Heatmap**: A black image where identical pixels stay dark, and differing pixels glow. The brighter the glow, the bigger the change. Use `heatmap_scale` to amplify subtle differences.
+  2. **Side-by-Side**: A composite image showing A on the left and B on the right, stitched together.
+  3. **Image A**: Passthrough of the original.
+  4. **Image B**: Passthrough of the processed image.
+
+**Settings:**
+- `heatmap_scale`: Default 5.0. Range 0.0 to 100.0. Higher values make even tiny differences visible. At 5.0, you'll see obvious changes. At 50.0+, you'll catch sub-pixel differences that are invisible to the naked eye.
+
+**When to use it:**
+- After running H4_PixelPress (SSAA/HDR) to verify the enhancement is actually doing something.
+- Comparing two different sampler outputs to see where they diverge.
+- Debugging "these images look identical" situations, the heatmap will prove they are not.
+- Quality control on face swaps to see exactly where blending occurs.
+
+**How to read the heatmap:**
+- Pure black = identical pixels. No change.
+- Dim glow = very subtle differences (color grading, slight noise).
+- Bright glow = significant changes (sharpening, HDR, face swap regions).
+- If the heatmap is completely black at scale 5.0, your processing node genuinely did nothing.
+
+**Resolution mismatch handling:**
+- If Image A and Image B have different resolutions, Image B is automatically resized to match A using bilinear interpolation before comparison.
 
 ---
 
@@ -637,7 +749,21 @@ Use ULTRA when you are ready to suffer, but also ready to actually fix the probl
 ---
 
 ### H4_DisplayAny (Universal Monitor)
-Displays anything, type-agnostic.
+### H4_DisplayAny (Universal Monitor)
+**What it is:** The "I don't care what type it is, just show me" node.
+
+**What it does:**
+- Text? Shows the string.
+- Image? Shows the preview.
+- Latent? Decodes it (if VAE provided) or shows dimensions.
+- Tensor? Shows shape and stats.
+- Dictionary? Pretty-prints the JSON.
+- List? Enumerates it.
+
+**Why it saves lives:**
+- Debugging "KeyError: 'images'" crashes.
+- Checking if your "List of 1" is actually a "String" and breaking your loop.
+- connecting it to `ContextHub` to see exactly what is inside the pipe.
 
 ---
 
@@ -663,6 +789,24 @@ This is the “help I need to explain this to future me” node.
 
 ---
 
+---
+
+### H4_NodeTranslator (The Babel Fish)
+**What it is:** Real-time translation for ComfyUI.
+
+**What it does:**
+- Translates **Node Titles** and **Widget Labels** into your language (Spanish, Mandarin, German, etc.).
+- Does NOT break the backend (internal variable names stay English).
+- Visual-only layer that sits on top of the UI.
+- Currently marked as **(WIP)** but functional-ish.
+
+**Why:**
+- Because nodes should not be a language test. (or at least I hope not)
+- Because comfyui should be accessible to everyone reagardless of language 
+- Because Sometimes I dont wanna goto google translate to understand what was on the node
+
+---
+
 ### H4_DebugErrorGenerator (Test Only)
 Intentionally throws errors to test error handling.
 
@@ -672,6 +816,31 @@ Intentionally throws errors to test error handling.
 Hidden stealth node, purpose redacted from console output.
 
 Yes, it’s weird. Yes, it’s on purpose. No, we are not explaining it in the friendly section. Not today.
+Just use it - it has no other purpose than what it does , it does not reflect, act or touch your 
+wf , it just discombobulates you ^_^ 
+---
+
+### H4_LatentSelector (Resolutions)
+**What it is:** Stop memorizing pixel dimensions.
+
+**What it does:**
+- You pick "SDXL" and "Portrait".
+- It gives you `896 x 1152` (or whatever the optimal latent size is).
+- It outputs an empty latent, width/height ints, and an empty image for referencing.
+
+**Why:**
+- Because I am tired of looking up "SD 1.5 landscape optimal resolution" on Google.
+
+---
+
+### H4_ModelMerger (Mad Science)
+**What it is:** A checkpoint merger that treats models like data, not just weights.
+
+**Features:**
+- **Smart Tiling**: If you test a merge, it doesn't generate a crappy 512x512 preview that lies to you. It runs a proper tiled decode so you can see if the eyes are haunted.
+- **Fail-Safe Decode**: If the VAE explodes (NaNs, black squares), it catches it, prints a readable error, creates a red "ERROR" image placeholder, and keeps the workflow alive so you can adjust ratios and try again.
+- **Visual Ratios**: Sliders for every block.
+- **Metadata Inspection**: Actually checks if you are merging SDXL with 1.5 and warns you before you create a monstrosity.
 
 ---
 
@@ -809,7 +978,21 @@ h4_Live addresses this by:
 - Axis iteration driver coordinating Gridinator’s sweep dimensions.
 
 **H4_Comparinator**
-- UI-oriented comparison and diff tooling for A/B evaluation.
+- Full in-node comparison suite with custom JavaScript frontend.
+- **Left Pane**: Hosts Image A and Image B in a stacked layered view with CSS `clipPath` driven by a draggable slider handle for real-time A/B wipe comparison.
+- **Right Pane**: Contextual — shows either a history reference image (compare mode) or a zoom canvas (inspect mode) with `background-position`/`background-size` driven magnification.
+- **Graph Traversal Engine**: `findUpstreamSamplers()` recursively walks `app.graph.links` backwards from input nodes to locate KSampler nodes. `findPromptText()` traces `positive`/`negative` conditioning inputs through `CLIPTextEncode` and `Reroute` nodes to extract prompt text from widget values.
+- **Metadata Cache**: `this.metadataCache` stores extracted parameters keyed by filename, enabling accurate parameter display for historical comparisons even after graph modifications.
+- **Blink Mode**: `toggleBlinkMode()` toggles Image B opacity between 0 and 1 on spacebar hold for rapid perceptual comparison.
+- **Slider Mode**: `setSliderMode("A"|"B"|"Split")` manipulates `clipPath` CSS on Image B to show full A, full B, or 50/50 split.
+- **History System**: Thumbnail strip with single-click select, double-click lightbox, right-click reference lock. Locked references override Image A source in `updateData()` for persistent baseline comparison.
+- **Full Mode CSS**: `.full-mode` sets `pane-left` to 100% width and `pane-right` to 0%, while preserving slider and blink functionality within the expanded pane.
+
+**H4_PixelVisualizer**
+- Tensor-level pixel difference computation using `torch.abs(A - B)` with configurable amplification scale.
+- Resolution mismatch handling via `F.interpolate` with bilinear mode before diff computation.
+- Outputs four tensors: amplified heatmap, horizontal concatenated side-by-side, and both input passthroughs.
+
 
 ### Batch and inspection tooling
 **H4_DataStream**
@@ -822,6 +1005,20 @@ h4_Live addresses this by:
 - Emits workflow documentation by analyzing graph structure and node configuration.
 
 ### FaceForge subsystem (h4_faceforge/)
+**H4_FaceForge**
+- Multi-stage pipeline: swap, restore, upscale, blend, occlusion-aware handling, and VRAM mitigation strategies.
+
+**H4_IdentityEngine**
+- Separates persistent persona traits (“DNA”) from scene-level prompt context.
+- Preset serialization logic avoids overwriting scene text while restoring identity traits.
+
+**H4_FaceDetailer**
+- Texture restoration via controlled denoise constraints to add micro-detail while minimizing identity drift.
+
+### H4_ModelMerger (Backend)
+- **Tiled VAE Decode**: Uses a rolling buffer calculation to decode large test images without OOMing 8GB cards.
+- **FP32 Fallback**: If standard FP16 decode returns NaNs (black images), it automatically casts the VAE to FP32, retries, and then casts back. This fixes the infamous "black square" issue on 16-series and some 30-series cards.
+- **Garbage Collection**: Aggressive `gc.collect()` and `torch.cuda.empty_cache()` calls between merge operations to prevent fragmentation.
 **H4_FaceForge**
 - Multi-stage pipeline: swap, restore, upscale, blend, occlusion-aware handling, and VRAM mitigation strategies.
 

@@ -13,12 +13,30 @@ app.registerExtension({
                 const getWidget = (name) => node.widgets ? node.widgets.find((w) => w.name === name) : null;
 
                 // 1. Hide the giant text box from the node face
+                // ComfyUI multiline STRING widgets create a real DOM <textarea> (inputEl)
+                // that floats over the canvas. We must hide THAT element, not just the widget slot.
+                // IMPORTANT: We keep the widget in node.widgets so ComfyUI serializes its value
+                // automatically. We only hide it visually.
                 const metaWidget = getWidget("custom_metadata");
                 if (metaWidget) {
-                    // Hide aggressively
-                    metaWidget.type = "HIDDEN_BY_H4";
+                    // A) Allocate zero space in the node layout
                     metaWidget.computeSize = () => [0, -4];
-                    metaWidget.visible = false;
+                    metaWidget.type = "converted-widget"; // Standard ComfyUI convention for hidden widgets
+
+                    // B) Override draw to prevent canvas-level rendering AND lazily hide DOM textarea
+                    // The inputEl may not exist at onNodeCreated time (ComfyUI creates it lazily),
+                    // so we check and hide it on the first draw call where it exists.
+                    metaWidget.draw = function (ctx, node, widgetWidth, y, widgetHeight) {
+                        // Hide the floating DOM textarea whenever it becomes available
+                        if (this.inputEl) {
+                            this.inputEl.style.display = "none";
+                            this.inputEl.style.opacity = "0";
+                            this.inputEl.style.height = "0px";
+                            this.inputEl.style.overflow = "hidden";
+                            this.inputEl.style.pointerEvents = "none";
+                        }
+                        // Draw nothing on canvas
+                    };
                 }
 
                 // 2. Add "Metadata" Toggle Button
@@ -49,7 +67,7 @@ app.registerExtension({
                         display: "none",
                         flexDirection: "column",
                         gap: "10px",
-                        zIndex: "1", // Above node, below console
+                        zIndex: "100", // Above node, below console
                         boxShadow: "0 -5px 20px rgba(0,0,0,0.5)",
                         fontFamily: "monospace",
                         color: "#ddd",
@@ -100,34 +118,39 @@ app.registerExtension({
                     if (!drawer) return;
                     if (!isDrawerOpen) return;
 
-                    const rect = node.getBounding();
+                    // Get the canvas DOM element's bounding rect for accurate screen-space conversion
+                    const canvasEl = app.canvas.canvas;
+                    const canvasRect = canvasEl.getBoundingClientRect();
                     const scale = app.canvas.ds.scale;
                     const offset = app.canvas.ds.offset;
 
-                    // Position at BOTTOM of node, centered
-                    const w = 300 * scale;
-                    const h = 200 * scale;
+                    // Node bounding returns [x, y, width, height] in graph space
+                    const nRect = node.getBounding();
+                    const nodeGraphX = node.pos[0];
+                    const nodeGraphY = node.pos[1];
+                    const nodeW = node.size[0];
+                    const nodeH = node.size[1];
 
-                    // Center x relative to node center
-                    const nodeCenterX = (rect[0] + rect[2] / 2 + offset[0]) * scale;
-                    const x = nodeCenterX - (w / 2);
+                    // Convert graph-space coordinates to screen-space (pixels on DOM)
+                    const screenX = canvasRect.left + (nodeGraphX + offset[0]) * scale;
+                    const screenY = canvasRect.top + (nodeGraphY + offset[1]) * scale;
+                    const screenW = nodeW * scale;
+                    const screenH = nodeH * scale;
 
-                    // Y: Bottom of node
-                    const y = (rect[1] + rect[3] + offset[1]) * scale;
+                    // Position drawer below the node with a 5px gap
+                    const drawerW = Math.max(screenW, 300 * scale);
+                    const drawerH = 200 * scale;
+
+                    // Center horizontally under the node
+                    const x = screenX + (screenW / 2) - (drawerW / 2);
+                    const y = screenY + screenH + 5; // 5px below node bottom edge
 
                     drawer.style.left = `${x}px`;
                     drawer.style.top = `${y}px`;
-                    drawer.style.width = `${300 * scale}px`;
-                    drawer.style.height = `${200 * scale}px`;
-
-                    // Scale contents internally? No, standard DOM scaling usually messy.
-                    // Let's just use transform scale
+                    drawer.style.width = `${drawerW}px`;
+                    drawer.style.height = `${drawerH}px`;
                     drawer.style.transformOrigin = "top center";
-                    drawer.style.transform = `scale(${1})`; // Reset transform, rely on width/height px
-
-                    // Actually, simpler to just use CSS transform scale to match canvas zoom?
-                    // But that blurs text. Let's keep px sizing logic if possible.
-                    // For now, simple px sizing.
+                    drawer.style.transform = isDrawerOpen ? "translateY(0)" : "translateY(20px)";
                 };
 
                 const toggleDrawer = () => {

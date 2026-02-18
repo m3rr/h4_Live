@@ -275,10 +275,20 @@ app.registerExtension({
 
                 // Bruteforce restart: Stop then Start
                 try {
-                    app.canvas.stopMainLoop();
+                    if (typeof app.canvas.stopMainLoop === 'function') {
+                        app.canvas.stopMainLoop();
+                    }
+
                     setTimeout(() => {
-                        app.canvas.startMainLoop();
-                        app.canvas.draw(true, true); // Force one immediate frame
+                        if (typeof app.canvas.startMainLoop === 'function') {
+                            app.canvas.startMainLoop();
+                        }
+
+                        // Force redraw if possible
+                        if (typeof app.canvas.draw === 'function') {
+                            app.canvas.draw(true, true);
+                        }
+
                         console.log("[h4] Grid Restarted.");
                     }, 10);
                 } catch (e) {

@@ -1,11 +1,28 @@
 import folder_paths
-import nodes
 import json
 import os
+import gc
+import torch
 import comfy.sd
+import comfy.utils
+import comfy.model_management
+
+# ==============================================================================
+# H4_ModelSave — Uses ComfyUI's native save_checkpoint pipeline to ensure
+# all architecture-specific key prefixes (SDXL conditioner, SD1.5
+# cond_stage_model, Flux text_encoders, etc.) are correctly applied by
+# the model_config classes. Custom dtype casting is done in post.
+# ==============================================================================
 
 class H4_ModelSave:
+    """
+    H4 Model Save — Saves MODEL + CLIP + VAE as a single .safetensors checkpoint.
+    Delegates key mapping to ComfyUI's native model_config pipeline via
+    model.state_dict_for_saving(). Supports custom dtype casting and metadata.
+    """
+
     def __init__(self):
+        # Default output directory from ComfyUI's folder_paths configuration
         self.output_dir = folder_paths.get_output_directory()
 
     @classmethod
@@ -17,10 +34,23 @@ class H4_ModelSave:
                 "vae": ("VAE",),
                 "filename_prefix": ("STRING", {"default": "h4_Checkpoint_"}),
                 "save_meta": ("BOOLEAN", {"default": True}),
-                "save_dtype": (["float16", "bfloat16", "float32", "float8_e4m3fn", "float8_e5m2"], {"default": "float16", "tooltip": "The precision to save the model in. float16/bfloat16 recommended for most uses. float8 requires recent PyTorch/GPU support."}),
+                "save_dtype": (
+                    ["float16", "bfloat16", "float32", "float8_e4m3fn", "float8_e5m2"],
+                    {
+                        "default": "float16",
+                        "tooltip": "The precision to save the model in. float16/bfloat16 recommended for most uses. float8 requires recent PyTorch/GPU support."
+                    }
+                ),
             },
             "optional": {
-                "custom_metadata": ("STRING", {"multiline": True, "dynamicPrompts": False, "placeholder": "Enter custom metadata here (JSON format recommended but not required)..."}),
+                "custom_metadata": (
+                    "STRING",
+                    {
+                        "multiline": True,
+                        "dynamicPrompts": False,
+                        "placeholder": "Enter custom metadata here (JSON format recommended but not required)..."
+                    }
+                ),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
@@ -31,189 +61,181 @@ class H4_ModelSave:
     CATEGORY = "h4_ToolKit/Model Merging"
 
     def save(self, model, clip, vae, filename_prefix, save_meta, save_dtype, custom_metadata="", prompt=None, extra_pnginfo=None):
+        """
+        Save a MODEL + CLIP + VAE as a single .safetensors checkpoint file.
+
+        Uses ComfyUI's native state_dict_for_saving() pipeline which correctly
+        handles per-architecture key prefixes (SDXL conditioner, SD1.5 cond_stage_model,
+        Flux text_encoders, etc.), CLIP format conversions, and VAE key mapping.
+
+        Custom dtype casting is applied after the native pipeline produces the
+        correctly-keyed state dict, before writing to disk.
+        """
+        # ──────────────────────────────────────────────────────────────────────
+        # STEP 1: Strip metadata if user opted out
+        # ──────────────────────────────────────────────────────────────────────
         if not save_meta:
-             prompt = None
-             extra_pnginfo = None
-        
-        # 1. Map Dtype string to torch.dtype
+            prompt = None
+            extra_pnginfo = None
+
+        # ──────────────────────────────────────────────────────────────────────
+        # STEP 2: Resolve target dtype from string selection
+        # ──────────────────────────────────────────────────────────────────────
         dtype_map = {
             "float16": torch.float16,
             "bfloat16": torch.bfloat16,
             "float32": torch.float32,
             "float8_e4m3fn": getattr(torch, "float8_e4m3fn", None),
-            "float8_e5m2": getattr(torch, "float8_e5m2", None)
+            "float8_e5m2": getattr(torch, "float8_e5m2", None),
         }
-        
+
         target_dtype = dtype_map.get(save_dtype)
         if target_dtype is None:
-             print(f"Warning: {save_dtype} not supported by this PyTorch version. Falling back to float16.")
-             target_dtype = torch.float16
+            print(f"[H4_ModelSave] Warning: {save_dtype} not supported by this PyTorch version. Falling back to float16.")
+            target_dtype = torch.float16
 
-        # Use Standard Comfy Save Logic reuse
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir)
-        
-        # Optimization: Clean up VRAM/RAM before save to prevent MemoryError
+        # ──────────────────────────────────────────────────────────────────────
+        # STEP 3: Resolve output path using ComfyUI's standard counter logic
+        # ──────────────────────────────────────────────────────────────────────
+        full_output_folder, filename, counter, subfolder, filename_prefix = \
+            folder_paths.get_save_image_path(filename_prefix, self.output_dir)
+
+        output_checkpoint = f"{filename}_{counter:05}_.safetensors"
+        output_path = os.path.join(full_output_folder, output_checkpoint)
+
+        # ──────────────────────────────────────────────────────────────────────
+        # STEP 4: Pre-save memory cleanup to maximize available RAM for the
+        #         state dict assembly that follows
+        # ──────────────────────────────────────────────────────────────────────
         try:
-            import comfy.model_management
             comfy.model_management.unload_all_models()
             comfy.model_management.soft_empty_cache()
             gc.collect()
-        except:
-            pass
+        except Exception as mem_err:
+            print(f"[H4_ModelSave] Non-critical memory cleanup warning: {mem_err}")
 
-        # Metadata handling
-        prompt_info = ""
-        if prompt is not None:
-            prompt_info = json.dumps(prompt)
-
+        # ──────────────────────────────────────────────────────────────────────
+        # STEP 5: Build metadata dict (prompt, workflow, custom user metadata)
+        # ──────────────────────────────────────────────────────────────────────
         metadata = {}
-        
+
         if save_meta:
-             metadata["prompt"] = prompt_info
-             if extra_pnginfo is not None:
+            # Inject ComfyUI prompt JSON (used by metadata readers and loaders)
+            if prompt is not None:
+                metadata["prompt"] = json.dumps(prompt)
+
+            # Inject extra workflow/PNG info from ComfyUI's internal pipeline
+            if extra_pnginfo is not None:
                 for x in extra_pnginfo:
                     metadata[x] = json.dumps(extra_pnginfo[x])
-        
+
+        # Inject user-provided custom metadata (supports JSON dict or plain text)
         if custom_metadata and custom_metadata.strip():
             try:
                 custom_dict = json.loads(custom_metadata)
                 for k, v in custom_dict.items():
                     metadata[str(k)] = str(v)
             except json.JSONDecodeError:
+                # Not valid JSON — store as a plain comment string
                 metadata["h4_user_comment"] = str(custom_metadata)
 
-        output_checkpoint = f"{filename}_{counter:05}_.safetensors"
-        output_checkpoint = os.path.join(full_output_folder, output_checkpoint)
-
-        # ------------------------------------------------------------------------------
-        # NUCLEAR RAM SAVER (Iterative SafeTensors)
-        # ------------------------------------------------------------------------------
-        
-        # 1. Prepare Model & Dicts
-        # We need to gather the state dict without moving everything to CPU/RAM yet if possible
-        # ComfyUI models are usually on GPU or CPU. We need to handle them carefully.
-        
+        # ──────────────────────────────────────────────────────────────────────
+        # STEP 6: Assemble state dict using ComfyUI's NATIVE pipeline
+        #
+        # model.state_dict_for_saving(clip_sd, vae_sd) calls:
+        #   - model_config.process_unet_state_dict_for_saving()
+        #     → Adds correct UNet prefix (e.g., "model.diffusion_model." for SD/SDXL)
+        #   - model_config.process_clip_state_dict_for_saving()
+        #     → SDXL: Converts OpenAI→HuggingFace CLIP format, maps to
+        #       "conditioner.embedders.0/1." prefixes
+        #     → SD1.5: Maps to "cond_stage_model." prefix
+        #   - model_config.process_vae_state_dict_for_saving()
+        #     → Adds "first_stage_model." prefix
+        #
+        # This eliminates all manual key-mapping bugs and automatically
+        # supports every architecture ComfyUI knows about.
+        # ──────────────────────────────────────────────────────────────────────
         try:
-            # Clean before start
-            import comfy.model_management
-            comfy.model_management.soft_empty_cache()
-            gc.collect()
+            # Load model to GPU so weights are accessible for state_dict extraction
+            load_models = [model]
+            if clip is not None:
+                load_models.append(clip.load_model())
+            comfy.model_management.load_models_gpu(load_models, force_full_load=True)
 
-            # Merge State Dicts (Model + CLIP + VAE)
-            # This part still requires some RAM to hold the references and keys, but not the tensor data itself
-            sd = model.model.state_dict_for_saving(clip_state_dict=clip.get_sd(), vae_state_dict=vae.get_sd(), clip_vision_state_dict=None)
-        except MemoryError:
-             print("CRITICAL: OOM just trying to get state_dict refs. Triggering Nuclear Cleanup.")
-             import comfy.model_management
-             comfy.model_management.unload_all_models()
-             comfy.model_management.soft_empty_cache()
-             gc.collect()
-             sd = model.model.state_dict_for_saving(clip_state_dict=clip.get_sd(), vae_state_dict=vae.get_sd(), clip_vision_state_dict=None)
+            # Get CLIP and VAE state dicts (raw, without architecture prefixes)
+            clip_sd = clip.get_sd() if clip is not None else None
+            vae_sd = vae.get_sd() if vae is not None else None
 
-        # 2. Define Helper for Header Construction
-        # Safetensors header is a JSON object telling offsets for each tensor
-        # We must calculate offsets BEFORE writing data.
-        
-        header = {}
-        data_offset = 0
-        sorted_keys = sorted(sd.keys())
-        
-        # We need to know exact byte size of each tensor
-        # target_dtype (float16) = 2 bytes per element
-        dtype_bytes = {
-            torch.float16: 2,
-            torch.bfloat16: 2,
-            torch.float32: 4,
-            torch.int8: 1,
-            torch.uint8: 1,
-            torch.float64: 8
-        }
-        
-        # Fallback for float8 if available
-        if hasattr(torch, "float8_e4m3fn"): dtype_bytes[torch.float8_e4m3fn] = 1
-        if hasattr(torch, "float8_e5m2"): dtype_bytes[torch.float8_e5m2] = 1
+            # Assemble the full checkpoint state dict with correct key prefixes
+            # This is the CRITICAL call — ComfyUI's model_config handles all
+            # architecture-specific key remapping internally
+            sd = model.state_dict_for_saving(clip_sd, vae_sd, clip_vision_state_dict=None)
 
-        bpe = dtype_bytes.get(target_dtype, 2)
+            total_keys = len(sd)
+            sample_keys = list(sd.keys())[:5]
+            print(f"[H4_ModelSave] State dict assembled. Total keys: {total_keys}")
+            print(f"[H4_ModelSave] Sample keys: {sample_keys}")
 
-        # Calculate Header
-        for k in sorted_keys:
-            v = sd[k]
-            # Calculate size
-            numel = v.numel()
-            size_bytes = numel * bpe
-            
-            # Safetensors format: {"dtype": "F16", "shape": [1024, 1024], "data_offsets": [start, end]}
-            
-            # Map torch dtype string to safetensors string
-            st_dtype = str(target_dtype).split(".")[-1].upper() # float16 -> FLOAT16
-            if st_dtype == "FLOAT16": st_dtype = "F16"
-            elif st_dtype == "BFLOAT16": st_dtype = "BF16"
-            elif st_dtype == "FLOAT32": st_dtype = "F32"
-            
-            header[k] = {
-                "dtype": st_dtype,
-                "shape": list(v.shape),
-                "data_offsets": [data_offset, data_offset + size_bytes]
-            }
-            data_offset += size_bytes
-            
-        header["__metadata__"] = metadata
-
-        # 3. Write File Iteratively
-        import struct
-        
-        json_header = json.dumps(header).encode('utf-8')
-        # Padding (n bytes + 8 bytes length must be divisible by 8? No, just N)
-        # Safetensors spec: 8 bytes (u64) containing length of header (N)
-        # Followed by N bytes of JSON header
-        # Followed by Data
-        
-        # Align header size?
-        # "The header is a JSON object... The length of the header... is stored in the first 8 bytes... as a little-endian unsigned 64-bit integer."
-        
-        try:
-            with open(output_checkpoint, "wb") as f:
-                # Write Header Length
-                f.write(struct.pack("<Q", len(json_header)))
-                # Write Header
-                f.write(json_header)
-                
-                # Stream Tensors
-                for k in sorted_keys:
-                    v = sd[k]
-                    # Process ONE tensor
-                    # Move to CPU, Cast, Numpy
-                    
-                    if v.device != torch.device("cpu"):
-                        v = v.cpu()
-                        
-                    if v.dtype != target_dtype:
-                        v = v.to(target_dtype)
-                        
-                    # Write bytes
-                    f.write(v.numpy().tobytes())
-                    
-                    # Cleanup immediately
-                    del v
-                    
-                    # Periodic GC (every 50 tensors or so to avoid stutter, or aggressive?)
-                    # Aggressive is safer for your 16GB RAM + 18GB Model scenario
-                    # But too slow if called every time. Let Python's ref counting handle most 'del'
-            
-            print(f"✅ Saved Iteratively: {output_checkpoint}")
-            
         except Exception as e:
-            print(f"❌ CRITICAL SAVE ERROR: {e}")
-            # Try to cleanup partial file
-            if os.path.exists(output_checkpoint):
-                 try: os.remove(output_checkpoint)
-                 except: pass
+            print(f"[H4_ModelSave] Error assembling state dict: {e}")
             raise e
+
+        # ──────────────────────────────────────────────────────────────────────
+        # STEP 7: Apply custom dtype casting to every tensor in the state dict
+        #
+        # Done AFTER the native pipeline assembles keys, so we don't interfere
+        # with key mapping. Each tensor is moved to CPU and cast to the
+        # user-selected dtype before writing.
+        # ──────────────────────────────────────────────────────────────────────
+        try:
+            cast_count = 0
+            for k in sd:
+                t = sd[k]
+                # Only cast floating-point tensors (skip integer embeddings, etc.)
+                if t.is_floating_point() and t.dtype != target_dtype:
+                    sd[k] = t.to(dtype=target_dtype)
+                    cast_count += 1
+                # Ensure tensors are contiguous for safetensors serialization
+                if not sd[k].is_contiguous():
+                    sd[k] = sd[k].contiguous()
+
+            print(f"[H4_ModelSave] Cast {cast_count} tensors to {save_dtype}")
+
+        except Exception as e:
+            print(f"[H4_ModelSave] Error during dtype casting: {e}")
+            raise e
+
+        # ──────────────────────────────────────────────────────────────────────
+        # STEP 8: Write to disk using ComfyUI's save_torch_file (safetensors)
+        # ──────────────────────────────────────────────────────────────────────
+        try:
+            comfy.utils.save_torch_file(sd, output_path, metadata=metadata)
+            print(f"[H4_ModelSave] ✅ Saved checkpoint: {output_path}")
+            print(f"[H4_ModelSave]    dtype={save_dtype}, keys={total_keys}, metadata_keys={len(metadata)}")
+
+        except Exception as e:
+            print(f"[H4_ModelSave] ❌ CRITICAL SAVE ERROR: {e}")
+            # Clean up partial file on failure to avoid corrupted checkpoints
+            if os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                    print(f"[H4_ModelSave] Removed partial file: {output_path}")
+                except Exception as del_err:
+                    print(f"[H4_ModelSave] Warning: Could not remove partial file: {del_err}")
+            raise e
+
         finally:
-             # Final Cleanup
-             del sd
-             gc.collect()
-             if torch.cuda.is_available():
-                 torch.cuda.empty_cache()
+            # ──────────────────────────────────────────────────────────────────
+            # STEP 9: Post-save cleanup — release state dict memory
+            # ──────────────────────────────────────────────────────────────────
+            if 'sd' in locals():
+                del sd
+            if 'clip_sd' in locals():
+                del clip_sd
+            if 'vae_sd' in locals():
+                del vae_sd
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
         return {}

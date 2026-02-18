@@ -2,2208 +2,2172 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 // ------------------------------------------------------------------------------
-// H4 Comparinator -> INSPECTINATOR
+// H4 Comparinator -> THE HOLY GRAIL [Ver 3.0 - MULTI-LAYER & CRAWLER]
 // ------------------------------------------------------------------------------
 
+/**
+ * [RULE 2] Detailed Comment:
+ * The HOLY GRAIL STYLE block defines the 4-layer stacking order:
+ * - Base (Z:10): Live Image A.
+ * - Live B (Z:15): Clipped by Horiz Slider.
+ * - Locked A (Z:20): Inside the Locked Group, Clipped by Vert Slider.
+ * - Locked B (Z:25): Inside the Locked Group, Clipped by both Vert and Horiz sliders.
+ * 
+ * Sliders:
+ * - Red (X): Horizontal comparison (A/B).
+ * - Yellow (Y): Vertical comparison (Live/History).
+ */
 const STYLE = `
-.h4-comparinator-container {
-    background: transparent; /* Transparent to show node color */
+.h4-comparinator-root {
+    width: 100%; height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+    box-sizing: border-box;
+    z-index: 1000;
+    overflow: visible; /* CRITICAL for external drawer */
+}
+
+.h4-comp-frame {
+    width: 100%; height: 100%;
+    background: transparent;
+    border: 1px solid rgba(0, 170, 68, 0.2);
     display: flex;
     flex-direction: column;
-    border: 2px solid #333;
-    font-family: monospace;
-    color: #0f0;
+    pointer-events: auto;
+    border-radius: 2px;
     overflow: hidden;
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    transition: border-color 0.3s;
-    pointer-events: auto; /* [FIX] Enable mouse interaction for Blink check */
+    font-family: 'Segoe UI', 'Roboto', monospace;
+    position: relative;
 }
 
-/* MODES */
-.h4-comparinator-container.mode-inspect {
-    border-color: #0ff; /* Cyan for Inspect */
+/* --- SCANLINES / NOISE --- */
+.h4-scanlines {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 999;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    background-size: 100% 4px, 3px 100%;
+    opacity: 0; display: none;
 }
 
-/* MAIN DISPLAY AREA */
-.h4-main-stage {
-    flex: 1; 
+/* --- STAGE --- */
+.h4-stage {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: transparent;
+    border-bottom: 2px solid rgba(0, 170, 68, 0.1);
+}
+
+.h4-img-layer {
+    position: absolute;
+    width: 100%; height: 100%;
+    object-fit: contain;
+    user-select: none;
+}
+
+/* --- SLIDERS --- */
+.h4-slider-x {
+    position: absolute;
+    top: 0; bottom: 0; width: 2px;
+    background: #006622;
+    z-index: 500;
+    cursor: col-resize;
+    box-shadow: 0 0 15px #006622, 0 0 5px #fff;
+}
+.h4-slider-y {
+    position: absolute;
+    left: 0; right: 0; height: 2px;
+    background: #006622;
+    z-index: 501;
+    cursor: row-resize;
+    box-shadow: 0 0 15px #006622, 0 0 5px #fff;
+    display: none;
+}
+
+/* --- LABELS --- */
+.h4-pane-label {
+    position: absolute;
+    font-size: 9px;
+    font-weight: 900;
+    padding: 3px 6px;
+    background: rgba(0,0,0,0.85);
+    border: 1px solid rgba(255,255,255,0.1);
+    z-index: 600;
+    pointer-events: none;
+    color: #fff;
+    letter-spacing: 2px;
+    text-shadow: 0 0 5px #006622;
+}
+
+/* --- CONTROLS --- */
+.h4-bottom-bar {
+    height: 44px;
+    background: transparent;
     display: flex;
-    flex-direction: row;
-    position: relative;
-    overflow: hidden;
-    border-bottom: 2px solid #555;
-    min-height: 0; /* [FIX] Flexbox overflow fix */
+    align-items: center;
+    padding: 0 15px;
+    gap: 20px;
+    z-index: 700;
+    border-top: 1px solid rgba(0, 170, 68, 0.1);
 }
+.h4-toggle-wrap {
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    transition: 0.3s;
+}
+.h4-toggle-wrap:hover .h4-toggle-label { color: #fff; text-shadow: 0 0 8px #fff; }
 
-/* VIEWPORT (Left/Right) */
-.h4-viewport {
+.h4-toggle-pill {
+    width: 40px; height: 18px;
+    background: #111;
+    border-radius: 2px;
     position: relative;
-    height: 100%;
+    border: 1px solid #333;
     overflow: hidden;
-    background: transparent; /* Show Node Color */
+}
+.h4-toggle-knob {
+    width: 50%; height: 100%;
+    background: #222;
+    position: absolute;
+    top: 0; left: 0;
+    transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+.h4-toggle-wrap.active .h4-toggle-knob { 
+    left: 50%; background: #006622; 
+    box-shadow: inset 0 0 10px rgba(255,255,255,0.5); 
+}
+.h4-toggle-wrap.active .h4-toggle-pill { border-color: #006622; box-shadow: 0 0 10px rgba(0,102,34,0.3); }
+
+.h4-toggle-label { 
+    font-size: 10px; color: #555; font-weight: 800;
+    letter-spacing: 1px; transition: 0.3s;
+}
+.h4-toggle-wrap.active .h4-toggle-label { color: #eee; text-shadow: 0 0 8px rgba(0,102,34,0.5); }
+
+/* --- CYAN / INSPECT OVERRIDE --- */
+.inspecting-mode .h4-comp-frame { border-color: rgba(0, 255, 255, 0.4) !important; box-shadow: 0 0 25px rgba(0, 255, 255, 0.2) !important; }
+.inspecting-mode .h4-toggle-wrap.active .h4-toggle-label { color: #0ff !important; text-shadow: 0 0 10px #0ff !important; }
+.inspecting-mode .h4-toggle-wrap.active .h4-toggle-pill { border-color: #008888 !important; box-shadow: 0 0 15px rgba(0,255,255,0.4) !important; }
+.inspecting-mode .h4-toggle-wrap.active .h4-toggle-knob { background: #008888 !important; }
+
+.h4-channel-toggle {
+    display: none; align-items: center; gap: 8px; background: rgba(0,20,20,0.8);
+    padding: 2px 10px; border: 1px solid #004444; border-radius: 2px;
+    margin-right: 15px;
+}
+.h4-channel-toggle.visible { display: flex; }
+.h4-channel-btn {
+    font-size: 10px; color: #004444; cursor: pointer; font-weight: 900;
+    transition: 0.2s; padding: 2px 4px;
+}
+.h4-channel-btn.active { color: #0ff; text-shadow: 0 0 8px #0ff; }
+.h4-channel-slash { font-size: 10px; color: #004444; pointer-events: none; }
+.inspecting-mode .h4-slider-x, .inspecting-mode .h4-slider-y { background: #008888; box-shadow: 0 0 15px #008888, 0 0 5px #fff; }
+
+.h4-channel-toggle {
+    display: none; align-items: center; gap: 5px; background: rgba(0,0,0,0.5);
+    padding: 2px 8px; border: 1px solid #004444; border-radius: 2px;
+}
+.h4-channel-toggle.visible { display: flex; }
+.h4-channel-btn {
+    font-size: 9px; color: #333; cursor: pointer; font-weight: 900;
+    transition: 0.2s;
+}
+.h4-channel-btn.active { color: #0ff; text-shadow: 0 0 8px #0ff; }
+
+/* --- STRIP --- */
+.h4-filmstrip {
+    height: 100px;
+    background: #030303;
+    display: flex;
+    overflow-x: auto;
+    padding: 12px;
+    gap: 12px;
+}
+.h4-thumb {
+    height: 100%; aspect-ratio: 1;
+    background: #111;
+    border: 1px solid #222;
+    position: relative;
+    cursor: pointer;
     flex-shrink: 0;
-    transition: width 0.3s ease;
+    transition: transform 0.2s, border-color 0.2s;
+    display: flex;
+    overflow: hidden;
 }
-
-/* LEFT PANE (Current/Live) - Always Visible */
-.h4-viewport.pane-left {
-    width: 50%; 
-    border-right: 2px solid #333;
+.h4-thumb:hover { transform: scale(1.05); border-color: #444; }
+.h4-thumb.active { border-color: #00ff55; box-shadow: 0 0 15px rgba(0,255,85,0.6); }
+.h4-thumb.active::after {
+    content: 'ACTIVE'; position: absolute; bottom: 0; width: 100%;
+    background: #00ff55; color: #000; font-size: 7px; text-align: center; font-weight: 900;
     z-index: 10;
 }
-
-/* RIGHT PANE (History OR Zoom) */
-.h4-viewport.pane-right {
-    width: 50%;
-    border-left: 0;
-    z-index: 5;
+.h4-thumb.locked-ref { border-color: #aa8800; box-shadow: 0 0 15px rgba(170,136,0,0.4); opacity: 0.9; }
+.h4-thumb.locked-ref::before {
+    content: '🔒'; position: absolute; top: 2px; right: 2px; font-size: 10px; z-index: 10;
 }
 
-/* FULL MODE (When not splitted) */
-.h4-main-stage.full-mode .h4-viewport.pane-left { width: 100%; border-right: none; }
-.h4-main-stage.full-mode .h4-viewport.pane-right { width: 0%; }
-
-/* CURSOR LOGIC for Inspect Mode */
-/* CURSOR LOGIC for Inspect Mode */
-.h4-comparinator-container.mode-inspect .pane-left {
-    cursor: crosshair; /* [FIX] Keep system cursor visible inside target */
-}
-/* Ensure controls inside pane-left (if any) restore cursor */
-.h4-comparinator-container.mode-inspect .pane-left .h4-viewport-tag {
-    cursor: default;
-}
-
-/* IMAGES */
-.h4-img-layer {
-    width: 100%;
+.h4-thumb-side {
+    flex: 1;
     height: 100%;
-    object-fit: contain; /* [FIX] Dynamic Fit: Ensure image scales without crop */
-    user-select: none;
-    pointer-events: none;
-    display: block;
-    position: absolute; /* Fix for Stacking */
-    top: 0;
-    left: 0;
-    background: transparent;
-}
-
-/* CANVAS FOR ZOOM (Right Pane) */
-.h4-zoom-canvas {
-    width: 100%;
-    height: 100%;
-    background-color: transparent; /* Show Node Color */
-    background-repeat: no-repeat;
-    /* Background image set via JS */
-    cursor: crosshair;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 20; /* Ensure on top of history if enabled */
-}
-
-/* RETICLE (On Left Pane) */
-/* RETICLE (Target Cursor) */
-.h4-reticle {
-    position: absolute;
-    width: 75px;
-    height: 75px;
-    border: 2px solid #0ff;
-    border-radius: 50%; /* Circle */
-    box-shadow: 0 0 5px #0ff, inset 0 0 5px #0ff;
-    pointer-events: none;
-    display: none;
-    z-index: 50;
-    background: transparent;
-    /* Crosshair Center Dot */
-    background-image: radial-gradient(circle, #0ff 2px, transparent 2.5px);
-    background-position: center;
-    background-repeat: no-repeat;
-    /* Optional: Cross lines? */
-}
-
-/* TAGS */
-.h4-viewport-tag {
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
-    font-size: 14px;
-    font-weight: bold;
-    z-index: 30;
-    padding: 2px 8px;
-    background: rgba(0,0,0,0.5); /* Semi Transparent */
-    pointer-events: none;
-    border: 1px solid #555;
-}
-.tag-current { color: #f00; border-color: #f00; }
-.tag-history { color: #0f0; border-color: #0f0; }
-.tag-inspect { color: #0ff; border-color: #0ff; }
-
-/* HISTORY STRIP */
-.h4-history-strip {
-    height: 100px;
-    background: rgba(17,17,17, 0.8);
-    border-top: 2px solid #555;
-    display: flex;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 5px;
-    gap: 5px;
-    box-sizing: border-box;
-    transition: height 0.3s;
-    /* Hide scrollbar but allow scroll */
-    scrollbar-width: thin;
-    scrollbar-color: #555 #222;
-}
-.h4-history-strip.hidden { height: 0; padding: 0; border: none; }
-
-.h4-history-thumb {
-    height: 100%;
-    aspect-ratio: 1/1;
-    border: 1px solid #444;
-    cursor: pointer;
-    position: relative;
-    opacity: 0.6;
-    transition: all 0.2s;
     background-size: cover;
     background-position: center;
-    background-repeat: no-repeat;
-    flex-shrink: 0;
-    background-color: #000;
+    pointer-events: none;
 }
-.h4-history-thumb:hover { opacity: 1.0; border-color: #fff; }
-.h4-history-thumb.active { border-color: #0f0; opacity: 1.0; box-shadow: 0 0 10px #0f0; }
+.h4-thumb-a { border-right: 1px solid rgba(0,255,85,0.2); }
 
-.h4-history-thumb.locked-ref {
-    border: 2px solid #fd0 !important; /* Gold */
-    box-shadow: 0 0 10px #fd0;
-    opacity: 1.0;
-}
-.h4-history-thumb.locked-ref::after {
-    content: "🔒";
+/* --- EXTERNAL DRAWER (Slide Right) --- */
+.h4-drawer {
     position: absolute;
-    top: 2px;
-    right: 2px;
-    font-size: 12px;
-    text-shadow: 0 0 3px #000;
+    top: 0; bottom: 0; left: 100%;
+    width: 400px;
+    background: #0a0a0a;
+    border: 1px solid rgba(0, 102, 34, 0.2);
+    border-left: 2px solid #006622;
+    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.4s ease;
+    z-index: 2000;
+    visibility: hidden;
+    pointer-events: auto;
+    box-shadow: 20px 0 50px rgba(0,0,0,0.9);
+    transform: scaleX(0);
+    transform-origin: left;
+    opacity: 0;
+}
+.h4-drawer.open { visibility: visible; transform: scaleX(1); opacity: 1; }
+.h4-drawer-content { padding: 25px; color: #ddd; font-size: 11px; overflow-y: auto; height: 100%; }
+
+.h4-param-block {
+    background: transparent;
+    border: 1px solid rgba(0, 170, 68, 0.1);
+    margin-bottom: 20px;
+    position: relative;
+}
+.h4-param-header {
+    background: transparent;
+    padding: 10px 15px;
+    font-weight: 900;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0, 102, 34, 0.1);
+    color: #006622;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+.h4-param-list { padding: 15px; }
+.h4-param-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #111; }
+.h4-param-key { color: #555; }
+.h4-param-val { color: #fff; font-family: monospace; }
+.h4-param-prompt { 
+    background: rgba(0,0,0,0.5); border: 1px solid rgba(0, 170, 68, 0.1); padding: 12px; 
+    white-space: pre-wrap; margin-top: 8px; font-size: 10px; color: #00ff44;
 }
 
-.h4-history-timestamp {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    background: rgba(0,0,0,0.8);
-    font-size: 9px;
-    text-align: center;
-    color: #ccc;
+/* --- SAVE DRAWER (Hacker Console) --- */
+.h4-save-drawer {
+    height: 0;
+    background: #0a0a0a;
+    border-top: 2px solid rgba(0, 102, 34, 0.2);
+    overflow: hidden;
+    transition: height 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    position: relative;
+    transform: translateY(100%); /* Start below */
+    transition: height 0.4s cubic-bezier(0.19, 1, 0.22, 1), transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.h4-save-drawer.open { height: 320px; border-top-color: #006622; transform: translateY(0); }
+.h4-save-drawer::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0.3) 1px, rgba(0,0,0,0) 2px);
     pointer-events: none;
 }
 
-/* CONTROL PANEL */
-.h4-control-panel {
-    background: #333;
-    padding: 5px 10px;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+.h4-save-content { 
+    padding: 15px; 
+    display: grid; 
+    grid-template-columns: 1fr 1fr 1fr; 
     gap: 15px;
-    border-top: 1px solid #555;
-    height: 30px;
-}
-
-.h4-control-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    color: #ccc;
-    cursor: pointer;
-}
-
-.h4-toggle-switch {
-    width: 30px;
-    height: 16px;
-    background: #555;
-    border-radius: 10px;
     position: relative;
-    transition: background 0.3s;
+    z-index: 2;
 }
-.h4-toggle-switch.on { background: #0f0; }
-.h4-toggle-switch.on.inspect-on { background: #0ff; } /* Cyan for Inspect */
 
-.h4-toggle-knob {
-    width: 12px;
-    height: 12px;
-    background: #fff;
+.h4-save-field { margin-bottom: 10px; }
+.h4-save-label { font-size: 8px; color: #00ff44; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; display: block; opacity: 0.9; font-weight: bold; }
+.h4-save-input { 
+    width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #006622; color: #00ff44; 
+    padding: 6px; font-size: 10px; outline: none; font-family: 'Courier New', monospace; font-weight: bold;
+}
+.h4-save-input:focus { border-color: #00ff55; box-shadow: 0 0 10px rgba(0,255,85,0.3); }
+
+.h4-save-btn {
+    grid-column: span 3;
+    background: #006622; color: #fff; border: none; padding: 10px;
+    font-weight: 900; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 1px;
+    transition: 0.3s;
+    margin-top: 5px;
+    clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);
+    font-size: 10px;
+}
+.h4-save-btn:hover { background: rgba(0,0,0,0.9) !important; color: #fff !important; box-shadow: 0 0 20px #006622; }
+
+.h4-save-check-wrap { 
+    display: flex; align-items: center; gap: 10px; font-size: 10px; 
+    cursor: pointer; color: #888; margin-bottom: 8px;
+    transition: 0.2s;
+}
+.h4-save-check-wrap:hover { color: #eee; }
+.h4-save-check { width: 12px; height: 12px; border: 1px solid #333; transition: 0.3s; }
+.h4-save-check.active { background: #006622; border-color: #fff; box-shadow: 0 0 8px #006622; }
+
+/* FLICKER ANIMATION */
+@keyframes h4-flicker {
+    0% { opacity: 1; }
+    5% { opacity: 0.7; }
+    10% { opacity: 1; }
+    45% { opacity: 1; }
+    /* random drop */
+    46% { opacity: 0.4; }
+    47% { opacity: 1; }
+    100% { opacity: 1; }
+}
+.h4-save-btn { animation: h4-flicker 5s infinite; }
+
+/* --- RETICLE (Sniper Scope) --- */
+.h4-reticle {
+    position: absolute;
+    width: 68px; height: 68px;
+    border: 2px solid #00ff55;
     border-radius: 50%;
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    transition: left 0.3s;
-}
-.h4-toggle-switch.on .h4-toggle-knob { left: 16px; }
-.h4-toggle-switch.on.inspect-on .h4-toggle-knob { left: 16px; box-shadow: 0 0 5px #0ff; }
-
-.h4-btn {
-    background: #444;
-    border: 1px solid #666;
-    color: #eee;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    cursor: pointer;
-}
-.h4-btn:hover { background: #666; }
-.h4-btn.active { background: #0f0; color: #000; font-weight: bold; }
-
-/* SLIDER (ZOOM) */
-.h4-slider-wrap {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    color: #0ff;
-    font-size: 10px;
-    width: 150px;
-}
-.h4-slider-wrap input { flex: 1; }
-.h4-slider-wrap.hidden { display: none; }
-
-/* METADATA DRAWER */
-.h4-meta-drawer {
-    background: #111;
-    overflow: hidden;
-    height: 0;
-    transition: height 0.3s ease;
-    border-top: 1px solid #444;
-    display: flex;
-    flex-direction: column;
-}
-.h4-meta-drawer.open { height: 350px; } /* Increased height for settings */
-
-.h4-drawer-content {
-    display: flex;
-    flex-direction: row;
-    height: 100%;
-    overflow: hidden;
-}
-.h4-drawer-col {
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    box-sizing: border-box;
-    overflow-y: auto; /* Scroll if needed */
-}
-.h4-drawer-col.meta { width: 50%; border-right: 1px solid #333; }
-.h4-drawer-col.settings { width: 50%; }
-
-.h4-meta-input {
-    width: 100%;
-    height: 100%;
-    background: #000;
-    color: #0f0;
-    font-family: monospace;
-    border: 1px solid #333;
-    padding: 5px;
-    resize: none;
-    font-size: 11px;
-    box-sizing: border-box;
-}
-.h4-meta-input:focus { outline: none; border-color: #0f0; }
-
-.h4-drawer-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 11px;
-    color: #ccc;
-}
-.h4-drawer-input {
-    background: #222;
-    border: 1px solid #444;
-    color: #fff;
-    padding: 2px 5px;
-    font-family: monospace;
-    width: 100px;
-}
-
-.h4-action-btn {
-    margin-top: auto;
-    background: #004400;
-    color: #0f0;
-    border: 1px solid #0f0;
-    padding: 8px;
-    text-align: center;
-    cursor: pointer;
-    font-weight: bold;
-    text-transform: uppercase;
-    transition: background 0.2s;
-}
-.h4-action-btn:hover { background: #006600; color: #fff; }
-.h4-action-btn:active { background: #0f0; color: #000; }
-
-/* LIGHTBOX OVERLAY */
-/* LIGHTBOX OVERLAY */
-.h4-slider-handle {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 2px; /* Thin */
-    background: #f00; /* Red LED */
-    box-shadow: 0 0 5px #f00, 0 0 10px #f00; /* Glow */
-    cursor: col-resize;
-    z-index: 100; /* [FIX] Ensure above everything */
-    left: 50%;
-    transform: translateX(-50%); /* Center strictly on the line */
-    pointer-events: none; /* Let mouse pass through to container listener? No, we drag via container */
-}
-
-/* Knob in the middle for gripping */
-.h4-slider-handle::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
     transform: translate(-50%, -50%);
-    width: 8px;
-    height: 30px;
-    background: #f00;
-    border: 1px solid #000;
-    box-shadow: 0 0 10px #f00;
-    left: 100%;
+    pointer-events: none; /* CRITICAL for flicker prevention */
+    z-index: 1000;
+    box-shadow: 0 0 12px rgba(0, 255, 85, 0.25), inset 0 0 8px rgba(0, 255, 85, 0.08);
+    display: none;
+    overflow: visible;
 }
-
-/* TOGGLE SWITCH STYLE (For Top Bar) */
-.h4-switch-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    user-select: none;
-    font-size: 11px;
-    font-weight: bold;
-    color: #ccc;
-    text-transform: uppercase;
+.h4-reticle.active { display: block; transform: translate(-50%, -50%) scale(1); }
+.h4-reticle::after {
+    content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(0,255,85,0.4);
 }
-.h4-switch {
-    width: 36px;
-    height: 18px;
-    background: #333;
-    border-radius: 20px;
-    position: relative;
-    transition: background 0.3s;
-    border: 1px solid #555;
+.h4-reticle::before {
+    content: ''; position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: rgba(0,255,85,0.4);
 }
-.h4-switch::after {
-    content: "";
+.h4-reticle-zoom {
     position: absolute;
-    top: 2px; left: 2px;
-    width: 12px; height: 12px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform 0.3s;
-}
-.h4-switch.active {
-    background: #0f0;
-    border-color: #0f0;
-}
-.h4-switch.active::after {
-    transform: translateX(18px);
-    background: #000;
-}
-.h4-switch-wrap:hover .h4-switch {
-    border-color: #fff;
-}
-
-/* CYBERPUNK ACTION BUTTON (Updated) */
-.h4-action-btn {
-    margin-top: auto;
-    background: linear-gradient(180deg, #003300, #005500);
-    color: #0f0;
-    border: 1px solid #0f0;
-    padding: 12px;
-    text-align: center;
-    cursor: pointer;
-    font-weight: bold;
-    text-transform: uppercase;
-    transition: all 0.2s;
-    letter-spacing: 3px;
-    text-shadow: 0 0 5px #0f0;
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.2), inset 0 0 20px rgba(0,0,0,0.5);
-    font-family: monospace;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-.h4-action-btn:hover {
-    background: #0f0;
-    color: #000;
-    box-shadow: 0 0 20px #0f0;
-    text-shadow: none;
-}
-.h4-action-btn::before {
-    content: "";
-    position: absolute;
-    top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
-.h4-action-btn:hover::before {
-    left: 100%;
-}
-
-.h4-lightbox-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0,0,0,0.95);
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    backdrop-filter: blur(5px);
-}
-.h4-lightbox-img {
-    max-width: 90%;
-    max-height: 90%;
-    object-fit: contain;
-    transition: transform 0.1s ease-out; /* Smooth drag */
-    cursor: zoom-in;
-    transform-origin: center center;
-}
-.h4-lightbox-close {
-    position: absolute;
-    top: 30px;
-    right: 40px;
-    font-size: 50px;
-    color: #fff;
-    cursor: pointer;
-    z-index: 10001;
-    font-weight: bold;
-    text-shadow: 0 0 10px #000;
+    bottom: 6px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    font-weight: 900;
+    font-family: 'Courier New', monospace;
+    color: #00ff55;
+    text-shadow: 0 0 6px rgba(0,255,85,0.8);
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: 0.5px;
+    opacity: 0.95;
     line-height: 1;
 }
-.h4-lightbox-close:hover { color: #f00; text-shadow: 0 0 20px #f00; }
 
-.h4-lightbox-info {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #888;
-    font-size: 14px;
-    pointer-events: none;
-    font-family: monospace;
+/* LIGHTBOX */
+.h4-lightbox {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.95); z-index: 10000;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
 }
-/* PARAMETER DRAWER */
-.h4-param-drawer {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 0;
-    height: 100%;
-    background: #1a1a1a;
-    border-left: 1px solid #444;
-    overflow-y: auto;
-    overflow-x: hidden;
-    transition: width 0.3s ease;
-    z-index: 50;
-    font-family: monospace;
-    font-size: 11px;
-    color: #ccc;
-    box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+.h4-lightbox.open { display: flex; }
+.h4-lightbox-img {
+    max-width: 95vw; max-height: 95vh;
+    width: auto; height: auto;
+    object-fit: contain; 
+    transition: transform 0.1s linear;
+    user-select: none; pointer-events: none;
+    transform-origin: center center;
+    position: relative;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
 }
-.h4-param-drawer.open { width: 300px; border-left: 1px solid #0f0; }
+.h4-lightbox-controls {
+    position: absolute; bottom: 30px; right: 30px;
+    display: flex; gap: 15px; align-items: center; z-index: 10001;
+}
+.h4-lb-btn {
+    background: rgba(0,0,0,0.8); border: 1px solid #006622; color: #00ff55;
+    padding: 8px 15px; font-size: 10px; font-weight: 900; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 1px; transition: 0.2s;
+}
+.h4-lb-btn:hover { background: #006622; color: #fff; }
+.h4-lb-btn.active { background: #00ff55; color: #000; border-color: #00ff55; box-shadow: 0 0 10px #00ff55; }
 
-.h4-param-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
+.h4-lb-zoom-slider {
+    -webkit-appearance: none; width: 200px; height: 4px; background: #111; 
+    outline: none; border-radius: 2px; cursor: pointer;
 }
-.h4-param-table th {
-    text-align: left;
-    color: #0f0;
-    border-bottom: 1px solid #333;
-    padding: 5px;
-    font-size: 10px;
-    text-transform: uppercase;
+.h4-lb-zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 12px; height: 12px; background: #00ff55; cursor: pointer; border-radius: 50%;
+    box-shadow: 0 0 10px #00ff55;
 }
-.h4-param-table td {
-    padding: 4px 5px;
-    border-bottom: 1px solid #222;
-    word-break: break-all;
-    vertical-align: top;
-}
-.h4-param-key { color: #888; width: 80px; font-weight: bold; }
-.h4-param-val { color: #eee; }
 
-.h4-param-section {
-    padding: 10px;
-    border-bottom: 1px solid #333;
+.h4-lb-close {
+    position: absolute; top: 30px; right: 30px; font-size: 24px; color: #555;
+    cursor: pointer; transition: 0.2s; z-index: 10002;
 }
-.h4-param-title {
-    color: #0ff;
-    font-weight: bold;
-    margin-bottom: 5px;
-    display: block;
-    text-transform: uppercase;
-    font-size: 10px;
-    letter-spacing: 1px;
+.h4-lb-close:hover { color: #fff; }
+
+.h4-lb-hint {
+    position: absolute; top: 30px; left: 30px; font-size: 9px; color: #444;
+    text-transform: uppercase; letter-spacing: 1px; pointer-events: none;
 }
 `;
 
-// Inject Styles
-const styleEl = document.createElement("style");
-styleEl.textContent = STYLE;
-document.head.appendChild(styleEl);
-
-// ------------------------------------------------------------------------------
-// Helper: Discombobulator Glitch Logic
-// ------------------------------------------------------------------------------
-function glitchText(text, mode = "1337") {
-    if (!text) return "";
-    const zalgo = ["̷", "̵", "̶", "̷", "̸", "̡", "̢", "̧", "̨", "̛", "̛", "̛"];
-    switch (mode) {
-        case "1337":
-            return text.toUpperCase()
-                .replace(/A/g, "4").replace(/E/g, "3").replace(/G/g, "6")
-                .replace(/I/g, "1").replace(/O/g, "0").replace(/S/g, "5")
-                .replace(/T/g, "7").replace(/B/g, "|3").replace(/R/g, "|2");
-        case "void":
-            return text.split('').map(char => char + zalgo[Math.floor(Math.random() * zalgo.length)] + zalgo[Math.floor(Math.random() * zalgo.length)]).join('');
-        case "binary":
-            return text.split('').map(c => Math.random() > 0.5 ? "1" : "0").join('').slice(0, text.length * 2);
-        default: return text;
-    }
-}
-
-
-// ------------------------------------------------------------------------------
-// UI Class
-// ------------------------------------------------------------------------------
 class ComparinatorUI {
     constructor(node) {
         this.node = node;
-        // Don't cache ID yet, it might be -1
-        this.inspectMode = false;
-        this.zoomLevel = 2.0;
-
-        console.log(`[H4 Comparinator] Init for Node. Current ID: ${this.node.id}`);
-
-        // Cache for images
-        this.currentImageUrl = "";
-        this.historyImageUrl = "";
-        this.liveNodeData = null;
-
-        // State Flags
-        this.zoomLocked = false;
-        this.metadataCache = {};
-        this.blinkMode = false;
-        this.lockedReferenceItem = null;
-        this.currentHistoryList = [];
-
-        // --- DOM Construction ---
-        this.container = document.createElement("div");
-        this.container.className = "h4-comparinator-container";
-
-        // Main Stage
-        this.stage = document.createElement("div");
-        this.stage.className = "h4-main-stage full-mode"; // Start full mode (Left only)
-
-        // LEFT PANE (Current/Live)
-        this.paneLeft = this.createLeftPane();
-        this.stage.appendChild(this.paneLeft.el);
-
-        // RIGHT PANE (History OR Zoom)
-        this.paneRight = this.createRightPane();
-        this.stage.appendChild(this.paneRight.el);
-
-        // History Strip
-        this.historyStrip = document.createElement("div");
-        this.historyStrip.className = "h4-history-strip";
-
-        // Control Panel
-        this.controlPanel = document.createElement("div");
-        this.controlPanel.className = "h4-control-panel";
-
-        this.buildControls();
-
-        // Parameter Drawer (Right Side)
-        this.buildParamDrawer();
-
-        // Settings Drawer (Metadata + Save Options)
-        this.buildDrawer();
-
-        this.container.appendChild(this.stage);
-        this.container.appendChild(this.historyStrip);
-        this.container.appendChild(this.controlPanel);
-        this.container.appendChild(this.drawer);
-
-        // --- Event Listener ---
-        this.onUpdate = (e) => {
-            if (String(e.detail.node_id) === String(this.node.id)) {
-                this.updateData(e.detail);
-            }
+        this.state = {
+            live: null,
+            history: [],
+            locked: null,
+            selected: null, // User-selected history item
+            full: false,
+            params: false, // Restored state
+            sliderX: 50, // PANE 1 Slider (0-100 of Pane 1)
+            sliderX2: 50, // PANE 2 Slider (0-100 of Pane 2)
+            sliderY: 50,
+            inspect: false,
+            inspect_channel: 'B', // A or B toggleable
+            inspectZoom: 1, // Current (rendered) zoom level
+            _inspectZoomTarget: 1, // Target zoom for smooth interpolation
+            _zoomAnimId: null, // requestAnimationFrame ID for zoom loop
+            _lastPctX: 50, // Last transform-origin X% for zoom (updated by mouse move)
+            _lastPctY: 50, // Last transform-origin Y% for zoom (updated by mouse move)
+            lbZoom: 1,
+            lbPair: 'A',
+            blink: false,
+            parameters: { A: [], B: [] }
         };
-        api.addEventListener("h4.comparinator.update", this.onUpdate);
 
-        // [NEW] History Strip Horizontal Scroll
-        this.historyStrip.addEventListener("wheel", (e) => {
-            if (e.deltaY !== 0) {
-                e.preventDefault();
-                this.historyStrip.scrollLeft += e.deltaY;
+        // Always update the stylesheet content to ensure CSS changes apply
+        // without requiring a hard cache clear from the user
+        let styleEl = document.getElementById("h4-comparinator-styles");
+        if (!styleEl) {
+            styleEl = document.createElement("style");
+            styleEl.id = "h4-comparinator-styles";
+            document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = STYLE;
+
+        this.initDOM();
+        this.bindEvents();
+
+        // DIM HACKER GREEN GLOW
+        if (this.el && this.el.root) {
+            this.el.root.style.boxShadow = "0 0 20px rgba(0, 255, 68, 0.15)";
+            this.el.root.style.border = "1px solid rgba(0, 102, 34, 0.3)";
+            this.el.root.style.transition = "filter 0.1s ease-out, opacity 0.1s ease-out";
+        }
+
+        // FLICKER ENGINE
+        this.flickerTimer = -1;
+        const runFlickerLoop = () => {
+            if (this.flickerTimer > 0) {
+                this.flickerTimer -= 10;
+                if (this.flickerTimer <= 0) {
+                    this.triggerFlicker();
+                }
+            } else if (this.flickerTimer <= 0) {
+                // Poll every 10s as requested
+                const roll = Math.floor(Math.random() * 11); // 0-10
+                if (roll > 0) {
+                    // 10 = 5 mins (300s). So roll * 30.
+                    this.flickerTimer = roll * 30;
+                    console.log(`[H4 Flicker] Roll: ${roll} -> Delay: ${this.flickerTimer}s`);
+                }
             }
-        });
+            setTimeout(runFlickerLoop, 10000);
+        };
+        runFlickerLoop();
 
-        // [NEW] Keyboard Shortcuts
-        // Store bind so we can remove listener if needed (though node usually persists)
-        this.boundHandleKey = this.handleKey.bind(this);
-        window.addEventListener("keydown", this.boundHandleKey);
-        window.addEventListener("keyup", this.boundHandleKey);
+        setTimeout(() => this.fetchHistory(), 500);
+    }
 
-        // Fetch Initial History
+    triggerFlicker() {
+        if (!this.el || !this.el.root) return;
+        // Brighter pulse flicker as requested (Dim -> Spike -> Dim)
+        this.el.root.style.filter = "brightness(1.5) contrast(1.2)";
         setTimeout(() => {
-            const historyUrl = `/h4/history?node_id=${this.node.id}`;
-            console.log(`[H4 Comparinator] Fetching history from: ${historyUrl}`);
-
-            api.fetchApi(historyUrl)
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("[H4 Comparinator] History data received:", data);
-                    if (data.history && data.history.length > 0) {
-                        this.renderStrip(data.history);
-                        // [FIX] Initialize Live Node Data from latest history item
-                        // This ensures that even after reload, "Live" (A) compares against the last known generation.
-                        this.liveNodeData = data.history[0];
-                        // Convert first history item to "current" if no current exists?
-                        // Or just wait for update. 
-                        // If we have history, let's at least populate the strip.
-                    } else {
-                        console.warn("[H4 Comparinator] No history found for this node.");
-                    }
-                })
-                .catch(err => console.error("[H4 Comparinator] Error fetching history:", err));
-        }, 500);
+            this.el.root.style.filter = "brightness(1) contrast(1)";
+            setTimeout(() => {
+                this.el.root.style.filter = "brightness(1.3)";
+                setTimeout(() => { this.el.root.style.filter = "brightness(1) contrast(1)"; }, 50);
+            }, 50);
+        }, 100);
     }
 
-    // --------------------------------------------------------------------------
-    // Pane Creation
-    // --------------------------------------------------------------------------
+    initDOM() {
+        this.el = { root: document.createElement("div") };
+        this.el.root.className = "h4-comparinator-root";
 
-    createLeftPane() {
-        const el = document.createElement("div");
-        el.className = "h4-viewport pane-left";
+        this.frame = document.createElement("div");
+        this.frame.className = "h4-comp-frame";
+        this.el.root.appendChild(this.frame);
 
-        // IMAGE A (Live / Current) - Bottom Layer
-        const imgA = document.createElement("img");
-        imgA.className = "h4-img-layer h4-img-a";
-        imgA.draggable = false;
-        imgA.style.zIndex = "1";
+        // Scanlines Overlay
+        const scan = document.createElement("div");
+        scan.className = "h4-scanlines";
+        this.frame.appendChild(scan);
 
-        // IMAGE B (History / Compare) - Top Layer (Clipped)
-        const imgB = document.createElement("img");
-        imgB.className = "h4-img-layer h4-img-b";
-        imgB.draggable = false;
-        imgB.style.zIndex = "2";
-        // Start fully visible or hidden? 
-        // Standard compare: Slider at 50%.
-        imgB.style.clipPath = "inset(0 0 0 50%)"; // Clip left 50%
+        // STAGE
+        this.stage = document.createElement("div");
+        this.stage.className = "h4-stage";
+        this.frame.appendChild(this.stage);
 
-        // Slider Handle
-        const handle = document.createElement("div");
-        handle.className = "h4-slider-handle";
-        handle.style.left = "50%";
+        /**
+         * 4-LAYER STACK CONSTRUCTION (Z-Order Alignment)
+         * Z:10 - Live A (Base Master)
+         * Z:15 - Hist A (Temporal X-Offset)
+         * Z:20 - Live B (Spatial Y-Offset)
+         * Z:25 - Hist B (Dual-Axis Offset)
+         */
+        this.layers = {
+            liveA: this.createImageLayer(10),
+            histA: this.createImageLayer(15),
+            liveB: this.createImageLayer(20),
+            histB: this.createImageLayer(25)
+        };
+        this._lastUrls = { liveA: "", histA: "", liveB: "", histB: "" };
+        Object.values(this.layers).forEach(img => this.stage.appendChild(img));
 
-        const tag = document.createElement("div");
-        tag.className = "h4-viewport-tag tag-current";
-        tag.textContent = "COMPARE: LIVE VS HISTORY";
+        // Sliders
+        this.sliderX = document.createElement("div");
+        this.sliderX.className = "h4-slider-x";
+        this.sliderX2 = document.createElement("div"); // INDEPENDENT SLIDER FOR PANE 2
+        this.sliderX2.className = "h4-slider-x";
+        this.sliderY = document.createElement("div");
+        this.sliderY.className = "h4-slider-y";
+        this.stage.appendChild(this.sliderX);
+        this.stage.appendChild(this.sliderX2);
+        this.stage.appendChild(this.sliderY);
 
-        // Reticle for Inspect Mode
-        const reticle = document.createElement("div");
-        reticle.className = "h4-reticle";
-        reticle.style.pointerEvents = "none"; // [FIX] Prevent event blocking
+        // Labels
+        this.labels = {
+            liveA: this.createLabel("LIVE A", "5px", "5px"),
+            liveB: this.createLabel("LIVE B", "5px", "auto", "5px"),
+            histA: this.createLabel("HIST A", "auto", "5px", "auto", "5px"),
+            histB: this.createLabel("HIST B", "auto", "auto", "5px", "5px")
+        };
+        Object.values(this.labels).forEach(l => this.stage.appendChild(l));
 
-        el.appendChild(imgA);
-        el.appendChild(imgB); // B on top
-        el.appendChild(handle);
-        el.appendChild(tag);
-        el.appendChild(reticle);
+        // Interaction Reticle (Sniper Scope)
+        this.reticle = document.createElement("div");
+        this.reticle.className = "h4-reticle";
+        // Zoom level HUD label inside the reticle (sniper scope readout)
+        this.reticleZoomLabel = document.createElement("span");
+        this.reticleZoomLabel.className = "h4-reticle-zoom";
+        this.reticleZoomLabel.textContent = "1.0x";
+        this.reticle.appendChild(this.reticleZoomLabel);
+        this.stage.appendChild(this.reticle);
 
-        // Interaction Logic
-        el.addEventListener("mousemove", (e) => {
-            if (this.inspectMode) {
-                // INSPECT MODE: Move Reticle
-                requestAnimationFrame(() => this.handleMouseMoveInspect(e, el, reticle));
-            } else {
-                // COMPARE MODE: Move Slider
-                this.handleMouseMoveCompare(e, el, imgB, handle);
-            }
-        });
+        // Bottom Bar
+        this.bar = document.createElement("div");
+        this.bar.className = "h4-bottom-bar";
+        this.frame.appendChild(this.bar);
 
-        // [NEW] Zoom Lock Trigger (Mouse3 / Middle Click)
-        el.addEventListener("mousedown", (e) => {
-            if (this.inspectMode && e.button === 1) { // Middle Click
+        this.toggles = {
+            inspect: this.createToggle("INSPECT", (v) => this.setInspect(v), "inspect"),
+            full: this.createToggle("FULL VIEW", (v) => this.setFull(v), "full"),
+            params: this.createToggle("PARAMETERS", (v) => this.setDrawer(v), "params"),
+            save: this.createToggle("SAVE FUNCTIONS", (v) => this.setSave(v), "save")
+        };
+
+        // Channel Switch for Inspect Mode
+        this.chanToggle = document.createElement("div");
+        this.chanToggle.className = "h4-channel-toggle";
+        this.chanA = document.createElement("div"); this.chanA.className = "h4-channel-btn"; this.chanA.textContent = "A";
+        const slash = document.createElement("div"); slash.className = "h4-channel-slash"; slash.textContent = "/";
+        this.chanB = document.createElement("div"); this.chanB.className = "h4-channel-btn active"; this.chanB.textContent = "B";
+
+        this.chanA.onclick = () => this.setInspectChannel('A');
+        this.chanB.onclick = () => this.setInspectChannel('B');
+
+        this.chanToggle.appendChild(this.chanA);
+        this.chanToggle.appendChild(slash);
+        this.chanToggle.appendChild(this.chanB);
+
+        // Explicit Order with Channel Toggle adjacent to Inspect
+        this.bar.appendChild(this.toggles.inspect);
+
+        // ZOOM CONTROLS (Only visible in Inspect Mode)
+        this.zoomControls = document.createElement("div");
+        this.zoomControls.className = "h4-zoom-controls";
+        this.zoomControls.style.display = "none";
+        this.zoomControls.style.alignItems = "center";
+        this.zoomControls.style.gap = "10px";
+        this.zoomControls.style.marginLeft = "10px";
+        this.zoomControls.style.marginRight = "10px";
+
+        // Zoom Slider
+        const zLabel = document.createElement("div");
+        zLabel.textContent = "ZOOM";
+        zLabel.style.color = "#00ffff"; zLabel.style.fontSize = "9px"; zLabel.style.fontWeight = "900";
+        this.zoomControls.appendChild(zLabel);
+
+        this.inspectSlider = document.createElement("input");
+        this.inspectSlider.type = "range";
+        this.inspectSlider.min = "1"; this.inspectSlider.max = "50"; this.inspectSlider.step = "0.1"; this.inspectSlider.value = "1";
+        this.inspectSlider.style.width = "80px";
+        this.inspectSlider.style.height = "2px";
+        this.inspectSlider.style.accentColor = "#00ffff";
+        this.inspectSlider.oninput = (e) => {
+            const val = parseFloat(e.target.value);
+            this.state._inspectZoomTarget = val;
+            this.state.inspectZoom = val; // Slider drags are direct (no interpolation)
+            // Update zoom label inside the reticle HUD on slider drag
+            this.reticleZoomLabel.textContent = val < 10 ? `${val.toFixed(1)}x` : `${Math.round(val)}x`;
+            // Apply zoom directly — bypass updateReticle() which can crash
+            // if layers aren't initialized yet
+            this._applyZoomDirect(val);
+        };
+        this.zoomControls.appendChild(this.inspectSlider);
+
+        this.bar.appendChild(this.zoomControls);
+
+        this.bar.appendChild(this.chanToggle);
+        this.bar.appendChild(this.toggles.full);
+        this.bar.appendChild(this.toggles.params);
+        this.bar.appendChild(this.toggles.save);
+
+        // MOUSE WHEEL ZOOM (Stage Level) — smooth animated zoom
+        this.stage.addEventListener("wheel", (e) => {
+            if (this.state.inspect) {
                 e.preventDefault();
-                this.toggleZoomLock();
+                // Exponential zoom: 20% per tick for responsive feel
+                const delta = e.deltaY > 0 ? -1 : 1;
+                const rate = 0.20;
+                let newTarget = this.state._inspectZoomTarget * (1 + (delta * rate));
+
+                // Clamp: Wheel zoom range 1x to 50x
+                newTarget = Math.max(1, Math.min(50, newTarget));
+
+                this.state._inspectZoomTarget = newTarget;
+                this.inspectSlider.value = newTarget; // Sync slider knob
+
+                // Update zoom HUD label inside the reticle immediately
+                this.reticleZoomLabel.textContent = newTarget < 10 ? `${newTarget.toFixed(1)}x` : `${Math.round(newTarget)}x`;
+
+                // Start smooth zoom animation loop (if not already running)
+                this._startZoomAnim();
             }
-        });
-
-        // Toggle Reticle / Handle visibility based on mode
-        el.addEventListener("mouseenter", (e) => {
-            if (this.inspectMode) {
-                reticle.style.display = "block";
-                // [FIX] Immediate Snap: Teleport reticle to mouse on entry
-                this.handleMouseMoveInspect(e, el, reticle);
-            }
-        });
-        el.addEventListener("mouseleave", () => {
-            reticle.style.display = "none";
-        });
-
-        return { el, imgA, imgB, handle, reticle, tag };
-    }
-
-    createRightPane() {
-        const el = document.createElement("div");
-        el.className = "h4-viewport pane-right";
-
-        // Container for History Image Reference
-        const imgHistoryDisplay = document.createElement("img");
-        imgHistoryDisplay.className = "h4-img-layer";
-        imgHistoryDisplay.style.display = "block";
-
-        // Container for Zoom Canvas
-        const zoomCanvas = document.createElement("div");
-        zoomCanvas.className = "h4-zoom-canvas";
-        zoomCanvas.style.display = "none";
-
-        const tag = document.createElement("div");
-        tag.className = "h4-viewport-tag tag-history";
-        tag.textContent = "HISTORY REFERENCE";
-
-        el.appendChild(imgHistoryDisplay);
-        el.appendChild(zoomCanvas);
-        el.appendChild(tag);
-
-        return { el, imgHistoryDisplay, zoomCanvas, tag };
-    }
-
-    handleKey(e) {
-        // Ignore if user is typing in metadata drawer
-        if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
-
-        // Blink Mode (Spacebar)
-        if (e.code === "Space") {
-            // Only active if mouse is hovering container
-            if (!this.container.matches(':hover')) return;
-
-            e.preventDefault();
-            if (e.type === "keydown" && !this.blinkMode) {
-                this.toggleBlinkMode(true);
-            } else if (e.type === "keyup") {
-                this.toggleBlinkMode(false);
-            }
-            return;
-        }
-
-        // Shortcuts (Shift + Number)
-        if (e.shiftKey && e.type === "keydown") {
-            switch (e.key) {
-                case "1": this.setSliderMode("A"); break;
-                case "2": this.setSliderMode("B"); break;
-                case "3": this.setSliderMode("Split"); break;
-            }
-        }
-    }
-
-    buildControls() {
-        // [FIX] Restore Top Controls as SWITCH TOGGLES
-        this.controlPanel.innerHTML = "";
-
-        // Helper to create switch
-        const createSwitch = (label, onChange, isActive = false) => {
-            const wrap = document.createElement("div");
-            wrap.className = "h4-switch-wrap";
-
-            const switchEl = document.createElement("div");
-            switchEl.className = "h4-switch" + (isActive ? " active" : "");
-
-            const text = document.createElement("span");
-            text.textContent = label;
-
-            wrap.onclick = () => {
-                const newState = !switchEl.classList.contains("active");
-                switchEl.classList.toggle("active", newState);
-                onChange(newState);
-            };
-
-            wrap.appendChild(switchEl);
-            wrap.appendChild(text);
-            return { wrap, switchEl };
-        };
-
-        // 1. SAVE OUTPUT / SETTINGS
-        const toggleSettings = createSwitch("SAVE OUTPUT / SETTINGS", (active) => {
-            this.toggleDrawer(active);
-        });
-        this.controlPanel.appendChild(toggleSettings.wrap);
-        this.toggleSettingsSwitch = toggleSettings.switchEl;
-
-        // [NEW] PARAMETERS TOGGLE
-        const toggleParams = createSwitch("PARAMETERS", (active) => {
-            this.toggleParamDrawer(active);
-        });
-        this.controlPanel.appendChild(toggleParams.wrap);
-
-        // 2. INSPECTINATOR MODE
-        const toggleInspect = createSwitch("INSPECTINATOR", (active) => {
-            this.toggleInspectMode(active);
-        });
-        this.controlPanel.appendChild(toggleInspect.wrap);
-        this.toggleInspectSwitch = toggleInspect.switchEl;
-
-        // Zoom Slider (Only visible in Inspect)
-        this.zoomControl = document.createElement("div");
-        this.zoomControl.className = "h4-slider-wrap hidden";
-        this.zoomControl.style.marginLeft = "auto";
-        this.zoomControl.innerHTML = `<span>ZM: 200%</span><input type="range" min="100" max="1000" value="200">`;
-        const range = this.zoomControl.querySelector("input");
-        const label = this.zoomControl.querySelector("span");
-
-        range.oninput = (e) => {
-            this.zoomLevel = e.target.value / 100;
-            label.textContent = `ZM: ${e.target.value}%`;
-            if (this.lastMouseX !== undefined) this.updateReticle(this.lastMouseX, this.lastMouseY);
-        };
-        this.controlPanel.appendChild(this.zoomControl);
-
-        // Global Wheel Listener (Attached to Container)
-        this.container.addEventListener("wheel", (e) => {
-            if (!this.inspectMode) return;
-            e.preventDefault();
-            e.stopPropagation();
-            const delta = Math.sign(e.deltaY) * -0.5;
-            let newZoom = this.zoomLevel + delta;
-            newZoom = Math.max(1.0, Math.min(5.0, newZoom));
-            this.zoomLevel = newZoom;
-            this.paneRight.tag.textContent = `ZOOM VIEW ${Math.round(this.zoomLevel * 100)}%`;
-            if (range) range.value = Math.round(newZoom * 100);
-            if (label) label.textContent = `ZM: ${Math.round(newZoom * 100)}%`;
-            if (this.lastMouseX !== undefined) this.updateReticle(this.lastMouseX, this.lastMouseY);
         }, { passive: false });
-    }
 
+        // MIDDLE CLICK LOCK
+        this.stage.addEventListener("auxclick", (e) => {
+            if (e.button === 1) { // Middle Button
+                e.preventDefault();
 
+                if (this.state.inspect) {
+                    // INSPECT: Lock Reticle Position
+                    this.state.reticleLocked = !this.state.reticleLocked;
+                    if (this.state.reticleLocked) {
+                        const rect = this.stage.getBoundingClientRect();
+                        this.state.lockedX = (e.clientX - rect.left) / rect.width;
+                        this.state.lockedY = (e.clientY - rect.top) / rect.height;
+                        this.reticle.style.borderColor = "#ff0000";
+                        this.reticle.style.boxShadow = "0 0 15px rgba(255, 0, 0, 0.5)";
+                    } else {
+                        this.reticle.style.borderColor = "#00ff55";
+                        this.reticle.style.boxShadow = "0 0 15px rgba(0, 255, 85, 0.2)";
+                    }
+                } else {
+                    // SLIDER LOCK (Split/Full Mode)
+                    this.state.sliderLocked = !this.state.sliderLocked;
+                    const color = this.state.sliderLocked ? "#ff0000" : "#006622";
+                    const glow = this.state.sliderLocked ? "0 0 15px #ff0000" : "0 0 15px #006622";
 
-
-    buildDrawer() {
-        this.drawer = document.createElement("div");
-        this.drawer.className = "h4-meta-drawer";
-
-        const content = document.createElement("div");
-        content.className = "h4-drawer-content";
-
-        // Col 1: Metadata
-        const colMeta = document.createElement("div");
-        colMeta.className = "h4-drawer-col meta";
-        this.metaInput = document.createElement("textarea");
-        this.metaInput.className = "h4-meta-input";
-        this.metaInput.placeholder = "Enter custom metadata here... (Attached to saved files)";
-        this.metaInput.addEventListener("input", (e) => this.syncMetadata(e.target.value));
-        colMeta.appendChild(this.metaInput);
-
-        // Col 2: Settings
-        const colSettings = document.createElement("div");
-        colSettings.className = "h4-drawer-col settings";
-
-        const createCheck = (label, key, def) => {
-            const row = document.createElement("div");
-            row.className = "h4-drawer-row";
-            const cb = document.createElement("input");
-            cb.type = "checkbox";
-            cb.checked = def;
-            cb.id = `h4_chk_${key}`;
-            cb.addEventListener("change", () => this.updateSaveSettings());
-            const lb = document.createElement("label");
-            lb.textContent = label;
-            lb.htmlFor = `h4_chk_${key}`;
-            row.appendChild(cb);
-            row.appendChild(lb);
-            colSettings.appendChild(row);
-            return cb;
-        };
-
-        const createInput = (label, key, def, placeholder) => {
-            const row = document.createElement("div");
-            row.className = "h4-drawer-row";
-            const lb = document.createElement("label");
-            lb.textContent = label;
-            const inp = document.createElement("input");
-            inp.type = "text";
-            inp.className = "h4-drawer-input";
-            inp.value = def;
-            inp.placeholder = placeholder || "";
-            inp.addEventListener("input", () => this.updateSaveSettings());
-            row.appendChild(lb);
-            row.appendChild(inp);
-            colSettings.appendChild(row);
-            return inp;
-        };
-
-        // Auto-Save
-        const wSaveMode = this.node.widgets.find(w => w.name === "save_mode");
-        const initAutoSave = wSaveMode ? wSaveMode.value : false;
-        this.chkAutoSave = createCheck("Auto-Save on Workflow Run", "auto_save", initAutoSave);
-        this.chkAutoSave.addEventListener("change", (e) => this.toggleSaveMode(e.target.checked));
-
-        // Options
-        this.chkSaveA = createCheck("Save A (Live)", "save_a", false);
-        this.chkSaveB = createCheck("Save B (History)", "save_b", false);
-        this.chkSaveComp = createCheck("Save Comparison (Side-by-Side)", "save_comp", false);
-        this.chkSaveWF = createCheck("Save with Workflow", "save_wf", false);
-        this.chkSaveMeta = createCheck("Save with Metadata", "save_meta", false);
-        this.chkSavePrompt = createCheck("Save with Prompt", "save_prompt", false);
-
-        // Toggle All
-        const rowAll = document.createElement("div");
-        rowAll.className = "h4-drawer-row";
-        const btnAll = document.createElement("button");
-        btnAll.textContent = "Toggle All Extras";
-        btnAll.className = "h4-btn";
-        btnAll.style.fontSize = "9px";
-        btnAll.onclick = () => {
-            const val = !this.chkSaveWF.checked;
-            this.chkSaveWF.checked = val;
-            this.chkSaveMeta.checked = val;
-            this.chkSavePrompt.checked = val;
-            this.updateSaveSettings();
-        };
-        rowAll.appendChild(btnAll);
-        colSettings.appendChild(rowAll);
-
-        // Paths
-        this.inpPrefix = createInput("Prefix:", "prefix", "h4_");
-        this.inpPath = createInput("Subfolder:", "path", "comparisons");
-
-        // Save Button (Centered, No Emoji)
-        this.btnSaveNow = document.createElement("div");
-        this.btnSaveNow.className = "h4-action-btn";
-        this.btnSaveNow.textContent = "SAVE NOW";
-        this.btnSaveNow.onclick = () => this.triggerManualSave();
-        colSettings.appendChild(this.btnSaveNow);
-
-        content.appendChild(colMeta);
-        content.appendChild(colSettings);
-        this.drawer.appendChild(content);
-
-        if (this.node.widgets) setTimeout(() => this.updateSaveSettings(), 1000);
-    }
-
-    updateSaveSettings() {
-        const settings = {
-            save_a: this.chkSaveA.checked,
-            save_b: this.chkSaveB.checked,
-            save_comp: this.chkSaveComp.checked,
-            save_wf: this.chkSaveWF.checked,
-            save_meta: this.chkSaveMeta.checked,
-            save_prompt: this.chkSavePrompt.checked,
-            prefix: this.inpPrefix.value,
-            path: this.inpPath.value
-        };
-        const json = JSON.stringify(settings);
-        if (this.node.widgets) {
-            const w = this.node.widgets.find(w => w.name === "save_settings");
-            if (w) w.value = json;
-        }
-    }
-
-    // --------------------------------------------------------------------------
-    // Parameter Panel Logic
-    // --------------------------------------------------------------------------
-
-    buildParamDrawer() {
-        this.paramDrawer = document.createElement("div");
-        this.paramDrawer.className = "h4-param-drawer";
-        this.container.appendChild(this.paramDrawer);
-    }
-
-    toggleParamDrawer(active) {
-        if (active) {
-            // Expand Node
-            const currentW = this.node.size[0];
-            const currentH = this.node.size[1];
-            this.node.setSize([currentW + 300, currentH]);
-
-            this.paramDrawer.classList.add("open");
-
-            // Populate Data
-            this.updateParams(this.liveNodeData);
-        } else {
-            // Shrink Node
-            const currentW = this.node.size[0];
-            const currentH = this.node.size[1];
-            // Ensure we don't shrink below min width
-            this.node.setSize([Math.max(400, currentW - 300), currentH]);
-
-            this.paramDrawer.classList.remove("open");
-        }
-    }
-
-    // ----------------------------------------------------------------------
-    // GRAPH TRAVERSAL: Helper Methods (Class Level)
-    // ----------------------------------------------------------------------
-
-    findUpstreamSamplers(node, found = [], visited = new Set(), depth = 10) {
-        if (!node || depth <= 0 || visited.has(node.id)) return found;
-        visited.add(node.id);
-
-        // Check if this is a Sampler
-        if (node.type === "KSampler" || node.type === "KSamplerAdvanced" || (node.type && node.type.includes("Sampler"))) {
-            if (!found.find(n => n.id === node.id)) {
-                found.push(node);
-            }
-        }
-
-        // Walk Inputs
-        if (node.inputs) {
-            for (const input of node.inputs) {
-                const linkId = input.link;
-                if (linkId !== null) {
-                    const link = app.graph.links[linkId];
-                    if (link) {
-                        const originNode = app.graph.getNodeById(link.origin_id);
-                        if (originNode) {
-                            this.findUpstreamSamplers(originNode, found, visited, depth - 1);
-                        }
+                    if (this.sliderX) {
+                        this.sliderX.style.background = color;
+                        this.sliderX.style.boxShadow = glow;
+                    }
+                    if (this.sliderX2) {
+                        this.sliderX2.style.background = color;
+                        this.sliderX2.style.boxShadow = glow;
+                    }
+                    if (this.sliderY) {
+                        this.sliderY.style.background = color;
+                        this.sliderY.style.boxShadow = glow;
                     }
                 }
             }
-        }
-        return found;
-    }
-
-    extractWidgetValue(node, widgetName) {
-        if (!node.widgets) return null;
-        const w = node.widgets.find(w => w.name === widgetName);
-        return w ? w.value : null;
-    }
-
-    findPromptText(node, inputName, visited = new Set()) {
-        if (!node || !node.inputs) return null;
-
-        const input = node.inputs.find(i => i.name === inputName);
-        if (!input || !input.link) return null;
-
-        const link = app.graph.links[input.link];
-        if (!link) return null;
-
-        const originNode = app.graph.getNodeById(link.origin_id);
-        if (!originNode || visited.has(originNode.id)) return null;
-        visited.add(originNode.id);
-
-        // check if this is the text node
-        if (originNode.widgets) {
-            const textWidget = originNode.widgets.find(w => w.name === "text" || w.name === "string" || w.name === "prompt");
-            if (textWidget) {
-                return textWidget.value;
-            }
-            // Fallback for Primitive Node (value is in widgets[0])
-            if (originNode.type === "PrimitiveNode" && originNode.widgets[0]) {
-                return originNode.widgets[0].value;
-            }
-        }
-
-        // Handle Reroute / Pass-through
-        // Only recurse if it's explicitly a routing node to avoid infinite loops
-        if (originNode.type === "Reroute" || originNode.type === "Note") {
-            if (originNode.inputs && originNode.inputs.length > 0) {
-                return this.findPromptText(originNode, originNode.inputs[0].name, visited);
-            }
-        }
-
-        return null;
-    }
-
-    extractSamplerData(samplerNode) {
-        const data = [];
-        data.push({ k: "Type", v: samplerNode.type });
-
-        // Common Widgets
-        const seed = this.extractWidgetValue(samplerNode, "seed");
-        if (seed !== null) data.push({ k: "Seed", v: seed });
-
-        const steps = this.extractWidgetValue(samplerNode, "steps");
-        if (steps !== null) data.push({ k: "Steps", v: steps });
-
-        const cfg = this.extractWidgetValue(samplerNode, "cfg");
-        if (cfg !== null) data.push({ k: "CFG", v: cfg });
-
-        const sampler = this.extractWidgetValue(samplerNode, "sampler_name");
-        if (sampler !== null) data.push({ k: "Sampler", v: sampler });
-
-        const scheduler = this.extractWidgetValue(samplerNode, "scheduler");
-        if (scheduler !== null) data.push({ k: "Scheduler", v: scheduler });
-
-        const denoise = this.extractWidgetValue(samplerNode, "denoise");
-        if (denoise !== null) data.push({ k: "Denoise", v: denoise });
-
-        // [NEW] Extract Prompts
-        const posPrompt = this.findPromptText(samplerNode, "positive");
-        if (posPrompt) data.push({ k: "Positive Prompt", v: posPrompt });
-
-        const negPrompt = this.findPromptText(samplerNode, "negative");
-        if (negPrompt) data.push({ k: "Negative Prompt", v: negPrompt });
-
-        return data;
-    }
-
-    captureGraphMetadata() {
-        const result = { A: [], B: [] };
-
-        // Find Inputs
-        const inputA = this.node.inputs.find(i => i.name === "image_a");
-        const inputB = this.node.inputs.find(i => i.name === "image_b");
-
-        // Scan A
-        if (inputA && inputA.link) {
-            const linkA = app.graph.links[inputA.link];
-            if (linkA) {
-                const originA = app.graph.getNodeById(linkA.origin_id);
-                const nodesA = this.findUpstreamSamplers(originA);
-                result.A = nodesA.map(n => this.extractSamplerData(n));
-            }
-        }
-
-        // Scan B
-        if (inputB && inputB.link) {
-            const linkB = app.graph.links[inputB.link];
-            if (linkB) {
-                const originB = app.graph.getNodeById(linkB.origin_id);
-                const nodesB = this.findUpstreamSamplers(originB);
-                result.B = nodesB.map(n => this.extractSamplerData(n));
-            }
-        }
-        return result;
-    }
-
-    updateParams(data) {
-        this.paramDrawer.innerHTML = "";
-
-        if (!data) {
-            this.paramDrawer.innerHTML = "<div style='padding:20px; color:#666;'>No Generation Data Found.<br>Connect an image generation flow.</div>";
-            return;
-        }
-
-        const prompt = data.prompt;
-        const info = data.extra_pnginfo;
-
-        // Helper to build table
-        const createTable = (title, rows) => {
-            const sect = document.createElement("div");
-            sect.className = "h4-param-section";
-
-            const head = document.createElement("span");
-            head.className = "h4-param-title";
-            head.textContent = title;
-            sect.appendChild(head);
-
-            const tbl = document.createElement("table");
-            tbl.className = "h4-param-table";
-            // Ensure table layout fixed for long text wrapping
-            tbl.style.tableLayout = "fixed";
-            tbl.style.width = "100%";
-
-            rows.forEach(r => {
-                const tr = document.createElement("tr");
-
-                if (r.k.includes("Prompt")) {
-                    // Full-Width Prompt Display
-                    const td = document.createElement("td");
-                    td.colSpan = 2;
-                    td.className = "h4-param-prompt-cell";
-                    td.style.padding = "6px 2px";
-                    td.style.borderTop = "1px solid rgba(255,255,255,0.1)";
-
-                    const label = document.createElement("div");
-                    label.textContent = r.k;
-                    label.style.fontWeight = "bold";
-                    label.style.color = r.k.includes("Negative") ? "#ff6b6b" : "#4dabf7";
-                    label.style.fontSize = "10px";
-                    label.style.marginBottom = "3px";
-                    label.style.textTransform = "uppercase";
-                    label.style.letterSpacing = "0.5px";
-
-                    const val = document.createElement("div");
-                    val.textContent = r.v;
-                    val.style.whiteSpace = "pre-wrap";
-                    val.style.fontSize = "11px";
-                    val.style.color = "#eee";
-                    val.style.lineHeight = "1.4";
-                    val.style.maxHeight = "150px";
-                    val.style.overflowY = "auto";
-                    val.style.background = "rgba(0,0,0,0.25)";
-                    val.style.padding = "6px";
-                    val.style.borderRadius = "4px";
-                    val.style.fontFamily = "monospace";
-                    val.title = r.v; // Tooltip for full text if needed
-
-                    td.appendChild(label);
-                    td.appendChild(val);
-                    tr.appendChild(td);
-                } else {
-                    // Standard Key-Value Row
-                    const tdK = document.createElement("td");
-                    tdK.className = "h4-param-key";
-                    tdK.textContent = r.k;
-
-                    const tdV = document.createElement("td");
-                    tdV.className = "h4-param-val";
-                    tdV.textContent = r.v;
-
-                    tr.appendChild(tdK);
-                    tr.appendChild(tdV);
-                }
-                tbl.appendChild(tr);
-            });
-            sect.appendChild(tbl);
-            this.paramDrawer.appendChild(sect);
-        };
-
-        // 1. Resolve Metadata Sources
-        let metaA = null;
-        let metaB = null;
-
-        // Priority 1: Data passed directly (Live)
-        if (data.metaA) metaA = data.metaA;
-        if (data.metaB) metaB = data.metaB;
-
-        // Priority 2: Cache Lookup (History)
-        if (!metaA && data.filename_a && this.metadataCache[data.filename_a]) {
-            metaA = this.metadataCache[data.filename_a].A;
-        }
-        if (!metaB && data.filename_b && this.metadataCache[data.filename_b]) {
-            metaB = this.metadataCache[data.filename_b].B;
-        }
-
-        // Priority 3: Scan Live Graph (Last Resort fallback)
-        if (!metaA && !metaB) {
-            const captured = this.captureGraphMetadata();
-            metaA = captured.A;
-            metaB = captured.B;
-        }
-
-        // 2. Context Awareness UI
-        if (!this.metaViewContext) this.metaViewContext = "B";
-
-        const ctxDiv = document.createElement("div");
-        ctxDiv.className = "h4-param-section";
-        ctxDiv.style.textAlign = "center";
-        ctxDiv.style.marginBottom = "10px";
-
-        const btnA = document.createElement("button");
-        btnA.className = `h4-btn ${this.metaViewContext === "A" ? "active" : ""}`;
-        btnA.textContent = "IMAGE A (Input)";
-        btnA.style.width = "48%";
-        btnA.onclick = () => { this.metaViewContext = "A"; this.updateParams(data); };
-
-        const btnB = document.createElement("button");
-        btnB.className = `h4-btn ${this.metaViewContext === "B" ? "active" : ""}`;
-        btnB.textContent = "IMAGE B (Result)";
-        btnB.style.width = "48%";
-        btnB.style.marginLeft = "4%";
-        btnB.onclick = () => { this.metaViewContext = "B"; this.updateParams(data); };
-
-        ctxDiv.appendChild(btnA);
-        ctxDiv.appendChild(btnB);
-        this.paramDrawer.appendChild(ctxDiv);
-
-        // 3. Select Active Params
-        let activeParams = [];
-        let activeLabel = "";
-
-        if (this.metaViewContext === "A") {
-            activeParams = metaA || [];
-            activeLabel = "IMAGE A CHAIN";
-        } else {
-            activeParams = metaB || [];
-            activeLabel = "IMAGE B CHAIN";
-        }
-
-        // 4. Render Tables
-        if (activeParams.length > 0) {
-            activeParams.forEach((params, i) => {
-                const title = activeParams.length > 1 ? `${activeLabel} - SAMPLER ${i + 1}` : activeLabel;
-                createTable(title, params);
-            });
-        } else {
-            this.paramDrawer.innerHTML += `<div style='padding:20px; color:#888; text-align:center;'>No Sampler Parameters Found for ${activeLabel}.<br><span style='font-size:10px opacity:0.7'>(Graph traversal returned no KSamplers)</span></div>`;
-        }
-
-        // Raw Fallback
-        if (activeParams.length === 0 && info && info.workflow) {
-            this.paramDrawer.innerHTML += "<div style='padding:10px; font-size:10px; color:#666;'>No KSampler found in direct ancestry. However, raw workflow data is available in the output file.</div>";
-        }
-    }
-
-
-
-    handleMouseMoveCompare(e, container, imgB, handle) {
-        const rect = container.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-
-        let percent = (x / rect.width) * 100;
-        percent = Math.max(0, Math.min(100, percent));
-
-        handle.style.left = `${percent}%`;
-        imgB.style.clipPath = `inset(0 0 0 ${percent}%)`;
-    }
-
-    handleMouseMoveInspect(e, container, reticle) {
-        // [NEW] Zoom Lock Check
-        if (this.zoomLocked) return;
-
-        // Just store position and call updater
-        this.lastMouseX = e.clientX;
-        this.lastMouseY = e.clientY;
-        this.updateReticle(e.clientX, e.clientY);
-    }
-
-    updateReticle(clientX, clientY) {
-        if (!this.currentImageUrl || !this.inspectMode) return;
-
-        const container = this.paneLeft.el; // Or this.container? paneLeft.el contains the image
-        const reticle = this.paneLeft.reticle;
-
-        // 1. Get Container Dimensions (Screen Space)
-        const rect = container.getBoundingClientRect();
-
-        // [FIX] Use Client Dimensions (Content Box) for math to match CSS object-fit
-        // boundingClientRect includes border, which shifts calculations.
-        const contW = container.clientWidth;
-        const contH = container.clientHeight;
-
-        // 2. Calculate "Displayed Image" Rect
-        // Wait for load if needed
-        let natW = this.paneLeft.imgA.naturalWidth;
-        let natH = this.paneLeft.imgA.naturalHeight;
-
-        // If not loaded, default to fill container to keep reticle visible (Cursor Mode)
-        if (!natW || natW === 0) {
-            natW = contW;
-            natH = contH;
-        }
-
-        const imgRatio = natW / natH;
-        const rectRatio = contW / contH;
-
-        let renderW, renderH, renderTop, renderLeft;
-
-        if (imgRatio > rectRatio) {
-            renderW = 1.0;
-            renderH = rectRatio / imgRatio;
-            renderLeft = 0;
-            renderTop = (1.0 - renderH) / 2;
-        } else {
-            renderH = 1.0;
-            renderW = imgRatio / rectRatio;
-            renderTop = 0;
-            renderLeft = (1.0 - renderW) / 2;
-        }
-
-        // Add range variables needed for later (Normalized)
-        const rangeX = renderW;
-        const rangeY = renderH;
-
-        // 3. Map Mouse Coordinates relative to the CONTAINER (Viewport)
-        // [FIX] Use Screen Space Percentage to avoid scale transforms lag
-        // normX_vp = 0.0 (Left) to 1.0 (Right)
-
-        const normX_vp = (clientX - rect.left) / rect.width;
-        const normY_vp = (clientY - rect.top) / rect.height;
-
-        // --- RETICLE LOGIC (Visual Target) ---
-        // User wants a fixed "Target Cursor" centered on the mouse.
-        // It does NOT scale with zoom. It just marks the spot.
-        const targetSize = 75; // Must match CSS width/height
-        const halfSize = targetSize / 2;
-
-        // Apply to DOM (Visual) - [FIX] Use calc() with percentage for perfect scaling
-        reticle.style.width = `${targetSize}px`;
-        reticle.style.height = `${targetSize}px`;
-        reticle.style.left = `calc(${normX_vp * 100}% - ${halfSize}px)`;
-        reticle.style.top = `calc(${normY_vp * 100}% - ${halfSize}px)`;
-        reticle.style.display = "block";
-
-
-        // --- ZOOM LOGIC (Logical) ---
-        // For the Zoom View, we MUST clamp to the image area.
-
-        // Mouse relative to Image Top-Left (Normalized)
-        const imgMouseX = normX_vp - renderLeft;
-        const imgMouseY = normY_vp - renderTop;
-
-        // Clamp to Image Bounds (0 to renderW/H)
-        const clampedX = Math.max(0, Math.min(renderW, imgMouseX));
-        const clampedY = Math.max(0, Math.min(renderH, imgMouseY));
-
-        // Normalize Mouse Position (0.0 to 1.0) relative to image content
-        const normX = rangeX > 0 ? clampedX / rangeX : 0.5;
-        const normY = rangeY > 0 ? clampedY / rangeY : 0.5;
-
-        // --- EFFECTIVE ZOOM CALCULATION ---
-        // We need to know the effective Zoom Factor for Width and Height 
-        // to correctly center the background-position.
-        // background-size is set to (zoomLevel * 100)%.
-        // This is relative to the CONTAINER width.
-
-        const zoomCanvas = this.paneRight.zoomCanvas;
-        // If zoomCanvas isn't visible/layouted yet, these might be 0, but usually we are in Inspect Mode.
-        const zRect = zoomCanvas.getBoundingClientRect();
-
-        // Effective Zoom Factors (Ratio of Scaled Image Dimension to Container Dimension)
-        // Zoom Image Width = Container Width * zoomLevel
-        const Zw = this.zoomLevel;
-
-        // Zoom Image Height = Zoom Image Width / Image Aspect Ratio
-        // Container Height = zRect.height
-        // Zh = ZoomImgH / zRect.height
-        //    = (zRect.width * Zw / imgRatio) / zRect.height
-        //    = (zRect.width / zRect.height) * (Zw / imgRatio)
-
-        // [FIX] Use clientWidth/Height for zoom canvas too
-        const zContW = zoomCanvas.clientWidth;
-        const zContH = zoomCanvas.clientHeight;
-        const zRectRatio = (zContH > 0) ? (zContW / zContH) : 1.0;
-        const Zh = zRectRatio * (Zw / imgRatio);
-
-        // --- CENTERING (TARGET-LOCK) FORMULA ---
-        // The pixel under the reticle (P_norm) is centered in the Zoom View.
-
-        const calculateCenterPercent = (P_norm, Z) => {
-            if (Z <= 1.0) return 50; // Fits? Just center.
-
-            // Formula derived:
-            let P = 100 * (P_norm * Z - 0.5) / (Z - 1);
-
-            // Allow panning to edges (0% to 100%)
-            return Math.max(0, Math.min(100, P));
-        };
-
-        // Mouse Relative Position in Zoom Container (0..1)
-        // We use clientX/Y relative to zoomCanvas bounding box
-        // But wait, mouseX/Y are relative to global container.
-        // zoomCanvas is the right pane.
-        // It's safer to recalculate mouse relative to zoomCanvas just in case of offsets?
-        // Actually, in typical split, right pane is adjacent.
-        // Let's use reliable zRect logic.
-
-        const percentX = calculateCenterPercent(normX, Zw);
-        const percentY = calculateCenterPercent(normY, Zh);
-
-        this.updateInspectView(percentX, percentY);
-    }
-
-
-    updateInspectView(xPercent, yPercent) {
-        if (!this.inspectMode) return;
-        this.paneRight.zoomCanvas.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
-        this.paneRight.zoomCanvas.style.backgroundSize = `${this.zoomLevel * 100}%`;
-    }
-
-    // -------------------------------------------------------------------
-    // BLINK MODE: Hold Spacebar to swap between Image A and Image B
-    // -------------------------------------------------------------------
-    toggleBlinkMode(isOn) {
-        this.blinkMode = isOn;
-
-        if (!this.paneLeft.imgA || !this.paneLeft.imgB) return;
-
-        if (isOn) {
-            // Show ONLY Image A (hide B entirely by removing clip and hiding)
-            this.paneLeft.imgB.style.opacity = "0";
-            this.paneLeft.handle.style.opacity = "0";
-            this.paneLeft.tag.textContent = "BLINK: IMAGE A";
-        } else {
-            // Restore normal slider view (B visible, clipped)
-            this.paneLeft.imgB.style.opacity = "1";
-            this.paneLeft.handle.style.opacity = "1";
-            this.paneLeft.tag.textContent = "COMPARE: LIVE VS HISTORY";
-        }
-    }
-
-    // -------------------------------------------------------------------
-    // SLIDER MODE: Shift+1 = A only, Shift+2 = B only, Shift+3 = Split
-    // -------------------------------------------------------------------
-    setSliderMode(mode) {
-        if (!this.paneLeft.imgB || !this.paneLeft.handle) return;
-
-        switch (mode) {
-            case "A":
-                // Show only A: clip B entirely
-                this.paneLeft.imgB.style.clipPath = "inset(0 0 0 100%)";
-                this.paneLeft.handle.style.left = "100%";
-                this.paneLeft.tag.textContent = "VIEW: IMAGE A";
-                break;
-            case "B":
-                // Show only B: no clip on B
-                this.paneLeft.imgB.style.clipPath = "inset(0 0 0 0%)";
-                this.paneLeft.handle.style.left = "0%";
-                this.paneLeft.tag.textContent = "VIEW: IMAGE B";
-                break;
-            case "Split":
-            default:
-                // Standard 50/50 slider
-                this.paneLeft.imgB.style.clipPath = "inset(0 0 0 50%)";
-                this.paneLeft.handle.style.left = "50%";
-                this.paneLeft.imgB.style.display = "block";
-                this.paneLeft.handle.style.display = "block";
-                this.paneLeft.tag.textContent = "COMPARE: LIVE VS HISTORY";
-                break;
-        }
-    }
-
-    toggleInspectMode(isOn) {
-        this.inspectMode = isOn;
-
-        // 1. Title Glitch
-        this.triggerTitleGlitch(isOn);
-
-        // 2. UI Updates
-        this.container.classList.toggle("mode-inspect", isOn);
-
-        // Toggle Zoom Slider
-        this.zoomControl.classList.toggle("hidden", !isOn);
-
-        // Toggle History Strip (Keep visible in Inspect mode now!)
-        // Force remove hidden class just in case interaction added it
-        this.historyStrip.classList.remove("hidden");
-
-        // 3. Pane Logic
-        if (isOn) {
-            // INSPECT MODE
-            this.stage.classList.remove("full-mode");
-            this.paneRight.tag.textContent = `ZOOM VIEW ${Math.round(this.zoomLevel * 100)}%`;
-            this.paneRight.tag.className = "h4-viewport-tag tag-inspect";
-
-            // Left Pane: Hide Slider Elements
-            if (this.paneLeft.imgB) this.paneLeft.imgB.style.display = "none";
-            if (this.paneLeft.handle) this.paneLeft.handle.style.display = "none";
-            this.paneLeft.tag.textContent = "INSPECT SOURCE";
-
-            // Show Zoom Canvas, Hide History Img
-            this.paneRight.zoomCanvas.style.display = "block";
-            this.paneRight.imgHistoryDisplay.style.display = "none";
-
-            // [FIX] Ensure imgA (Left Pane) shows the image we are inspecting!
-            // If currentImageUrl is set, use it. If not, fallback to imgA.src.
-            if (this.currentImageUrl) {
-                this.paneLeft.imgA.src = this.currentImageUrl;
-            } else if (this.paneLeft.imgA.src) {
-                this.currentImageUrl = this.paneLeft.imgA.src;
-            }
-
-            this.paneRight.zoomCanvas.style.backgroundImage = `url("${this.currentImageUrl}")`;
-
-            // [FIX] Force update once image loads (fixes aspect ratio math)
-            this.paneLeft.imgA.onload = () => {
-                if (this.inspectMode && this.lastMouseX !== undefined) {
-                    this.updateReticle(this.lastMouseX, this.lastMouseY);
-                }
-            };
-
-            // Note: Wheel listener is now in buildControls()
-
-        } else {
-            // COMPARE MODE (Default)
-            // Restore History View
-            this.paneRight.tag.textContent = "HISTORY";
-            this.paneRight.tag.className = "h4-viewport-tag tag-history";
-
-            // Show History Img, Hide Zoom
-            this.paneRight.zoomCanvas.style.display = "none";
-            this.paneRight.imgHistoryDisplay.style.display = "block";
-
-            // Hide reticle
-            this.paneLeft.reticle.style.display = "none";
-
-            // [FIX] Always restore slider visibility when both images have sources
-            if (this.paneLeft.imgA.src && this.paneLeft.imgB.src) {
-                this.paneLeft.imgB.style.display = "block";
-                this.paneLeft.handle.style.display = "block";
-            }
-
-            // If we have a selected history active, stay split. If not, go full.
-            const hasActiveHistory = this.historyStrip.querySelector(".active");
-            if (!hasActiveHistory) {
-                this.stage.classList.add("full-mode");
-            }
-        }
-    }
-
-    triggerTitleGlitch(isInspect) {
-        const originalTitle = "H4 COMPARINATOR";
-        const newTitle = "INSPECTINATOR";
-        const target = isInspect ? newTitle : originalTitle;
-
-        let i = 0;
-        const duration = 20; // steps
-
-        const interval = setInterval(() => {
-            i++;
-            // Random glitch text
-            const mode = Math.random() > 0.5 ? "1337" : "void";
-            const gText = glitchText("SYSTEM DETECT", mode).substring(0, 15);
-            this.node.title = gText;
-
-            if (i >= duration) {
-                clearInterval(interval);
-                this.node.title = target;
-            }
-            this.node.setDirtyCanvas(true);
-        }, 50);
-    }
-
-    updateData(data) {
-
-        if (data.current) {
-            this.liveNodeData = data.current;
-            const t = data.current.timestamp || new Date().getTime();
-
-            // [NEW] Capture and Cache Metadata IMMEDIATELY
-            const captured = this.captureGraphMetadata();
-            // Cache per filename
-            if (data.current.filename_a) {
-                this.metadataCache[data.current.filename_a] = { A: captured.A };
-            }
-            if (data.current.filename_b) {
-                // For B, usually "result".
-                this.metadataCache[data.current.filename_b] = { B: captured.B };
-            }
-            // Also attach to live data for immediate use
-            data.current.metaA = captured.A;
-            data.current.metaB = captured.B;
-
-            // --------------------------------------------------------
-            // SLIDER LOGIC Check
-            // If we have distinct A and B images in the current payload,
-            // we should set them up for comparison immediately!
-            // --------------------------------------------------------
-            if (data.current.filename_a && data.current.filename_b && data.current.filename_a !== data.current.filename_b) {
-                let urlA = `/view?filename=${data.current.filename_a}&type=temp&t=${t}`;
-                const urlB = `/view?filename=${data.current.filename_b}&type=temp&t=${t}`;
-
-                // [NEW] History Lock Logic
-                // If we have a locked reference, IT becomes the 'Before' image (A)
-                // regardless of what the backend sent as 'A'.
-                if (this.lockedReferenceItem) {
-                    const refT = this.lockedReferenceItem.timestamp;
-                    // Use filename_b of the reference (the result of that past gen) as our new A
-                    urlA = `/view?filename=${this.lockedReferenceItem.filename_b}&type=temp&t=${refT}`;
-                    console.log("[Comparinator] Using Locked Reference as Image A:", urlA);
-                }
-
-                // Set Background (A)
-                this.paneLeft.imgA.src = urlA;
-                this.paneLeft.imgA.onerror = () => console.error("[Comparinator] Failed load A:", urlA);
-
-                // Set Foreground (B) and enable Slider
-                this.paneLeft.imgB.src = urlB;
-                this.paneLeft.imgB.style.display = "block";
-                this.paneLeft.handle.style.display = "block";
-
-                // For Inspect Mode, we default to the "Result" (B)
-                this.currentImageUrl = urlB;
-
-                // Ensure we are NOT in full mode (Slider active)
-                this.stage.classList.remove("full-mode");
-
-                // [FIX] If we are viewing history, and a new live generation comes in,
-                // we should probably reset to show the new live generation?
-                // "live view needs to not change , it needs to stay the same."
-                // "The only view that changes is the second one"
-                // This implies the slider is typically comparing Live (A) vs History (B).
-                // Currently updateData sets A and B based on the payload.
-                // If data.current HAS distinct A/B (e.g. from node input), we show that.
-
-                // If we have a lockedReferenceItem, we already handle that in updateData logic (lines 1000+)
-
-            } else {
-                // FALLBACK logic...
-                // FALLBACK: Single Image (Standard Preview behavior)
-                // Use 'filename_b' as the primary result usually
-                this.currentImageUrl = `/view?filename=${data.current.filename_b}&type=temp&t=${t}`;
-                this.paneLeft.imgA.src = this.currentImageUrl;
-                this.paneLeft.imgA.onerror = () => console.error("[Comparinator] Failed load A:", this.currentImageUrl);
-
-                // Hide Slider components
-                if (this.paneLeft.imgB) this.paneLeft.imgB.style.display = "none";
-                if (this.paneLeft.handle) this.paneLeft.handle.style.display = "none";
-
-                // Default to Full Mode
-                this.stage.classList.add("full-mode");
-            }
-
-            // Update Zoom Canvas if in Inspect Mode
-            if (this.inspectMode) {
-                this.paneRight.zoomCanvas.style.backgroundImage = `url("${this.currentImageUrl}")`;
-            }
-        }
-
-        // Update History Strip
-        if (data.history) {
-            this.renderStrip(data.history);
-
-            // Auto-select first history item if we don't have one valid comparison yet
-            // AND if we have history to show.
-            // This ensures the slider appears immediately.
-            if (!this.historyImageUrl && data.history.length > 0) {
-                // Default to the *second* item if current matches first? 
-                // Usually backend returns [Current, Past1, Past2...] logic or similar?
-                // Let's just pick the first one from history for now.
-                const item = data.history[0];
-                this.selectHistoryItem(item);
-
-                // Visually mark active
-                const thumb = this.historyStrip.children[0];
-                if (thumb) thumb.classList.add("active");
-
-                // Exit full mode to show slider
-                this.stage.classList.remove("full-mode");
-            }
-        }
-    }
-
-    selectHistoryItem(item) {
-        if (!item || !item.filename_a || !item.filename_b) return;
-
-        const t = item.timestamp;
-        const urlA = `/view?filename=${item.filename_a}&type=temp&t=${t}`;
-        const urlB = `/view?filename=${item.filename_b}&type=temp&t=${t}`;
-
-        // [NEW] Logic: Compare Live (Left) vs History Result (Right)
-
-        // 1. Determine Image A (Left Pane)
-        // Default to the LIVE image if available
-        let finalUrlA = urlA; // Default to history's A if no live data?
-
-        if (this.liveNodeData && this.liveNodeData.filename_b) {
-            // User wants to compare "Live" vs "Past".
-            // "Live" usually means the latest Result (B of the live pair).
-            const liveT = this.liveNodeData.timestamp;
-            finalUrlA = `/view?filename=${this.liveNodeData.filename_b}&type=temp&t=${liveT}`;
-        }
-
-        // 2. Determine Image B (Right Pane)
-        // This is the History item's Result
-        const finalUrlB = urlB;
-
-        // Update Images
-        this.paneLeft.imgA.src = finalUrlA;
-        this.paneLeft.imgB.src = finalUrlB;
-
-        // Update Right Pane Reference (for standard view usage)
-        this.historyImageUrl = finalUrlB;
-        this.paneRight.imgHistoryDisplay.src = finalUrlB;
-
-        // [FIX] Inspect Mode
-        if (this.inspectMode) {
-            this.currentImageUrl = finalUrlB;
-            this.paneLeft.imgA.src = finalUrlB; // Show B in main if inspecting
-            this.paneRight.zoomCanvas.style.backgroundImage = `url("${finalUrlB}")`;
-
-            this.paneLeft.imgA.onload = () => {
-                if (this.inspectMode && this.lastMouseX !== undefined) {
-                    this.updateReticle(this.lastMouseX, this.lastMouseY);
-                }
-            };
-        }
-
-        // Ensure Slider is Visible (Split Mode)
-        this.setSliderMode("Split");
-        this.stage.classList.remove("full-mode");
-    }
-
-    renderStrip(historyList) {
-        this.currentHistoryList = historyList; // [NEW] Store for re-rendering
-        this.historyStrip.innerHTML = "";
-
-        historyList.forEach((item, index) => {
-            const thumb = document.createElement("div");
-            thumb.className = "h4-history-thumb";
-            const t = item.timestamp;
-            const url = `/view?filename=${item.filename_b}&type=temp&t=${t}`;
-            thumb.style.backgroundImage = `url("${url}")`;
-
-            const num = index + 1;
-
-            // Check if this item is the locked reference
-            if (this.lockedReferenceItem && item.timestamp === this.lockedReferenceItem.timestamp) {
-                thumb.classList.add("locked-ref");
-            }
-
-            thumb.onclick = () => {
-                const isSelected = thumb.classList.contains("active");
-                Array.from(this.historyStrip.children).forEach(c => c.classList.remove("active"));
-                thumb.classList.add("active");
-
-                // INSPECT MODE LOGIC
-                if (this.inspectMode) {
-                    this.currentImageUrl = url;
-                    this.paneRight.zoomCanvas.style.backgroundImage = `url("${url}")`;
-                    this.paneLeft.imgA.src = url;
-                    return;
-                }
-
-                // COMPARE MODE LOGIC
-                if (isSelected && !this.lockedReferenceItem) {
-                    // Deselect: go full-mode but keep slider if both images loaded
-                    this.stage.classList.add("full-mode");
-                    thumb.classList.remove("active");
-                    // [FIX] Restore slider in full-mode so user can still compare A vs B
-                    if (this.paneLeft.imgA.src && this.paneLeft.imgB.src) {
-                        this.paneLeft.imgB.style.display = "block";
-                        this.paneLeft.handle.style.display = "block";
-                    }
-                } else {
-                    this.stage.classList.remove("full-mode");
-                    this.selectHistoryItem(item);
-                }
-            };
-
-            // [NEW] Right-Click to Lock Reference
-            thumb.oncontextmenu = (e) => {
-                e.preventDefault();
-                this.toggleReferenceLock(item);
-                // Re-render to show lock icon? Or just toggle class here manually for speed
-                this.renderStrip(this.currentHistoryList || historyList);
-            };
-
-            thumb.ondblclick = (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                this.openLightbox(item);
-            };
-
-            const stamp = document.createElement("div");
-            stamp.className = "h4-history-timestamp";
-            stamp.textContent = `#${num}`;
-            thumb.appendChild(stamp);
-
-            this.historyStrip.appendChild(thumb);
         });
-    }
 
-    setImages(viewport, item) {
-        // Legacy adapter if needed, mostly handled in updateData now
-    }
+        // Filmstrip (Event Delegation Mode)
+        this.strip = document.createElement("div");
+        this.strip.className = "h4-filmstrip";
 
-    // --- Standard Helper Methods (Lightbox, Toggles) ---
-
-    createToggle(label, callback, extraClass = "") {
-        const wrap = document.createElement("div");
-        wrap.className = "h4-control-item";
-        const txt = document.createElement("span");
-        txt.textContent = label;
-        const sw = document.createElement("div");
-        sw.className = `h4-toggle-switch ${extraClass}`;
-        const knob = document.createElement("div");
-        knob.className = "h4-toggle-knob";
-        sw.appendChild(knob);
-        sw.onclick = () => {
-            const isOn = !sw.classList.contains("on");
-            sw.classList.toggle("on", isOn);
-            callback(isOn);
+        this.strip.onclick = (e) => {
+            const t = e.target.closest(".h4-thumb");
+            if (!t) return;
+            const item = this.state.history.find(h => String(h.timestamp) === String(t.dataset.ts));
+            if (item) {
+                this.state.selected = item;
+                this.renderStrip(false);
+                this.updateDisplay();
+                // Refresh params drawer if open so it shows selected item's params
+                if (this.toggles.params?.classList.contains("active")) this.renderDrawer();
+            }
         };
-        wrap.appendChild(txt);
-        wrap.appendChild(sw);
-        return wrap;
-    }
 
-    // --- UX HANDLERS ---
+        this.strip.ondblclick = (e) => {
+            const t = e.target.closest(".h4-thumb");
+            if (!t) return;
+            const item = this.state.history.find(h => String(h.timestamp) === String(t.dataset.ts));
+            if (item) this.openLightbox(item);
+        };
 
-    handleKey(e) {
-        // Ignore if user is typing in metadata drawer
-        if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
-
-        // Blink Mode (Spacebar)
-        if (e.code === "Space") {
-            // Only active if mouse is hovering container
-            if (!this.container.matches(':hover')) return;
-
+        this.strip.oncontextmenu = (e) => {
+            const t = e.target.closest(".h4-thumb");
+            if (!t) return;
             e.preventDefault();
-            if (e.type === "keydown" && !this.blinkMode) {
-                this.toggleBlinkMode(true);
-            } else if (e.type === "keyup") {
-                this.toggleBlinkMode(false);
+            const item = this.state.history.find(h => String(h.timestamp) === String(t.dataset.ts));
+            if (item) {
+                // LOCK LOGIC: Allow locked item to coexist with Full View for 4-Way Compare
+                this.state.locked = (this.state.locked && String(this.state.locked.timestamp) === String(item.timestamp)) ? null : item;
+                this.renderStrip(false);
+                this.updateDisplay();
             }
-            return;
-        }
+        };
+        this.frame.appendChild(this.strip);
 
-        // Shortcuts (Shift + Number)
-        if (e.shiftKey && e.type === "keydown") {
-            switch (e.key) {
-                case "1": this.setSliderMode("A"); break;
-                case "2": this.setSliderMode("B"); break;
-                case "3": this.setSliderMode("Split"); break;
-                case "4": /* Reserved for Blink Toggle if needed */ break;
-            }
-        }
+        /**
+         * SAVE DRAWER (Holy Grail Ver)
+         * Beneath the filmstrip, expands node downwards.
+         */
+        this.saveDrawer = document.createElement("div");
+        this.saveDrawer.className = "h4-save-drawer";
+        this.saveContent = document.createElement("div");
+        this.saveContent.className = "h4-save-content";
+        this.saveDrawer.appendChild(this.saveContent);
+        this.frame.appendChild(this.saveDrawer);
+
+        this.drawer = document.createElement("div");
+        this.drawer.className = "h4-drawer";
+        this.drawerContent = document.createElement("div");
+        this.drawerContent.className = "h4-drawer-content";
+        this.drawer.appendChild(this.drawerContent);
+        this.el.root.appendChild(this.drawer);
+
+        this.renderSaveDrawer();
     }
 
-    toggleZoomLock() {
-        this.zoomLocked = !this.zoomLocked;
-        // Visual Feedback?
-        this.paneRight.el.style.borderColor = this.zoomLocked ? "#f00" : ""; // Red border when locked
-        // Also fix reticle color?
-        this.paneLeft.reticle.style.borderColor = this.zoomLocked ? "#f00" : "#0ff";
-        this.paneLeft.reticle.style.boxShadow = this.zoomLocked ? "0 0 5px #f00" : "0 0 5px #0ff";
-    }
+    initLightbox() {
+        this.lb = document.createElement("div");
+        this.lb.className = "h4-lightbox";
+        this.lbImg = document.createElement("img");
+        this.lbImg.className = "h4-lightbox-img";
+        this.lb.appendChild(this.lbImg);
 
-    toggleBlinkMode(active) {
-        this.blinkMode = active;
-        // Logic: Keep A visible, Toggle B visibility
-        // If Active: Hide B (Show A). Validate with user "Blink" usually means "Show Ref"?
-        // Actually, if we are looking at B (Slider > 50%), Space should show A.
-        // If we are looking at A, Space should show B.
-        // Simplest: Force B opacity to 0 when active.
+        const hint = document.createElement("div");
+        hint.className = "h4-lb-hint";
+        hint.innerHTML = "[CTRL+CLICK]: ZOOM IN // [ALT+CLICK]: ZOOM OUT // [DRAG]: PAN";
+        this.lb.appendChild(hint);
 
-        if (this.paneLeft.imgB) {
-            this.paneLeft.imgB.style.opacity = active ? "0" : "1";
-        }
-    }
+        const close = document.createElement("div");
+        close.className = "h4-lb-close";
+        close.textContent = "×";
+        close.onclick = () => this.closeLightbox();
+        this.lb.appendChild(close);
 
-    setSliderMode(mode) {
-        if (!this.paneLeft.handle || !this.paneLeft.imgB) return;
+        const ctrls = document.createElement("div");
+        ctrls.className = "h4-lightbox-controls";
 
-        // Disable Inspect Mode if active?
-        if (this.inspectMode) this.toggleInspectMode(false);
+        // View Side A/B
+        this.lbBtnA = document.createElement("button");
+        this.lbBtnA.className = "h4-lb-btn";
+        this.lbBtnA.textContent = "VIEW A";
+        this.lbBtnA.onclick = (e) => { e.stopPropagation(); this.state.lbPair = 'A'; this.updateLightboxImg(); };
+        ctrls.appendChild(this.lbBtnA);
 
-        if (mode === "A") {
-            this.paneLeft.handle.style.left = "100%";
-            this.paneLeft.imgB.style.clipPath = "inset(0 0 0 100%)"; // Hide B
-        } else if (mode === "B") {
-            this.paneLeft.handle.style.left = "0%";
-            this.paneLeft.imgB.style.clipPath = "inset(0 0 0 0%)"; // Show B
-        } else if (mode === "Split") {
-            this.paneLeft.handle.style.left = "50%";
-            this.paneLeft.imgB.style.clipPath = "inset(0 0 0 50%)"; // Split
-        }
-    }
+        this.lbBtnB = document.createElement("button");
+        this.lbBtnB.className = "h4-lb-btn";
+        this.lbBtnB.textContent = "VIEW B";
+        this.lbBtnB.onclick = (e) => { e.stopPropagation(); this.state.lbPair = 'B'; this.updateLightboxImg(); };
+        ctrls.appendChild(this.lbBtnB);
 
+        // Zoom Slider
+        const zoomWrap = document.createElement("div");
+        zoomWrap.style.display = "flex"; zoomWrap.style.flexDirection = "column"; zoomWrap.style.alignItems = "center";
 
-    toggleReferenceLock(item) {
-        if (this.lockedReferenceItem && this.lockedReferenceItem.timestamp === item.timestamp) {
-            // Unlock
-            this.lockedReferenceItem = null;
-            console.log("[Comparinator] Reference Unlocked");
-        } else {
-            // Lock New
-            this.lockedReferenceItem = item;
-            console.log("[Comparinator] Reference Locked:", item);
-        }
-        // Force Re-render to update UI
-        if (this.currentHistoryList) this.renderStrip(this.currentHistoryList);
-    }
+        const zoomLabel = document.createElement("div");
+        zoomLabel.style.color = "#006622"; zoomLabel.style.fontSize = "8px"; zoomLabel.style.marginBottom = "5px"; zoomLabel.textContent = "MAGNIFICATION";
+        zoomWrap.appendChild(zoomLabel);
 
-    openLightbox(item) {
-        const t = item.timestamp;
-        const url = `/view?filename=${item.filename_b}&type=temp&t=${t}`;
+        this.lbZoomSlider = document.createElement("input");
+        this.lbZoomSlider.type = "range";
+        this.lbZoomSlider.className = "h4-lb-zoom-slider";
+        // Use logarithmic-style range for 1000x
+        this.lbZoomSlider.min = "0"; this.lbZoomSlider.max = "100"; this.lbZoomSlider.step = "0.1";
+        this.lbZoomSlider.value = "0";
+        this.lbZoomSlider.oninput = () => {
+            // Map 0-100 to 1-1000 exponentially
+            const val = parseFloat(this.lbZoomSlider.value);
+            this.state.lbZoom = Math.pow(1.0715, val); // ~1000 at 100
+            this.updateLightboxZoom();
+        };
+        zoomWrap.appendChild(this.lbZoomSlider);
+        ctrls.appendChild(zoomWrap);
 
-        const overlay = document.createElement("div");
-        overlay.className = "h4-lightbox-overlay";
+        this.lb.appendChild(ctrls);
+        document.body.appendChild(this.lb);
 
-        const img = document.createElement("img");
-        img.src = url;
-        img.className = "h4-lightbox-img";
-
-        // --- Drag & Zoom State ---
-        let isDragging = false;
-        let startX, startY, translateX = 0, translateY = 0;
-        let scale = 1;
-
-        // ZOOM (Click)
-        img.onclick = (e) => {
-            if (scale === 1) {
-                scale = 3;
-                img.style.cursor = "grab";
-                img.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
-            } else {
-                // Reset
-                scale = 1;
-                translateX = 0;
-                translateY = 0;
-                img.style.cursor = "zoom-in";
-                img.style.transform = `scale(1) translate(0,0)`;
-            }
-            e.stopPropagation();
+        // Zoom Wheel Support
+        this.lb.onwheel = (e) => {
+            e.preventDefault();
+            const factor = e.deltaY > 0 ? 0.9 : 1.1;
+            this.state.lbZoom = Math.max(1, Math.min(1000, this.state.lbZoom * factor));
+            this.updateLightboxZoom();
         };
 
-        // DRAG (Mouse Events)
-        img.onmousedown = (e) => {
-            if (scale > 1) {
-                isDragging = true;
-                startX = e.clientX - translateX;
-                startY = e.clientY - translateY;
-                img.style.cursor = "grabbing";
-                e.preventDefault(); // Prevent default drag behavior
+        this.lbPan = { x: 0, y: 0, ox: 0, oy: 0, dragging: false };
+
+        this.lb.onmousedown = (e) => {
+            if (e.button !== 0) return;
+
+            // MODIFIER GATING: CTRL+Click (Zoom In), ALT+Click (Zoom Out)
+            if (e.ctrlKey) {
+                this.state.lbZoom = Math.min(1000, this.state.lbZoom * 1.5);
+                this.updateLightboxZoom();
+                return;
+            }
+            if (e.altKey) {
+                this.state.lbZoom = Math.max(1, this.state.lbZoom / 1.5);
+                this.updateLightboxZoom();
+                return;
+            }
+
+            // Normal Pan (Only if zoomed in)
+            if (this.state.lbZoom > 1 && !e.ctrlKey && !e.altKey) {
+                this.lbPan.dragging = true;
+                this.lbPan.ox = e.clientX - this.lbPan.x;
+                this.lbPan.oy = e.clientY - this.lbPan.y;
+                this.lb.style.cursor = "grabbing";
             }
         };
 
         window.addEventListener("mousemove", (e) => {
-            if (isDragging && scale > 1) {
-                e.preventDefault();
-                translateX = e.clientX - startX;
-                translateY = e.clientY - startY;
-                img.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
+            if (this.lbPan.dragging) {
+                this.lbPan.x = e.clientX - this.lbPan.ox;
+                this.lbPan.y = e.clientY - this.lbPan.oy;
+                this.updateLightboxZoom();
             }
         });
-
         window.addEventListener("mouseup", () => {
-            if (isDragging) {
-                isDragging = false;
-                img.style.cursor = "grab";
+            this.lbPan.dragging = false;
+            this.lb.style.cursor = "crosshair";
+        });
+    }
+
+    openLightbox(item) {
+        this.activeLBItem = item;
+        this.state.lbZoom = 1;
+        this.state.lbPair = 'A';
+        this.lbPan = { x: 0, y: 0, ox: 0, oy: 0, dragging: false };
+        this.updateLightboxImg();
+        this.updateLightboxZoom();
+        this.lb.classList.add("open");
+    }
+
+    closeLightbox() {
+        this.lb.classList.remove("open");
+    }
+
+    updateLightboxImg() {
+        if (!this.activeLBItem) return;
+        this.lbImg.src = this.resolveImageUrl(this.activeLBItem, this.state.lbPair.toLowerCase());
+        this.lbBtnA.classList.toggle("active", this.state.lbPair === 'A');
+        this.lbBtnB.classList.toggle("active", this.state.lbPair === 'B');
+    }
+
+    updateLightboxZoom() {
+        if (this.state.lbZoom <= 1.01) {
+            this.lbPan.x = 0; this.lbPan.y = 0;
+            this.state.lbZoom = 1;
+        }
+        this.lbImg.style.transform = `translate(${this.lbPan.x}px, ${this.lbPan.y}px) scale(${this.state.lbZoom})`;
+        if (this.lbZoomSlider) {
+            const sliderVal = Math.log(this.state.lbZoom) / Math.log(1.0715);
+            this.lbZoomSlider.value = sliderVal;
+        }
+    }
+
+
+    createImageLayer(z) {
+        const img = document.createElement("img");
+        img.className = "h4-img-layer";
+        img.style.zIndex = z;
+        return img;
+    }
+
+    createLabel(txt, t, l, r = "auto", b = "auto") {
+        const d = document.createElement("div");
+        d.className = "h4-pane-label";
+        d.textContent = txt;
+        d.style.top = t; d.style.left = l; d.style.right = r; d.style.bottom = b;
+        return d;
+    }
+
+    createToggle(label, callback, cls = "") {
+        const w = document.createElement("div");
+        w.className = `h4-toggle-wrap ${cls}`;
+        const p = document.createElement("div"); p.className = "h4-toggle-pill";
+        const k = document.createElement("div"); k.className = "h4-toggle-knob";
+        p.appendChild(k);
+        const l = document.createElement("div"); l.className = "h4-toggle-label";
+        l.textContent = label;
+        w.appendChild(p); w.appendChild(l);
+        w.onclick = (e) => {
+            e.stopPropagation();
+            const active = !w.classList.contains("active");
+            w.classList.toggle("active", active);
+            callback(active);
+        };
+        return w;
+    }
+
+    resolveImageUrl(item, channel = 'b') {
+        if (!item) return "";
+        const fn = (channel === 'a') ? (item.filename_a || item.filename_b) : item.filename_b;
+        if (!fn) return "";
+
+        if (item.source === "vault" || item.vault_folder) {
+            const rel = (channel === 'a') ? (item.relative_path_a || item.relative_path_b) : item.relative_path_b;
+            return `/h4/comparinator/image?filename=${encodeURIComponent(rel)}`;
+        }
+
+        const t = item.timestamp || Date.now();
+        return `/view?filename=${fn}&type=temp&t=${t}`;
+    }
+
+    bindEvents() {
+        api.addEventListener("h4.comparinator.update", (e) => {
+            if (String(e.detail.node_id) === String(this.node.id)) this.updatePayload(e.detail);
+        });
+        // Primary interaction
+        this.frame.onmousedown = (e) => {
+            if (e.button !== 0) return;
+            // No longer locking dragging to mouse down for sliders
+        };
+        this.frame.addEventListener("mousemove", (e) => this.handleMouseMove(e));
+        this.frame.addEventListener("mouseleave", () => {
+            // Optional: reset sliders to center or keep? keeping for now.
+        });
+
+        // Lightbox element
+        this.initLightbox();
+        window.addEventListener("keydown", (e) => this.handleKey(e));
+        window.addEventListener("keyup", (e) => this.handleKey(e));
+    }
+
+    handleKey(e) {
+        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+        // UNIVERSAL BLINK (Spacebar Hold)
+        if (e.code === 'Space') {
+            e.preventDefault();
+            e.stopPropagation();
+            const isDown = (e.type === 'keydown');
+
+            // Prevent spamming state update if holding key
+            if (this.state.blink !== isDown) {
+                this.state.blink = isDown;
+                this.updateDisplay();
+            }
+        }
+    }
+
+    handleMouseMove(e) {
+        const scale = app.canvas.ds.scale || 1;
+        const rect = this.stage.getBoundingClientRect();
+
+        // Calculate raw relative coordinates in viewport space
+        const vX = e.clientX - rect.left;
+        const vY = e.clientY - rect.top;
+
+        // Convert to CSS pixels (relative to the stage's unscaled coordinate system)
+        const x = vX / scale;
+        const y = vY / scale;
+
+        // Use client dimensions for logical bounds (CSS pixels)
+        const stageW = this.stage.clientWidth;
+        const stageH = this.stage.clientHeight;
+
+        // --- MODE 1: INSPECTINATOR (Sniper View) ---
+        if (this.state.inspect) {
+
+            // IF LOCKED: Ignore mouse, use locked coordinates
+            let targetX = x;
+            let targetY = y;
+
+            if (this.state.reticleLocked) {
+                targetX = this.state.lockedX * stageW; // lockedX is 0-1
+                targetY = this.state.lockedY * stageH; // lockedY is 0-1
+
+                // FORCE RETICLE POSITION (Just in case resize happened)
+                this.reticle.style.left = `${Math.min(stageW / 2, Math.max(0, targetX))}px`;
+                this.reticle.style.top = `${Math.min(stageH, Math.max(0, targetY))}px`;
+            }
+
+            // Navigator is LEFT PANE (0-50% width)
+            const paneW = stageW / 2;
+
+            // 1. Reticle Logic (Clamped to Left Pane)
+            let rx = targetX;
+            if (rx > paneW) rx = paneW;
+            if (rx < 0) rx = 0;
+
+            let ry = targetY;
+            if (ry > stageH) ry = stageH;
+            if (ry < 0) ry = 0;
+
+            // Only update DOM if NOT locked (already set above if locked)
+            if (!this.state.reticleLocked) {
+                this.reticle.style.left = `${rx}px`;
+                this.reticle.style.top = `${ry}px`;
+            }
+
+            // 2. Calculate Relative Coordinates (0-100%) for Transform Origin
+            const pctX = (rx / paneW) * 100;
+            const pctY = (ry / stageH) * 100;
+
+            // STORE in state so the zoom animation loop can use it
+            // without needing a mouse event
+            this.state._lastPctX = pctX;
+            this.state._lastPctY = pctY;
+
+            // 3. Direct Update of Magnifier (Pane 2) for zero latency
+            if (this.layers.liveB.style.display !== 'none') {
+                this.layers.liveB.style.transformOrigin = `${pctX}% ${pctY}%`;
+                // Ensure zoom is applied every frame (handles both scroll and drag)
+                const z = this.state.inspectZoom || 1;
+                this.layers.liveB.style.transform = `scale(${z})`;
+                // Sync zoom HUD label inside the reticle
+                this.reticleZoomLabel.textContent = z < 10 ? `${z.toFixed(1)}x` : `${Math.round(z)}x`;
+                // Sync slider thumb to current zoom level
+                if (this.inspectSlider) this.inspectSlider.value = String(z);
+            }
+            return;
+        }
+
+        if (this.state.sliderLocked) return;
+
+        // --- MODE 2: FULL VIEW ---
+        if (this.state.full) {
+            const isFourWay = !!this.state.locked;
+
+            // Horizontal X (Left/Right) - Controls A vs B mix
+            const pctX = Math.max(0, Math.min(100, (x / stageW) * 100));
+            this.state.sliderX = pctX;
+            this.sliderX.style.left = `${pctX}%`;
+
+            if (isFourWay) {
+                // Vertical Y (Top/Bottom) - Controls Live vs Locked mix
+                const pctY = Math.max(0, Math.min(100, (y / stageH) * 100));
+                this.state.sliderY = pctY;
+                this.sliderY.style.top = `${pctY}%`;
+                // Ensure Width is full
+                this.sliderY.style.width = "100%";
+            }
+
+            this.updateDisplay();
+            return;
+        }
+
+        // --- MODE 3: DEFAULT (Split Panes) ---
+        const halfW = stageW / 2;
+        if (x <= halfW) {
+            const val = (x / halfW) * 100;
+            this.state.sliderX = Math.max(0, Math.min(100, val));
+            this.sliderX.style.left = `${this.state.sliderX / 2}%`;
+        } else {
+            const relativeX = x - halfW;
+            const val = (relativeX / halfW) * 100;
+            this.state.sliderX2 = Math.max(0, Math.min(100, val));
+            this.sliderX2.style.left = `${50 + (this.state.sliderX2 / 2)}%`;
+        }
+        this.updateDisplay();
+    }
+
+    updateReticle() {
+        if (!this.state.inspect) return;
+
+        // Safety guard: layers may not be initialized during early slider events
+        const lB = this.layers?.liveB;
+        if (!lB || lB.style.display === 'none') return;
+        const z = this.state.inspectZoom || 1;
+
+        // Reticle's CSS left/top is the source of truth for position
+        const rect = this.stage.getBoundingClientRect();
+        const paneW = rect.width / 2;
+
+        let rx = parseFloat(this.reticle.style.left);
+        let ry = parseFloat(this.reticle.style.top);
+
+        if (isNaN(rx)) rx = paneW / 2;
+        if (isNaN(ry)) ry = rect.height / 2;
+
+        const pctX = (rx / paneW) * 100;
+        const pctY = (ry / rect.height) * 100;
+
+        lB.style.transformOrigin = `${pctX}% ${pctY}%`;
+        lB.style.transform = `scale(${z})`;
+
+        // Sync zoom HUD label inside the reticle
+        this.reticleZoomLabel.textContent = z < 10 ? `${z.toFixed(1)}x` : `${Math.round(z)}x`;
+    }
+
+    /**
+     * Smooth zoom animation loop using requestAnimationFrame.
+     * Lerps inspectZoom toward _inspectZoomTarget at 60fps.
+     * DIRECTLY applies transform to liveB instead of going through
+     * updateReticle() — which fails because updateDisplay() resets
+     * liveB.style.display to 'none' during its reset loop.
+     */
+    _startZoomAnim() {
+        if (this.state._zoomAnimId) return; // Already running
+
+        const tick = () => {
+            if (!this.state.inspect) {
+                this.state._zoomAnimId = null;
+                return; // Bail if inspect mode was turned off
+            }
+
+            const target = this.state._inspectZoomTarget;
+            const current = this.state.inspectZoom;
+            const diff = Math.abs(target - current);
+
+            // Lerp factor: 25% per frame for snappy but smooth convergence
+            const lerpFactor = 0.25;
+
+            if (diff < 0.01) {
+                // Close enough — snap to target and stop animating
+                this.state.inspectZoom = target;
+                this._applyZoomDirect(target);
+                this.state._zoomAnimId = null;
+                return;
+            }
+
+            // Interpolate toward target
+            const newZoom = current + (target - current) * lerpFactor;
+            this.state.inspectZoom = newZoom;
+            this._applyZoomDirect(newZoom);
+
+            // Continue animation
+            this.state._zoomAnimId = requestAnimationFrame(tick);
+        };
+
+        this.state._zoomAnimId = requestAnimationFrame(tick);
+    }
+
+    /**
+     * Directly apply a zoom level to liveB without going through updateReticle().
+     * Uses stored _lastPctX/_lastPctY for transform origin so it works
+     * even when the mouse isn't moving.
+     */
+    _applyZoomDirect(z) {
+        const lB = this.layers?.liveB;
+        if (lB) {
+            // Apply regardless of display state — updateDisplay() will
+            // set display:block in the next paint, and the transform
+            // will already be correct when it does.
+            lB.style.transformOrigin = `${this.state._lastPctX}% ${this.state._lastPctY}%`;
+            lB.style.transform = `scale(${z})`;
+        }
+
+        // Sync the slider knob to track the animated zoom level in real-time
+        if (this.inspectSlider) this.inspectSlider.value = String(z);
+    }
+
+    updatePayload(data) {
+        if (data.current) {
+            // PANE SHIFT: Push existing live to history if it's different/new
+            if (this.state.live && String(this.state.live.timestamp) !== String(data.current.timestamp)) {
+                // If no manual selection, Pane 2 defaults to the previous 'live'
+                if (!this.state.locked) this.state.selected = this.state.live;
+            }
+            this.state.live = data.current;
+            this.crawlParameters();
+        }
+        if (data.history) {
+            this.state.history = data.history;
+            this.renderStrip(true);
+        }
+        this.updateDisplay();
+    }
+
+    updateDisplay() {
+        /**
+         * [NUCLEAR AUDIT - Phase 44]
+         * SYNC & LAYOUT REPAIR
+         */
+
+        // RESET: Hide all layers and labels by default
+        Object.values(this.layers).forEach(l => {
+            l.style.display = "none";
+            l.style.clipPath = "none";
+            // CRITICAL: Do NOT reset transform on liveB during inspect mode
+            // because the smooth zoom animation loop manages that transform.
+            // Resetting it here was the root cause of zoom not working.
+            if (!this.state.inspect) {
+                l.style.transform = "none";
+            }
+            l.style.width = "100%"; l.style.height = "100%";
+            l.style.left = "0"; l.style.top = "0";
+            l.style.borderLeft = "none";
+        });
+        Object.values(this.labels).forEach(l => l.style.display = "none");
+        this.sliderX.style.display = "none";
+        this.sliderY.style.display = "none";
+        if (this.sliderX2) this.sliderX2.style.display = "none";
+
+        // --- MODE 1: INSPECTINATOR ---
+        if (this.state.inspect) {
+            // 1. Resolve Target Asset
+            const target = this.state.locked || this.state.selected || (this.state.history && this.state.history[0]) || this.state.live;
+            if (!target) return;
+
+            // UNIVERSAL BLINK: If holding Space, show OTHER channel
+            let chan = this.state.inspect_channel.toLowerCase(); // 'a' or 'b'
+            if (this.state.blink) {
+                chan = (chan === 'a') ? 'b' : 'a';
+            }
+
+            const url = this.resolveImageUrl(target, chan);
+
+            // 2. LAYOUT: Static Left, Zoomed Right
+
+            // Pane 1: Navigator (Left Half)
+            // Shows 100% of image fitted into 50% width
+            const lA = this.layers.liveA;
+            lA.style.display = "block";
+            lA.style.width = "50%";
+            lA.style.left = "0";
+            lA.style.zIndex = "100"; // FIX: Overlay the Zoom bleed
+            lA.style.backgroundColor = "#000"; // FIX: Mask transparency
+            // No Clip Path needed if we size it correctly
+            lA.src = url;
+
+            // Pane 2: Magnifier (Right Half)
+            // Shows 100% of image fitted into 50% width... AND THEN SCALED.
+            const lB = this.layers.liveB;
+            lB.style.display = "block";
+            lB.style.width = "50%";
+            lB.style.left = "50%";
+            lB.style.zIndex = "50"; // FIX: Go under Navigator
+            lB.style.borderLeft = "2px solid #00ffff"; // Cyan divider
+            lB.src = url;
+
+            // Reticle & Zoom Calculation
+            const rect = this.stage.getBoundingClientRect();
+            const paneW = rect.width / 2;
+
+            // Allow Locked Reticle Position Logic
+            let rx = parseFloat(this.reticle.style.left);
+            let ry = parseFloat(this.reticle.style.top);
+            if (isNaN(rx)) rx = paneW / 2;
+            if (isNaN(ry)) ry = rect.height / 2;
+
+            // Map Reticle (0 -> PaneW) to Percentage (0 -> 100)
+            const pctX = (rx / paneW) * 100;
+            const pctY = (ry / rect.height) * 100;
+
+            // STORE in state so the zoom animation loop can use these
+            // coordinates even when the mouse isn't moving
+            this.state._lastPctX = pctX;
+            this.state._lastPctY = pctY;
+
+            // Apply Zoom
+            const z = this.state.inspectZoom || 1;
+            lB.style.transformOrigin = `${pctX}% ${pctY}%`;
+            lB.style.transform = `scale(${z})`;
+
+            // Keep zoom slider knob in sync with current zoom level
+            if (this.inspectSlider) this.inspectSlider.value = String(z);
+            this.stage.style.cursor = "none"; // Hide standard cursor
+            return;
+        }
+
+        this.stage.style.cursor = "default"; // Restore cursor otherwise
+
+        // --- MODE 2: FULL VIEW (Single or Quad) ---
+        if (this.state.full) {
+            const currentItem = this.state.selected || this.state.live;
+            const lockedItem = this.state.locked;
+
+            if (!currentItem) return;
+
+            // BLINK OVERRIDE: If blinking, force slider X to 0 or 100?
+            // "Blink" usually means show the other image.
+            // In layout, X controls A/B. If Blink is active, perhaps force 100% B?
+            const x = this.state.blink ? 100 : this.state.sliderX;
+
+            this.sliderX.style.display = "block";
+            this.sliderX.style.left = `${x}%`;
+
+            // 2A. STANDARD FULL VIEW (No Lock)
+            if (!lockedItem) {
+                const urlA = this.resolveImageUrl(currentItem, 'a');
+                const urlB = this.resolveImageUrl(currentItem, 'b');
+
+                // Layer A (Left Side of Slider)
+                this.layers.liveA.style.display = "block";
+                this.layers.liveA.src = urlA;
+                this.layers.liveA.style.clipPath = `inset(0 ${100 - x}% 0 0)`;
+
+                // Layer B (Right Side of Slider)
+                this.layers.liveB.style.display = "block";
+                this.layers.liveB.src = urlB;
+                this.layers.liveB.style.clipPath = `inset(0 0 0 ${x}%)`;
+
+
+            } else {
+                // 2B. QUAD VIEW (4-WAY)
+                // Use sliderY (Yellow) to split Live (Top) vs Locked (Bottom)
+                const y = this.state.sliderY || 50;
+                this.sliderY.style.display = "block";
+                this.sliderY.style.top = `${y}%`;
+
+                // --- TOP HALF: CURRENT ITEM ---
+                const urlA = this.resolveImageUrl(currentItem, 'a');
+                const urlB = this.resolveImageUrl(currentItem, 'b');
+
+                // Top-Left (A)
+                this.layers.liveA.style.display = "block";
+                this.layers.liveA.src = urlA;
+                // Clip: Right by X slider, Bottom by Y slider
+                this.layers.liveA.style.clipPath = `inset(0 ${100 - x}% ${100 - y}% 0)`;
+
+                // Top-Right (B)
+                this.layers.liveB.style.display = "block";
+                this.layers.liveB.src = urlB;
+                // Clip: Left by X slider, Bottom by Y slider
+                this.layers.liveB.style.clipPath = `inset(0 0 ${100 - y}% ${x}%)`;
+
+                // --- BOTTOM HALF: LOCKED ITEM ---
+                const lockA = this.resolveImageUrl(lockedItem, 'a');
+                const lockB = this.resolveImageUrl(lockedItem, 'b');
+
+                // Bottom-Left (Lock A) - Using histA layer
+                this.layers.histA.style.display = "block";
+                this.layers.histA.src = lockA;
+                this.layers.histA.style.left = "0"; // Reset from Split Mode center
+                this.layers.histA.style.width = "100%"; // Reset from Split Mode width
+                this.layers.histA.style.borderLeft = "none";
+                this.layers.histA.style.clipPath = `inset(${y}% ${100 - x}% 0 0)`;
+                this.layers.histA.style.zIndex = "25"; // Ensure visibility
+
+                // Bottom-Right (Lock B) - Using histB layer
+                this.layers.histB.style.display = "block";
+                this.layers.histB.src = lockB;
+                this.layers.histB.style.left = "0"; // Reset from Split Mode center
+                this.layers.histB.style.width = "100%"; // Reset from Split Mode width
+                this.layers.histB.style.borderLeft = "none";
+                this.layers.histB.style.clipPath = `inset(${y}% 0 0 ${x}%)`;
+                this.layers.histB.style.zIndex = "25"; // Ensure visibility
+
+
+            }
+            return;
+        }
+
+        // --- MODE 3: DEFAULT (Split Panes) ---
+
+
+        const pane1Item = this.state.locked || this.state.live;
+        const pane1Label = this.state.locked ? "LOCKED" : "LIVE";
+
+        const pane2Item = this.state.selected || (this.state.history.length > 0 ? this.state.history[0] : null);
+        const pane2Label = this.state.selected ? "SELECTED" : "HIST";
+
+        // BLINK OVERRIDE: If blinking, force sliders to 100 (Show B)
+        let x1 = this.state.sliderX;
+        let x2 = this.state.sliderX2 || 50;
+
+        if (this.state.blink) {
+            x1 = 100;
+            x2 = 100;
+        }
+
+        // --- RENDER PANE 1 (0-50%) ---
+        this.sliderX.style.display = "block";
+        this.sliderX.style.left = `${x1 / 2}%`;
+
+        if (pane1Item) {
+            const uA = this.resolveImageUrl(pane1Item, 'a');
+            const uB = this.resolveImageUrl(pane1Item, 'b');
+
+            const lA = this.layers.liveA;
+            lA.style.display = "block";
+            lA.style.width = "50%";
+            lA.style.left = "0";
+            lA.src = uA;
+            lA.style.clipPath = `inset(0 ${100 - x1}% 0 0)`;
+
+            this.labels.liveA.style.display = "block";
+            this.labels.liveA.textContent = `${pane1Label} A`;
+            this.labels.liveA.style.left = "5px"; this.labels.liveA.style.right = "auto";
+
+            const lB = this.layers.liveB;
+            lB.style.display = "block";
+            lB.style.width = "50%";
+            lB.style.left = "0";
+            lB.src = uB;
+            lB.style.clipPath = `inset(0 0 0 ${x1}%)`;
+
+            this.labels.liveB.style.display = "block";
+            this.labels.liveB.textContent = `${pane1Label} B`;
+            this.labels.liveB.style.right = "50%";
+            this.labels.liveB.style.marginRight = "5px";
+            this.labels.liveB.style.left = "auto";
+        }
+
+        // --- RENDER PANE 2 (50-100%) ---
+        if (this.sliderX2) {
+            this.sliderX2.style.display = "block";
+            this.sliderX2.style.left = `${50 + (x2 / 2)}%`;
+        }
+
+        if (pane2Item) {
+            const uA = this.resolveImageUrl(pane2Item, 'a');
+            const uB = this.resolveImageUrl(pane2Item, 'b');
+
+            const lC = this.layers.histA;
+            lC.style.display = "block";
+            lC.style.width = "50%";
+            lC.style.left = "50%";
+            lC.style.borderLeft = "2px solid #000";
+            lC.src = uA;
+            lC.style.clipPath = `inset(0 ${100 - x2}% 0 0)`;
+
+            this.labels.histA.style.display = "block";
+            this.labels.histA.textContent = `${pane2Label} A`;
+            this.labels.histA.style.left = "50%";
+            this.labels.histA.style.marginLeft = "5px";
+            this.labels.histA.style.right = "auto";
+
+            const lD = this.layers.histB;
+            lD.style.display = "block";
+            lD.style.width = "50%";
+            lD.style.left = "50%";
+            lD.style.borderLeft = "2px solid #000";
+            lD.src = uB;
+            lD.style.clipPath = `inset(0 0 0 ${x2}%)`;
+
+            this.labels.histB.style.display = "block";
+            this.labels.histB.textContent = `${pane2Label} B`;
+            this.labels.histB.style.right = "0";
+            this.labels.histB.style.marginRight = "5px";
+            this.labels.histB.style.left = "auto";
+        }
+    }
+
+    renderStrip(forceFull = false) {
+        if (!this.strip) return;
+
+        const historyItems = this.state.history || [];
+
+        // 1. Structural Check: Only wipe if length changed or explicitly forced
+        const currentCount = this.strip.querySelectorAll('.h4-thumb').length;
+        if (forceFull || currentCount !== historyItems.length) {
+            this.strip.innerHTML = "";
+            if (historyItems.length === 0) {
+                this.strip.innerHTML = "<div style='color:#444; font-size:10px; padding:10px; font-style:italic;'>[ VAULT EMPTY / WAITING FOR GENERATION ]</div>";
+                return;
+            }
+
+            historyItems.forEach((item, i) => {
+                const t = document.createElement("div");
+                t.className = "h4-thumb";
+                t.dataset.ts = item.timestamp; // Identification for selective updates
+
+                // SIDE A (Left)
+                const sideA = document.createElement("div");
+                sideA.className = "h4-thumb-side h4-thumb-a";
+                sideA.style.backgroundImage = `url("${this.resolveImageUrl(item, 'a')}")`;
+
+                // SIDE B (Right)
+                const sideB = document.createElement("div");
+                sideB.className = "h4-thumb-side h4-thumb-b";
+                sideB.style.backgroundImage = `url("${this.resolveImageUrl(item, 'b')}")`;
+
+                t.appendChild(sideA);
+                t.appendChild(sideB);
+
+                this.strip.appendChild(t);
+            });
+        }
+
+        // 2. Selective Highlight Update
+        const thumbs = this.strip.querySelectorAll('.h4-thumb');
+        thumbs.forEach((t, i) => {
+            const ts = String(t.dataset.ts);
+            const item = historyItems[i];
+
+            const isActive = (this.state.selected && String(this.state.selected.timestamp) === ts) ||
+                (!this.state.selected && i === 0);
+            const isLocked = (this.state.locked && String(this.state.locked.timestamp) === ts);
+
+            t.classList.toggle("active", !!isActive);
+            t.classList.toggle("locked-ref", !!isLocked);
+        });
+    }
+
+    async fetchHistory() {
+        try {
+            const resp = await api.fetchApi("/h4/comparinator/history");
+            if (!resp.ok) throw new Error(`HTTP Error: ${resp.status}`);
+            const history = await resp.json();
+
+            if (!Array.isArray(history)) return;
+
+            // SMART SYNC: Only re-render if count or latest timestamp changed
+            const latestNew = history[0] ? String(history[0].timestamp) : null;
+            const latestOld = this.state.history[0] ? String(this.state.history[0].timestamp) : null;
+            const changed = history.length !== this.state.history.length || latestNew !== latestOld;
+
+            this.state.history = history;
+            if (changed) {
+                console.log(`[H4 Comparinator] History sync: ${history.length} items detected.`);
+                this.renderStrip(true);
+                // FORCE UPDATE on startup to populate panes even if live is null
+                this.updateDisplay();
+            }
+        } catch (e) {
+            console.error("[H4 Comparinator] Nuclear Sync Failure:", e);
+        }
+    }
+
+    /**
+     * RECURSIVE CRAWLER
+     * Start at current node, crawl Image A, then Image B.
+     */
+    async crawlParameters() {
+        this.state.parameters = { A: [], B: [] };
+
+        const traceInput = (name) => {
+            const input = this.node.inputs.find(i => i.name === name);
+            if (!input || input.link === null) return [];
+            const startNode = app.graph.getNodeById(app.graph.links[input.link].origin_id);
+            return this.traceUpstream(startNode);
+        };
+
+        this.state.parameters.A = traceInput("image_a");
+        this.state.parameters.B = traceInput("image_b");
+
+        if (this.toggles.params.classList.contains("active")) this.renderDrawer();
+    }
+
+    traceUpstream(node, visited = new Set(), found = []) {
+        if (!node || visited.has(node.id)) return found;
+        visited.add(node.id);
+
+        const whitelist = [
+            "seed", "steps", "cfg", "sampler_name", "scheduler", "denoise",
+            "ckpt_name", "model_name", "clip_skip", "vae_name", "lora_name",
+            "text", "width", "height", "upscale_by",
+            "strength_model", "strength_clip", "stop_at_clip_layer"
+        ];
+
+        // DATA CAPTURE: Check ANY node for whitelisted widgets
+        // This is robust against custom node types (UniversalLoader, Pipe nodes, etc.)
+        if (node.widgets) {
+            const data = { type: node.type, name: node.title || node.type, widgets: {} };
+            let hasData = false;
+
+            node.widgets.forEach(w => {
+                const k = w.name.toLowerCase();
+                const matched = whitelist.find(key => k.includes(key));
+                if (matched) {
+                    let val = w.value;
+                    // Normalize filenames
+                    if (typeof val === "string" && (val.includes("\\") || val.includes("/"))) {
+                        val = val.split(/[\\/]/).pop();
+                    }
+
+                    // Key Normalization
+                    let safeKey = w.name;
+                    if (k.includes("stop_at_clip_layer")) safeKey = "clip_skip";
+
+                    data.widgets[safeKey] = val;
+                    hasData = true;
+                }
+            });
+
+            if (hasData) found.push(data);
+        }
+
+        // RECURSE
+        node.inputs?.forEach(inp => {
+            if (inp.link !== null) {
+                const link = app.graph.links[inp.link];
+                if (link) {
+                    const origin = app.graph.getNodeById(link.origin_id);
+                    this.traceUpstream(origin, visited, found);
+                }
             }
         });
 
-        // Close Button
-        const closeBtn = document.createElement("div");
-        closeBtn.className = "h4-lightbox-close";
-        closeBtn.innerHTML = "&times;";
-        closeBtn.onclick = (e) => {
-            e.stopPropagation();
-            document.body.removeChild(overlay);
+        return found;
+    }
+
+    renderDrawer() {
+        const content = this.drawerContent;
+        content.innerHTML = `<h2 style='color:#00ff44; margin-bottom:20px; border-bottom:1px solid #333; padding-bottom:10px; font-size:14px; letter-spacing:2px;'>PARAMETERS</h2>`;
+
+        // ── DISPLAY ORDER & CONFIG ──
+        // Keys match vault constraints. 'type' controls rendering style.
+        const PARAM_CONFIG = [
+            // MODEL SECTION
+            { key: "ckpt_name", label: "CHECKPOINT", type: "string" },
+            { key: "vae_name", label: "VAE", type: "string" },
+            { key: "lora_name", label: "LORA", type: "string" },
+            { key: "clip_skip", label: "CLIP SKIP", type: "number" },
+
+            // GENERATION SECTION
+            { key: "seed", label: "SEED", type: "number" },
+            { key: "steps", label: "STEPS", type: "number" },
+            { key: "cfg", label: "CFG", type: "number" },
+            { key: "sampler_name", label: "SAMPLER", type: "string" },
+            { key: "scheduler", label: "SCHEDULER", type: "string" },
+            { key: "denoise", label: "DENOISE", type: "number" },
+
+            // PROMPT SECTION (Full Width)
+            { key: "positive", label: "POSITIVE", type: "text_block", color: "#00ff88" },
+            { key: "negative", label: "NEGATIVE", type: "text_block", color: "#ff4444" }
+        ];
+
+        // ── Convert Vault meta (flat object) into a display-friendly block array ──
+        const vaultMetaToBlocks = (metaObj) => {
+            if (!metaObj || typeof metaObj !== "object") return [];
+            const widgets = {};
+
+            // 1. Text/Num Fields
+            PARAM_CONFIG.forEach(p => {
+                if (metaObj[p.key] !== undefined && metaObj[p.key] !== null) {
+                    let val = metaObj[p.key];
+                    // Clean up filenames
+                    if (typeof val === "string" && (val.includes("\\") || val.includes("/"))) {
+                        val = val.split(/[\\/]/).pop();
+                    }
+                    widgets[p.key] = val;
+                }
+            });
+
+            // 2. LoRAs (Array handling)
+            if (Array.isArray(metaObj.loras) && metaObj.loras.length > 0) {
+                widgets["lora_name"] = metaObj.loras.map(l => {
+                    const name = (l.name || l).toString().split(/[\\/]/).pop();
+                    const str = l.strength !== undefined ? l.strength : (l.model_strength || "?");
+                    return `<span style='color:#ccc'>${name}</span> <span style='color:#aaa; font-size:9px'>(${str})</span>`;
+                }).join("<br>"); // Stack LoRAs vertically
+            }
+
+            if (Object.keys(widgets).length === 0) return [];
+            return [{ name: "Generation Parameters", widgets }];
         };
 
-        // Info
-        const info = document.createElement("div");
-        info.className = "h4-lightbox-info";
-        info.innerHTML = `<span>History #${item.timestamp}</span>`;
+        // ── Determine data source ──
+        const selectedItem = this.state.selected;
+        // Check for metadata in two places: meta.A (Runtime) or root.A (Vault)
+        const metaSource = selectedItem?.meta || selectedItem;
+        const hasStoredParams = metaSource && (metaSource.A || metaSource.B);
 
-        overlay.appendChild(img);
-        overlay.appendChild(closeBtn);
-        overlay.appendChild(info);
+        let dataA, dataB;
 
-        // Close on background click
-        overlay.onclick = (e) => {
-            if (e.target === overlay) {
-                document.body.removeChild(overlay);
+        if (hasStoredParams) {
+            // SOURCE: Vault JSON
+            dataA = vaultMetaToBlocks(metaSource.A);
+            dataB = vaultMetaToBlocks(metaSource.B);
+        } else {
+            // SOURCE: Graph Crawl (Live)
+            // Filter graph-crawl blocks to only include the required params
+            const filterBlock = (block) => {
+                const filtered = {};
+
+                // 1. Handle LoRA specifically (Merging Strength)
+                const loraKey = Object.keys(block.widgets).find(k => k.toLowerCase().includes("lora_name"));
+                if (loraKey) {
+                    const name = block.widgets[loraKey];
+                    // Find strength in same block
+                    const strKey = Object.keys(block.widgets).find(k => k.toLowerCase().includes("strength_model"));
+                    const strength = strKey ? block.widgets[strKey] : "?";
+
+                    filtered["lora_name"] = `<span style='color:#ccc'>${name}</span> <span style='color:#aaa; font-size:9px'>(${strength})</span>`;
+                }
+
+                // 2. Handle others
+                PARAM_CONFIG.forEach(p => {
+                    if (p.key === "lora_name") return; // Handled above
+
+                    // Fuzzy match widget keys
+                    const match = Object.keys(block.widgets).find(k => k.toLowerCase().includes(p.key));
+                    if (match && block.widgets[match] !== undefined) {
+                        filtered[p.key] = block.widgets[match];
+                    }
+                });
+
+                if (Object.keys(filtered).length === 0) return null;
+                return { name: block.name, widgets: filtered };
+            };
+            dataA = (this.state.parameters.A || []).map(filterBlock).filter(Boolean);
+            dataB = (this.state.parameters.B || []).map(filterBlock).filter(Boolean);
+        }
+
+        // ── Render Function ──
+        const renderSet = (title, data) => {
+            const section = document.createElement("div");
+            section.style.marginBottom = "30px";
+            section.innerHTML = `<div style='text-transform:uppercase; font-size:9px; color:#555; margin-bottom:12px; letter-spacing:1px;'>// ${title}</div>`;
+
+            if (!data || data.length === 0) {
+                section.innerHTML += `<div style='color:#333; font-style:italic; font-size:10px;'>[ NO PARAMETERS FOUND ]</div>`;
+            }
+
+            data.forEach((block) => {
+                const div = document.createElement("div");
+                div.className = "h4-param-block";
+
+                // Header
+                const hdr = document.createElement("div");
+                hdr.className = "h4-param-header";
+                hdr.style.cursor = "pointer";
+                hdr.innerHTML = `<span style='color:#00ff88'>${block.name}</span> <span style='float:right;'>+</span>`;
+
+                const list = document.createElement("div");
+                list.className = "h4-param-list";
+                list.style.display = "none";
+                list.style.padding = "10px";
+                list.style.borderTop = "1px solid rgba(0,255,136,0.1)";
+
+                // Render Loop
+                PARAM_CONFIG.forEach(p => {
+                    let val = block.widgets[p.key];
+                    if (val === undefined) {
+                        // Value fallback: try to find key in widgets
+                        const fuzzy = Object.keys(block.widgets).find(k => k.toLowerCase().includes(p.key));
+                        if (fuzzy) val = block.widgets[fuzzy];
+                    }
+                    if (val === undefined || val === null || val === "" || val === "unknown") return;
+
+                    // STYLE: Text Block (Prompts)
+                    if (p.type === "text_block") {
+                        const row = document.createElement("div");
+                        row.style.marginTop = "8px";
+                        row.style.marginBottom = "12px";
+                        row.innerHTML = `
+                             <div style='font-size:8px; color:${p.color}; text-transform:uppercase; margin-bottom:4px;'>${p.label}</div>
+                             <div style='font-size:10px; color:#ccc; line-height:1.4; background:rgba(0,0,0,0.2); padding:6px; border-radius:4px; white-space:pre-wrap;'>${val}</div>
+                         `;
+                        list.appendChild(row);
+                    }
+                    // STYLE: Key-Value Row
+                    else {
+                        const row = document.createElement("div");
+                        row.style.display = "flex";
+                        row.style.justifyContent = "space-between";
+                        row.style.fontSize = "10px";
+                        row.style.margin = "4px 0";
+                        row.style.paddingBottom = "4px";
+                        row.style.borderBottom = "1px dashed #222";
+
+                        // Handle LoRA HTML
+                        const valHtml = p.key === "lora_name" ? val : `<span style='color:#00ff44; font-family:monospace;'>${val}</span>`;
+
+                        row.innerHTML = `<span style='color:#666; text-transform:uppercase; font-size:8px;'>${p.label}</span> 
+                                         <div style='text-align:right'>${valHtml}</div>`;
+                        list.appendChild(row);
+                    }
+                });
+
+                hdr.onclick = () => {
+                    const isOpen = list.style.display === "block";
+                    list.style.display = isOpen ? "none" : "block";
+                    hdr.querySelector("span:last-child").textContent = isOpen ? "+" : "-";
+                };
+
+                div.appendChild(hdr);
+                div.appendChild(list);
+                section.appendChild(div);
+            });
+            content.appendChild(section);
+        };
+
+        renderSet("IMAGE A PARAMETERS", dataA);
+        renderSet("IMAGE B PARAMETERS", dataB);
+    }
+
+    renderSaveDrawer() {
+        const root = this.saveContent;
+        root.innerHTML = "";
+
+        const settings = this.node.widgets.find(w => w.name === "save_settings");
+        const saveModeWidget = this.node.widgets.find(w => w.name === "save_mode");
+        let current = {};
+
+        try {
+            current = JSON.parse(settings.value || "{}");
+        } catch (e) { }
+
+        // INITIALIZE DEFAULTS if empty
+        if (Object.keys(current).length === 0) {
+            current = {
+                save_a: true, save_b: true, save_comp: false,
+                auto_save: saveModeWidget ? saveModeWidget.value : false,
+                path: "output", prefix: "h4", subpath: ""
+            };
+            settings.value = JSON.stringify(current);
+        }
+
+        const update = (k, v) => {
+            current[k] = v;
+            settings.value = JSON.stringify(current);
+            this.node.setDirtyCanvas(true);
+
+            // SYNC AUTO-SAVE WIDGET
+            if (k === "auto_save" && saveModeWidget) {
+                saveModeWidget.value = v;
             }
         };
 
-        document.body.appendChild(overlay);
+        const createCheck = (label, key) => {
+            const w = document.createElement("div");
+            w.className = "h4-save-check-wrap";
+            const c = document.createElement("div");
+            c.className = "h4-save-check" + (current[key] ? " active" : "");
+            const l = document.createElement("div");
+            l.textContent = label;
+            w.appendChild(c); w.appendChild(l);
+            w.onclick = () => {
+                const active = !c.classList.contains("active");
+                c.classList.toggle("active", active);
+                update(key, active);
+                if (key === "auto_save") this.toggles.save.classList.toggle("active", active);
+            };
+            return w;
+        };
+
+        const createField = (label, key, placeholder) => {
+            const w = document.createElement("div");
+            w.className = "h4-save-field";
+            const l = document.createElement("span"); l.className = "h4-save-label"; l.textContent = label;
+            const i = document.createElement("input");
+            i.className = "h4-save-input";
+            i.value = current[key] || "";
+            i.placeholder = placeholder;
+            i.onchange = () => update(key, i.value);
+            w.appendChild(l); w.appendChild(i);
+            return w;
+        };
+
+        const left = document.createElement("div");
+        left.innerHTML = `<div style='font-size:11px; color:#fff; font-weight:900; margin-bottom:15px; border-bottom:1px solid #006622;'>// SAVE TARGETS</div>`;
+        left.appendChild(createCheck("Save Image A", "save_a"));
+        left.appendChild(createCheck("Save Image B", "save_b"));
+        left.appendChild(createCheck("Save Comparison (A/B)", "save_comp"));
+        left.appendChild(createCheck("Auto-Save on Finish", "auto_save"));
+
+        const mid = document.createElement("div");
+        mid.innerHTML = `<div style='font-size:11px; color:#fff; font-weight:900; margin-bottom:15px; border-bottom:1px solid #006622;'>// METADATA OPTIONS</div>`;
+        mid.appendChild(createCheck("Include Metadata", "save_meta"));
+        mid.appendChild(createCheck("Include Workflow", "save_wf"));
+        mid.appendChild(createCheck("Include Prompt", "save_prompt"));
+
+        const allBtn = document.createElement("button");
+        allBtn.className = "h4-save-btn";
+        allBtn.style.padding = "6px";
+        allBtn.style.fontSize = "9px";
+        allBtn.style.background = "transparent";
+        allBtn.style.border = "1px solid #006622";
+        allBtn.style.clipPath = "none";
+        allBtn.textContent = "[ ENABLE ALL EXTRAS ]";
+        allBtn.onclick = () => {
+            update("save_meta", true);
+            update("save_wf", true);
+            update("save_prompt", true);
+            this.renderSaveDrawer();
+        };
+        mid.appendChild(allBtn);
+
+        const right = document.createElement("div");
+        right.innerHTML = `<div style='font-size:11px; color:#fff; font-weight:900; margin-bottom:15px; border-bottom:1px solid #006622;'>// PATH CONFIG</div>`;
+        right.appendChild(createField("Filename Prefix", "prefix", "h4"));
+        right.appendChild(createField("Output Folder", "path", "output"));
+        right.appendChild(createField("Sub-Folder", "subpath", ""));
+
+        const btn = document.createElement("button");
+        btn.className = "h4-save-btn";
+        btn.style.gridColumn = "span 3";
+        btn.textContent = "SAVE CURRENT VIEW NOW";
+        btn.onclick = async () => {
+            btn.textContent = "SAVING...";
+
+            // RESOLVE TARGET ITEM (The one actually being viewed/selected)
+            // Priority: Selected -> Locked -> First in History -> Live
+            const target = this.state.selected || this.state.locked || (this.state.history && this.state.history[0]) || this.state.live;
+
+            const payload_target = target ? {
+                filename_a: target.filename_a,
+                filename_b: target.filename_b,
+                source: target.source || "temp",
+                relative_path_a: target.relative_path_a,
+                relative_path_b: target.relative_path_b,
+                extra_pnginfo: target.extra_pnginfo,
+                prompt: target.prompt,
+                metadata_text: target.metadata_text
+            } : null;
+
+            const res = await api.fetchApi("/h4/comparinator/save_now", {
+                method: "POST",
+                body: JSON.stringify({
+                    node_id: this.node.id,
+                    settings: current,
+                    target_item: payload_target
+                })
+            });
+            const out = await res.json();
+            btn.textContent = out.success ? "✅ SAVED SUCCESSFULLY" : "❌ SAVE FAILED";
+            setTimeout(() => { btn.textContent = "SAVE CURRENT VIEW NOW"; }, 2000);
+        };
+
+        root.appendChild(left);
+        root.appendChild(mid);
+        root.appendChild(right);
+        root.appendChild(btn);
     }
 
-    toggleSaveMode(isOn) {
+    // UX SETTERS
+    setInspect(v) {
+        this.state.inspect = v;
+        this.toggles.inspect.classList.toggle("active", v);
+        this.el.root.classList.toggle("inspecting-mode", v);
+
+        if (v) {
+            // Mutual Exclusivity
+            if (this.state.full) {
+                this.state.full = false;
+                this.toggles.full.classList.remove("active");
+            }
+            this.reticle.classList.add("active");
+            this.stage.style.cursor = "none"; // Only hide cursor on the stage, not the toggles bar
+            this.frame.classList.add("inspecting-mode");
+            this.chanToggle.classList.add("visible");
+            this.glitchTitle("the inspectinator");
+
+            // Shrink toggle labels to fit the zoom slider in the bar
+            this._glitchText(this.toggles.save, "SAVE");
+            this._glitchText(this.toggles.full, "FULL");
+            this._glitchText(this.toggles.params, "PARAMS");
+
+            // Show Zoom Controls
+            if (this.zoomControls) this.zoomControls.style.display = "flex";
+
+            // Reset Zoom State on Enter
+            this.state.inspectZoom = 1.0;
+            this.state._inspectZoomTarget = 1.0;
+            if (this.inspectSlider) this.inspectSlider.value = "1";
+            this.state.reticleLocked = false;
+            if (this.reticle) {
+                this.reticle.style.borderColor = "#00ff55";
+                this.reticle.style.boxShadow = "0 0 15px rgba(0, 255, 85, 0.2)";
+            }
+
+        } else {
+            this.reticle.classList.remove("active");
+            this.stage.style.cursor = "default"; // Restore cursor on stage
+            this.frame.classList.remove("inspecting-mode");
+            this.chanToggle.classList.remove("visible");
+            this.glitchTitle("The Comparinator");
+
+            // Restore full toggle labels
+            this._glitchText(this.toggles.save, "SAVE FUNCTIONS");
+            this._glitchText(this.toggles.full, "FULL VIEW");
+            this._glitchText(this.toggles.params, "PARAMETERS");
+
+            // Hide Zoom Controls
+            if (this.zoomControls) this.zoomControls.style.display = "none";
+        }
+        this.updateDisplay();
+    }
+
+    setInspectChannel(chan) {
+        this.state.inspect_channel = chan;
+        this.chanA.classList.toggle("active", chan === 'A');
+        this.chanB.classList.toggle("active", chan === 'B');
+        this.updateDisplay();
+    }
+
+    setFull(v) {
+        this.state.full = v;
+        if (v) {
+            // Mutual Exclusivity: exit inspect mode cleanly
+            // (restores labels, hides zoom slider, etc.)
+            if (this.state.inspect) this.setInspect(false);
+            this.glitchTitle("The...Full...View....inator...? -_-'' ... I dunno man");
+        } else {
+            this.glitchTitle("The Comparinator");
+        }
+        this.updateDisplay();
+    }
+
+    glitchTitle(target) {
+        // Cancel any in-flight glitch animation to prevent overlap confusion
+        if (this._glitchTitleInterval) clearInterval(this._glitchTitleInterval);
+
+        let iteration = 0;
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#$@&*^%";
+        this._glitchTitleInterval = setInterval(() => {
+            if (!this.node) { clearInterval(this._glitchTitleInterval); this._glitchTitleInterval = null; return; }
+            this.node.title = target
+                .split("")
+                .map((char, index) => {
+                    if (index < iteration) return target[index];
+                    return chars[Math.floor(Math.random() * chars.length)];
+                })
+                .join("");
+
+            if (iteration >= target.length) {
+                clearInterval(this._glitchTitleInterval);
+                this._glitchTitleInterval = null;
+                this.node.title = target;
+            }
+            iteration += 1; // One character per tick for smooth reveal
+            app.canvas.setDirty(true); // Repaint canvas each tick for smooth animation
+        }, 20);
+    }
+
+    /**
+     * Glitch-scramble a toggle button's text to a new label.
+     * Same visual effect as glitchTitle() but targets an element's textContent.
+     */
+    _glitchText(el, target) {
+        if (!el) return;
+        // Target the label child inside the toggle, not the wrapper itself
+        // (the wrapper contains the pill/knob DOM that must not be destroyed)
+        const label = el.querySelector?.(".h4-toggle-label") || el;
+        let iteration = 0;
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#$@&*^%";
+        const interval = setInterval(() => {
+            label.textContent = target
+                .split("")
+                .map((char, index) => {
+                    if (index < iteration) return target[index];
+                    return chars[Math.floor(Math.random() * chars.length)];
+                })
+                .join("");
+
+            if (iteration >= target.length) {
+                clearInterval(interval);
+                label.textContent = target;
+            }
+            iteration += 1 / 3;
+        }, 30);
+    }
+    setDrawer(v) {
+        this.drawer.classList.toggle("open", v);
+        if (v) {
+            this.renderDrawer();
+        }
+    }
+    setSave(v) {
+        this.saveDrawer.classList.toggle("open", v);
         const w = this.node.widgets.find(w => w.name === "save_mode");
-        if (w) { w.value = isOn; this.node.setDirtyCanvas(true); }
-        if (isOn) { this.drawer.classList.add("open"); this.metaBtn.classList.add("active"); }
-        else { this.drawer.classList.remove("open"); this.metaBtn.classList.remove("active"); }
+        if (w) w.value = v;
+
+        // Node Expansion (Smooth)
+        const targetH = v ? 1140 : 680;
+        this.smoothNodeResize(targetH);
+        this.node.setDirtyCanvas(true);
     }
 
-    toggleDrawer() {
-        this.drawer.classList.toggle("open");
-        this.metaBtn.classList.toggle("active");
+    smoothNodeResize(targetH) {
+        const startH = this.node.size[1];
+        const duration = 400; // Matches CSS transition
+        const startTime = performance.now();
+
+        const animate = (time) => {
+            const progress = Math.min((time - startTime) / duration, 1);
+            // Matches cubic-bezier(0.19, 1, 0.22, 1) more closely for sync
+            const eased = 1 - Math.pow(1 - progress, 4);
+            const currentH = startH + (targetH - startH) * eased;
+            this.node.setSize([this.node.size[0], currentH]);
+            if (progress < 1) requestAnimationFrame(animate);
+            else this.node.setSize([this.node.size[0], targetH]);
+        };
+        requestAnimationFrame(animate);
     }
 
-    syncMetadata(text) {
-        const w = this.node.widgets.find(w => w.name === "metadata_text");
-        if (w) { w.value = text; }
+    updateReticle(x, y) {
+        this.reticle.style.left = `${x}px`;
+        this.reticle.style.top = `${y}px`;
+        const z = 4; // Miniatruized zoom constant
+        const rect = this.stage.getBoundingClientRect();
+        this.reticleImg.style.width = `${rect.width * z}px`;
+        this.reticleImg.style.height = `${rect.height * z}px`;
+        this.reticleImg.style.left = `${70 - (x * z)}px`; // Centering for 140px reticle
+        this.reticleImg.style.top = `${70 - (y * z)}px`;
     }
+
 }
-
 
 app.registerExtension({
     name: "h4.Comparinator",
-    async beforeRegisterNodeDef(nodeType, nodeData, app) {
+    async beforeRegisterNodeDef(nodeType, nodeData) {
         if (nodeData.name === "H4_Comparinator") {
-            const onNodeCreated = nodeType.prototype.onNodeCreated;
+            const onCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function () {
-                try {
-                    if (onNodeCreated) onNodeCreated.apply(this, arguments);
-                    const ui = new ComparinatorUI(this);
-                    this.comparinatorUI = ui;
-                    if (this.addDOMWidget) {
-                        this.addDOMWidget("h4_comparinator_ui", "custom", ui.container, { serialize: false, hideOnZoom: false });
-                    }
-                    this.setSize([640, 580]);
+                if (onCreated) onCreated.apply(this, arguments);
+                const ui = new ComparinatorUI(this);
+                this.comparinatorUI = ui;
+                this.addDOMWidget("h4_holy_ui", "custom", ui.el.root, { serialize: false });
+                this.setSize([720, 680]);
 
-                    const hideWidget = (wName) => {
-                        if (!this.widgets) return;
-                        const w = this.widgets.find(w => w.name === wName);
-                        if (w) {
+                // LIVE REFRESH LOOP (Polling)
+                const refreshLoop = async () => {
+                    await ui.fetchHistory();
+                    setTimeout(refreshLoop, 5000);
+                };
+                refreshLoop();
+
+                const hider = () => {
+                    if (!this.widgets) return;
+                    this.widgets.forEach(w => {
+                        if (["save_mode", "metadata_text", "save_settings", "timestamp", "filename_prefix", "title_text", "frozen_image"].includes(w.name)) {
                             w.type = "converted-widget";
                             w.computeSize = () => [0, -4];
-                            w.visible = false;
-                            w.disabled = true;
-                            w.draw = () => { };
-                            if (w.inputEl) { w.inputEl.style.display = "none"; w.inputEl.style.visibility = "hidden"; }
-                            if (w.element) { w.element.style.display = "none"; w.element.style.visibility = "hidden"; }
+                            w.hidden = true;
                         }
-                    };
+                    });
 
-                    let attempts = 0;
-                    const hider = () => {
-                        try {
-                            hideWidget("save_mode");
-                            hideWidget("metadata_text");
-                            hideWidget("save_settings");
-                            hideWidget("filename_prefix");
-
-                            if (this.onResize && this.size) this.onResize(this.size);
-                            if (app.graph) app.graph.setDirtyCanvas(true, true);
-
-                            attempts++;
-                            if (attempts < 5) setTimeout(hider, 200);
-                        } catch (e) { console.error("[H4 Comparinator] Hider Error:", e); }
-                    };
-                    setTimeout(hider, 100);
-                } catch (e) {
-                    console.error("[H4 Comparinator] onNodeCreated Crit Fail:", e);
-                }
-            };
-
-            // [NEW] Hook onConfigure for graph loading
-            const onConfigure = nodeType.prototype.onConfigure;
-            nodeType.prototype.onConfigure = function () {
-                try {
-                    if (onConfigure) onConfigure.apply(this, arguments);
-                    if (this.comparinatorUI) {
-                        const hider = () => {
-                            try {
-                                const hide = (wName) => {
-                                    if (!this.widgets) return;
-                                    const w = this.widgets.find(w => w.name === wName);
-                                    if (w) {
-                                        w.type = "converted-widget";
-                                        w.computeSize = () => [0, -4];
-                                        w.visible = false;
-                                        w.disabled = true;
-                                        w.draw = () => { };
-                                        if (w.inputEl) { w.inputEl.style.display = "none"; w.inputEl.style.visibility = "hidden"; }
-                                        if (w.element) { w.element.style.display = "none"; w.element.style.visibility = "hidden"; }
-                                    }
-                                };
-                                hide("save_mode");
-                                hide("metadata_text");
-                                hide("save_settings");
-                                hide("filename_prefix");
-                                if (this.onResize && this.size) this.onResize(this.size);
-                            } catch (e) { console.error("[H4 Comparinator] Configure Hider Error:", e); }
-                        };
-                        setTimeout(hider, 100);
+                    // Force custom UI to top to prevent bleed
+                    const idx = this.widgets.findIndex(w => w.name === "h4_holy_ui");
+                    if (idx > 0) {
+                        const [ui] = this.widgets.splice(idx, 1);
+                        this.widgets.unshift(ui);
                     }
-                } catch (e) { console.error("[H4 Comparinator] onConfigure Error:", e); }
+                };
+                hider();
+                setTimeout(hider, 100);
+                setTimeout(hider, 500);
+                setTimeout(hider, 1000);
+
+                // Overwrite draw_widget to be a NOOP for hidden ones
+                const onDrawForeground = this.onDrawForeground;
+                this.onDrawForeground = function (ctx) {
+                    hider(); // Constant enforcement
+                    if (onDrawForeground) onDrawForeground.apply(this, arguments);
+                };
+
+                const onExecuted = this.onExecuted;
+                this.onExecuted = function () {
+                    if (onExecuted) onExecuted.apply(this, arguments);
+                    hider();
+                };
             };
         }
     }

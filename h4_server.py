@@ -141,5 +141,58 @@ def register_routes():
             print(f"[h4_server] Error fetching history: {e}")
             return web.json_response({"error": str(e)}, status=500)
 
+    # 6. Get Full Session Metadata (The Database)
+    @PromptServer.instance.routes.get("/h4/session/get")
+    async def get_session(request):
+        try:
+            from .h4_session_manager import session_manager
+            data = session_manager.get_session()
+            return web.json_response(data)
+        except Exception as e:
+            print(f"[h4_server] Error fetching session DB: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    # 7. Get The Book of H4 (Lore)
+    @PromptServer.instance.routes.get("/h4/lore")
+    async def get_lore(request):
+        try:
+            lore_path = os.path.join(os.path.dirname(__file__), "h4_smart_save", "Lore", "The_Book_of_H4.json")
+            print(f"[h4_server] 📖 Fetching Lore from: {lore_path}")
+            
+            if not os.path.exists(lore_path):
+                 print(f"[h4_server] ❌ Lore file NOT FOUND at: {lore_path}")
+                 return web.json_response({"error": f"Lore file not found at {lore_path}"}, status=404)
+            
+            with open(lore_path, "r", encoding='utf-8') as f:
+                data = json.load(f)
+            
+            print(f"[h4_server] ✅ Lore loaded successfully for {len(data)} nodes.")
+            return web.json_response(data)
+        except Exception as e:
+            print(f"[h4_server] ❌ Error fetching Lore: {e}")
+            import traceback
+            traceback.print_exc()
+            return web.json_response({"error": str(e)}, status=500)
+
+    # 8. Get Translations
+    @PromptServer.instance.routes.get("/h4/translations")
+    async def get_translations(request):
+        try:
+            # File is in the root extension folder
+            base_dir = os.path.dirname(__file__)
+            trans_path = os.path.join(base_dir, "translations.json")
+            
+            if not os.path.exists(trans_path):
+                 print(f"[h4_server] ❌ Translation file NOT FOUND at: {trans_path}")
+                 return web.json_response({"error": "Translation file missing"}, status=404)
+            
+            with open(trans_path, "r", encoding='utf-8') as f:
+                data = json.load(f)
+            
+            return web.json_response(data)
+        except Exception as e:
+            print(f"[h4_server] ❌ Error fetching Translations: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
 # Register on import
 register_routes()

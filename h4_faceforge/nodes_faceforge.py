@@ -564,7 +564,8 @@ class H4_FaceForge:
     
     def _hyperswap(self, session, source_face: Face, target_face: Face, img_bgr: np.ndarray) -> np.ndarray:
         """
-        Perform face swap using HyperSwap model.
+        Perform face swap using HyperSwap/InsightFace model via ONNX.
+        Supports dynamic input names and resolutions.
         """
         # Get landmarks
         target_kps = target_face.kps if target_face.kps is not None else target_face.landmark_2d_106[:5] if hasattr(target_face, 'landmark_2d_106') else None
@@ -572,18 +573,40 @@ class H4_FaceForge:
         if target_kps is None:
             _log("HyperSwap: No landmarks available", level="ERROR")
             return img_bgr
+
+        # --- Dynamic Model Inspection ---
+        inputs = session.get_inputs()
+        source_name = "source"
+        target_name = "target"
+        target_size = 256 # Default
         
+        for inp in inputs:
+            # Detect Image Input (B, C, H, W)
+            if len(inp.shape) == 4:
+                target_name = inp.name
+                if inp.shape[2] and inp.shape[3]:
+                    target_size = inp.shape[2] # Assume square
+            # Detect Embedding Input (B, 512)
+            elif len(inp.shape) == 2 and inp.shape[1] == 512:
+                source_name = inp.name
+                
+        # --- Landmark Alignment ---
         # Standard 256x256 alignment points
         std_landmarks = np.array([
             [84.87, 105.94], [171.13, 105.94], [128.00, 146.66],
             [96.95, 188.64], [159.05, 188.64]
         ], dtype=np.float32)
         
+        # Scale landmarks to match model resolution
+        if target_size != 256:
+            scale = target_size / 256.0
+            std_landmarks *= scale
+        
         # Compute affine transform
         M, _ = cv2.estimateAffinePartial2D(target_kps.astype(np.float32), std_landmarks)
         
         # Warp target region
-        crop = cv2.warpAffine(img_bgr, M, (256, 256), flags=cv2.INTER_CUBIC)
+        crop = cv2.warpAffine(img_bgr, M, (target_size, target_size), flags=cv2.INTER_CUBIC)
         
         # Prepare input
         crop_input = crop[:, :, ::-1].astype(np.float32) / 255.0
@@ -593,18 +616,19 @@ class H4_FaceForge:
         source_embedding = source_face.normed_embedding.reshape(1, -1).astype(np.float32)
         
         try:
-            output = session.run(None, {'source': source_embedding, 'target': crop_input})[0][0]
+            # Run Inference
+            output = session.run(None, {source_name: source_embedding, target_name: crop_input})[0][0]
+            
+            # Post-Process
             output = (output * 0.5 + 0.5) * 255.0
             output = np.clip(output, 0, 255).astype(np.uint8)
             output = output.transpose(1, 2, 0)[:, :, ::-1]
             
             # Paste back with gradient mask
-            _log(f"DEBUG: Pasting back face with shape {output.shape} using Matrix {M.shape}")
-            img_bgr = self._paste_back_gradient(img_bgr, output, M, 256)
-            _log("DEBUG: Paste back complete.")
+            img_bgr = self._paste_back_gradient(img_bgr, output, M, target_size)
             
         except Exception as e:
-            _log(f"HyperSwap inference failed: {e}", level="ERROR")
+            _log(f"HyperSwap inference failed ({target_size}px): {e}", level="ERROR")
         
         return img_bgr
     
@@ -629,6 +653,13 @@ class H4_FaceForge:
                                    flags=cv2.INTER_CUBIC | cv2.WARP_INVERSE_MAP)
         inv_mask = np.clip(inv_mask, 0, 1)
         
+        # Debug Mask
+        mask_sum = np.sum(inv_mask)
+        # _log(f"DEBUG: Paste Back Mask Sum: {mask_sum} (Max {w*h*3}). M[0,2]={M[0,2] if M.shape==(2,3) else '?'}")
+        
+        if mask_sum < 1.0:
+             _log(f"WARNING: Face paste mask is empty! M path likely wrong. M=\n{M}", level="WARNING")
+
         # Blend
         result = target_img.astype(np.float32) * (1 - inv_mask) + inv_face * inv_mask
         return np.clip(result, 0, 255).astype(np.uint8)

@@ -1,0 +1,111 @@
+{
+    "KSampler": {
+        "es": {
+            "title": "Muestreador K",
+            "widgets": {
+                "seed": "Semilla",
+                "steps": "Pasos",
+                "cfg": "Escala CFG",
+                "sampler_name": "Muestreador",
+                "scheduler": "Programador",
+                "denoise": "Eliminar Ruido"
+            }
+        },
+        "zh": {
+            "title": "K采样器",
+            "widgets": {
+                "seed": "种子",
+                "steps": "步数",
+                "cfg": "CFG标度",
+                "sampler_name": "采样器",
+                "scheduler": "调度器",
+                "denoise": "降噪"
+            }
+        },
+        "de": {
+            "title": "K-Abtaster",
+            "widgets": {
+                "seed": "Samen",
+                "steps": "Schritte",
+                "cfg": "CFG-Skala",
+                "sampler_name": "Abtaster",
+                "scheduler": "Zeitplaner",
+                "denoise": "Entrauschen"
+            }
+        }
+    },
+    "CheckpointLoaderSimple": {
+        "es": {
+            "title": "Cargador de Checkpoint",
+            "widgets": {
+                "ckpt_name": "Nombre del Modelo"
+            }
+        },
+        "zh": {
+            "title": "模型加载器",
+            "widgets": {
+                "ckpt_name": "模型名称"
+            }
+        },
+        "de": {
+            "title": "Checkpoint-Lader",
+            "widgets": {
+                "ckpt_name": "Modellname"
+            }
+        }
+    },
+    "EmptyLatentImage": {
+        "es": {
+            "title": "Imagen Latente Vacía",
+            "widgets": {
+                "width": "Ancho",
+                "height": "Alto",
+                "batch_size": "Tamaño del Lote"
+            }
+        },
+        "zh": {
+            "title": "空潜在图像",
+            "widgets": {
+                "width": "宽度",
+                "height": "高度",
+                "batch_size": "批次大小"
+            }
+        }
+    },
+    "CLIPTextEncode": {
+        "es": {
+            "title": "Codificación de Texto CLIP (Prompt)",
+            "widgets": {
+                "text": "Texto / Prompt"
+            }
+        },
+        "zh": {
+            "title": "CLIP文本编码 (提示词)",
+            "widgets": {
+                "text": "文本"
+            }
+        }
+    },
+    "VAEDecode": {
+        "es": {
+            "title": "Decodificador VAE"
+        },
+        "zh": {
+            "title": "VAE解码"
+        }
+    },
+    "SaveImage": {
+        "es": {
+            "title": "Guardar Imagen",
+            "widgets": {
+                "filename_prefix": "Prefijo de Archivo"
+            }
+        },
+        "zh": {
+            "title": "保存图像",
+            "widgets": {
+                "filename_prefix": "文件名用于"
+            }
+        }
+    }
+}

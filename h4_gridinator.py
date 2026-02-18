@@ -136,7 +136,9 @@ class H4_Gridinator:
     # --------------------------------------------------------------------------
 
     def fuzzy_load_checkpoint(self, name):
-        """Loads a checkpoint by fuzzy matching the name."""
+        """
+        Loads a checkpoint by fuzzy matching the name.
+        """
         all_checks = folder_paths.get_filename_list("checkpoints")
         
         # Exact match

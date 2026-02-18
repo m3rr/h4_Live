@@ -83,7 +83,7 @@ class H4_SmartSave:
 
         # 3. Save Loop
         for image in images:
-            i = 255. * image.cpu().numpy()
+            i = 255. * image.cpu().float().numpy()
             img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
             
             if save_mode:
