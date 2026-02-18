@@ -130,3 +130,102 @@ class H4_SmartSave:
                 })
 
         return {"ui": {"images": results}, "result": (images,)}
+
+# --- API FOR HISTORY ---
+try:
+    from server import PromptServer
+    from aiohttp import web
+
+    @PromptServer.instance.routes.get("/h4/smart_save/history")
+    async def get_smart_save_history(request):
+        """
+        Scans output folder for images, returning the 50 most recent.
+        Format: JSON list of { filename, subfolder, type, timestamp, metadata }
+        """
+        history = []
+        try:
+            output_dir = folder_paths.get_output_directory()
+            if not os.path.exists(output_dir):
+                return web.json_response([])
+
+            # Supported Extensions
+            exts = ('.png', '.jpg', '.jpeg', '.webp')
+            
+            # recursive scan (limit depth? no, just simple walk)
+            # Actually, standard Comfy only scans top level or specific subfolders.
+            # let's scan recursively but be careful.
+            # To be safe and fast: just scan the root output dir + 1 level deep?
+            # Or just use os.walk and limit count?
+            
+            files_found = []
+            
+            for root, dirs, files in os.walk(output_dir):
+                for f in files:
+                    if f.lower().endswith(exts):
+                        full_path = os.path.join(root, f)
+                        try:
+                            stats = os.stat(full_path)
+                            files_found.append((full_path, stats.st_mtime))
+                        except:
+                            continue
+
+            # Sort by Modified Time (Newest First)
+            files_found.sort(key=lambda x: x[1], reverse=True)
+            
+            # Take top 50
+            top_50 = files_found[:50]
+            
+            for path, mtime in top_50:
+                try:
+                    # Relativize path for ComfyUI API
+                    rel_path = os.path.relpath(path, output_dir)
+                    subfolder = os.path.dirname(rel_path)
+                    filename = os.path.basename(rel_path)
+                    
+                    # Read Metadata (Heavy I/O? accept it for 50 items)
+                    img = Image.open(path)
+                    info = img.info
+                    
+                    # Parse Prompt/Workflow if exists
+                    prompt = None
+                    workflow = None
+                    user_meta = {}
+                    
+                    if "prompt" in info:
+                        try: prompt = json.loads(info["prompt"])
+                        except: pass
+                    
+                    if "workflow" in info:
+                         try: workflow = json.loads(info["workflow"])
+                         except: pass
+                         
+                    # Custom H4 Metadata (stored as text keys usually)
+                    # We iterate all info keys to find non-standard ones
+                    for k, v in info.items():
+                        if k not in ["prompt", "workflow"]:
+                             user_meta[k] = v
+
+                    history.append({
+                        "filename": filename,
+                        "subfolder": subfolder,
+                        "type": "output",
+                        "timestamp": int(mtime * 1000),
+                        "prompt": prompt,
+                        "workflow": workflow,
+                        "user_meta": user_meta,
+                        "width": img.width,
+                        "height": img.height
+                    })
+                    
+                except Exception as e:
+                    print(f"[H4_SmartSave] Error reading {path}: {e}")
+                    continue
+                    
+            return web.json_response(history)
+            
+        except Exception as e:
+            print(f"[H4_SmartSave] History API Error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+except Exception as e:
+    print(f"[H4_SmartSave] Failed api register: {e}")

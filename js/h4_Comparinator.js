@@ -1382,7 +1382,15 @@ class ComparinatorUI {
         const pane1Item = this.state.locked || this.state.live;
         const pane1Label = this.state.locked ? "LOCKED" : "LIVE";
 
-        const pane2Item = this.state.selected || (this.state.history.length > 0 ? this.state.history[0] : null);
+        let pane2Item = this.state.selected;
+        // SMART DEFAULT: If Pane 1 is Newest (History[0]), default Pane 2 to Previous (History[1])
+        if (!pane2Item && this.state.history.length > 0) {
+            if (pane1Item && String(pane1Item.timestamp) === String(this.state.history[0].timestamp)) {
+                pane2Item = this.state.history[1] || null;
+            } else {
+                pane2Item = this.state.history[0];
+            }
+        }
         const pane2Label = this.state.selected ? "SELECTED" : "HIST";
 
         // BLINK OVERRIDE: If blinking, force sliders to 100 (Show B)

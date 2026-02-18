@@ -4,9 +4,8 @@ import comfy.utils
 import comfy.model_management
 
 class H4_LatentSelector:
-    """
-    Select legitimate latent sizes for various models (SD1.5, SDXL, Flux, Wan, etc.).
-    """
+    "H4_LatentSelector": "h4 Latent_Presets",
+    TITLE = "h4 Latent_Presets"
     
     @classmethod
     def INPUT_TYPES(s):

@@ -132,7 +132,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_VisualTokenizer": "👁️ h4 Visual Tokenizer (Weights)",
     "H4_ModelMerger": "🧪 H4 Model Merger (Mad Science!)",
     "H4_ModelSave": "💾 H4 Model Save (Simple)",
-    "H4_LatentSelector": "📐 h4 Latent Selector (Resolutions)",
+    "H4_LatentSelector": "h4 Latent_Presets",
 }
 
 WEB_DIRECTORY = "./js"
