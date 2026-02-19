@@ -29,7 +29,7 @@ class H4_SmartSave:
                 "save_mode": ("BOOLEAN", {"default": False, "label_on": "💾 SAVE TO DISK", "label_off": "👁️ PREVIEW ONLY"}),
             },
             "optional": {
-                 "custom_metadata": ("STRING", {"default": "{}", "multiline": True, "placeholder": "JSON Metadata here..."}),
+                "custom_metadata": ("STRING", {"default": '{\n  "author": "h4",\n  "details": "an awesome image",\n  "model": "awesome model",\n  "date": "Awesome day!!",\n  "Comments": "You\'re only capable of your best, when you\'ve been through your worst. Be Your Best",\n  "extra_01": "This is filler data",\n  "extra_02": "To show the list",\n  "extra_03": "Can hold many keys",\n  "extra_04": "Structured data",\n  "extra_05": "Easy parsing",\n  "extra_06": "Json format",\n  "extra_07": "User defined",\n  "extra_08": "Flexible",\n  "extra_09": "Scalable",\n  "extra_10": "Awesome"\n}', "multiline": True, "placeholder": '{\n  "author": "h4",\n  "details": "an awesome image",\n  "model": "awesome model",\n  "date": "Awesome day!!",\n  "Comments": "You\'re only capable of your best, when you\'ve been through your worst. Be Your Best",\n  "extra_01": "This is filler data",\n  "extra_02": "To show the list",\n  "extra_03": "Can hold many keys",\n  "extra_04": "Structured data",\n  "extra_05": "Easy parsing",\n  "extra_06": "Json format",\n  "extra_07": "User defined",\n  "extra_08": "Flexible",\n  "extra_09": "Scalable",\n  "extra_10": "Awesome"\n}'}),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
@@ -142,45 +142,59 @@ try:
         Scans output folder for images, returning the 50 most recent.
         Format: JSON list of { filename, subfolder, type, timestamp, metadata }
         """
+        # print(f"[H4_SmartSave] History scan requested...")
         history = []
         try:
             output_dir = folder_paths.get_output_directory()
-            if not os.path.exists(output_dir):
-                return web.json_response([])
+            temp_dir = folder_paths.get_temp_directory()
 
             # Supported Extensions
             exts = ('.png', '.jpg', '.jpeg', '.webp')
             
-            # recursive scan (limit depth? no, just simple walk)
-            # Actually, standard Comfy only scans top level or specific subfolders.
-            # let's scan recursively but be careful.
-            # To be safe and fast: just scan the root output dir + 1 level deep?
-            # Or just use os.walk and limit count?
+            # Scan both output and temp directories
+            # Preview-mode images go to temp, Save-mode images go to output
+            scan_targets = []
+            if output_dir and os.path.exists(output_dir):
+                scan_targets.append((output_dir, "output"))
+                # print(f"[H4_SmartSave] Scanning Output: {output_dir}")
+            if temp_dir and os.path.exists(temp_dir):
+                scan_targets.append((temp_dir, "temp"))
+                # print(f"[H4_SmartSave] Scanning Temp: {temp_dir}")
+            
+            if not scan_targets:
+                # print("[H4_SmartSave] No valid directories to scan.")
+                return web.json_response([])
             
             files_found = []
             
-            for root, dirs, files in os.walk(output_dir):
-                for f in files:
-                    if f.lower().endswith(exts):
-                        full_path = os.path.join(root, f)
-                        try:
-                            stats = os.stat(full_path)
-                            files_found.append((full_path, stats.st_mtime))
-                        except:
-                            continue
+            for base_dir, dir_type in scan_targets:
+                for root, dirs, files in os.walk(base_dir):
+                    for f in files:
+                        if f.lower().endswith(exts):
+                            full_path = os.path.join(root, f)
+                            try:
+                                stats = os.stat(full_path)
+                                # Store dir_type and base_dir alongside path for later relativization
+                                files_found.append((full_path, stats.st_mtime, base_dir, dir_type))
+                            except:
+                                continue
 
             # Sort by Modified Time (Newest First)
             files_found.sort(key=lambda x: x[1], reverse=True)
+            # print(f"[H4_SmartSave] Found {len(files_found)} images. Returning top 50.")
             
             # Take top 50
             top_50 = files_found[:50]
             
-            for path, mtime in top_50:
+            for path, mtime, base_dir, dir_type in top_50:
                 try:
-                    # Relativize path for ComfyUI API
-                    rel_path = os.path.relpath(path, output_dir)
+                    # Relativize path against the correct base directory (output or temp)
+                    rel_path = os.path.relpath(path, base_dir)
                     subfolder = os.path.dirname(rel_path)
                     filename = os.path.basename(rel_path)
+                    
+                    # Normalize slashes for Web/API usage
+                    subfolder = subfolder.replace("\\", "/")
                     
                     # Read Metadata (Heavy I/O? accept it for 50 items)
                     img = Image.open(path)
@@ -208,7 +222,7 @@ try:
                     history.append({
                         "filename": filename,
                         "subfolder": subfolder,
-                        "type": "output",
+                        "type": dir_type,
                         "timestamp": int(mtime * 1000),
                         "prompt": prompt,
                         "workflow": workflow,
@@ -221,6 +235,8 @@ try:
                     print(f"[H4_SmartSave] Error reading {path}: {e}")
                     continue
                     
+            # print(f"[H4_SmartSave] Found {len(files_found)} images. Returning top 50.")
+            print(f"[H4_SmartSave] Returning {len(history)} items to frontend.")
             return web.json_response(history)
             
         except Exception as e:

@@ -43,6 +43,46 @@
                 "type": "INT",
                 "description": "Height. Vertical slice? Square? Up to you.",
                 "example": "1024"
+            },
+            "clip_source": {
+                "type": "COMBO",
+                "description": "Where to get the CLIP from? 'Merged' blends them (using model weights). 'Model 1' keeps the base CLIP (safest).",
+                "example": "Merged"
+            },
+            "vae_source": {
+                "type": "COMBO",
+                "description": "Which VAE to use? Standard is 'Model 1' (Base).",
+                "example": "Model 1"
+            },
+            "test_seed": {
+                "type": "INT",
+                "description": "(Testing Mode) Seed for the internal test generation.",
+                "example": "0"
+            },
+            "test_steps": {
+                "type": "INT",
+                "description": "(Testing Mode) Step count.",
+                "example": "20"
+            },
+            "test_cfg": {
+                "type": "FLOAT",
+                "description": "(Testing Mode) CFG Scale.",
+                "example": "8.0"
+            },
+            "test_sampler": {
+                "type": "COMBO",
+                "description": "(Testing Mode) Sampler name.",
+                "example": "euler"
+            },
+            "test_scheduler": {
+                "type": "COMBO",
+                "description": "(Testing Mode) Scheduler type.",
+                "example": "normal"
+            },
+            "test_prompt": {
+                "type": "STRING",
+                "description": "(Testing Mode) Prompt for the test image.",
+                "example": "masterpiece, best quality, a beautiful landscape"
             }
         },
         "outputs": {
@@ -106,6 +146,11 @@
                 "type": "STRING",
                 "description": "Custom notes to embed in the saved file.",
                 "example": "Test Run 1"
+            },
+            "save_settings": {
+                "type": "BOOLEAN",
+                "description": "If True, saves extended generation metadata (Prompt, Seed, Checkpoint name) into the image file header.",
+                "example": "True"
             }
         },
         "outputs": {
@@ -178,29 +223,6 @@
             {
                 "name": "Stealth Mode",
                 "description": "It doesn't bloat the UI with unnecessary previews if you don't want them. Pure utility."
-            }
-        ]
-    },
-    "H4_UniversalLoader": {
-        "title": "H4 Universal Loader (One Ring to Rule Them All)",
-        "description": "I got tired of needing 3 separate nodes just to start a basic workflow. 'Load Checkpoint', 'Load VAE', 'Load CLIP'... clutter! The Universal Loader is a minimalist's dream. It loads everything in one go. You pick the checkpoint, and it intelligently tries to find the matching VAE and CLIP. If it can't, it uses sensible defaults.",
-        "usage": "Start every workflow with this. It's cleaner. It's faster to wire up. It reduces spaghettification by 60%.",
-        "inputs": {
-            "checkpoint": {
-                "type": "STRING",
-                "description": "The main model file (.safetensors). This is the only mandatory choice.",
-                "example": "sd_xl_base_1.0.safetensors"
-            }
-        },
-        "outputs": {
-            "MODEL": "The UNet.",
-            "CLIP": "The Text Encoder.",
-            "VAE": "The Visual Auto-Encoder."
-        },
-        "features": [
-            {
-                "name": "Auto-Config",
-                "description": "It sniffs the model header. Is it SDXL? SD1.5? Flux? It adjusts the clip skip and config automatically so you don't have to guess."
             }
         ]
     },
@@ -549,40 +571,6 @@
             "VAE": "The image decoder."
         }
     },
-    "H4_ModelMerger": {
-        "title": "H4 Model Merger (The Alchemist)",
-        "description": "The Mad Science Lab. Blend 2 to 4 models with granular block-level weight control using the 'Settings' drawer. Supports Merging modes (Weighted Average, Add Difference, etc.). Features an integrated 'Test Generator' that runs a quick sampling pass on the result so you know if you made gold or garbage immediately.",
-        "usage": "Pick your models. Set weights. Open Settings for granular control. Enable Testing Mode to see results live.",
-        "inputs": {
-            "model_count": {
-                "type": "INT",
-                "description": "How many models to blend. 2, 3, or 4.",
-                "example": "2"
-            },
-            "settings": {
-                "type": "BOOLEAN",
-                "description": "Unlocks the Mad Science Drawer (Block Weights).",
-                "example": "False"
-            },
-            "memory_manager": {
-                "type": "BOOLEAN",
-                "description": "Smart Load. Loads one model at a time, merges, then discards. Prevents RAM explosion.",
-                "example": "True"
-            },
-            "testing_mode": {
-                "type": "BOOLEAN",
-                "description": "Enables the internal KSampler for live verification.",
-                "example": "True"
-            }
-        },
-        "outputs": {
-            "MODEL": "The merged monster.",
-            "CLIP": "The merged clip.",
-            "VAE": "The preferred VAE.",
-            "TEST_LATENT": "Latent from test gen.",
-            "TEST_IMAGE": "Pixel image from test gen."
-        }
-    },
     "H4_ModelSave": {
         "title": "H4 Model Save (The Vault)",
         "description": "Saves your creation properly. Supports standard floating point formats (FP16, BF16, FP32) and the new Float8 formats (e4m3fn) if your torch version supports it. Features 'Nuclear RAM Saver' which writes the file iteratively to disk, preventing memory crashes when saving massive 10GB+ files.",
@@ -605,41 +593,6 @@
             }
         },
         "outputs": {}
-    },
-    "H4_NoteInjector": {
-        "title": "H4 Note Injector (The Meme Maker)",
-        "description": "Adds a cinematic bar with text to your image. Great for labeling workflow variations (e.g. 'Steps: 20 vs 30') or creating memes.",
-        "usage": "Connect Image. Type Title. Set Colors.",
-        "inputs": {
-            "title_text": {
-                "type": "STRING",
-                "description": "The main headline.",
-                "example": "Comparison A"
-            },
-            "bar_height": {
-                "type": "INT",
-                "description": "Height of the colored bar in pixels.",
-                "example": "100"
-            },
-            "position": {
-                "type": "COMBO",
-                "description": "Top or Bottom?",
-                "example": "bottom"
-            },
-            "font_size_title": {
-                "type": "INT",
-                "description": "Size of the title text.",
-                "example": "60"
-            },
-            "subtitle_text": {
-                "type": "STRING",
-                "description": "Smaller text below/above the title.",
-                "example": "Seed: 12345"
-            }
-        },
-        "outputs": {
-            "image": "The labeled image."
-        }
     },
     "H4_PixelPress": {
         "title": "H4 Pixel Press (Density/HDR)",
@@ -685,110 +638,35 @@
                 "type": "FLOAT",
                 "description": "Tamper the highlights.",
                 "example": "0.75"
+            },
+            "gamma_intensity": {
+                "type": "FLOAT",
+                "description": "Gamma correction override. 1.0 is neutral.",
+                "example": "1.0"
+            },
+            "contrast": {
+                "type": "FLOAT",
+                "description": "Global contrast adjustment.",
+                "example": "1.0"
+            },
+            "enhance_color": {
+                "type": "FLOAT",
+                "description": "Boosts color saturation slightly. Makes it pop.",
+                "example": "0.25"
+            },
+            "upscale_model": {
+                "type": "UPSCALE_MODEL",
+                "description": "Optional: Connect a model to use for the initial upscale. If empty, uses Lanczos.",
+                "example": "None"
+            },
+            "tile_size": {
+                "type": "INT",
+                "description": "Tile size for processing to save VRAM. Lower if you OOM.",
+                "example": "512"
             }
         },
         "outputs": {
             "pressed_image": "The dense result."
-        }
-    },
-    "H4_PixelVisualizer": {
-        "title": "H4 Pixel Visualizer (The Truth)",
-        "description": "See the difference. Takes two images and outputs a Heatmap showing exactly which pixels changed. Great for testing if a setting actually did anything or if it's just placebo.",
-        "usage": "Connect Image A and B. Look at Heatmap.",
-        "inputs": {
-            "image_a": {
-                "type": "IMAGE",
-                "description": "Baseline.",
-                "example": "-"
-            },
-            "image_b": {
-                "type": "IMAGE",
-                "description": "Comparison.",
-                "example": "-"
-            },
-            "heatmap_scale": {
-                "type": "FLOAT",
-                "description": "Amplify the difference so it's visible.",
-                "example": "5.0"
-            }
-        },
-        "outputs": {
-            "heatmap": "Black = Same. White = Different.",
-            "side_by_side": "A vs B.",
-            "image_a": "Original.",
-            "image_b": "Original."
-        }
-    },
-    "H4_SeedSequencer": {
-        "title": "H4 Seed Sequencer (Controlled Chaos)",
-        "description": "The Professional Coin Flipper. Generates seeds with actual logic. 'Fixed' stays put. 'Increment' counts up (1, 2, 3...). 'Random' is pure chaos, but controllable (e.g. generate only 4-digit seeds 1000-9999).",
-        "usage": "Connect to 'seed' input of KSampler. Set Mode.",
-        "inputs": {
-            "seed": {
-                "type": "INT",
-                "description": "The starting number (Anchor).",
-                "example": "123456789"
-            },
-            "mode": {
-                "type": "COMBO",
-                "description": "Logic. Fixed / Increment / Random.",
-                "example": "increment"
-            },
-            "increment_step": {
-                "type": "INT",
-                "description": "How much to add each run (Increment Mode).",
-                "example": "1"
-            },
-            "auto_advance": {
-                "type": "BOOLEAN",
-                "description": "If ON, updates the seed for the NEXT run automatically.",
-                "example": "True"
-            },
-            "random_digits": {
-                "type": "INT",
-                "description": "For Random Mode: How many digits? 4 digits = 1000 to 9999 range.",
-                "example": "10"
-            }
-        },
-        "outputs": {
-            "seed": "The resulting number."
-        }
-    },
-    "H4_Varianator": {
-        "title": "H4 Varianator (The Riff)",
-        "description": "The Jazz Musician. Takes a latent and creates N variations (remixes) based on it. Perfect for exploring a concept ('Show me 4 versions of this pose'). Supports Batch output.",
-        "usage": "Connect Latent + Model/VAE/CLIP. Set Variation Count to 4. Queue.",
-        "inputs": {
-            "variation_count": {
-                "type": "INT",
-                "description": "How many variations to generate (1-16).",
-                "example": "4"
-            },
-            "variation_profile": {
-                "type": "COMBO",
-                "description": "How different? Minimal (Subtle), Moderate (Distinct), Major (Wild).",
-                "example": "moderate"
-            },
-            "denoise": {
-                "type": "FLOAT",
-                "description": "Standard Img2Img strength for the remix.",
-                "example": "1.0"
-            },
-            "cfg": {
-                "type": "FLOAT",
-                "description": "Creativity scale.",
-                "example": "7.0"
-            },
-            "steps": {
-                "type": "INT",
-                "description": "Quality steps.",
-                "example": "18"
-            }
-        },
-        "outputs": {
-            "variations": "Batch of images.",
-            "latent_batch": "Batch of latents.",
-            "summary": "Text report."
         }
     },
     "H4_VisualTokenizer": {
@@ -811,36 +689,6 @@
             "text": "Passthrough."
         }
     },
-    "H4_SmartConsole": {
-        "title": "H4 Smart Console (The Truth Sayer)",
-        "description": "Debugging in ComfyUI usually involves staring at a blank screen wondering why your tensor shapes don't match. The Smart Console fixes that. It's an inline debugger that intercepts any data stream and tells you EXACTLY what it is. It prints beautiful, color-coded logs to your system terminal and even displays a summary on the node itself. Toggle '+ULTRA' mode for a nuclear-level deep dive into object attributes.",
-        "usage": "Plug anything into 'Anything In'. Watch the console window. Be enlightened.",
-        "inputs": {
-            "Anything In": {
-                "type": "ANY",
-                "description": "The mystery meat you want to analyze. Models, Images, Latents, weird custom objects... it eats them all.",
-                "example": "-"
-            },
-            "+ULTRA": {
-                "type": "BOOLEAN",
-                "description": "Enable Deep Inspection. This scours attributes, hidden methods, and memory addresses using Python's 'dir()' command. Warning: This produces VOLUMINOUS output in your console. Only use if you are desperate to find a hidden property.",
-                "example": "False"
-            }
-        },
-        "outputs": {
-            "Anything Out": "Passthrough of the input. Logic flow is preserved."
-        },
-        "features": [
-            {
-                "name": "Color-Coded Logs",
-                "description": "Cyan headers, formatted lists. It's actually readable."
-            },
-            {
-                "name": "Node UI Feedback",
-                "description": "Updates the node's text widget with a summary so you don't always have to alt-tab to the console."
-            }
-        ]
-    },
     "H4_MissionControl": {
         "title": "H4 Mission Control (The Flight Deck)",
         "description": "This is the brain of your loop. While the Traffic Router handles the plumbing, Mission Control handles the administrative state. It increments the global Loop Counter, listens for Wireless Reset signals, and provides a central dashboard for your loop's status. It also acts as a pass-through for scheduler signals. \n\n Think of it as the conductor of the orchestra. Without it, the violinists (your schedulers) don't know when to start playing.",
@@ -853,12 +701,12 @@
             },
             "wireless_reset": {
                 "type": "BOOLEAN",
-                "description": "The Emergency Brake. \n\n If True, this node constantly scans the Global State for a 'Wireless Reset' signal (sent by the Red Button node). If it detects one, it resets the Loop Counter to 0 immediately. \n\n Only works in Active Mode.",
-                "example": "True"
+                "description": "ON = Check orbit storage for reset signal (Red Button). Only works in Active Mode.",
+                "example": "False"
             },
             "debug_mode": {
                 "type": "BOOLEAN",
-                "description": "Nuclear Logging. \n\n Turn this on if you want your console to scream values at you.",
+                "description": "Nuclear Logging. Turn this on if you want your console to scream values at you.",
                 "example": "False"
             },
             "scheduler_val": {
@@ -1148,8 +996,8 @@
             },
             "optional_vae": {
                 "type": "VAE",
-                "description": "Override the VAE. If empty, uses the checkpoint's VAE.",
-                "example": "vae-ft-mse-840000.safetensors"
+                "description": "Override the VAE used for decoding. Useful if the checkpoint's VAE is bad.",
+                "example": "None"
             }
         },
         "features": [
@@ -1391,9 +1239,94 @@
                 "example": "-"
             },
             "face_model": {
-                "type": "COMBO",
+                "type": "FACE_MODEL",
                 "description": "Saved face embedding (.safetensors).",
                 "example": "my_char.safetensors"
+            },
+            "vae_name": {
+                "type": "COMBO",
+                "description": "Color correction. 'Baked' means use what's inside the Checkpoint.",
+                "example": "Baked"
+            },
+            "clip_name": {
+                "type": "COMBO",
+                "description": "Text Interpreter. 'Use Checkpoint' is usually best.",
+                "example": "Use Checkpoint"
+            },
+            "seed": {
+                "type": "INT",
+                "description": "The magic number definition. Same Seed + Same Settings = Same Image.",
+                "example": "0"
+            },
+            "steps": {
+                "type": "INT",
+                "description": "How many times to polish the image. 20-30 is standard.",
+                "example": "20"
+            },
+            "cfg": {
+                "type": "FLOAT",
+                "description": "Creativity Scale. Low (5-7) = Creative. High (8-12) = Strict.",
+                "example": "8.0"
+            },
+            "sampler_name": {
+                "type": "COMBO",
+                "description": "The drawing method. 'euler' is fast, 'dpmpp_2m' is detailed.",
+                "example": "dpmpp_2m"
+            },
+            "scheduler": {
+                "type": "COMBO",
+                "description": "How noise is removed. 'normal' or 'karras' work well.",
+                "example": "karras"
+            },
+            "denoise": {
+                "type": "FLOAT",
+                "description": "Img2Img Only: How much to change the original? 1.0 = New Image, 0.4 = Minor Edits.",
+                "example": "1.0"
+            },
+            "negative": {
+                "type": "STRING",
+                "description": "What do you NOT want? (e.g. 'blurry, ugly, bad hands')",
+                "example": "blurry, low quality"
+            },
+            "width": {
+                "type": "INT",
+                "description": "Image Width.",
+                "example": "512"
+            },
+            "height": {
+                "type": "INT",
+                "description": "Image Height.",
+                "example": "512"
+            },
+            "batch_size": {
+                "type": "INT",
+                "description": "How many images to create at once.",
+                "example": "1"
+            },
+            "swap_enabled": {
+                "type": "BOOLEAN",
+                "description": "Turn ON to enable face swapping.",
+                "example": "True"
+            },
+            "face_similarity": {
+                "type": "FLOAT",
+                "description": "How strictly to copy the face features. Higher = More likeness, but maybe weird.",
+                "example": "0.5"
+            },
+            "restore_enabled": {
+                "type": "BOOLEAN",
+                "description": "Fix blurry faces automatically.",
+                "example": "True"
+            },
+            "restore_visibility": {
+                "type": "FLOAT",
+                "description": "Blend the fix. 1.0 = Full Fix.",
+                "example": "1.0"
+            },
+            "restore_model": {
+                "type": "COMBO",
+                "description": "The repair tool to use (GFPGAN/CodeFormer).",
+                "example": "GFPGANv1.4"
             }
         },
         "outputs": {
@@ -1426,6 +1359,71 @@
                 "type": "BOOLEAN",
                 "description": "If True, uses inpainting logic for better blending.",
                 "example": "True"
+            },
+            "model": {
+                "type": "MODEL",
+                "description": "The Model/LoRA stack used to generate the details.",
+                "example": "-"
+            },
+            "clip": {
+                "type": "CLIP",
+                "description": "CLIP model for text guidance.",
+                "example": "-"
+            },
+            "vae": {
+                "type": "VAE",
+                "description": "VAE for encoding/decoding the face crop.",
+                "example": "-"
+            },
+            "guide_size_for": {
+                "type": "BOOLEAN",
+                "description": "Reference size for the bounding box or the actual crop? Usually BBox is safer.",
+                "example": "True"
+            },
+            "max_megapixels": {
+                "type": "FLOAT",
+                "description": "Safety limit for VRAM usage.",
+                "example": "2.0"
+            },
+            "steps": {
+                "type": "INT",
+                "description": "Sampler steps for the detail pass.",
+                "example": "20"
+            },
+            "cfg": {
+                "type": "FLOAT",
+                "description": "Creativity scale.",
+                "example": "8.0"
+            },
+            "sampler_name": {
+                "type": "COMBO",
+                "description": "The drawing method.",
+                "example": "euler"
+            },
+            "scheduler": {
+                "type": "COMBO",
+                "description": "How noise is removed.",
+                "example": "normal"
+            },
+            "positive": {
+                "type": "STRING",
+                "description": "Prompts to guide the detailing. Keep it simple.",
+                "example": "detailed face, skin texture"
+            },
+            "negative": {
+                "type": "STRING",
+                "description": "What to avoid.",
+                "example": "blur, smooth"
+            },
+            "feather_mask": {
+                "type": "INT",
+                "description": "Softness of the paste edge in pixels.",
+                "example": "32"
+            },
+            "bbox_detector": {
+                "type": "BBOX_DETECTOR",
+                "description": "Optional external detector.",
+                "example": "-"
             }
         },
         "outputs": {
@@ -1452,6 +1450,11 @@
                 "type": "STRING",
                 "description": "Path to a folder of images. Scans recursively.",
                 "example": "C:\\Photos\\Me"
+            },
+            "det_size": {
+                "type": "COMBO",
+                "description": "Scan resolution. 640x640 finds small faces better. 320x320 is faster.",
+                "example": "640x640"
             }
         },
         "outputs": {
@@ -1471,6 +1474,11 @@
                 "type": "FACE_MODEL",
                 "description": "The face model to save.",
                 "example": "-"
+            },
+            "overwrite": {
+                "type": "BOOLEAN",
+                "description": "Allow overwriting if the file already exists? Be careful.",
+                "example": "False"
             }
         },
         "outputs": {
@@ -1539,5 +1547,196 @@
                 "description": "Only changes the visual label config. The internal variable names sent to Python remain in English to prevent errors."
             }
         ]
+    },
+    "H4_Varianator": {
+        "title": "H4 Varianator (The Riff)",
+        "description": "A dedicated variation engine. Takes a latent and produces N variations ('Riffs') on it. Perfect for exploring different seeds or slight denoise changes.",
+        "usage": "Connect a Latent. Set Count. Queue.",
+        "inputs": {
+            "variation_count": {
+                "type": "INT",
+                "description": "How many variations to generate.",
+                "example": "4"
+            },
+            "variation_profile": {
+                "type": "COMBO",
+                "description": "How different should they be? \n **Minimal**: Subtle tweaks. \n **Moderate**: Noticeable changes. \n **Major**: Significant alterations.",
+                "example": "moderate"
+            },
+            "seed_mode": {
+                "type": "COMBO",
+                "description": "Control the randomness. \n **Fixed**: Same variations every time. \n **Increment**: Seed +1 for each variation. \n **Random**: Total chaos.",
+                "example": "increment"
+            },
+            "base_seed": {
+                "type": "INT",
+                "description": "The starting point for the random number generator.",
+                "example": "123456789"
+            },
+            "sampler_name": {
+                "type": "COMBO",
+                "description": "Sampling method.",
+                "example": "euler"
+            },
+            "scheduler_name": {
+                "type": "COMBO",
+                "description": "Noise schedule.",
+                "example": "normal"
+            },
+            "steps": {
+                "type": "INT",
+                "description": "Quality steps.",
+                "example": "20"
+            },
+            "cfg": {
+                "type": "FLOAT",
+                "description": "Creativity scale.",
+                "example": "7.0"
+            },
+            "denoise": {
+                "type": "FLOAT",
+                "description": "Strength of the variation. 1.0 = New Image.",
+                "example": "1.0"
+            }
+        },
+        "outputs": {
+            "variations": "Batch of images.",
+            "latent_batch": "Batch of latents.",
+            "summary": "Text report of used seeds."
+        }
+    },
+    "H4_NoteInjector": {
+        "title": "H4 Note Injector",
+        "description": "Adds a stylish title bar to your image. Great for labeling comparisons or adding context to a generation.",
+        "inputs": {
+            "image": {
+                "type": "IMAGE",
+                "description": "Input image.",
+                "example": "-"
+            },
+            "title_text": {
+                "type": "STRING",
+                "description": "Main title.",
+                "example": "My Awesome Art"
+            },
+            "bar_height": {
+                "type": "INT",
+                "description": "Height of the bar in pixels.",
+                "example": "100"
+            },
+            "position": {
+                "type": "COMBO",
+                "description": "Top or Bottom?",
+                "example": "top"
+            },
+            "font_size_title": {
+                "type": "INT",
+                "description": "Size of the main text.",
+                "example": "60"
+            },
+            "font_size_sub": {
+                "type": "INT",
+                "description": "Size of the subtitle.",
+                "example": "30"
+            },
+            "text_color": {
+                "type": "STRING",
+                "description": "Hex code for text.",
+                "example": "#FFFFFF"
+            },
+            "bar_color": {
+                "type": "STRING",
+                "description": "Hex code for background.",
+                "example": "#000000"
+            },
+            "subtitle_text": {
+                "type": "STRING",
+                "description": "Review or extra info.",
+                "example": "Model: SDXL"
+            }
+        },
+        "outputs": {
+            "image": "The annotated image."
+        }
+    },
+    "H4_SmartConsole": {
+        "title": "H4 Smart Console (The Debugger)",
+        "description": "The Inline Debugger. Displays data details in the console AND on the node itself. Useful for inspecting Tensors, Latents, or finding out what that 'Any' output actually contains.",
+        "inputs": {
+            "+ULTRA": {
+                "type": "BOOLEAN",
+                "description": "Enable nuclear scanning. Prints attributes, hidden methods, and deep introspection. WARNING: Verbose.",
+                "example": "False"
+            },
+            "Anything In": {
+                "type": "ANY",
+                "description": "Connect literally anything here.",
+                "example": "-"
+            }
+        },
+        "outputs": {
+            "Anything Out": "Passthrough."
+        }
+    },
+    "H4_PixelVisualizer": {
+        "title": "H4 Pixel Visualizer (The Diff)",
+        "description": "Visualizes pixel-level differences between two images. Essential for testing if two latent processes produced identical results or checking compression artifacts.",
+        "inputs": {
+            "image_a": {
+                "type": "IMAGE",
+                "description": "First image.",
+                "example": "-"
+            },
+            "image_b": {
+                "type": "IMAGE",
+                "description": "Second image.",
+                "example": "-"
+            },
+            "heatmap_scale": {
+                "type": "FLOAT",
+                "description": "Amplifies the difference so you can see it better.",
+                "example": "5.0"
+            }
+        },
+        "outputs": {
+            "heatmap": "Visual difference map.",
+            "side_by_side": "A|B comparison.",
+            "image_a": "Original A.",
+            "image_b": "Original B."
+        }
+    },
+    "H4_SeedSequencer": {
+        "title": "H4 Seed Sequencer",
+        "description": "Controlled Chaos. A dedicated seed generator that offers more control than the standard widget. Supports fixed incrementing or controlled random digits (e.g. keeping the seed length consistent).",
+        "inputs": {
+            "seed": {
+                "type": "INT",
+                "description": "Starting seed.",
+                "example": "123456789"
+            },
+            "mode": {
+                "type": "COMBO",
+                "description": "Generation logic. \n **Fixed**: Static. \n **Increment**: Adds Step size every run. \n **Random**: New random number every run.",
+                "example": "fixed"
+            },
+            "increment_step": {
+                "type": "INT",
+                "description": "How much to add in Increment mode.",
+                "example": "1"
+            },
+            "auto_advance": {
+                "type": "BOOLEAN",
+                "description": "If True, remembers the last seed and continues from there.",
+                "example": "True"
+            },
+            "random_digits": {
+                "type": "INT",
+                "description": "For Random Mode: How many digits should the seed have? (e.g. 4 = 1000-9999).",
+                "example": "10"
+            }
+        },
+        "outputs": {
+            "seed": "The generated integer."
+        }
     }
 }

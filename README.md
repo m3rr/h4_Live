@@ -279,294 +279,202 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 ---
 
 ### H4_TrafficRouter (The Nexus)
-**What it is:** the main “brain switch” for loop workflows.
+**What it is:** The Grand Central Station of your workflow. It decides what data goes into your KSampler based on whether you are starting fresh or looping.
 
-**What it does:**
-- On loop 0 (first run), it uses your “Starter” input.
-- On loop 1+ (refinement loops), it uses your “Looper” input.
-- It can also manage denoise behavior automatically, higher for creation, lower for refinement.
+**The Knobs:**
+- **first_denoise (Default 1.00):** This is for your "Creation" pass. Usually, you want 1.0 to let the model hallucinate freely from noise.
+- **loop_denoise (Default 0.45):** This is for your "Refinement" passes. You lower this so the model doesn't destroy what it just built. It tweaks, it doesn't wreck.
+- **restart (Bool):** The "Reset the Universe" button. If TRUE, the loop count goes back to 0. If FALSE, we march forward into infinity.
+- **first_run_in**: Connect your Latent/Image/Model from the *start* of the workflow here.
+- **loop_run_in**: Connect the output from the *end* of your loop here.
 
-**Why you care:**
-- You stop rewiring.
-- You stop forgetting to swap inputs.
-- You stop doing that thing where your “refine” pass accidentally uses the wrong source and you waste 15 minutes.
-
-**When to use it:**
-- Any workflow where you want a first-pass create, then iterative refine.
-- Any time you want a single node to decide which path is active.
-
-**Common gotchas:**
-- If your loop count never increments, it will keep acting like it is first run forever. That is not a Router problem, that is a “who is incrementing the loop?” problem.
+**How it works:**
+- **Loop 0 (First Run):** It passes `first_run_in` and outputs `first_denoise`.
+- **Loop 1+ (The Grind):** It passes `loop_run_in` and outputs `loop_denoise`.
+- It handles the switching so you don't have to manually mute/unmute nodes like a caveman.
 
 ---
 
 ### H4_TrafficMerge (The Zipper)
-**What it is:** the safer Router cousin.
+**What it is:** The Router's slightly smarter, safer cousin. It's designed specifically to avoid ComfyUI's "Cycle Detected" errors which are the bane of my existence.
 
-**What it does:** merges two streams into one output based on loop count, but in a way designed to behave nicely with wireless mode and avoid ComfyUI cycle errors.
+**The Input Trap (Read this):**
+- **first_run_in**: Wire your starting data here.
+- **loop_input**: **DO NOT WIRE THIS.** I repeat, do not put a wire here if it comes from later in the graph. That creates a cycle.
+  - **The Magic Trick:** Leave `loop_input` EMPTY. The node will automatically check the **H4_ImageBuffer** wirelessly. It teleports data from the end of the graph back to the start without a visible wire. This keeps ComfyUI happy and prevents the red/pink error screen of death.
 
-**Why you care:**
-- It is built to reduce “cycle detected” problems.
-- It includes type-safety checks to prevent Image and Latent mismatches from silently ruining your day.
-
-**When to use it:**
-- You want merging logic, but you are doing wireless loop designs.
-- You want guardrails, not chaos.
+**The Knobs:**
+- Same as Router (`first_denoise`, `loop_denoise`, `restart`).
+- **Type Safety:** It memorizes what type of data you passed in Run 0 (e.g., LATENT). If Run 1 tries to send an IMAGE, it screams at you. This prevents those silent failures where your KSampler explodes because you fed it pixels instead of math.
 
 ---
 
-### H4_TrafficCop (Legacy Splitter)
-**What it is:** the OG splitter.
-
-**What it does:** takes one input and splits it into two outputs based on a restart flag.
-
-**Safe Passthrough:**
-- Designed to prevent red-node crashes when something is missing.
-- Good when you are prototyping and your graph is half-connected.
-
-**When to use it:**
-- Legacy workflows.
-- Simple split logic where Router would be overkill.
+### H4_TrafficCop (The Legacy Splitter)
+**What it is:** A simple fork in the road.
+**Why:** Sometimes you don't need Denoise control. You just want "Input A goes here on start, and Input B goes here later".
+**The "Safe Mode":** This node refuses to output `None`. If a path is inactive, it sends duplicate data anyway. This prevents "Missing Input" errors downstream. It's the training wheels of logic gates.
 
 ---
 
 ### H4_StateMonitor (The Scoreboard)
-**What it is:** loop counter display node.
-
-**What it does:**
-- Shows current loop iteration.
-- Can optionally daisy-chain input for timing control.
-
-**When to use it:**
-- When you want visibility. Simple as that.
-- When debugging “why is my loop stuck at 0.”
+**What it is:** A text readout of the current Loop Count found in the system memory.
+**Why:** Because debugging invisible logic is hell. Connect this to see if you are actually looping or just stuck on "Run 0" forever.
+**Daisy Chaining:** It has an optional pass-through input. Connect your Logic node here to force the Monitor to execute *after* the logic decides the count.
 
 ---
 
 ### H4_LoopIncrementer (The Clicker)
-**What it is:** manual loop counter control.
-
-**What it does:**
-- Bumps global loop count on demand.
-- Supports wireless reset signals.
-
-**When to use it:**
-- Manual stepping.
-- Debugging.
-- “I want to advance exactly once and inspect outputs.”
+**What it is:** The thing that makes the number go up.
+**Why:** A Router routes, but it doesn't always increment. Sometimes you want to increment manually or at a specific point in the chain.
+**Wireless Reset Support:** If the "Wireless Reset" toggle is ON, it listens for a distress signal from the **H4_WirelessResetButton**. If it hears one, it resets the count to 0 instantly.
 
 ---
 
 ### H4_WirelessResetButton (The Red Button)
-**What it is:** an emergency reset trigger with no wires.
-
-**What it does:**
-- Sets a global reset flag that other nodes can detect.
-
-**When to use it:**
-- When your workflow is stuck in a bad state.
-- When you want a clean restart without rewiring anything.
+**What it is:** A toggle to nuke the loop count.
+**Why:** You are 50 loops deep into a render and it looks like garbage. You want to restart. You don't want to find the Router and toggle its widget. You just flip this button anywhere on the canvas.
+**How:** It sets a global flag in Python memory. The **LoopIncrementer** sees it and executes the restart order.
 
 ---
 
-### H4_ImageBuffer (The Anti-Lag)
-**What it is:** the thing that makes real feedback loops possible in ComfyUI without a direct cycle.
-
-**What it does:**
-- Stores ANY data type in RAM, images, latents, text, whatever.
-- Acts like a wireless transmitter/receiver.
-- Breaks the visible DAG cycle by storing data globally.
-
-**Why it’s important:**
-- ComfyUI hates cycles.
-- You still want iterative loops.
-- The Buffer is how you do it without 1-cycle lag and without “cycle detected” errors.
-
-**When to use it:**
-- Any workflow that loops back.
-- Any workflow where you want to pass state forward without wires.
+### H4_ImageBuffer (The Teleporter)
+**What it is:** The MVP of loop workflows.
+**What it does:** It takes any data (Image, Latent, Text, Model) and stores it in your RAM.
+**Why this exists:**
+- ComfyUI is a Directed Acyclic Graph (DAG). Loops are Cycles. Cycles are illegal.
+- **The Cheat:** The Buffer breaks the cycle. It saves data to RAM in "Write Mode". In the next execution, the **TrafficMerge** reads that data from RAM. No wire connection = No cycle error = Happy ComfyUI.
+- **Usage:** Place this at the VERY END of your loop. Feed it the final result. Leave the output unconnected (or connect it to a preview). It handles the storage silently.
 
 ---
-
-## Context and bundling nodes
 
 ### H4_ContextHub (The Mothership)
-**What it is:** one wire to rule them all.
-
-**What it does:**
-- Takes standard ComfyUI types (Model, VAE, CLIP, Conditioning, Latent, Image, Mask), plus two “any” slots.
-- Bundles them into one pipe type (H4_PIPE).
-- Logs what passes through so you can debug spaghetti.
-
-**Why you care:**
-- Cleaner canvas.
-- Easier to share workflows.
-- Less time hunting for where the VAE went.
+**What it is:** The infinite bag of holding for your data.
+**The Problem:** You have a Model, VAE, CLIP, Positive, Negative, Latent, and Image. You need to pass them to 5 different KSamplers. That's 35 wires. You are creating a spaghetti monster.
+**The Solution:** Wire them ALL into the Hub once. It bundles them into a single `H4_PIPE` cable. Now you route ONE wire to your destination.
+**Inputs:**
+- **Standard Types:** Model, VAE, CLIP, Positive, Negative, Latent, Image, Mask.
+- **Any_A / Any_B:** Two mystery slots for whatever weird custom data you need (ControlNet stack? LoRA stack? A string? Your hopes and dreams?).
+- **base_pipe:** Daisy-chain support. Plug an existing pipe here to add to it or override it.
 
 ---
 
-### H4_ContextUnpack (The Distributor)
-**What it is:** reverses the Hub.
-
-**What it does:**
-- Takes H4_PIPE and gives you back the individual connections.
-
-**How to think about it:**
-- Hub at the start, Unpack at the end.
-- Everything in the middle stays clean.
+### H4_ContextUnpack (The Loot Piñata)
+**What it is:** The thing that opens the bag.
+**How to use:** Plug the `H4_PIPE` in one side. All your individual data comes out the other side.
+**Why:** Use Hub at the start. Use Unpack at the end. Keep the middle clean. If you wire a pipe into a KSampler without unpacking it first, nothing happens because KSamplers don't speak H4.
 
 ---
 
 ## Mission control and scheduling
 
 ### H4_MissionControl (The Dashboard)
-**What it is:** the command hub.
-
+**What it is:** The cockpit for your loop workflow.
 **Modes:**
-- Active mode: drives loops and increments count.
-- Passive mode: monitoring only.
+- **Passive (Default):** It sits there and looks pretty. It passes signals but does NOT increment the loop count. Use this if you have a separate `LoopIncrementer` elsewhere.
+- **Active (Master Base):** This Node is CAPTAIN. It increments the global loop count every time it runs. **WARNING:** Do not have two Active nodes in one workflow or your loop count will jump by 2, 3, 4... and you'll be confused.
+- **wireless_reset (Bool):** If ON, it listens for the `WirelessResetButton`.
+- **debug_mode (Bool):** If ON, it spams your console with logs. Use only if you are desperate.
 
-**Wireless reset:** supported.
-
-**When to use it:**
-- Anything loop-based where you want a single “control panel” node.
+**Passthrough Ports:**
+- `scheduler_val` and `scheduler_seed` are just inputs that pass through to the output. Why? So you can bundle your control signals into one tidy node before sending them out to the rest of the graph.
 
 ---
 
 ### H4_LinearScheduler (The Ramp)
-**What it is:** smoothly changes a number over loops.
-
-**What it does:**
-- Generates interpolated float values over time.
-- Great for denoise ramps and CFG sweeps.
-
-**Why you care:**
-- You can start strong and then refine gently.
-- You can do experiments that actually make sense, not random knob twisting.
+**What it is:** A mathematical ramp generator.
+**The Math:** `Start + (End - Start) * (Current_Loop / Max_Loops)`
+**Why you need it:**
+- **Denoise Ramps:** Start at 1.0 (Creation) and ramp down to 0.1 (Refinement) over 10 loops.
+- **CFG Ramps:** Start low and ramp high to "tighten" the image as it converges.
+- **Inputs:**
+  - `start_val`: Value at Loop 0.
+  - `end_val`: Value at the final loop.
+  - `max_loops`: How long the ramp lasts. If you keep looping past this, it stays at `end_val`.
 
 ---
 
-### H4_SeedGenerator (Signal Gen)
-**What it is:** basic seed control.
-
+### H4_SeedGenerator (The Chaos Engine)
+**What it is:** Controls the sophisticated random number generation for your loops.
 **Modes:**
-- Fixed: always same.
-- Incremental: seed + loop count.
-- Random: chaos.
-
-**When to use it:**
-- You just need seed behavior and do not want a whole control system.
+- **Incremental:** (Start Seed + Loop Count). Run 0 uses Seed X. Run 1 uses Seed X+1. This gives you *deterministic variation*. Great for making animations that don't jitter like a strobe light.
+- **Fixed:** Always outputs `start_seed`. Boring, but useful for testing logic without the variable changing.
+- **Random:** Pure chaos. New seed every time, unrelated to the loop count. Use this when you are just exploring.
 
 ---
 
-### H4_SeedSequencer (Chaos Controller)
-**What it is:** advanced seed management with stateful memory.
+## Display and debugging
 
-**Why it’s different:**
-- It can run its own internal sequencing independent of global loop.
-- Can constrain random digits, like “only 4-digit seeds” for controlled chaos.
-- Auto-advance and keep state between runs.
+### H4_SmartConsole (The MRI Machine)
+**What it is:** A node that looks *inside* your data and prints a report.
+**Inputs:**
+- **Anything In:** Wire literally anything here.
+- **+ULTRA Mode (Bool):**
+  - **OFF (False):** Prints basic info like "Tensor Shape [1, 512, 512, 3]" or "String: 'Hello'".
+  - **ON (True - Nuclear Mode):** It rips the object apart. It lists attributes, internal methods, min/max values for tensors, mean values, memory addresses, and basically deconstructs the matrix. Use this when you have a `KeyError` and don't know why. It prints to the system console (the black window) AND shows a summary on the node itself.
 
-**When to use it:**
-- Grid testing.
-- Iterative refinement where you want reproducible randomness.
-- When you’re doing science, not vibes.
+---
+
+### H4_SeedSequencer (The Chaos Controller)
+**What it is:** A smarter, state-aware seed generator.
+**Why use it over the basic Generator?**
+- **State Memory:** It remembers what it did last time.
+- **Random Digits:** You can tell it "Give me a random seed, but only 4 digits long". Why? Because `9352` is easier to read and type than `352859205820582`.
+- **Auto-Advance:** It can increment automatically independent of the global loop count. Useful if you want to hold a seed for 3 loops, then switch.
 
 ---
 
 ## Gridinator and testing suite
 
 ### H4_Gridinator (IT’S OVER 9000!)
-**What it is:** matrix testing tool, parameter sweeps, and variation grids.
+**What it is:** A monolithic node that renders entire X/Y/Z grids in one go.
+**Why:** Because wiring up 50 KSamplers to make a 10x10 grid is insane.
+**The Feature List:**
+- **Fuzzy Loading:** Type "ponym" in `base_model_fuzzy` and it figures out you mean `PonyDiffusion_v6_XL.safetensors`.
+- **Prompt Stutter:** Use syntax like `[cat*3]` to repeat a word 3 times for emphasis.
+- **Permutations:** Use `{red|blue|green}` to automatically split the batch into 3 variations.
+- **The Axes (X/Y/Z):**
+  - **Modes:** Model, LoRA, Steps, CFG, Denoise, Sampler, Scheduler, Seed.
+  - **Overrides:** The text boxes allow comma-separated values (e.g., `20, 30, 40`).
+  - **Fuzzy Overrides:** You can type "juggernaut, pony, animagine" in the Model Override box and it loads them all sequentially.
+- **Sliding Scales:** Enable this to auto-generate ranges (e.g., Denoise 0.2 to 0.8 over 10 frames) without typing the numbers.
 
-**Features:**
-- Fuzzy checkpoint matching, like typing “pony” and it finds your Pony model.
-- Stutter syntax, like `{cat|dog|fish}` for prompt variations.
-- Auto labels and dynamic layout.
-- Configurable margins and padding.
-
-**When to use it:**
-- Tuning workflows.
-- Comparing prompts and settings.
-- Building a baseline you can trust.
-
----
-
-### H4_AxisDriver (Grid Tools)
-**What it is:** helper for Gridinator.
-
-**What it does:**
-- Drives parameter sweeps cleanly so Gridinator can focus on layout and orchestration.
+**The Output:** A nice, labeled grid image with headers, margins, and readable text.
 
 ---
 
-### H4_Comparinator (A/B Test)
-**What it is:** a full-featured, in-node comparison suite with its own custom UI. Think of it as a lightbox, diff viewer, generation parameter inspector, and history browser all crammed into one node.
+### H4_AxisDriver (The Sidekick)
+**What it is:** A helper node for the Gridinator.
+**Usage:**
+- It allows you to build complex axis configurations (Preset lists) and feed them into the Gridinator as a JSON blob.
+- Mostly used if you are creating a "Preset Bank" of grids (e.g., "My Standard Render Test").
+- You likely won't touch this manually unless you are a cyborg.
 
-**What it's for:**
-- "Which one is better?" without guessing.
-- Visual diff analysis so your eyes do less lying.
-- Keeping a running history of every generation so you can compare current vs past.
-- Inspecting the exact KSampler parameters (Steps, CFG, Seed, Sampler, Scheduler, Denoise) and full Positive/Negative prompts that produced each image.
+### H4_Comparinator (The A/B Test God)
+**What it is:** The bastard child of a lightbox, a diff viewer, and a forensic lab. It lets you compare two images with a sliding reticle, zoom in to see atomic-level defects, and crawl the graph to see exactly how you messed up your settings.
 
-**The Main View (Compare Mode):**
-- The node shows **Image A** (your input/original) and **Image B** (the result) stacked with a draggable slider down the middle.
-- Drag the red slider line left/right to reveal more of A or B. This is real-time, no lag, just pure pixel comparison.
-- The slider uses a glowing red line with a grab handle so you cannot lose it.
-- When you select a history thumbnail, the view splits: left pane shows the current live image vs the historical image you clicked.
-- If no history is selected, the node goes into **Full Mode** where the left pane fills the entire node, but the slider still works between A and B.
+**The Inputs:**
+- **image_a**: The "Control" or "Before" image. If you don't plug this in, the node sits there judging you.
+- **image_b**: The "Test" or "After" image.
+- **frozen_image**: If connected, this overrides Image B. Useful if you want to lock a specific state while you ruin Image A with experiments.
+- **metadata_text**: JSON metadata injection. See SmartSave. Same deal.
+- **save_mode**: If ON, it saves comparisons to disk. If OFF, it's just for looking pretty.
 
-**Keyboard Shortcuts:**
-- **Spacebar (Hold):** Blink Mode. While holding spacebar and hovering over the node, Image B disappears entirely, showing only Image A. Release to restore the slider view. This is the fastest way to spot differences, your brain catches the "flash" of change instantly.
-- **Shift+1:** Show only Image A (slider pushed fully right).
-- **Shift+2:** Show only Image B (slider pushed fully left).
-- **Shift+3:** Reset to 50/50 split view.
+**The Interface (Where the magic happens):**
+- **Compare Mode (Slider):** A red line splits the screen. Drag it. Left is A, Right is B. It's fluid, lag-free, and addictive.
+- **Blink Mode (Spacebar):** Hold Spacebar to make Image B vanish. Release to bring it back. Because sometimes dragging a slider isn't fast enough for your brain to catch the difference.
+- **Inspectinator Mode:** Toggle this switch to turn the right pane into a microscope. Points a reticle on the left, shows a zoomed view on the right. Now with a **500% Zoom Slider** because apparently 100% wasn't enough for you pixel peepers.
+- **Parameter Drawer:** The "How did I make this?" panel. It crawls your workflow graph (yes, backwards) to find the KSampler, Seed, Steps, and Prompts that created the image. It even logs the history so you can see settings from 50 generations ago.
 
 **History Strip:**
-- Every generation is stored as a thumbnail in the strip at the bottom.
-- **Single click** a thumbnail to compare it against the current live image.
-- **Click again** to deselect and return to full-mode (live A vs B with slider).
-- **Double-click** a thumbnail to open it in a full-screen lightbox overlay.
-- **Right-click** a thumbnail to **lock it as reference**. Once locked (gold border with lock icon), that image becomes the permanent "before" for all future comparisons until you unlock it.
-- The strip scrolls horizontally. Mouse wheel over the strip scrolls it.
+- Stores your last 50 runs.
+- **Single Click:** Loads that image into the "B" slot for comparison against the current live output.
+- **Double Click:** Opens the Lightbox.
+- **Right Click:** Locks an image as "Reference". It gets a gold border. Now EVERY new generation compares against this locked image. Perfect for "can I beat my best result?" sessions.
 
-**Inspectinator Mode (Zoom Inspector):**
-- Toggle the **INSPECTINATOR** switch in the control panel.
-- The right pane becomes a zoom canvas. Hover over the left pane and a cyan crosshair reticle follows your cursor.
-- The right pane shows a magnified view of exactly where the reticle is pointing.
-- Scroll wheel to zoom from 100% to 500%.
-- Middle-click to lock the zoom position so you can study a specific area without moving the reticle.
-- Great for checking fine details: skin texture, edge aliasing, artifact hunting.
-
-**Parameter Drawer:**
-- Toggle the **PARAMETERS** switch in the control panel.
-- A drawer slides out from the right showing the generation parameters that produced the current images.
-- **Smart Graph Scanner**: The node traces upstream through your workflow graph to find the KSampler nodes connected to each input image. It does not rely on embedded metadata, it reads the live graph.
-- **Context-Aware Toggle**: Two buttons at the top of the drawer let you switch between **IMAGE A (Input)** and **IMAGE B (Result)** parameters. Each shows the specific KSampler settings for that particular image chain.
-- **Displayed Parameters**: Type, Seed, Steps, CFG, Sampler, Scheduler, Denoise.
-- **Prompt Display**: Positive and Negative prompts are extracted from upstream CLIPTextEncode nodes and displayed in full-width, scrollable, monospace text blocks. Positive prompts are labeled in blue, Negative prompts in red.
-- **History Persistence**: When you capture a generation, the metadata is cached. Even if you change your workflow graph later, clicking a history thumbnail still shows the correct parameters from when that image was generated.
-
-**Settings Drawer (Save Output):**
-- Toggle the **SAVE OUTPUT / SETTINGS** switch.
-- Choose what to save: Image A, Image B, Side-by-Side composite.
-- Optionally include workflow data, metadata, and prompt information.
-- Set filename prefix and subfolder.
-- **Auto-Save** toggle: save automatically on every workflow run.
-- **SAVE NOW** button for manual saves.
-- The metadata text area lets you attach custom JSON metadata to saved files.
-
-**Reference Lock System:**
-- Right-click any history thumbnail to lock it as your permanent reference.
-- A gold border and lock icon appears on the locked thumbnail.
-- All new generations will now compare against this locked reference instead of the previous generation.
-- Right-click again to unlock.
-- This is invaluable for A/B testing: lock your baseline, then tweak settings and see every result compared against that same baseline.
-
-**Lightbox:**
-- Double-click any history thumbnail to open a full-screen overlay.
-- Click the X or press Escape to close.
-- The lightbox shows the image at maximum resolution.
+**Why use it:**
+- because "eyeballing it" is for amateurs.
+- because you need to prove RGTHREE's scheduler is actually different.
+- because it looks cool.
 
 ---
 
@@ -630,108 +538,218 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 ---
 
+
 ### H4_Varianator (Latent Riffler)
-**What it is:** generates 1 to 16 latent variations from one latent.
+**What it is:** A jazz musician in node form. It takes a latent image and "riffs" on it to create variations.
+**The Problem:** You have a generation you like, but the eyes are weird or you want to see if it looks better with slightly different noise.
+**The Solution:** Feed it to the Varianator.
+**The Knobs:**
+- **variation_count:** How many remixes do you want? (1-16).
+- **variation_profile:**
+  - **Minimal:** Subtle changes. Good for fixing small defects or shifting expression.
+  - **Moderate:** The standard riff. Noticeably different but keeps the soul of the original.
+  - **Major:** Heavy improvisation. Might change the composition entirely.
+- **seed_mode:**
+  - **Fixed:** Riffs the same way every time.
+  - **Increment:** Each variation uses a new seed (Start, Start+1, Start+2). **Recommended**.
+  - **Random:** Total chaos.
+- **denoise:** The strength of the riff. Lower = closer to original. Higher = more drift.
 
-**Profiles:**
-- Minimal: subtle variation.
-- Moderate: noticeable.
-- Major: identity shift, the “new person” knob.
-
-**Why it’s good:**
-- Uses isolated random state for reproducibility.
-- Lets you explore variation without wrecking your entire pipeline.
+**Output:** A batch of images. Feed this into `H4_Comparinator` or a `Grid` to pick the winner.
 
 ---
 
-### H4_VisualTokenizer (Weights)
-**What it is:** prompt token weight visualization.
+## Image enhancement and visuals
 
-**What it’s for:**
-- Understanding how your prompt is actually being parsed.
-- Debugging “why does this token do nothing” moments.
+### H4_PixelPress (The God of Crispness)
+**What it is:** A True Supersampling (SSAA) node.
+**How it works:**
+1. **Upscale:** It blows your image up (2x, 3x, or 4x) using a model or Lanczos.
+2. **Enhance:** It applies High Dynamic Range (HDR) tonemapping, shadow recovery, and sharpening at this massive resolution.
+3. **Downscale:** It squashes the image back down to the original size using Lanczos.
+**The Result:** Impossible details. Aliasing is destroyed. Lighting pops. It looks like an 8K photo shrunk down.
+**The Knobs:**
+- **supersample_scale:** 2x is usually enough. 4x is for heavy VRAM users.
+- **sharpness:** Post-downscale sharpening. 0.3 is the sweet spot.
+- **enable_hdr (Bool):** Turns on the magic sauce.
+  - **hdr_intensity:** How much "pop" to add.
+  - **shadow_intensity:** Recovers details in the dark areas.
+  - **highlight_intensity:** Tames blown-out lights.
+  - **gamma/contrast:** Fine-tuning.
+- **tiled_processing:** **KEEP THIS ON.** Unless you have 48GB VRAM, processing a 4096x4096x4 (64MP) image in one go will crash your PC. Tiling saves lives.
+
+**Warning:** This node is slow because it does a LOT of math. Use it at the end of your workflow, not during the sketch phase.
+
+---
+
+### H4_NoteInjector (Visuals)
+**What it is:** Adds a title bar to your image.
+**Why:**
+- To label your grid tests.
+- To create meme formats.
+- To add "Cinematic Black Bars" with text.
+**Features:**
+- Top or Bottom placement.
+- Auto-centering.
+- Configurable fonts (Arial, Roboto, or falls back to ugly default if missing).
+- Separate resizing for Title and Subtitle.
+
+---
+
+### H4_PixelVisualizer (Pixel Peeper)
+**What it is:** A simple node that explodes an image into its raw pixel values.
+**Why:** Mostly for debugging or for people who like to look at RGB hex codes instead of art.
+**Usage:** Connect an image, see the color data distribution.
+
+---
+
+### H4_VisualTokenizer (The Mind Reader)
+**What it is:** A debugging tool that shows you exactly how the AI tokenizes your prompt.
+**Why use it:**
+- To see why your prompt is being ignored.
+- To visualize weights: `(cat:1.2)` shows up as a heavier bar.
+- To see the "End of Text" token cutting off your 200-word essay.
+
+---
+
+## Model merging and saving (Mad Science)
+
+### H4_ModelMerger (The Frankenstein Lab)
+**What it is:** A granular model merger that lets you blend up to 3 models with surgical precision.
+**The Feature List:**
+- **Block Merging:** You can merge just the input blocks of Model A with the output blocks of Model B.
+- **Granular Weights:** There are 25 knobs per model (IN00-IN11, MID, OUT00-OUT11). You can map the "Soul" (Middle Block) of PonyXL into the "Body" (Output Blocks) of Juggernaut.
+- **Interpolation Modes:** Weighted Average, Symmetric Average, Add Difference, etc.
+- **Live Testing:** It has a built-in generator. You can test the merge *before* saving it.
+- **Safety:** It prevents you from merging SD1.5 with SDXL and creating a black hole.
+
+**Warning:** This node is complex. If you don't know what "IN05" does, leave it at 1.0 or read a guide.
+
+### H4_ModelSave (The Librarian)
+**What it is:** Saves your merged monstrosities to disk.
+**Why use it over the standard Save Node?**
+- **Architecture Aware:** It knows the difference between SD1.5, SDXL, and Flux. It keys the weights correctly so you don't get "Keys missing" errors when loading it back.
+- **Float16 Casting:** Automatically casts to fp16 to save space (unless you really want fp32).
+- **Metadata:** Injects your prompt and workflow into the checkpoint header.
+
+---
+## Latents and Aspect Ratios
+
+### H4_LatentSelector (The Canvas)
+**What it is:** A resolution calculator and empty latent generator.
+**Why:** Because calculating `1024 * (16/9)` in your head is annoying.
+**Features:**
+- **Presets:** 16:9 Cinema, 9:16 Story, 1:1 Square, and more.
+- **Model Aware:** Adjusts baseline pixels for SD1.5 (512px) vs SDXL (1024px) vs Wan (720p).
+- **Batch Size:** Crank it up if you have the VRAM.
 
 ---
 
 ## Face manipulation suite (h4_faceforge/)
 
-### H4_FaceForge (AIO Face Swap Engine)
-**What it is:** full-stack face pipeline, swap to final output.
+### H4_FaceForge (The Plastic Surgeon)
+**What it is:** A robust, all-in-one face swap engine that doesn't look like a 2005 video game.
+**The Pipeline:**
+1.  **Swap:** Uses InsightFace to map the source face onto the target.
+2.  **Restore:** Uses CodeFormer/GFPGAN to fix the "melted wax" look.
+3.  **Upscale:** Resizes the face crop for high-res detailing.
+4.  **Blend:** Feathers the edges so it doesn't look like a mask sticker.
+5.  **Occlusion Handling:** Tries (emphasis on *tries*) to keep hair and glasses in front of the face.
 
-**Pipeline concept:**
-- Swap
-- Restore
-- Upscale
-- Blend
-- Preserve occlusions like glasses and hair (when possible)
-- Manage VRAM aggressively for smaller GPUs
+**Pro Tip:** If your face looks like a potato, turn *up* the formatting, but turn *down* the restoration strength.
 
-**When to use it:**
-- Face swaps that do not look like plastic dolls.
-- Consistent results across batches.
+### H4_IdentityEngine (The Soul Extractor)
+**What it is:** It extracts the "essence" of a face (embeddings) and saves it for later.
+**Why:**
+- Stop re-analyzing the same 5 photos of Elon Musk every time you run a generation.
+- Build a "Consistent Character" bank.
+- Mix face embeddings (50% Dad, 50% Mom) using **H4_BuildFaceModel**.
 
----
-
-### H4_IdentityEngine (Persona Engine)
-**What it is:** character consistency manager.
-
-**Core idea:**
-- DNA is the permanent traits.
-- Scene is the temporary context.
-- Presets save the DNA without stomping your scene text.
-
-**Why you care:**
-- You stop overwriting your prompt every time you load a character.
-- You can reuse personas across different scenes.
+### H4_FaceDetailer (The Dermatologist)
+**What it is:** A texture hallucinator.
+**Why:** Face swaps are smooth. Real skin has pores. This node adds the pores back.
+**How:** It runs a second pass (img2img) on just the face area with a low denoise (0.2-0.3) to adding texture noise.
 
 ---
 
-### H4_FaceDetailer (Pore Restorer)
-**What it is:** texture hallucination tool to fix waxy faces.
+## Loaders and utilities
 
-**What it’s for:**
-- Adding pores and skin texture back after swaps.
-- Keeping identity stable while improving realism.
+### H4_UniversalLoader (The Skeleton Key)
+**What it is:** The only loader you need.
+**What it loads:**
+- **Checkpoints:** Standard `.safetensors` (SD1.5, SDXL, Flux).
+- **Components:** Individual UNETs, CLIPs, and VAEs.
+- **GGUF:** Yes, it auto-detects GGUF format and bridges to `ComfyUI-GGUF` internally.
+- **Wan/Z-Image:** It has specific heuristics to detect Wan2.1 and Z-Image models and load them correctly (handling the weird 2560 vs 4096 dim mismatch).
+**Why use it:** because wiring up 4 different loader nodes for testing is for chumps.
 
-**Note on denoise:**
-- Too high and you change the face.
-- Too low and nothing happens.
-- There is a sweet spot and yes, it matters.
+### H4_NodeTranslator (The Babel Fish)
+**What it is:** A frontend-only node that translates the UI.
+**Usage:**
+- Select "Spanish", "Mandarin", or "German".
+- It doesn't touch the backend. It just renames the widgets and titles in your browser so you can work in your native tongue.
+- *Note:* WIP. Don't expect perfect grammar.
 
----
+### H4_DisplayAny (The Universal Monitor)
+**What it is:** A debug node that accepts *anything* (Images, Latents, Tensors, Text, Lists) and displays it.
+**Why:**
+- Wiring up a `PreviewImage` node just to check a mask is annoying.
+- Wiring up a `TextOutput` node just to check a string is annoying.
+- This node takes them all. It adapts. It overcomes.
 
-### H4_BuildFaceModel
-Builds a blended face embedding from multiple photos, like a “super-embedding” for better accuracy.
-
-### H4_LoadFaceModel
-Loads previously built face models.
-
-### H4_SaveFaceModel
-Saves face models you built.
-
----
-
-## Loaders and file operations
-
-### H4_UniversalLoader (Skeleton Key)
-**What it is:** a universal checkpoint loader that tries to “just work.”
-
-**What it does:**
-- Auto-detects format, safetensors, ckpt, diffusers folders, GGUF via bridge where supported.
-- Performs validation checks to catch mismatches earlier.
-- Uses aggressive cleanup to avoid memory issues.
-
-**When to use it:**
-- You have multiple model formats and want one loader.
-- You want earlier failure instead of mid-run explosions.
+### H4_DataStream (The Feed)
+**What it is:** A sequential image/video loader.
+**Usage:**
+- Point it at a folder.
+- Set index to 0.
+- Enable `auto_queue_remaining`.
+- Press Queue.
+- **Result:** It processes every image in the folder one by one, automatically queuing the next job until the folder is empty.
+**Bonus:** It also plays video files frame-by-frame if you point it at an `.mp4`.
 
 ---
 
-### H4_SmartSave (Preview/Save)
-**What it is:** preview plus save utility.
+## Debug and stealth nodes (Use at your own risk)
 
-**When to use it:**
-- When you want consistent naming, previewing, and saving without extra clutter.
+### H4_DebugErrorGenerator (The Crash Test Dummy)
+**What it is:** It crashes ComfyUI on purpose.
+**Why:** To test if your error handling / "Death Modal" is working.
+**Modes:** Minor, Warning, Critical.
+
+### H4_Discombobulator (The Glitch)
+**What it is:** A UI scrambler.
+**Why:** Because I was bored and wanted to see if I could make the interface look like the Matrix.
+**Effect:** It intercepts notifications and turns them into leet speak or binary. Does nothing to your images. Just messes with your head.
+
+
+---
+
+### H4_SmartSave (The Hoarder's Delight)
+**What it is:** A dual-mode image handler that acts as both your "Preview Image" node and your "Save Image" node, but better. It previews, it saves, it hoards metadata like a digital dragon, and it gives you a film-strip of your recent conquests.
+
+**The "Save Mode" Switch:**
+- **PREVIEW ONLY (Default/OFF):** In this mode, it acts like a standard Preview Image node. Images go to your `/temp` folder. They exist for the session, they bring you joy for a moment, and then they vanish into the void when you restart. Great for "is this prompt garbage?" checks.
+- **SAVE TO DISK (ON):** Flipping this switch commits the image to your `/output` folder forever (or until you delete it). Use this when you actually make something worth keeping.
+
+**Inputs (The Knobs):**
+- **images**: The image pipe. Obviously.
+- **filename_prefix**: The name template. Default is `h4_`. It supports standard ComfyUI formatting like `%date:yyyy-MM-dd%`. If you don't know how file naming works, I can't save you.
+- **custom_metadata**: The fun part. A raw JSON text field where you can inject *anything* you want into the specific PNG chunks.
+  - Want to tag yourself as the author? Done.
+  - Want to add a "mood: grumpy" tag? Done.
+  - Want to paste your grocery list? Weird flex, but done.
+  - **Default Template**: comes pre-loaded with fields for Author, Model, Details, and a cheesy inspirational quote because we all need motivation.
+
+**The Film Strip UI (The fancy part):**
+- **The Strip**: A horizontal scrolling list of your last 50 generated images. It's persistant-ish.
+- **Parameters Drawer**: Click a thumbnail -> Toggle the **PARAMS** switch (it won't open unless you ask nicely). A panel slides out showing *exactly* what settings created that image. It crawls the graph to find the Seed, CFG, Steps, and Prompts. No more "what seed was that?" guessing games.
+- **Lightbox**: Double-click any thumbnail to see it full-screen.
+  - **Zoom**: Mouse wheel or the slider at the bottom. Zooms up to 500% so you can inspect every single pixel of that waifu's eye glistening.
+  - **Pan**: Drag to move around.
+
+**Why use it:**
+- Because standard SaveImage nodes are boring and don't tell you the history.
+- Because you want to audit your past self's decisions without opening the PNG Info tab every 5 seconds.
 
 ---
 
@@ -749,28 +767,11 @@ Use ULTRA when you are ready to suffer, but also ready to actually fix the probl
 ---
 
 ### H4_DisplayAny (Universal Monitor)
-### H4_DisplayAny (Universal Monitor)
-**What it is:** The "I don't care what type it is, just show me" node.
 
-**What it does:**
-- Text? Shows the string.
-- Image? Shows the preview.
-- Latent? Decodes it (if VAE provided) or shows dimensions.
-- Tensor? Shows shape and stats.
-- Dictionary? Pretty-prints the JSON.
-- List? Enumerates it.
-
-**Why it saves lives:**
-- Debugging "KeyError: 'images'" crashes.
-- Checking if your "List of 1" is actually a "String" and breaking your loop.
-- connecting it to `ContextHub` to see exactly what is inside the pipe.
-
----
-
-### H4_DocuScribe (Workflow Reporter)
-Generates documentation from your workflow structure.
-
-This is the “help I need to explain this to future me” node.
+### H4_DocuScribe (The Stenographer)
+**What it is:** Generates automatic markdown documentation from your workflow.
+**How:** Connect nodes to its 'source' inputs. Run the workflow. It crawls the connections and writes a report to your output folder detailing every connected node, its settings, and its class type.
+**Why:** The "help I need to explain this to future me" node. Perfect for generating changelogs or explaining complex graphs to others.
 
 ---
 
@@ -1019,15 +1020,6 @@ h4_Live addresses this by:
 - **Tiled VAE Decode**: Uses a rolling buffer calculation to decode large test images without OOMing 8GB cards.
 - **FP32 Fallback**: If standard FP16 decode returns NaNs (black images), it automatically casts the VAE to FP32, retries, and then casts back. This fixes the infamous "black square" issue on 16-series and some 30-series cards.
 - **Garbage Collection**: Aggressive `gc.collect()` and `torch.cuda.empty_cache()` calls between merge operations to prevent fragmentation.
-**H4_FaceForge**
-- Multi-stage pipeline: swap, restore, upscale, blend, occlusion-aware handling, and VRAM mitigation strategies.
-
-**H4_IdentityEngine**
-- Separates persistent persona traits (“DNA”) from scene-level prompt context.
-- Preset serialization logic avoids overwriting scene text while restoring identity traits.
-
-**H4_FaceDetailer**
-- Texture restoration via controlled denoise constraints to add micro-detail while minimizing identity drift.
 
 ### Frontend extensions (js/)
 **BigBrother bundle**

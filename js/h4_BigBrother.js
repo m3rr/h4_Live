@@ -78,7 +78,14 @@ app.registerExtension({
         });
         window.addEventListener('unhandledrejection', (event) => {
             if (this._isHandlingError) return;
-            const reason = event.reason instanceof Error ? event.reason.stack : String(event.reason);
+            let reason = event.reason;
+            if (reason instanceof Error) {
+                reason = reason.stack;
+            } else if (typeof reason === 'object') {
+                try { reason = JSON.stringify(reason); } catch (e) { reason = String(reason); }
+            } else {
+                reason = String(reason);
+            }
             this.handleError({ error: 'Unhandled Promise Rejection', traceback: reason });
         });
 
@@ -247,62 +254,87 @@ app.registerExtension({
             transition: "all 0.1s"
         });
 
-        btn.addEventListener("click", () => {
-            // 1. Flash Face
+        btn.addEventListener("click", async () => {
+            // 1. Flash Face — Visual feedback that the kick is happening
             const origText = btn.textContent;
             btn.textContent = "(0_0)!!!";
             btn.style.color = "#ff0000";
             btn.style.borderColor = "#ff0000";
             btn.style.transform = "scale(1.1)";
 
-            // 2. The Kick (Aggressive)
-            console.log("[h4] KICKING THE GRID (Aggressive Reset)...");
+            // 2. The Kick — Full graph serialize/reload cycle
+            // This is the same thing that happens when you save and re-open a workflow.
+            // It serializes all nodes, positions, widget values, and connections to JSON,
+            // then reconstructs the entire graph from that JSON. Broken wires are fixed
+            // because all connections are re-validated during reconstruction.
+            console.log("[h4] KICKING THE GRID (Full Serialize/Reload Cycle)...");
 
             this._isHandlingError = false;
 
-            if (app.canvas) {
-                // A. Force Dirty
-                app.canvas.setDirty(true, true);
+            try {
+                // A. Capture the current graph state as a portable JSON snapshot
+                const graphData = app.graph.serialize();
+                console.log(`[h4] Graph serialized: ${Object.keys(graphData.nodes || {}).length || graphData.nodes?.length || 0} nodes captured.`);
 
-                // B. Force Resize (often triggers layout recalcs)
-                window.dispatchEvent(new Event('resize'));
+                // B. Reload the graph from the snapshot
+                // This reconstructs every node, widget, and connection from scratch.
+                // ComfyUI's loadGraphData handles all the validation and wire reconnection.
+                await app.loadGraphData(graphData);
+                console.log("[h4] Graph reloaded from snapshot. All connections re-validated.");
 
-                // C. Restart Loop if Dead
-                // LiteGraph main loop can stop if an exception occurs
-                if (app.canvas.rendering_frame === false) {
-                    console.log("[h4] Render loop was stopped. Restarting...");
-                }
-
-                // Bruteforce restart: Stop then Start
-                try {
-                    if (typeof app.canvas.stopMainLoop === 'function') {
-                        app.canvas.stopMainLoop();
+                // C. Force canvas refresh after the reload
+                if (app.canvas) {
+                    app.canvas.setDirty(true, true);
+                    window.dispatchEvent(new Event('resize'));
+                    if (typeof app.canvas.draw === 'function') {
+                        app.canvas.draw(true, true);
                     }
-
-                    setTimeout(() => {
-                        if (typeof app.canvas.startMainLoop === 'function') {
-                            app.canvas.startMainLoop();
-                        }
-
-                        // Force redraw if possible
-                        if (typeof app.canvas.draw === 'function') {
-                            app.canvas.draw(true, true);
-                        }
-
-                        console.log("[h4] Grid Restarted.");
-                    }, 10);
-                } catch (e) {
-                    console.error("[h4] Kick failed:", e);
                 }
+
+                // D. Visual success indicator
+                btn.textContent = "(^_^)b";
+                btn.style.color = "#00ff55";
+                btn.style.borderColor = "#00ff55";
+                console.log("[h4] Grid Kicked Successfully! Wires should be reconnected.");
+
+            } catch (e) {
+                // Serialize/reload failed — fall back to basic canvas restart
+                console.error("[h4] Full reload failed, falling back to canvas restart:", e);
+
+                if (app.canvas) {
+                    app.canvas.setDirty(true, true);
+                    window.dispatchEvent(new Event('resize'));
+
+                    try {
+                        if (typeof app.canvas.stopMainLoop === 'function') {
+                            app.canvas.stopMainLoop();
+                        }
+                        setTimeout(() => {
+                            if (typeof app.canvas.startMainLoop === 'function') {
+                                app.canvas.startMainLoop();
+                            }
+                            if (typeof app.canvas.draw === 'function') {
+                                app.canvas.draw(true, true);
+                            }
+                            console.log("[h4] Canvas restarted (fallback).");
+                        }, 10);
+                    } catch (fallbackErr) {
+                        console.error("[h4] Fallback also failed:", fallbackErr);
+                    }
+                }
+
+                // Visual fallback indicator
+                btn.textContent = "(~_~)?";
+                btn.style.color = "#ffaa00";
             }
 
-            // 3. Reset Button
+            // 3. Reset Button after a short delay
             setTimeout(() => {
                 btn.textContent = origText;
                 btn.style.color = "#ffaa00";
                 btn.style.borderColor = "#333";
                 btn.style.transform = "scale(1)";
-            }, 300);
+            }, 1500);
         });
 
         document.body.appendChild(btn);
@@ -337,42 +369,7 @@ app.registerExtension({
         return newMode;
     },
 
-    setupSfwToggle() {
-        // We piggyback on the Settings Modal observer to find our target label
-        // Target: "👁️ h4 Big Brother: Enable Overlay"
-        const targetText = "👁️ h4 Big Brother: Enable Overlay";
 
-        const observer = new MutationObserver((mutations) => {
-            for (const mutation of mutations) {
-                // Check added nodes for the settings table rows
-                for (const node of mutation.addedNodes) {
-                    if (node.nodeType === 1) {
-                        // Check if this node CONTAINS our target label (it might be the modal or the table)
-                        if (node.textContent && node.textContent.includes(targetText)) {
-                            // Find the specific label element
-                            // ComfyUI settings are usually tables or lists
-                            const labels = node.querySelectorAll ? node.querySelectorAll("tr, label, .comfy-table-row") : [];
-                            for (const row of labels) {
-                                if (row.textContent.includes(targetText)) {
-                                    this.attachSecretListener(row);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        observer.observe(document.body, { childList: true, subtree: true });
-
-        // Also try to find it immediately (if settings were already open?)
-        setTimeout(() => {
-            const rows = document.querySelectorAll("tr");
-            for (const row of rows) {
-                if (row.textContent.includes(targetText)) this.attachSecretListener(row);
-            }
-        }, 1000);
-    },
 
     hookTheEye(element) {
         if (element.dataset.h4EyeHooked) return;

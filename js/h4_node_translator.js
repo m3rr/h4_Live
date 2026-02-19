@@ -19,8 +19,8 @@ app.registerExtension({
     async setup() {
         console.log("🌐 H4 Node Translator Loaded.");
 
-        // Use arrow function in setInterval to preserve 'this'
-        setInterval(() => this.checkTranslatorState(), 1000);
+        // Use arrow function in setInterval to preserve 'this' and catch async errors
+        setInterval(() => this.checkTranslatorState().catch(e => console.error("[H4 Translator] Loop Error:", e)), 1000);
     },
 
     async checkTranslatorState() {
