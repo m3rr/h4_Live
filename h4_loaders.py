@@ -106,9 +106,36 @@ class H4_UniversalLoader:
                 raise ValueError("UniversalLoader (Checkpoint Mode): No 'ckpt_name' selected! Please select a checkpoint.")
                 
             _log(f"Loading Checkpoint: {ckpt_name}")
-            ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
-            out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
-            return (out[0], out[1], out[2]) # MODEL, CLIP, VAE
+            
+            try:
+                ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
+                
+                if not ckpt_path:
+                    # Fallback: Check if it exists as absolute path or just filename
+                    import os
+                    if os.path.exists(ckpt_name):
+                        ckpt_path = ckpt_name
+                    else:
+                        raise FileNotFoundError(f"Checkpoint not found: {ckpt_name}. Please verify the file exists in your models/checkpoints folder.")
+                
+                _log(f"Resolved Checkpoint Path: {ckpt_path}")
+                
+                out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
+                
+                # Retrieve components for validation
+                model = out[0]
+                clip = out[1]
+                vae = out[2]
+                
+                # Run Validation (Now reachable)
+                self._validate_model_clip(model, clip, ckpt_name, "Baked")
+                
+                return (model, clip, vae) 
+
+            except Exception as e:
+                _log(f"CRITICAL ERROR loading checkpoint: {e}")
+                # Re-raise nicely so ComfyUI GUI shows popup
+                raise RuntimeError(f"Failed to load checkpoint '{ckpt_name}': {e}")
 
         # ----------------------------------------------------------------------
         # MODE 2: Diffusers (Component Loading)

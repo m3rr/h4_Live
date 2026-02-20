@@ -93,11 +93,26 @@ app.registerExtension({
         const BUILD_TIMESTAMP = "2026-01-08T09:45:00_LOG_CAPTURE";
         console.log(`%c👁️ h4 Big Brother v12 [BUILD: ${BUILD_TIMESTAMP}] Initializing...`, "color: #00FF00; background: #000; font-size: 14px; padding: 4px;");
 
-        // 1. Hydrate State
-        this._state = { ...this._config };
+        // 1. Hydrate State from Dashboard if available
+        if (window.h4_Dashboard && window.h4_Dashboard.config) {
+            this._config = { ...window.h4_Dashboard.config };
+            this._state = { ...this._config };
+        } else {
+            this._state = { ...this._config };
+        }
 
-        // 2. Initialize Settings
-        this.registerSettings();
+        // 1.1 Listen for Dashboard Updates
+        window.addEventListener("h4_config_update", (e) => {
+            const { key, val } = e.detail;
+            if (key in this._state) {
+                this._state[key] = val;
+                // Trigger re-render or updates if needed
+                if (key === 'debugMode') this.updateDebugNodeVisibility();
+            }
+        });
+
+        // 2. Initialize Settings (Disabled - Moved to Dashboard)
+        // this.registerSettings();
 
         // 3. Spawn the Ghost Layer
         this.createGhostLayer();
@@ -666,147 +681,9 @@ app.registerExtension({
     },
 
     registerSettings() {
-        const id = "h4.ToolKit";
-
-        app.ui.settings.addSetting({
-            id: `${id}.BigBrother.Enabled`,
-            name: "👁️ h4 Big Brother: Enable Overlay",
-            type: "boolean",
-            defaultValue: this._state.enabled,
-            tooltip: "Enable the h4 Ghost Layer overlay (wires & effects).",
-            onChange: (v) => { this._state.enabled = v; }
-        });
-
-        app.ui.settings.addSetting({
-            id: `${id}.BigBrother.Monitor`,
-            name: "👁️ h4 Big Brother: Console Monitor",
-            type: "boolean",
-            defaultValue: this._state.monitorEnabled,
-            tooltip: "Enable verbose console logging of node execution.",
-            onChange: (v) => { this._state.monitorEnabled = v; }
-        });
-
-        // [h4 DEBUG PROTOCOL] NUCLEAR debug mode toggle
-        app.ui.settings.addSetting({
-            id: `${id}.BigBrother.DebugMode`,
-            name: "🔬 h4 DEBUG PROTOCOL: NUCLEAR Mode",
-            type: "boolean",
-            defaultValue: this._state.debugMode,
-            tooltip: "Enable NUCLEAR-level debug logging. Outputs wire positions, slot calculations, and all internal state to console. Also shows the Debug Error Generator node for testing. For troubleshooting only.",
-            onChange: (v) => {
-                this._state.debugMode = v;
-                this.updateDebugNodeVisibility();
-            }
-        });
-
-        // Error popup toggle
-        app.ui.settings.addSetting({
-            id: `${id}.BigBrother.ShowErrorPopup`,
-            name: "💀 h4 Big Brother: Show Error Popup",
-            type: "boolean",
-            defaultValue: this._state.showErrorPopup,
-            tooltip: "Show the dramatic Death Modal popup when an execution error occurs. Disable if you find it annoying - errors will still be tracked and wires will still glow red.",
-            onChange: (v) => { this._state.showErrorPopup = v; }
-        });
-
-        app.ui.settings.addSetting({
-            id: `${id}.WireColor.Select`,
-            name: "🎨 h4 Wire: Selection Color",
-            type: "text",
-            defaultValue: this._state.wireColorSelect,
-            tooltip: "Hex code or color name for selected wires.",
-            onChange: (v) => { this._state.wireColorSelect = v; }
-        });
-
-        app.ui.settings.addSetting({
-            id: `${id}.WireColor.Error`,
-            name: "🎨 h4 Wire: Error Color",
-            type: "text",
-            defaultValue: this._state.wireColorError,
-            tooltip: "Hex code or color name for error wires.",
-            onChange: (v) => { this._state.wireColorError = v; }
-        });
-
-        app.ui.settings.addSetting({
-            id: `${id}.Grid.Color`,
-            name: "🎨 h4 Grid: Color",
-            type: "text",
-            defaultValue: this._state.gridColor,
-            tooltip: "Start up Grid Color",
-            onChange: (v) => { this._state.gridColor = v; }
-        });
-
-        // Manual Calibration for "Way Off" scenarios
-        app.ui.settings.addSetting({
-            id: `${id}.Calibration.X`,
-            name: "🔧 h4 Calibrate: Offset X",
-            type: "number",
-            defaultValue: 0,
-            step: 1,
-            tooltip: "Manually shift the overlay horizontally (pixels).",
-            onChange: (v) => { this._state.offsetX = v; }
-        });
-
-        app.ui.settings.addSetting({
-            id: `${id}.Calibration.Y`,
-            name: "🔧 h4 Calibrate: Global Y",
-            type: "number",
-            defaultValue: 0,
-            step: 1,
-            tooltip: "Shift the entire overlay vertically (screen pixels).",
-            onChange: (v) => { this._state.offsetY = v; }
-        });
-
-        // [BB-v11] NEW: Wire Slot Offset
-        app.ui.settings.addSetting({
-            id: `${id}.WireOffset.Y`,
-            name: "🔧 h4 Wire: Slot Offset Y",
-            type: "number",
-            defaultValue: 0,
-            step: 1,
-            tooltip: "Fine-tune wire endpoints vertically (graph units). Helpful for themes.",
-            onChange: (v) => { this._state.wireOffsetY = v; }
-        });
-
-        // [BB-v11] NEW: Wire Spacing Scale (Fan Fix)
-        // [BB-v11] NEW: Wire Spacing Scale (Fan Fix)
-        // Changed to "text" because "number" inputs were auto-rounding to integers in some UI versions.
-        app.ui.settings.addSetting({
-            id: `${id}.WireSpacing`,
-            name: "🔧 h4 Wire: Spacing Scale",
-            type: "text",
-            defaultValue: "1.00",
-            tooltip: "Scale vertical distance between slots (e.g. '1.05', '1.2'). Fixes fanning/drift.",
-            onChange: (v) => {
-                let val = parseFloat(v);
-                if (isNaN(val)) val = 1.0;
-                this._state.wireSpacing = val;
-            }
-        });
-
-        // [BB-v11] NEW: Wire Style Selection
-        app.ui.settings.addSetting({
-            id: `${id}.WireStyle`,
-            name: "👁️ BB: Wire Style",
-            type: "combo",
-            options: [
-                { value: "Match", text: "Match ComfyUI" },
-                { value: "Spline", text: "Spline (Bezier)" },
-                { value: "Linear", text: "Linear (Straight)" },
-                { value: "Circuit", text: "Circuit Board (Manhattan)" }
-            ],
-            defaultValue: "Circuit",
-            onChange: (v) => { this._state.wireStyle = v; }
-        });
-
-        // [BB-v11] NEW: Toggle Wires
-        app.ui.settings.addSetting({
-            id: `${id}.ShowWires`,
-            name: "👁️ BB: Show Wires",
-            type: "boolean",
-            defaultValue: false,
-            onChange: (v) => { this._state.showWires = v; }
-        });
+        // [MOVED TO H4 DASHBOARD]
+        // Settings are now handled by h4_Dashboard.js and h4_Sidebar.js
+        console.log("[h4] BigBrother settings are managed by H4 Dashboard.");
     },
 
     /**

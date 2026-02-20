@@ -46,10 +46,16 @@ class H4_SmartSave:
         # If Save Mode is ON, we act like SaveImage (use output folder)
         
         if save_mode:
-            root_dir = list(folder_paths.get_output_directory())[0] if isinstance(folder_paths.get_output_directory(), list) else folder_paths.get_output_directory()
-            relative_prefix = filename_prefix
-            subfolder = os.path.dirname(os.path.normpath(filename_prefix))
-            filename = os.path.basename(os.path.normpath(filename_prefix))
+            root_dir = folder_paths.get_output_directory()
+            # Handle list return type from ComfyUI (some versions)
+            if isinstance(root_dir, list):
+                root_dir = root_dir[0]
+                
+            # Normalize path for OS compatibility
+            norm_prefix = os.path.normpath(filename_prefix)
+            subfolder = os.path.dirname(norm_prefix)
+            filename = os.path.basename(norm_prefix)
+            
             full_output_dir = os.path.join(root_dir, subfolder)
         else:
              # Preview Mode - use temp
@@ -129,7 +135,46 @@ class H4_SmartSave:
                     "type": "temp"
                 })
 
+        # 4. FIFO Pruning (Save Mode Only)
+        if save_mode:
+             self._prune_files(full_output_dir, filename_prefix, limit=50)
+
         return {"ui": {"images": results}, "result": (images,)}
+    
+    def _prune_files(self, folder, prefix, limit=50):
+        try:
+            # Safely identify candidates
+            # We match strict prefix
+            candidates = []
+            
+            # Subfolder handling in prefix
+            norm_prefix = os.path.normpath(prefix)
+            base_filename = os.path.basename(norm_prefix) # e.g. "h4_" from "sub/h4_"
+            
+            # Since full_output_dir already includes the subfolder,
+            # we just look for files starting with base_filename
+            
+            for f in os.listdir(folder):
+                if f.startswith(base_filename) and f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+                    full = os.path.join(folder, f)
+                    try:
+                        candidates.append((full, os.path.getmtime(full)))
+                    except: pass
+            
+            # Sort Newest First
+            candidates.sort(key=lambda x: x[1], reverse=True)
+            
+            if len(candidates) > limit:
+                to_delete = candidates[limit:]
+                print(f"[H4_SmartSave] Pruning {len(to_delete)} old files (Limit: {limit})")
+                for path, _ in to_delete:
+                    try:
+                        os.remove(path)
+                    except Exception as e:
+                        print(f"[H4_SmartSave] Error pruning {path}: {e}")
+                        
+        except Exception as e:
+            print(f"[H4_SmartSave] Pruning Failed: {e}")
 
 # --- API FOR HISTORY ---
 try:
@@ -154,89 +199,81 @@ try:
             # Scan both output and temp directories
             # Preview-mode images go to temp, Save-mode images go to output
             scan_targets = []
-            if output_dir and os.path.exists(output_dir):
-                scan_targets.append((output_dir, "output"))
-                # print(f"[H4_SmartSave] Scanning Output: {output_dir}")
+            if output_dir:
+                if isinstance(output_dir, list):
+                     for d in output_dir:
+                         if os.path.exists(d): scan_targets.append((d, "output"))
+                elif os.path.exists(output_dir):
+                    scan_targets.append((output_dir, "output"))
             if temp_dir and os.path.exists(temp_dir):
                 scan_targets.append((temp_dir, "temp"))
-                # print(f"[H4_SmartSave] Scanning Temp: {temp_dir}")
             
             if not scan_targets:
-                # print("[H4_SmartSave] No valid directories to scan.")
                 return web.json_response([])
             
             files_found = []
             
+            # [H4] Performance Optimization: Use os.scandir for linear speed
             for base_dir, dir_type in scan_targets:
-                for root, dirs, files in os.walk(base_dir):
-                    for f in files:
-                        if f.lower().endswith(exts):
-                            full_path = os.path.join(root, f)
-                            try:
-                                stats = os.stat(full_path)
-                                # Store dir_type and base_dir alongside path for later relativization
-                                files_found.append((full_path, stats.st_mtime, base_dir, dir_type))
-                            except:
-                                continue
+                try:
+                    # We only scan the top-level or one level deep if prefix implies it?
+                    # For now, let's stick to a flat scan of the root target to ensure speed.
+                    with os.scandir(base_dir) as it:
+                        for entry in it:
+                            if entry.is_file() and entry.name.lower().endswith(exts):
+                                files_found.append((entry.path, entry.stat().st_mtime, base_dir, dir_type))
+                except Exception as e:
+                    print(f"[H4_SmartSave] Scan error for {base_dir}: {e}")
 
             # Sort by Modified Time (Newest First)
             files_found.sort(key=lambda x: x[1], reverse=True)
-            # print(f"[H4_SmartSave] Found {len(files_found)} images. Returning top 50.")
+            # Limit to top 15 for the filmstrip UI
+            top_limited = files_found[:15]
             
-            # Take top 50
-            top_50 = files_found[:50]
-            
-            for path, mtime, base_dir, dir_type in top_50:
+            for path, mtime, base_dir, dir_type in top_limited:
                 try:
-                    # Relativize path against the correct base directory (output or temp)
                     rel_path = os.path.relpath(path, base_dir)
                     subfolder = os.path.dirname(rel_path)
                     filename = os.path.basename(rel_path)
-                    
-                    # Normalize slashes for Web/API usage
                     subfolder = subfolder.replace("\\", "/")
                     
-                    # Read Metadata (Heavy I/O? accept it for 50 items)
-                    img = Image.open(path)
-                    info = img.info
-                    
-                    # Parse Prompt/Workflow if exists
-                    prompt = None
-                    workflow = None
-                    user_meta = {}
-                    
-                    if "prompt" in info:
-                        try: prompt = json.loads(info["prompt"])
-                        except: pass
-                    
-                    if "workflow" in info:
-                         try: workflow = json.loads(info["workflow"])
-                         except: pass
-                         
-                    # Custom H4 Metadata (stored as text keys usually)
-                    # We iterate all info keys to find non-standard ones
-                    for k, v in info.items():
-                        if k not in ["prompt", "workflow"]:
-                             user_meta[k] = v
-
+                    # [H4] LAZY LOADING: We NO LONGER open the image here.
+                    # Metadata fetch is deferred to the /h4/metadata endpoint.
                     history.append({
                         "filename": filename,
                         "subfolder": subfolder,
                         "type": dir_type,
-                        "timestamp": int(mtime * 1000),
-                        "prompt": prompt,
-                        "workflow": workflow,
-                        "user_meta": user_meta,
-                        "width": img.width,
-                        "height": img.height
+                        "timestamp": int(mtime * 1000)
                     })
                     
                 except Exception as e:
-                    print(f"[H4_SmartSave] Error reading {path}: {e}")
+                    print(f"[H4_SmartSave] Error processing {path}: {e}")
                     continue
                     
             # print(f"[H4_SmartSave] Found {len(files_found)} images. Returning top 50.")
-            print(f"[H4_SmartSave] Returning {len(history)} items to frontend.")
+            # print(f"[H4_SmartSave] Found {len(files_found)} images. Returning top 50.")
+            
+            # [H4] FIFO Check on GET?
+            # User requested pruning "in the film strip"
+            # We did pruning on SAVE, but if files accumulate from other sources, we might want to ensure consistency.
+            # However, deleting files just by viewing is risky if the prefix isn't known here (we scan everything).
+            # So we only prune on SAVE.
+            
+            # [H4] Sanitize NaN/Inf values which break JS JSON.parse
+            import math
+            def clean_nan(obj):
+                if isinstance(obj, float):
+                    if math.isnan(obj) or math.isinf(obj):
+                        return None
+                elif isinstance(obj, dict):
+                    return {k: clean_nan(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [clean_nan(v) for v in obj]
+                return obj
+
+            history = clean_nan(history)
+
+            # print(f"[H4_SmartSave] Returning {len(history)} items to frontend.")
             return web.json_response(history)
             
         except Exception as e:

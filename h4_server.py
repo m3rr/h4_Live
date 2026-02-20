@@ -5,21 +5,70 @@
 
 import os
 import json
+import time
 import folder_paths
 from server import PromptServer
 from aiohttp import web
+from PIL import Image, ImageOps
+import io
 
 # ------------------------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------------------------
-PRESET_DIR = os.path.join(folder_paths.base_path, "web", "extensions", "h4_presets") # Save in web/extensions for easy access or user dir?
-# User requested: "a folder in the nodes folder called presets"
-# Node folder: d:\PROJECTS\COMFYUI_Custom_Node\h4_ToolKit_v2\comfyui_h4_live
-# We can use os.path.dirname(__file__)
 PRESET_DIR = os.path.join(os.path.dirname(__file__), "presets")
+THUMB_DIR = os.path.join(folder_paths.get_temp_directory(), "h4_thumbs")
 
 if not os.path.exists(PRESET_DIR):
     os.makedirs(PRESET_DIR, exist_ok=True)
+if not os.path.exists(THUMB_DIR):
+    os.makedirs(THUMB_DIR, exist_ok=True)
+
+# [H4] Startup Cleanup: Remove thumbnails older than 24 hours
+def cleanup_old_thumbnails():
+    try:
+        now = time.time()
+        count = 0
+        for f in os.listdir(THUMB_DIR):
+            fpath = os.path.join(THUMB_DIR, f)
+            if os.stat(fpath).st_mtime < now - 86400:
+                os.remove(fpath)
+                count += 1
+        if count > 0:
+            print(f"[h4_server] 🧹 Cleaned up {count} old thumbnails.")
+    except Exception as e:
+        print(f"[h4_server] Error during thumbnail cleanup: {e}")
+
+cleanup_old_thumbnails()
+
+# ------------------------------------------------------------------------------
+# Thumbnail Logic
+# ------------------------------------------------------------------------------
+def create_thumbnail(path, filename):
+    """
+    Generates a 256px WebP thumbnail for the given image path.
+    Returns the path to the cached thumbnail.
+    """
+    thumb_name = f"thumb_{filename}.webp"
+    thumb_path = os.path.join(THUMB_DIR, thumb_name)
+    
+    # Cache Hit
+    if os.path.exists(thumb_path):
+        return thumb_path
+        
+    try:
+        if not os.path.exists(path): return None
+        
+        img = Image.open(path)
+        img = ImageOps.exif_transpose(img)
+        
+        img.thumbnail((256, 256), Image.Resampling.LANCZOS)
+        
+        # Optimization: Save as WebP (Lossy 60) for minimal size
+        img.save(thumb_path, "WEBP", quality=60)
+        return thumb_path
+    except Exception as e:
+        print(f"[h4_server] Thumbnail generation failed for {path}: {e}")
+        return None
 
 # ------------------------------------------------------------------------------
 # Routes
@@ -193,6 +242,108 @@ def register_routes():
         except Exception as e:
             print(f"[h4_server] ❌ Error fetching Translations: {e}")
             return web.json_response({"error": str(e)}, status=500)
+
+    # 8.5 Get Metadata (Lazy loading implementation)
+    @PromptServer.instance.routes.get("/h4/metadata")
+    async def get_metadata(request):
+        filename = request.query.get("filename")
+        subfolder = request.query.get("subfolder", "")
+        folder_type = request.query.get("type", "output")
+        
+        if not filename: return web.Response(status=404)
+        
+        # Security
+        if ".." in filename or ".." in subfolder: return web.Response(status=403)
+        
+        # Resolve Source Path
+        base = folder_paths.get_output_directory() if folder_type == "output" else folder_paths.get_temp_directory()
+        if isinstance(base, list): base = base[0]
+        
+        full_path = os.path.join(base, subfolder, filename)
+        
+        if not os.path.exists(full_path):
+            return web.json_response({"error": "File not found"}, status=404)
+            
+        try:
+            img = Image.open(full_path)
+            info = img.info
+            
+            prompt = None
+            workflow = None
+            user_meta = {}
+            
+            if "prompt" in info:
+                try: prompt = json.loads(info["prompt"])
+                except: pass
+            
+            if "workflow" in info:
+                 try: workflow = json.loads(info["workflow"])
+                 except: pass
+                 
+            for k, v in info.items():
+                if k not in ["prompt", "workflow"]:
+                     user_meta[k] = v
+            
+            return web.json_response({
+                "prompt": prompt,
+                "workflow": workflow,
+                "user_meta": user_meta
+            })
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
+    # 9. Thumbnail API (Memory Optimization)
+    @PromptServer.instance.routes.get("/h4/thumbnail")
+    async def get_thumbnail(request):
+        filename = request.query.get("filename")
+        subfolder = request.query.get("subfolder", "")
+        folder_type = request.query.get("type", "output")
+        
+        if not filename: return web.Response(status=404)
+        
+        # Security Check
+        if ".." in filename or ".." in subfolder: return web.Response(status=403)
+
+        # Resolve Source Path
+        # We try to find the file using ComfyUI's standard logic (if exposed) or manual lookup
+        source_path = None
+        
+        if folder_type == "output":
+            base = folder_paths.get_output_directory()
+        elif folder_type == "temp":
+            base = folder_paths.get_temp_directory()
+        elif folder_type == "input":
+            base = folder_paths.get_input_directory()
+        else:
+            base = folder_paths.get_output_directory()
+            
+        if subfolder:
+            source_path = os.path.join(base, subfolder, filename)
+        else:
+            source_path = os.path.join(base, filename)
+            
+        # Vault Logic Override?
+        # If the file isn't found, check if it's a Vault path relative to root extension
+        if not os.path.exists(source_path) and "comparinator" in subfolder:
+             # Try h4_comparinator local path
+             # subfolder might be "comparinator/2023-..."
+             # We need to map this to the extension dir
+             ext_root = os.path.dirname(__file__)
+             vault_path = os.path.join(ext_root, subfolder, filename)
+             if os.path.exists(vault_path):
+                 source_path = vault_path
+
+        if not source_path or not os.path.exists(source_path):
+            return web.Response(status=404)
+            
+        # Generate/Fetch Thumbnail
+        thumb_path = create_thumbnail(source_path, filename)
+        
+        if thumb_path and os.path.exists(thumb_path):
+            return web.FileResponse(thumb_path)
+        else:
+            # Fallback to source if thumb fails
+            return web.FileResponse(source_path)
 
 # Register on import
 register_routes()

@@ -109,7 +109,15 @@ class H4_Comparinator:
             custom_prefix = settings.get("prefix", "h4_compare")
             
             output_dir = folder_paths.get_output_directory()
-            full_output_dir = os.path.join(output_dir, custom_path)
+            # Safety check if it returns a list
+            if isinstance(output_dir, list): output_dir = output_dir[0]
+            
+            # Normalize user-provided path to avoid traversal issues
+            safe_custom_path = os.path.normpath(custom_path)
+            # Remove any leading ".." to prevent escaping output dir context
+            if safe_custom_path.startswith(".."): safe_custom_path = safe_custom_path.replace("..", "")
+            
+            full_output_dir = os.path.join(output_dir, safe_custom_path)
             os.makedirs(full_output_dir, exist_ok=True)
             
             ts_sec = int(time.time())

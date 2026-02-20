@@ -161,11 +161,15 @@ class SmartSaveUI {
         this.history = [];
         this.selected = null;
         this.liveParams = null;
-        this.historyOpen = false;
+
+        // [User Request] Default to OPEN history strip
+        this.historyOpen = true;
         this.metaOpen = false;
         this.paramsOpen = false;
+
         // Tracks the CURRENT widget height for computeSize, updated during animations
-        this._currentWidgetHeight = BAR_HEIGHT;
+        // Default starts with drawer OPEN height now
+        this._currentWidgetHeight = BAR_HEIGHT + DRAWER_HEIGHT;
 
         // CSS Injection (once per page)
         let style = document.getElementById("h4-smart-save-style");
@@ -180,12 +184,32 @@ class SmartSaveUI {
 
         // Initial Fetch after a short delay to ensure ComfyUI is ready
         setTimeout(() => this.fetchHistory(), 1000);
+
+        // [H4] Polling (30s silent)
+        this.pollInterval = setInterval(() => this.fetchHistory(true), 30000);
+
+        // [H4] Execution Listeners
+        this._onExecuted = (e) => {
+            // Wait for file system flush
+            setTimeout(() => this.fetchHistory(true), 1000);
+        };
+        api.addEventListener("executed", this._onExecuted);
     }
 
     cleanup() {
         if (this.drawer && this.drawer.parentNode) {
             this.drawer.parentNode.removeChild(this.drawer);
         }
+        if (this.lb && this.lb.parentNode) {
+            this.lb.parentNode.removeChild(this.lb);
+        }
+        // [H4] ZOMBIE KILLER
+        if (this.pollInterval) clearInterval(this.pollInterval);
+        if (this._onExecuted) api.removeEventListener("executed", this._onExecuted);
+    }
+
+    onRemoved() {
+        this.cleanup();
     }
 
     /**
@@ -204,10 +228,10 @@ class SmartSaveUI {
         this.root = document.createElement("div");
         this.root.className = "h4-smart-root";
 
-        // 1. History Drawer Container (starts at height 0, JS controls expansion)
+        // 1. History Drawer Container (starts at OPEN height now)
         this.histDrawer = document.createElement("div");
-        this.histDrawer.className = "h4-smart-history-drawer";
-        this.histDrawer.style.height = "0px";
+        this.histDrawer.className = "h4-smart-history-drawer open"; // Add open class
+        this.histDrawer.style.height = `${DRAWER_HEIGHT}px`; // Set explicit height
 
         // Film Strip inside Drawer
         this.strip = document.createElement("div");
@@ -220,13 +244,18 @@ class SmartSaveUI {
         const bar = document.createElement("div");
         bar.className = "h4-smart-bar";
 
-        // Toggle 1: IMAGE HISTORY
+        // Toggle 1: IMAGE HISTORY (Default Active)
         const histToggle = this._createToggle("IMAGE HISTORY", (active) => {
             this.historyOpen = active;
             this.histDrawer.classList.toggle("open", active);
             // Animate the drawer height from 0 -> DRAWER_HEIGHT or vice versa
             this._animateDrawer(active);
         });
+
+        // Set toggle to active state initially
+        histToggle.classList.add("active");
+        histToggle.isActive = true; // Helper for internal state if needed
+
 
         // Toggle 2: CUSTOM META
         const metaToggle = this._createToggle("CUSTOM META", (active) => {
@@ -275,6 +304,13 @@ class SmartSaveUI {
         // 4. Lightbox (Fullscreen image viewer)
         this.lb = document.createElement("div");
         this.lb.className = "h4-smart-lightbox";
+        this.lb.onclick = () => {
+            this.lb.classList.remove("open");
+            // [H4] Force VRAM Flush
+            this.lbImg.src = "";
+            this.lbImg.removeAttribute("src"); // Hint for GC
+        };
+
         this.lbImg = document.createElement("img");
         this.lbImg.className = "h4-smart-lb-img";
         this.lb.appendChild(this.lbImg);
@@ -282,92 +318,7 @@ class SmartSaveUI {
         const close = document.createElement("div");
         close.className = "h4-smart-lb-close";
         close.innerHTML = "&times;";
-        close.onclick = () => this.lb.classList.remove("open");
         this.lb.appendChild(close);
-
-        // Zoom Controls Container
-        const controls = document.createElement("div");
-        controls.className = "h4-smart-lb-controls";
-        controls.style.position = "absolute";
-        controls.style.bottom = "20px";
-        controls.style.left = "50%";
-        controls.style.transform = "translateX(-50%)";
-        controls.style.display = "flex";
-        controls.style.gap = "10px";
-        controls.style.alignItems = "center";
-        controls.style.background = "rgba(0,0,0,0.5)";
-        controls.style.padding = "5px 15px";
-        controls.style.borderRadius = "20px";
-        controls.style.zIndex = "1001";
-
-        // Slider
-        const slider = document.createElement("input");
-        slider.type = "range";
-        slider.min = "10";
-        slider.max = "500"; // 500%
-        slider.value = "100";
-        slider.step = "10";
-        slider.style.width = "200px";
-        slider.style.cursor = "pointer";
-
-        // Label
-        const label = document.createElement("span");
-        label.textContent = "100%";
-        label.style.color = "#fff";
-        label.style.minWidth = "40px";
-        label.style.textAlign = "right";
-        label.style.fontFamily = "monospace";
-
-        // Slider Logic
-        slider.oninput = (e) => {
-            const val = parseInt(e.target.value);
-            this.lbState.scale = val / 100;
-            label.textContent = `${val}%`;
-            this.updateTransform();
-        };
-
-        controls.appendChild(slider);
-        controls.appendChild(label);
-        this.lb.appendChild(controls);
-
-        this.zoomSlider = slider;
-        this.zoomLabel = label;
-
-        // Zoom/Pan State for Lightbox
-        this.lbState = { scale: 1, x: 0, y: 0, dragging: false };
-
-        this.lb.onwheel = (e) => {
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? 0.9 : 1.1;
-            let newScale = this.lbState.scale * delta;
-
-            // Clamp to slider bounds (10% - 500%)
-            newScale = Math.max(0.1, Math.min(5.0, newScale));
-
-            this.lbState.scale = newScale;
-            this.zoomSlider.value = Math.round(newScale * 100);
-            this.zoomLabel.textContent = `${Math.round(newScale * 100)}%`;
-
-            this.updateTransform();
-        };
-        this.lbImg.onmousedown = (e) => {
-            e.preventDefault();
-            this.lbState.dragging = true;
-            this.lbState.lx = e.clientX;
-            this.lbState.ly = e.clientY;
-        };
-        window.addEventListener("mousemove", (e) => {
-            if (this.lbState.dragging) {
-                const dx = e.clientX - this.lbState.lx;
-                const dy = e.clientY - this.lbState.ly;
-                this.lbState.x += dx;
-                this.lbState.y += dy;
-                this.lbState.lx = e.clientX;
-                this.lbState.ly = e.clientY;
-                this.updateTransform();
-            }
-        });
-        window.addEventListener("mouseup", () => { this.lbState.dragging = false; });
 
         document.body.appendChild(this.lb);
     }
@@ -421,9 +372,15 @@ class SmartSaveUI {
             <div class="h4-toggle-pill"><div class="h4-toggle-knob"></div></div>
             <div class="h4-toggle-label">${label}</div>
         `;
+        // State is managed externally via classList mostly, but local var for click handler
+        // Check if the element has 'active' class assigned immediately after creation for sync
         let active = false;
+
         wrap.onclick = () => {
-            active = !active;
+            // Check current DOM state to sync (since we might set class externally)
+            const isCurrentlyActive = wrap.classList.contains("active");
+            active = !isCurrentlyActive; // Toggle
+
             wrap.classList.toggle("active", active);
             onToggle(active);
         };
@@ -505,14 +462,10 @@ class SmartSaveUI {
         app.graph.setDirtyCanvas(true, true);
     }
 
-    updateTransform() {
-        this.lbImg.style.transform = `translate(${this.lbState.x}px, ${this.lbState.y}px) scale(${this.lbState.scale})`;
-    }
-
     // -------------------------------------------------------------------------
     // DATA FETCHING
     // -------------------------------------------------------------------------
-    async fetchHistory() {
+    async fetchHistory(silent = false) {
         try {
             // detailed logging for debugging
             // console.log("[SmartSave] Fetching history..."); 
@@ -526,8 +479,14 @@ class SmartSaveUI {
                 const newSig = data[0]?.timestamp;
 
                 if (currentSig !== newSig || this.history.length !== data.length) {
-                    console.log(`[SmartSave] Updating history strip. New: ${data.length}, Old: ${this.history.length}`);
-                    this.history = data;
+                    // [H4] Silent Poll unless 10 mins passed
+                    if (!this._lastLogTime) this._lastLogTime = 0;
+                    if (!silent && (Date.now() - this._lastLogTime > 600000)) {
+                        console.log(`[SmartSave] Updating history strip. New: ${data.length}, Old: ${this.history.length}`);
+                        this._lastLogTime = Date.now();
+                    }
+                    // EMERGENCY CAP: Limit to 10 items to prevent lag
+                    this.history = data.slice(0, 10);
                     this.renderStrip();
                 }
             } else {
@@ -578,27 +537,52 @@ class SmartSaveUI {
             if (this.selected && this.selected.filename === item.filename) thumb.classList.add("active");
 
             // Image URL via ComfyUI's view API
-            const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
-            thumb.style.backgroundImage = `url("${url}")`;
+            // Image URL via ComfyUI's view API (or H4 Thumbnail API)
+            // const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
+
+            // THUMBNAIL OPTIMIZATION
+            const thumbUrl = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
+            // Keep full URL for lightbox
+            const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
+
+            thumb.style.backgroundImage = `url("${thumbUrl}")`;
 
             // Single click: select, auto-open params panel, and show parameters
-            thumb.onclick = () => {
+            // Single click: select, auto-open params panel, and show parameters
+            thumb.onclick = async () => {
                 this.selected = item;
                 this.renderStrip();
 
-                this.renderStrip();
+                // [H4] Lazy Loading Metadata Fetch
+                if (!item.prompt && !item.user_meta) {
+                    const thumbOverlay = document.createElement("div");
+                    thumbOverlay.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,102,34,0.4); display:flex; align-items:center; justify-content:center; color:#fff; font-size:8px;";
+                    thumbOverlay.textContent = "LOADING...";
+                    thumb.appendChild(thumbOverlay);
+
+                    try {
+                        const mRes = await api.fetchApi(`/h4/metadata?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
+                        if (mRes.ok) {
+                            const mData = await mRes.json();
+                            item.prompt = mData.prompt;
+                            item.workflow = mData.workflow;
+                            item.user_meta = mData.user_meta;
+                        }
+                    } catch (e) {
+                        console.error("[SmartSave] Metadata fetch failed", e);
+                    } finally {
+                        if (thumbOverlay.parentNode) thumbOverlay.parentNode.removeChild(thumbOverlay);
+                    }
+                }
+
                 this.renderDrawer(item);
             };
 
-            // Double click: open lightbox
+            // Double click: open lightbox (Simple)
             thumb.ondblclick = () => {
-                this.lbImg.src = url;
-                this.lbState = { scale: 1, x: 0, y: 0, dragging: false };
-                this.updateTransform();
+                this.lbImg.src = fullUrl;
                 this.lb.classList.add("open");
-                if (this.zoomSlider) this.zoomSlider.value = 100;
             };
-
             this.strip.appendChild(thumb);
         });
     }
@@ -624,9 +608,11 @@ class SmartSaveUI {
         if (this.paramsOpen) this.updateDrawerPosition();
 
         const header = document.createElement("div");
-        header.style.cssText = "color:#00ff55; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #333; padding-bottom:5px;";
-        header.textContent = isLive ? "LIVE PARAMETERS (ACTIVE)" : "HISTORY PARAMETERS";
+        header.style.cssText = "color:#00ff55; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #333; padding-bottom:5px; display:flex; justify-content:space-between;";
+        header.innerHTML = `<span>${isLive ? "LIVE PARAMETERS (ACTIVE)" : "HISTORY PARAMETERS"}</span><span style='color:#444; font-size:8px;'>v5.7.2</span>`;
         this.drawer.appendChild(header);
+
+        if (!isLive) console.log("[SmartSave] Rendering History Drawer for item:", item);
 
         let data = {};
 
@@ -647,11 +633,11 @@ class SmartSaveUI {
             return;
         }
 
-        const addRow = (label, val) => {
-            if (!val) return;
+        const addRow = (label, val, skipIfNull = true) => {
+            if (skipIfNull && (val === undefined || val === null || val === "")) return;
             const r = document.createElement("div");
             r.className = "h4-smart-param-row";
-            r.innerHTML = `<span class="h4-smart-label">${label}</span><span class="h4-smart-val">${val}</span>`;
+            r.innerHTML = `<span class="h4-smart-label">${label}</span><span class="h4-smart-val">${val ?? "None"}</span>`;
             this.drawer.appendChild(r);
         };
 
@@ -668,30 +654,37 @@ class SmartSaveUI {
             this.drawer.appendChild(b);
         };
 
-        addRow("CHECKPOINT", data.ckpt_name);
+        // ENFORCED ORDER PER USER REQUEST
+        addRow("SEED", data.seed);
+        addRow("CKPT", data.ckpt_name);
+
+        // LORAS
+        if (data.loras && data.loras.length) {
+            data.loras.forEach((lora, idx) => {
+                addRow(`LORA ${idx + 1}`, lora.name);
+                addRow(`LORA ${idx + 1} STR`, lora.strength);
+            });
+        }
+
+        addRow("CLIP", data.clip_name);
         addRow("VAE", data.vae_name);
-        addRow("SAMPLER", data.sampler_name);
+        addRow("CLIPSKIP", data.clip_skip);
         addRow("SCHEDULER", data.scheduler);
+        addRow("SAMPLER", data.sampler_name);
         addRow("STEPS", data.steps);
         addRow("CFG", data.cfg);
-        addRow("SEED", data.seed);
+        addRow("DENOISE", data.denoise);
 
         addBlock("POSITIVE PROMPT", data.positive || data.prompt_pos);
         addBlock("NEGATIVE PROMPT", data.negative || data.prompt_neg);
 
-        if (data.loras && data.loras.length) {
-            const l = document.createElement("div");
-            l.className = "h4-smart-label";
-            l.style.marginTop = "8px";
-            l.textContent = "LORAS";
-            this.drawer.appendChild(l);
-            data.loras.forEach(lora => {
-                const d = document.createElement("div");
-                d.style.display = "flex"; d.style.justifyContent = "space-between";
-                d.innerHTML = `<span style='color:#ccc'>${lora.name}</span><span style='color:#888'>${lora.strength}</span>`;
-                this.drawer.appendChild(d);
-            });
-        }
+        // EXTRA / UNSORTED DATA
+        const handled = ["seed", "ckpt_name", "loras", "clip_name", "vae_name", "clip_skip", "scheduler", "sampler_name", "steps", "cfg", "denoise", "positive", "negative", "prompt_pos", "prompt_neg"];
+        Object.entries(data).forEach(([k, v]) => {
+            if (!handled.includes(k) && typeof v !== "object") {
+                addRow(k.toUpperCase(), v);
+            }
+        });
     }
 
     // -------------------------------------------------------------------------
@@ -703,19 +696,36 @@ class SmartSaveUI {
 
         const type = node.comfyClass || node.type || "";
 
+        // Collect widgets from current node
         if (node.widgets) {
             for (const w of node.widgets) {
                 const n = w.name.toLowerCase();
                 const v = w.value;
-                if (!v) continue;
+                if (v === undefined || v === null) continue;
 
                 if (n === "seed") results.seed = v;
                 if (n === "steps") results.steps = v;
                 if (n === "cfg") results.cfg = v;
                 if (n === "sampler_name") results.sampler_name = v;
                 if (n === "scheduler") results.scheduler = v;
+                if (n === "denoise") results.denoise = v;
                 if (n === "ckpt_name") results.ckpt_name = v;
                 if (n === "vae_name") results.vae_name = v;
+                if (n === "clip_name") results.clip_name = v;
+                if (n === "stop_at_clip_layer") results.clip_skip = v;
+
+                // Lora Capture
+                if (type.includes("LoraLoader")) {
+                    if (!results.loras) results.loras = [];
+                    const lName = node.widgets.find(lw => lw.name === "lora_name")?.value;
+                    const lStr = node.widgets.find(lw => lw.name.includes("strength"))?.value;
+                    if (lName) {
+                        // Check if already captured to avoid duplicates in complex graphs
+                        if (!results.loras.find(l => l.name === lName)) {
+                            results.loras.push({ name: lName, strength: lStr || 1.0 });
+                        }
+                    }
+                }
             }
         }
 
@@ -725,7 +735,9 @@ class SmartSaveUI {
                     const link = app.graph.links[inp.link];
                     if (link) {
                         const upstream = app.graph.getNodeById(link.origin_id);
-                        if (type.includes("KSampler")) {
+                        if (!upstream) continue;
+
+                        if (type.toLowerCase().includes("ksampler")) {
                             if (inp.name === "positive") this.extractPrompt(upstream, "positive", results);
                             if (inp.name === "negative") this.extractPrompt(upstream, "negative", results);
                         }
@@ -758,17 +770,23 @@ class SmartSaveUI {
     // PNG METADATA PARSER (History)
     // -------------------------------------------------------------------------
     parsePromptJSON(promptInfo) {
-        const res = {};
+        const res = { loras: [] };
+        if (!promptInfo) return res;
+
         for (const [id, node] of Object.entries(promptInfo)) {
             const inputs = node.inputs;
             const type = node.class_type;
+            if (!inputs) continue;
 
-            if (type.includes("KSampler")) {
-                if (inputs.seed) res.seed = inputs.seed;
-                if (inputs.steps) res.steps = inputs.steps;
-                if (inputs.cfg) res.cfg = inputs.cfg;
+            const t = type.toLowerCase();
+
+            if (t.includes("ksampler")) {
+                if (inputs.seed !== undefined) res.seed = inputs.seed;
+                if (inputs.steps !== undefined) res.steps = inputs.steps;
+                if (inputs.cfg !== undefined) res.cfg = inputs.cfg;
                 if (inputs.sampler_name) res.sampler_name = inputs.sampler_name;
                 if (inputs.scheduler) res.scheduler = inputs.scheduler;
+                if (inputs.denoise !== undefined) res.denoise = inputs.denoise;
 
                 if (inputs.positive && Array.isArray(inputs.positive)) {
                     res.positive = this.findTextInJson(promptInfo, inputs.positive[0]);
@@ -777,13 +795,26 @@ class SmartSaveUI {
                     res.negative = this.findTextInJson(promptInfo, inputs.negative[0]);
                 }
             }
-            if (type.includes("CheckpointLoader")) {
+            if (t.includes("checkpointloader")) {
                 if (inputs.ckpt_name) res.ckpt_name = inputs.ckpt_name;
             }
-            if (type.includes("VAELoader")) {
+            if (t.includes("vaeloader")) {
                 if (inputs.vae_name) res.vae_name = inputs.vae_name;
             }
+            if (t.includes("cliploader")) {
+                if (inputs.clip_name) res.clip_name = inputs.clip_name;
+            }
+            if (t.includes("clipsetlastlayer") || t.includes("clipskip")) {
+                if (inputs.stop_at_clip_layer !== undefined) res.clip_skip = inputs.stop_at_clip_layer;
+            }
+            if (t.includes("loraloader")) {
+                if (inputs.lora_name) {
+                    const lStr = inputs.strength_model || inputs.strength || 1.0;
+                    res.loras.push({ name: inputs.lora_name, strength: lStr });
+                }
+            }
         }
+        console.log("[SmartSave] Parsed Metadata Results:", res);
         return res;
     }
 
@@ -798,6 +829,10 @@ class SmartSaveUI {
 // =============================================================================
 // EXTENSION REGISTRATION
 // =============================================================================
+
+// [User Request] Medium Sized Square on Summon
+const DEFAULT_SIZE = [500, 280];
+
 app.registerExtension({
     name: "h4.SmartSave",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
@@ -808,11 +843,13 @@ app.registerExtension({
 
                 // Instantiate UI and attach as DOM widget
                 const ui = new SmartSaveUI(this);
+                this.smartUI = ui;
                 const widget = this.addDOMWidget("h4_smart_ui", "custom", ui.root, { serialize: false });
 
-                // WIDGET MANAGEMENT (Same pattern as h4_Comparinator)
-                // Hide the custom_metadata widget initially.
-                // It will be toggled visible via the "CUSTOM META" button.
+                setTimeout(() => {
+                    this.setSize(DEFAULT_SIZE);
+                }, 50);
+
                 const hideWidgets = () => {
                     if (!this.widgets) return;
                     this.widgets.forEach(w => {
@@ -823,7 +860,6 @@ app.registerExtension({
                         }
                     });
 
-                    // Ensure the DOM widget renders last (after filename_prefix and save_mode)
                     const idx = this.widgets.findIndex(w => w.name === "h4_smart_ui");
                     if (idx >= 0 && idx < this.widgets.length - 1) {
                         const [uiWidget] = this.widgets.splice(idx, 1);
@@ -834,9 +870,6 @@ app.registerExtension({
                 setTimeout(hideWidgets, 100);
                 setTimeout(hideWidgets, 500);
 
-                // FORCE SNAP: After widgets are hidden, snap node to exact minimum size.
-                // ComfyUI never auto-shrinks, so we must explicitly set it.
-                // This eliminates the extra padding at the bottom.
                 setTimeout(() => {
                     hideWidgets();
                     const sz = this.computeSize();
@@ -844,16 +877,10 @@ app.registerExtension({
                     app.graph.setDirtyCanvas(true, true);
                 }, 600);
 
-                // STATE-DRIVEN computeSize:
-                // Returns the DESIRED height based on toggle states, not the rendered DOM height.
-                // This avoids the chicken-and-egg problem where ComfyUI constrains the DOM widget
-                // container, preventing offsetHeight from reflecting the true desired height.
                 widget.computeSize = (w) => {
                     return [w, ui.getDesiredHeight()];
                 };
 
-                // Enforce widget hiding on every draw frame
-                // Also update the param panel position so it tracks the node during pan/zoom
                 const onDrawForeground = this.onDrawForeground;
                 this.onDrawForeground = function (ctx) {
                     hideWidgets();
@@ -861,7 +888,6 @@ app.registerExtension({
                     if (onDrawForeground) onDrawForeground.apply(this, arguments);
                 };
 
-                // Hook execution to crawl live parameters and refresh history
                 const onExecuted = this.onExecuted;
                 this.onExecuted = function () {
                     if (onExecuted) onExecuted.apply(this, arguments);
@@ -870,7 +896,6 @@ app.registerExtension({
                     setTimeout(() => ui.fetchHistory(), 500);
                 };
 
-                // Cleanup on node removal
                 const onRemoved = this.onRemoved;
                 this.onRemoved = function () {
                     if (onRemoved) onRemoved.apply(this, arguments);

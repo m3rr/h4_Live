@@ -468,6 +468,8 @@ class ComparinatorUI {
         // FLICKER ENGINE
         this.flickerTimer = -1;
         const runFlickerLoop = () => {
+            if (this._destroyed) return; // [H4] Stop zombie loop
+
             if (this.flickerTimer > 0) {
                 this.flickerTimer -= 10;
                 if (this.flickerTimer <= 0) {
@@ -479,7 +481,7 @@ class ComparinatorUI {
                 if (roll > 0) {
                     // 10 = 5 mins (300s). So roll * 30.
                     this.flickerTimer = roll * 30;
-                    console.log(`[H4 Flicker] Roll: ${roll} -> Delay: ${this.flickerTimer}s`);
+                    // console.log(`[H4 Flicker] Roll: ${roll} -> Delay: ${this.flickerTimer}s`);
                 }
             }
             setTimeout(runFlickerLoop, 10000);
@@ -487,19 +489,31 @@ class ComparinatorUI {
         runFlickerLoop();
 
         setTimeout(() => this.fetchHistory(), 500);
+
+        this._setupExecutionListener();
     }
 
-    triggerFlicker() {
-        if (!this.el || !this.el.root) return;
-        // Brighter pulse flicker as requested (Dim -> Spike -> Dim)
-        this.el.root.style.filter = "brightness(1.5) contrast(1.2)";
-        setTimeout(() => {
-            this.el.root.style.filter = "brightness(1) contrast(1)";
-            setTimeout(() => {
-                this.el.root.style.filter = "brightness(1.3)";
-                setTimeout(() => { this.el.root.style.filter = "brightness(1) contrast(1)"; }, 50);
-            }, 50);
-        }, 100);
+    _setupExecutionListener() {
+        this._onExecuted = () => {
+            // Wait for file system flush
+            setTimeout(() => this.fetchHistory(), 1000);
+        };
+        api.addEventListener("executed", this._onExecuted);
+    }
+
+    onRemoved() {
+        this._destroyed = true;
+
+        // Remove DOM
+        if (this.el && this.el.root && this.el.root.parentNode) {
+            this.el.root.parentNode.removeChild(this.el.root);
+        }
+        if (this.drawer && this.drawer.parentNode) {
+            this.drawer.parentNode.removeChild(this.drawer);
+        }
+
+        // Remove Listener
+        if (this._onExecuted) api.removeEventListener("executed", this._onExecuted);
     }
 
     initDOM() {
@@ -866,6 +880,10 @@ class ComparinatorUI {
 
     openLightbox(item) {
         this.activeLBItem = item;
+        if (!item) return;
+        // FORCE FULL RESOLUTION (No thumb flag)
+        const url = this.resolveImageUrl(item, 'b', false);
+        this.lbImg.src = url;
         this.state.lbZoom = 1;
         this.state.lbPair = 'A';
         this.lbPan = { x: 0, y: 0, ox: 0, oy: 0, dragging: false };
@@ -876,6 +894,9 @@ class ComparinatorUI {
 
     closeLightbox() {
         this.lb.classList.remove("open");
+        // [H4] Force VRAM Flush
+        this.lbImg.src = "";
+        this.lbImg.removeAttribute("src");
     }
 
     updateLightboxImg() {
@@ -931,18 +952,28 @@ class ComparinatorUI {
         return w;
     }
 
-    resolveImageUrl(item, channel = 'b') {
+    resolveImageUrl(item, channel = 'b', thumb = false) {
         if (!item) return "";
         const fn = (channel === 'a') ? (item.filename_a || item.filename_b) : item.filename_b;
         if (!fn) return "";
 
         if (item.source === "vault" || item.vault_folder) {
             const rel = (channel === 'a') ? (item.relative_path_a || item.relative_path_b) : item.relative_path_b;
+            if (thumb) {
+                return api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(rel)}&subfolder=comparinator`);
+            }
             return `/h4/comparinator/image?filename=${encodeURIComponent(rel)}`;
         }
 
         const t = item.timestamp || Date.now();
-        return `/view?filename=${fn}&type=temp&t=${t}`;
+        const sub = item.subfolder || "";
+        const type = item.type || (item.source === "temp_recovery" ? "temp" : "output");
+
+        if (thumb) {
+            return api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(fn)}&subfolder=${encodeURIComponent(sub)}&type=${type}`);
+        }
+
+        return `/view?filename=${fn}&type=${type}&t=${t}`;
     }
 
     bindEvents() {
@@ -1379,7 +1410,7 @@ class ComparinatorUI {
         // --- MODE 3: DEFAULT (Split Panes) ---
 
 
-        const pane1Item = this.state.locked || this.state.live;
+        const pane1Item = this.state.locked || this.state.live || (this.state.history && this.state.history[0]);
         const pane1Label = this.state.locked ? "LOCKED" : "LIVE";
 
         let pane2Item = this.state.selected;
@@ -1497,15 +1528,25 @@ class ComparinatorUI {
                 // SIDE A (Left)
                 const sideA = document.createElement("div");
                 sideA.className = "h4-thumb-side h4-thumb-a";
-                sideA.style.backgroundImage = `url("${this.resolveImageUrl(item, 'a')}")`;
+                // USE THUMBNAIL (TRUE)
+                sideA.style.backgroundImage = `url("${this.resolveImageUrl(item, 'a', true)}")`;
 
                 // SIDE B (Right)
                 const sideB = document.createElement("div");
                 sideB.className = "h4-thumb-side h4-thumb-b";
-                sideB.style.backgroundImage = `url("${this.resolveImageUrl(item, 'b')}")`;
+                // USE THUMBNAIL (TRUE)
+                sideB.style.backgroundImage = `url("${this.resolveImageUrl(item, 'b', true)}")`;
 
                 t.appendChild(sideA);
                 t.appendChild(sideB);
+
+                // Allow dragging full resolution from the strip
+                t.draggable = true;
+                t.ondragstart = (e) => {
+                    const url = this.resolveImageUrl(item, 'b', false);
+                    e.dataTransfer.setData("text/plain", url);
+                    e.dataTransfer.setData("h4/item", JSON.stringify(item));
+                };
 
                 this.strip.appendChild(t);
             });
@@ -1539,7 +1580,7 @@ class ComparinatorUI {
             const latestOld = this.state.history[0] ? String(this.state.history[0].timestamp) : null;
             const changed = history.length !== this.state.history.length || latestNew !== latestOld;
 
-            this.state.history = history;
+            this.state.history = history.slice(0, 10);
             if (changed) {
                 console.log(`[H4 Comparinator] History sync: ${history.length} items detected.`);
                 this.renderStrip(true);
@@ -1821,6 +1862,11 @@ class ComparinatorUI {
         try {
             current = JSON.parse(settings.value || "{}");
         } catch (e) { }
+
+        // SYNC: Ensure auto_save matches the actual widget state
+        if (saveModeWidget) {
+            current.auto_save = saveModeWidget.value;
+        }
 
         // INITIALIZE DEFAULTS if empty
         if (Object.keys(current).length === 0) {
@@ -2120,7 +2166,6 @@ class ComparinatorUI {
         this.reticleImg.style.left = `${70 - (x * z)}px`; // Centering for 140px reticle
         this.reticleImg.style.top = `${70 - (y * z)}px`;
     }
-
 }
 
 app.registerExtension({
@@ -2152,11 +2197,10 @@ app.registerExtension({
                         }
                     });
 
-                    // Force custom UI to top to prevent bleed
                     const idx = this.widgets.findIndex(w => w.name === "h4_holy_ui");
                     if (idx > 0) {
-                        const [ui] = this.widgets.splice(idx, 1);
-                        this.widgets.unshift(ui);
+                        const [uiWidget] = this.widgets.splice(idx, 1);
+                        this.widgets.unshift(uiWidget);
                     }
                 };
                 hider();
@@ -2164,10 +2208,9 @@ app.registerExtension({
                 setTimeout(hider, 500);
                 setTimeout(hider, 1000);
 
-                // Overwrite draw_widget to be a NOOP for hidden ones
                 const onDrawForeground = this.onDrawForeground;
                 this.onDrawForeground = function (ctx) {
-                    hider(); // Constant enforcement
+                    hider();
                     if (onDrawForeground) onDrawForeground.apply(this, arguments);
                 };
 

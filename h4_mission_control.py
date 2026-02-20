@@ -8,6 +8,7 @@
 from .h4_core import get_state, _log, increment_loop, reset_state, orbit_get, orbit_set
 from .h4_utils import ANY_TYPE
 import random
+from server import PromptServer
 
 class H4_MissionControl:
     """
@@ -197,7 +198,13 @@ class H4_SeedGenerator:
                     "default": "Incremental",
                     "tooltip": "Incremental: Start + Loop Count. Fixed: Always Start. Random: Pure Chaos."
                 }),
-            }
+                "broadcast": ("BOOLEAN", {
+                    "default": False,
+                    "label": "📡 Broadcast Wireless?",
+                    "tooltip": "If True, this seed will overwrite ALL other seed widgets in the workflow."
+                }),
+            },
+            "hidden": {"unique_id": "UNIQUE_ID"},
         }
 
     RETURN_TYPES = ("INT",)
@@ -222,13 +229,24 @@ class H4_SeedGenerator:
             return float("nan")
         return float("nan")
 
-    def generate_seed(self, start_seed, mode):
+    def generate_seed(self, start_seed, mode, broadcast, unique_id=None):
         state = get_state()
         count = state["loop_count"]
         
+        final_seed = start_seed
+
         if mode == "Fixed":
-            return (start_seed,)
+            final_seed = start_seed
         elif mode == "Incremental":
-            return (start_seed + count,)
+            final_seed = start_seed + count
         else: # Random
-            return (random.randint(0, 0xffffffffffffffff),)
+            final_seed = random.randint(0, 0xffffffffffffffff)
+            
+        if broadcast:
+            # Wireless Signal
+            try:
+                PromptServer.instance.send_sync("h4_broadcast_seed", {"seed": final_seed, "source_id": unique_id})
+            except Exception as e:
+                _log(f"[SeedGen] Broadcast Failed: {e}")
+                
+        return (final_seed,)

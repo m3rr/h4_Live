@@ -17,6 +17,15 @@ class ComparinatorVault:
     MAX_FOLDERS = 10
     MAX_IMAGES_PER_FOLDER = 100
 
+    # Cache
+    _HISTORY_CACHE = None
+    _CACHE_VALID = False
+
+    @classmethod
+    def invalidate_cache(cls):
+        cls._CACHE_VALID = False
+        cls._HISTORY_CACHE = None
+
     @classmethod
     def get_todays_folder(cls):
         """Finds or creates the active folder for today."""
@@ -92,8 +101,8 @@ class ComparinatorVault:
             _log("[Vault] ❌ Validation Failed: corrupt data rejected.")
             return False
             
-        # 2. Prune old folders
-        cls._prune_folders()
+        # 2. Prune old entries (FIFO)
+        cls._enforce_capacity()
         
         # 3. Get Storage Path
         folder_path = cls.get_todays_folder()
@@ -117,6 +126,7 @@ class ComparinatorVault:
             json.dump(metadata, f, indent=2)
             
         _log(f"[Vault] 📝 Saved history to {fpath}")
+        cls.invalidate_cache()
         return True
 
     @classmethod
@@ -133,29 +143,90 @@ class ComparinatorVault:
         return True
 
     @classmethod
-    def _prune_folders(cls):
-        """Keeps only the MAX_FOLDERS most recent directories."""
+    def _enforce_capacity(cls):
+        """
+        [H4 FIFO] strictly limits total vault size to 100 entries.
+        Deletes oldest JSONs and their images.
+        """
+        HISTORY_LIMIT = 100
+        
         if not os.path.exists(cls.ROOT_DIR): return
+
+        # Gather all items
+        all_items = []
+        for root, dirs, files in os.walk(cls.ROOT_DIR):
+            for f in files:
+                if f.endswith(".json"):
+                    full_path = os.path.join(root, f)
+                    try:
+                        with open(full_path, "r", encoding="utf-8") as jf:
+                            data = json.load(jf)
+                            ts = data.get("timestamp", 0)
+                            all_items.append({
+                                "path": full_path,
+                                "timestamp": ts,
+                                "data": data,
+                                "root": root
+                            })
+                    except:
+                        pass
         
-        all_dirs = []
-        for d in os.listdir(cls.ROOT_DIR):
-            p = os.path.join(cls.ROOT_DIR, d)
-            if os.path.isdir(p):
-                all_dirs.append(p)
-                
-        all_dirs.sort(key=lambda x: os.path.basename(x))
+        # Sort Newest -> Oldest
+        all_items.sort(key=lambda x: x["timestamp"], reverse=True)
         
-        while len(all_dirs) > cls.MAX_FOLDERS:
-            to_del = all_dirs.pop(0)
-            _log(f"[Vault] 🧹 Pruning old folder: {to_del}")
+        if len(all_items) <= HISTORY_LIMIT:
+            return
+
+        # Identify items to prune
+        to_prune = all_items[HISTORY_LIMIT:]
+        _log(f"[Vault] 🧹 Pruning {len(to_prune)} items to maintain limit of {HISTORY_LIMIT}...")
+
+        for item in to_prune:
+            # Delete JSON
             try:
-                shutil.rmtree(to_del)
+                os.remove(item["path"])
             except Exception as e:
-                _log(f"[Vault] Prune failed: {e}")
+                _log(f"[Vault] Error deleting JSON {item['path']}: {e}")
+                continue
+
+            # Delete Images (Image A and B)
+            # We assume they are in the same folder as the JSON
+            # We construct the image paths from the JSON data
+            folder = item["root"]
+            
+            for key in ["filename_a", "filename_b"]:
+                fname = item["data"].get(key)
+                if fname:
+                    # Check if any OTHER history item uses this image? 
+                    # (Unlikely in Comparinator unless manually manipulated)
+                    # We'll just delete it.
+                    img_path = os.path.join(folder, fname)
+                    if os.path.exists(img_path):
+                        try:
+                            os.remove(img_path)
+                        except: pass
+
+        # Clean up empty folders
+        cls._prune_empty_folders()
+        cls.invalidate_cache()
+
+    @classmethod
+    def _prune_empty_folders(cls):
+        for root, dirs, files in os.walk(cls.ROOT_DIR, topdown=False):
+            if root == cls.ROOT_DIR: continue
+            try:
+                if not os.listdir(root):
+                    os.rmdir(root)
+            except: pass
 
     @classmethod
     def get_all_history(cls):
         """Returns flattened list of all history JSONs, sorted new -> old."""
+        
+        if cls._CACHE_VALID and cls._HISTORY_CACHE is not None:
+             # _log("[Vault] Returning Cached History")
+             return cls._HISTORY_CACHE
+
         history = []
         
         # 1. Scan Vault
@@ -176,6 +247,7 @@ class ComparinatorVault:
                                 
                                 def make_path(fname):
                                     if not fname: return None
+                                    # Web URLs must use forward slashes, even on Windows
                                     return f"{folder_name}/{fname}"
                                     
                                 data["relative_path_a"] = make_path(data.get("filename_a"))
@@ -246,4 +318,9 @@ class ComparinatorVault:
             _log(f"[Vault] Temp Scan Error: {e}")
 
         history.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+        
+        # Update Cache
+        cls._HISTORY_CACHE = history
+        cls._CACHE_VALID = True
+        
         return history

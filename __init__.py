@@ -3,6 +3,36 @@
 # 🚀 h4_Live ToolKit | Nuclear Logic & Persistent State & Some other stuff. NOW WITH QoL Enhancements
 # ----------------------------------------------------------------------------------------------------
 import sys
+import os
+import shutil
+
+# [H4] Runtime Pycache Cleaner
+# This ensures a clean slate for the h4_Live suite on every server start.
+def nuke_pycache():
+    import stat
+    root = os.path.dirname(__file__)
+    print(f"\n[H4] ☢️  Initiating Runtime Pycache Nuke in: {root}")
+    
+    # Helper to force-delete read-only files (fixes Windows permission issues)
+    def remove_readonly(func, path, _):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+        
+    count = 0
+    for dirpath, dirnames, filenames in os.walk(root):
+        # Remove __pycache__ directories
+        if "__pycache__" in dirnames:
+            p = os.path.join(dirpath, "__pycache__")
+            try:
+                shutil.rmtree(p, onerror=remove_readonly)
+                count += 1
+            except Exception as e:
+                print(f"[H4] ❌ Failed to nuke {p}: {e}")
+            dirnames.remove("__pycache__") # Don't traverse into it
+            
+    print(f"[H4] ☢️  Nuked {count} __pycache__ folders. System Clean.\n")
+
+nuke_pycache()
 
 # Version Check
 try:
@@ -98,41 +128,41 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_TrafficCop": "h4 Traffic Cop (Live Logic)",
-    "H4_TrafficMerge": "h4 Traffic Merge (Safe Select)",
-    "H4_TrafficRouter": "h4 Traffic Router (The Nexus)",
-    "H4_StateMonitor": "h4 State Monitor",
-    "H4_ContextHub": "h4 Context Hub (Mothership)",
-    "H4_ContextUnpack": "h4 Context Unpack (Distributor)",
-    "H4_SmartConsole": "{h4 - DEBUGGER} - Inline Debugger {Smart Console}",
-    "H4_MissionControl": "h4 Mission Control (Dashboard)",
-    "H4_LinearScheduler": "h4 Linear Scheduler (Signal Gen)",
-    "H4_SeedGenerator": "h4 Seed Generator (Signal Gen)",
-    "H4_LoopIncrementer": "h4 Loop Incrementer (Hybrid)",
-    "H4_WirelessResetButton": "h4 Wireless Reset (Toggle)",
-    "H4_ImageBuffer": "h4 Image Buffer (Anti-Lag)",
+    "H4_TrafficCop": "h4 - Traffic Cop (Live Logic)",
+    "H4_TrafficMerge": "h4 - Traffic Merge (Safe Select)",
+    "H4_TrafficRouter": "h4 - Traffic Router (The Nexus)",
+    "H4_StateMonitor": "h4 - State Monitor",
+    "H4_ContextHub": "h4 - Context Hub (Mothership)",
+    "H4_ContextUnpack": "h4 - Context Unpack (Distributor)",
+    "H4_SmartConsole": "h4 - Smart Console (Debugger)",
+    "H4_MissionControl": "h4 - Mission Control (Dashboard)",
+    "H4_LinearScheduler": "h4 - Linear Scheduler (Signal Gen)",
+    "H4_SeedGenerator": "h4 - Seed Generator (Signal Gen)",
+    "H4_LoopIncrementer": "h4 - Loop Incrementer (Hybrid)",
+    "H4_WirelessResetButton": "h4 - Wireless Reset (Toggle)",
+    "H4_ImageBuffer": "h4 - Image Buffer (Anti-Lag)",
     "H4_Gridinator": "h4 - Gridinator 9001",
-    "H4_DebugErrorGenerator": "🔬 h4 Debug Error (TEST ONLY)",
-    "H4_Discombobulator": "The Discombobulator (Use with CAUTION)",
-    "H4_DataStream": "h4 DataStream (Batch Loader)",
-    "H4_AxisDriver": "h4 Axis Driver (Grid Tools)",
-    "H4_Varianator": "h4 Varianator (Latent Riffler)",
-    "H4_SeedSequencer": "h4 Seed Sequencer (Chaos Control)",
-    "H4_PixelPress": "h4 Pixel Press (Density)",
+    "H4_DebugErrorGenerator": "h4 - Debug Error (TEST ONLY)",
+    "H4_Discombobulator": "h4 - The Discombobulator (Use with CAUTION)",
+    "H4_DataStream": "h4 - DataStream (Batch Loader)",
+    "H4_AxisDriver": "h4 - Axis Driver (Grid Tools)",
+    "H4_Varianator": "h4 - Varianator (Latent Riffler)",
+    "H4_SeedSequencer": "h4 - Seed Sequencer (Chaos Control)",
+    "H4_PixelPress": "h4 - Pixel Press (Density)",
     # FaceForge Suite
     **FACEFORGE_DISPLAY_MAPPINGS,
     # Logic
-    "H4_NodeTranslator": "🌐 h4 Node Translator (WIP)",
-    "H4_DisplayAny": "h4 Display Any+ (Universal Monitor)",
-    "H4_UniversalLoader": "h4 Universal Loader (Checkpoint/Diffusers)",
-    "H4_DocuScribe": "📜 H4 DocuScribe (Workflow Reporter)",
-    "H4_SmartSave": "💾 H4 SmartSave (Preview/Save)",
-    "H4_Comparinator": "⚔️ h4 Comparinator (A/B Test)",
-    "H4_NoteInjector": "📝 H4 Note Injector (Title Bar)",
-    "H4_VisualTokenizer": "👁️ h4 Visual Tokenizer (Weights)",
-    "H4_ModelMerger": "🧪 H4 Model Merger (Mad Science!)",
-    "H4_ModelSave": "💾 H4 Model Save (Simple)",
-    "H4_LatentSelector": "h4 Latent_Presets",
+    "H4_NodeTranslator": "h4 - Node Translator (WIP)",
+    "H4_DisplayAny": "h4 - Display Any+ (Universal Monitor)",
+    "H4_UniversalLoader": "h4 - Universal Loader (Checkpoint/Diffusers)",
+    "H4_DocuScribe": "h4 - DocuScribe (Workflow Reporter)",
+    "H4_SmartSave": "h4 - SmartSave (Preview/Save)",
+    "H4_Comparinator": "h4 - Comparinator (A/B Test)",
+    "H4_NoteInjector": "h4 - Note Injector (Title Bar)",
+    "H4_VisualTokenizer": "h4 - Visual Tokenizer (Weights)",
+    "H4_ModelMerger": "h4 - Model Merger (Mad Science!)",
+    "H4_ModelSave": "h4 - Model Save (Simple)",
+    "H4_LatentSelector": "h4 - Latent Presets",
 }
 
 WEB_DIRECTORY = "./js"
