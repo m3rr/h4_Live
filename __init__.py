@@ -62,6 +62,7 @@ from .h4_model_merger import H4_ModelMerger
 from .h4_model_save import H4_ModelSave
 from .h4_latent_selector import H4_LatentSelector
 from .h4_node_translator import H4_NodeTranslator
+from .h4_oxidine import H4_Oxidine
 
 # FaceForge Module (AIO Face Swap Suite)
 from .h4_faceforge import (
@@ -119,6 +120,7 @@ NODE_CLASS_MAPPINGS = {
     **FACEFORGE_CLASS_MAPPINGS,
     # Logic
     "H4_NodeTranslator": H4_NodeTranslator,
+    "H4_Oxidine": H4_Oxidine,
     "H4_DisplayAny": H4_DisplayAny,
     "H4_UniversalLoader": H4_UniversalLoader,
     "H4_DocuScribe": H4_DocuScribe,
@@ -163,6 +165,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_ModelMerger": "h4 - Model Merger (Mad Science!)",
     "H4_ModelSave": "h4 - Model Save (Simple)",
     "H4_LatentSelector": "h4 - Latent Presets",
+    "H4_Oxidine": "h4 - Oxidine (Reroute)",
 }
 
 WEB_DIRECTORY = "./js"

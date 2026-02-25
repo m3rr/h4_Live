@@ -19,8 +19,8 @@ app.registerExtension({
     },
 
     async nodeCreated(node, app) {
-        // Check if node is H4
-        if (!node.comfyClass || !node.comfyClass.startsWith("H4_")) return;
+        // Check if node is H4 - Skip Oxidine (Nuclear Silence requested)
+        if (!node.comfyClass || !node.comfyClass.startsWith("H4_") || node.comfyClass === "H4_Oxidine") return;
 
         // Custom Help Button Draw Logic
         const originalOnDrawForeground = node.onDrawForeground;

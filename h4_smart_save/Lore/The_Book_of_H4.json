@@ -1738,5 +1738,33 @@
         "outputs": {
             "seed": "The generated integer."
         }
+    },
+    "H4_Oxidine": {
+        "title": "H4 Oxidine (The Shifter)",
+        "description": "Meet Oxidine. It's not just a reroute; it's a chemical catalyst for your workflow. Designed to be minimalist, 'scary' efficient, and sexy as hell. It transmorphs shapes—from clean circles to geometric hexagons—to fit your aesthetic. But beneath the chrome is a 'True Agnostic' brain. It doesn't care what you plug into it. It crawls downstream, figures out what the next node is 'thirsty' for, and delivers exactly that payload. One dot, infinite possibilities.",
+        "usage": "Use it as a high-density intersection. Plug everything into it. Right-click [OXIDINE] to change shapes, colors, or activate Stealth Mode (invisible wires).",
+        "features": [
+            {
+                "name": "Geometric Transmorphing",
+                "description": "Change the node shape to Triangle, Hexagon, Octagon, or Circle via the context menu. No widgets required."
+            },
+            {
+                "name": "Smart Crawl Routing",
+                "description": "Automatically analyzes downstream requirements and routes the correct data type (Latent, Image, etc.) automatically."
+            },
+            {
+                "name": "Stealth Wires",
+                "description": "In Stealth Mode, wires become 95% invisible until you hover your mouse near them. Keeps the workspace industrial and clean."
+            },
+            {
+                "name": "Mood Shifts",
+                "description": "The secret h4 shape can shift from (b'.')b to t('.'t) depending on your... mood."
+            }
+        ],
+        "tips": [
+            "Enable 'Stealth Mode' to clean up spaghetti. Wires only appear when you need to see them.",
+            "Use the 'Radioactive Yellow' color to make it pop against a dark canvas.",
+            "Enable Debug Log to see the forensic manifest of data passing through the intersection."
+        ]
     }
 }

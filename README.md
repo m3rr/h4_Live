@@ -278,6 +278,21 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 ---
 
+### H4_Oxidine (The Sentient Conduit)
+**What it is:** The ultimate node-wire declutter tool. An "omniproxy" that bundles all your node connections into a single cable.
+
+**How to use it:**
+- Plug your Model, CLIP, VAE, Positive Prompt, Negative Prompt, and Latent all into one Oxidine node.
+- Take the single output noodle from Oxidine and drag it across your massive workflow.
+- Plug that single noodle directly into the KSampler's `model`, `positive`, `negative`, and `latent_image` inputs.
+- Plug it into VAEDecode's `vae` and `samples` inputs.
+
+**How it works:**
+- It automatically shape-shifts. When KSampler asks for a Model, Oxidine hands it the Model. When it asks for Positive conditioning, Oxidine hands it the Positive conditioning. 
+- You no longer need 6 different wires crossing your screen like a plate of spaghetti.
+
+---
+
 ### H4_TrafficRouter (The Nexus)
 **What it is:** The Grand Central Station of your workflow. It decides what data goes into your KSampler based on whether you are starting fresh or looping.
 
@@ -949,6 +964,27 @@ h4_Live addresses this by:
 - Adds safeguards for wireless patterns to reduce cycle-related execution faults.
 - Performs runtime type checks to prevent Image/Latent mismatches.
 
+**H4_TrafficCop**
+- **Architecture Note:** Operates as a legacy splitter, strictly forwarding the `any_input` reference to both output ports simultaneously without explicit dropping, prioritizing acyclic safety over conditional occlusion.
+- **Fail-Safe Mechanism:** Injects dummy references into inactive pathways to prevent `NoneType` propagation crashes in downstream ComfyUI execution flows.
+- **State Resolution:** Polls `_H4_GLOBAL_STATE` `loop_count` to determine routing without mutating the state counter itself.
+
+**H4_StateMonitor**
+- **Instrumentation:** Acts as a transparent telemetry intercept. It reads the `loop_count` directly from Python's global namespace memory (`h4_core.get_state()`).
+- **Graph Synchronization:** Implements an `Any_In` pass-through port to force ComfyUI's DAG executor to delay the `report_state` execution until deterministic prerequisite nodes resolve, bypassing race conditions.
+
+**H4_LoopIncrementer**
+- **Mutation Vector:** Exclusively handles the `+1` incrementation array logic decoupled from parameter routing, adhering to single-responsibility architecture.
+- **Interrupt Listener:** Constantly evaluates the `request_reset` boolean flag within the global `orbit_get()` dictionary cache. If triggered, `reset_state()` forces the loop count integer back to `0` preemptively before pass-through.
+
+**H4_WirelessResetButton**
+- **Non-Linear State Injection:** Bypasses conventional DAG topography by writing a `True` flag directly into the `orbit_get` persistence layer (`request_reset`).
+- **Orphan Node Execution:** Required to be evaluated. It has `OUTPUT_NODE = True`, forcing ComfyUI to execute its `send_reset()` function even without terminal outputs, enabling out-of-band state mutation.
+
+**H4_ImageBuffer**
+- **Storage Subroutine:** Invokes `buffer_image()` to establish a global heap reference for arbitrary Python objects (`ANY_TYPE`). By persisting memory addresses instead of serializing payloads, zero-copy overhead is maintained.
+- **Cycle Evasion Strategy:** Circumvents cyclical graph dependency faults by segregating writes (Run N) from reads (Run N+1) through decoupled temporal execution windows. Fallback mechanisms utilize previous states if upstream dependencies fail.
+
 ### Context bundling: H4_PIPE
 **H4_ContextHub**
 - Bundles canonical ComfyUI artifacts into a composite pipe type.
@@ -1016,10 +1052,71 @@ h4_Live addresses this by:
 **H4_FaceDetailer**
 - Texture restoration via controlled denoise constraints to add micro-detail while minimizing identity drift.
 
+**H4_BuildFaceModel**
+- **Embedding Synthesis:** Iteratively processes batches or directories of imagery through InsightFace (`buffalo_l` / CPU or CUDA Execution Provider). Extracts the 512-dimensional feature vector `embedding` for each detected face.
+- **Statistical Blending:** Aggregates multiple vectors into a unified model using Numpy-accelerated mathematical synthesis. 'Mean' calculates the spatial average, 'Median' filters out geometric drift from extreme outliers (glasses/occlusions), and 'Mode' calculates the centroid distance to extract the single most representative template.
+- **Unit Normalization:** Strictly enforces 1.0 length unit normalization (`embedding / np.linalg.norm(embedding)`) prior to reconstruction, satisfying InsightFace's internal Cosine Similarity thresholds during the swap phase.
+
+**H4_SaveFaceModel / H4_LoadFaceModel**
+- **Safetensors Serialization:** Circumvents Python `pickle` vulnerabilities by mapping the arbitrary `Face` class attributes (embedding, kps, bbox, det_score, 3d/2d landmarks, pose, gender, age) directly into standalone PyTorch tensors.
+- **Restoration Pipeline:** `H4_LoadFaceModel` parses the tensors, handles missing legacy keys gracefully, enforces vector re-normalization, and dynamically reconstructs the `Face` object in memory. This bypasses the need for the heavy detection model to run during runtime loading.
+
 ### H4_ModelMerger (Backend)
 - **Tiled VAE Decode**: Uses a rolling buffer calculation to decode large test images without OOMing 8GB cards.
 - **FP32 Fallback**: If standard FP16 decode returns NaNs (black images), it automatically casts the VAE to FP32, retries, and then casts back. This fixes the infamous "black square" issue on 16-series and some 30-series cards.
 - **Garbage Collection**: Aggressive `gc.collect()` and `torch.cuda.empty_cache()` calls between merge operations to prevent fragmentation.
+
+### File I/O and Advanced Serialization
+
+**H4_UniversalLoader**
+- **Dynamic Bridge Architecture:** Automatically detects `.gguf` extensions and delegates loading to `ComfyUI_GGUF` internally via dynamic module importation (`importlib`).
+- **Wan/Lumina Heuristics:** Employs runtime validation before loading the UNET. If a `zimage` or `wan` model is detected alongside a 4096-dim `T5` text encoder (instead of a 2560-dim Gemma), it triggers a preemptive structural exception warning to prevent latent sizing crashes.
+- **Fallbacks & Intercepts:** Manually wraps Wan UNETs initializing config properties (`patch_size`, `freq_dim`, `window_size`) bypassing standard layer detectors to enforce deterministic 14B / 1.3B routing.
+
+**H4_ModelSave**
+- **Native Pipeline Hook:** Invokes `model.state_dict_for_saving(clip_sd, vae_sd)` to inherit ComfyUI's internal mapping dictionaries. This intrinsically guarantees that SDXL (`conditioner.embedders.`), SD1.5 (`cond_stage_model.`), and Flux components are prefixed accurately without manual regex string-replacements.
+- **Post-Hook Casting:** Operates precise `torch.float16`, `bfloat16`, or `float8` casting routines iteratively across the finalized state dict *after* key-mapping, minimizing the memory footprint immediately prior to `safetensors` topological serialization.
+- **GC Invocation:** Purges python garbage collection `gc.collect()` and empties CUDA cache pre-save to free consecutive blocks of VRAM needed to assemble monolithic `.safetensors` blobs.
+
+**H4_SmartSave**
+- **Dual-Bus IO Logic:** Utilizes conditional branching to direct payload writes to `folder_paths.get_temp_directory()` (transient Preview logic) or `get_output_directory()` (persistent Save logic).
+- **Metadata Serialization:** Extracts raw JSON from the `custom_metadata` string schema, dynamically parsing and injecting key-value pairs into the PIL `PngInfo()` header prior to compression.
+- **Non-Blocking Telemetry (History API):** Defers metadata chunk parsing from the `/h4/smart_save/history` REST endpoint. Uses `os.scandir` instead of `os.listdir` to generate the filmstrip JSON response in O(n) linear performance constraints.
+
+### Diagnostics, Modifiers, and Visualizers
+
+**H4_PixelPress (SSAA & HDR)**
+- **Supersampling Engine:** Operates a true Super Sampling Anti-Aliasing (SSAA) pipeline. It first upscales the latent/image via a tiled neural model inference (`_tiled_upscale`), mitigating VRAM exhaustion via mathematically precise spatial overlap masking.
+- **Colorimetric LAB Transforms:** Instead of naive RGB manipulation, it converts tiles into the CIELAB (`LAB`) color space using `ImageCms.profileToProfile`. This allows isolated manipulation of the Luminance channel (`L`), applying non-linear shadow curve (`1/(1+shadow)`) and highlight exponents without distorting chromaticity (`A`/`B`).
+- **Lanczos Down-sampling:** Sharpens via `ImageFilter.UnsharpMask`, then compresses the supersampled array back to the original operational matrix using `Image.Resampling.LANCZOS`, resulting in ultra-crisp micro-details.
+
+**H4_Varianator**
+- **Sub-Graph Iteration:** Circumvents ComfyUI's acyclic functional paradigm by embedding a captive `nodes.KSampler` instance within its execute function.
+- **Latent Riffing:** Iterates `N` times over a cloned input `LATENT`, mutating the base seed (incrementally or purely randomly) and injecting a variable `denoise` strength governed by predefined boundaries (`minimal: 0.3-0.4`, `major: 0.5-0.55`).
+- **Memory Safety:** Decodes the final varied latent batch using `nodes.VAEDecode()` internally and stacks the resulting tensor array (`torch.cat`), preventing graph bloat.
+
+**H4_VisualTokenizer**
+- **Tokenizer Extraction:** Dynamically traversing the nested abstraction layers of the provided `CLIP` model (probing for `.tokenizer` or `.cond_stage_model.tokenizer`) to isolate the raw `transformers.CLIPTokenizer`.
+- **Lexical Mapping:** Uses internal Comfy functions (`comfy.sd1_clip.token_weights`) to preserve prompt weighting (e.g., `(text:1.2)`), then strictly maps `.tokenize()` outputs to `.convert_tokens_to_ids()`.
+- **WebSocket Telemetry:** Broadcasts the parsed matrix via `PromptServer.instance.send_sync("h4.visual_tokenizer.update")`, allowing the JS frontend to construct the token-block UI asynchronously.
+
+**H4_LatentSelector**
+- **Deterministic Math:** Computes exact `target_area` baselines depending on architecture (`SDXL:` 1,048,576 pixels vs `SD1.5:` 262,144 pixels). Applies square-root derivations to calculate the closest mathematically pure dimensional ratio, finally snapping to hardware-friendly `modulo 16` pixel boundaries before generating the empty `torch.zeros()` tensor.
+
+**H4_NodeTranslator & H4_Discombobulator**
+- **Stateless Anchors:** These nodes execute purely as `noop` (No Operation) backend stubs. They return `{"ui": ...}` or `float("NaN")` for `IS_CHANGED`, ensuring they never trigger unwanted graph evaluations. Their primary existence is to act as DOM injection anchors for `h4_node_translator.js` and the glitch engine, which mutate ComfyUI's internal graph representations (`app.graph._nodes`) on the fly.
+
+**H4_NoteInjector**
+- **Rasterized Overlays:** Utilizes raw `PIL.ImageDraw` to composite height-constrained color bars onto incoming `[B, H, W, C]` tensors. Attempts to dynamically load system fonts (`arial.ttf`, `Roboto`) before falling back to `ImageFont.load_default()`. Calculates text bounding boxes to guarantee pixel-perfect centering of dual-line (Title/Subtitle) typographical injections.
+
+### Utility & Quality Control
+
+**H4_Oxidine**
+- **Sovereign Proxy Routing:** Operates as a stateless multiplexer traversing the Node Graph. It implements Python's `__getattr__`, `__getitem__`, and sequence protocols natively to override standard dictionary representations. Bypasses list-flattening bugs by avoiding standard subclasses, thereby forcing `comfy.execution` to treat it as an autonomous payload until explicitly unpacked or directly queried by downstream modules (e.g., KSampler calling `proxy.patch_model`).
+- *Note: For a biblical-level architectural deep-dive into the Sentient Conduit, please refer to the dedicated `OXIDINE-BREAKDOWN.md` file located in the root directory.*
+
+**H4_DebugErrorGenerator**
+- **Controlled Chaos:** A dedicated structural testing node explicitly designed to raise raw exceptions (`ValueError`, `RuntimeError`, `TypeError`) into the ComfyUI execution stack. Vital for testing custom popup UI interceptors and the JS notification listener (h4_BigBrother).
 
 ### Frontend extensions (js/)
 **BigBrother bundle**

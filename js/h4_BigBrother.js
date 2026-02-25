@@ -2,7 +2,7 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 /**
- * 👁️ h4 Big Brother v11 (Ghost in the Shell)
+ * 👁️ h4 Big Brother v12 (Ghost in the Shell)
  * -----------------------------------------------------------------------------
  * A passive monitoring and visualization layer for ComfyUI.
  * 
@@ -21,9 +21,9 @@ app.registerExtension({
     _config: {
         enabled: false,
         monitorEnabled: false,
-        debugMode: false, // [h4 DEBUG PROTOCOL] NUCLEAR debug logging toggle
-        showErrorPopup: false, // Show the Death Modal on execution errors
-        showGrid: false, // Default to OFF
+        debugMode: false,          // [h4 DEBUG PROTOCOL] NUCLEAR debug logging toggle
+        showErrorPopup: false,     // Show the Death Modal on execution errors
+        showGrid: false,           // Default to OFF
         wireColorSelect: "#00FF00",
         wireColorError: "#FF0000",
         gridColor: "rgba(255, 200, 0, 0.15)",
@@ -37,6 +37,7 @@ app.registerExtension({
 
     // Internal State
     _state: {}, // Will be populated from _config in setup (renamed from 'settings' to avoid ComfyUI collision)
+
     canvas: null,
     ctx: null,
     infectedNodes: new Set(),
@@ -45,15 +46,15 @@ app.registerExtension({
 
     // Animation State
     animStart: 0,
-    gridDelay: 500, // ms to wait before grid starts
+    gridDelay: 500,     // ms to wait before grid starts
     gridDuration: 1500, // ms for the wipe to complete
 
     // Console Log Buffer (captures ALL output since launch)
     _logBuffer: [],
     _logBufferMaxSize: 50000, // Reduced from 1M to 50k for stability and performance
-    _originalConsole: null, // Store original console methods
+    _originalConsole: null,   // Store original console methods
     _networkInterceptorInstalled: false, // Flag for network interceptor
-    _isHandlingError: false, // Recursion protection for handleError
+    _isHandlingError: false,  // Recursion protection for handleError
 
     // --- Discombobulator Easter Egg State ---
     _glitchState: {
@@ -66,8 +67,10 @@ app.registerExtension({
     async setup() {
         // 0. FIRST: Install console interceptor to capture ALL logs from launch
         this.installConsoleInterceptor();
-        // 0.1 Install network interceptor to capture fetch/XHR/WebSocket activity
+
+        // 0.1 Install network interceptor to capture fetch/XHR/WebSocket activity safely
         this.installNetworkInterceptor();
+
         // 0.2 Global error handling to capture uncaught errors and promise rejections
         // Wrapped with safety check to prevent infinite loops during early crashes
         window.addEventListener('error', (event) => {
@@ -76,6 +79,7 @@ app.registerExtension({
             const errMsg = `${message} at ${filename}:${lineno}:${colno}`;
             this.handleError({ error: errMsg, traceback: error ? error.stack : '' });
         });
+
         window.addEventListener('unhandledrejection', (event) => {
             if (this._isHandlingError) return;
             let reason = event.reason;
@@ -90,8 +94,9 @@ app.registerExtension({
         });
 
         // [VERSION CHECK] If you see this timestamp in console, the NEW code is running
-        const BUILD_TIMESTAMP = "2026-01-08T09:45:00_LOG_CAPTURE";
+        const BUILD_TIMESTAMP = "2026-02-23T14:23:00_NETWORK_SAFE_O_n2";
         console.log(`%c👁️ h4 Big Brother v12 [BUILD: ${BUILD_TIMESTAMP}] Initializing...`, "color: #00FF00; background: #000; font-size: 14px; padding: 4px;");
+        console.log("[h4] 🛡️ Emergency Startup Hardening Active.");
 
         // 1. Hydrate State from Dashboard if available
         if (window.h4_Dashboard && window.h4_Dashboard.config) {
@@ -110,9 +115,6 @@ app.registerExtension({
                 if (key === 'debugMode') this.updateDebugNodeVisibility();
             }
         });
-
-        // 2. Initialize Settings (Disabled - Moved to Dashboard)
-        // this.registerSettings();
 
         // 3. Spawn the Ghost Layer
         this.createGhostLayer();
@@ -146,9 +148,7 @@ app.registerExtension({
     // ==============================================================================
     // CAFFEINE MODE (Screen Wake Lock)
     // ==============================================================================
-
     _wakeLockSentinel: null,
-
     async toggleCaffeineMode(btn) {
         if (!('wakeLock' in navigator)) {
             alert("Your browser does not support Wake Lock API. Please use Chrome/Edge.");
@@ -182,10 +182,6 @@ app.registerExtension({
                     // System released it?
                     if (this._wakeLockSentinel !== null) {
                         console.log('[h4] Wake Lock released by system.');
-                        // Reset UI if it wasn't manual
-                        // Actually, let's keep it null and let user toggle again if needed, 
-                        // mostly likely user minimized window or switched tabs.
-                        // But we want it persistent if possible.
                     }
                 });
                 console.log("[h4] Caffeine Mode: ON (Wake Lock Active)");
@@ -225,13 +221,13 @@ app.registerExtension({
         // Re-acquire lock logic when tab comes back into focus
         document.addEventListener('visibilitychange', async () => {
             if (this._wakeLockSentinel !== null && document.visibilityState === 'visible') {
-                // If we think we have a lock but tab was hidden, we probably lost it.
-                // Try to re-request quietly if button shows ON.
                 if (btn.textContent.includes("O_O")) {
                     try {
                         this._wakeLockSentinel = await navigator.wakeLock.request('screen');
                         console.log("[h4] Caffeine Mode: Lock Re-acquired after visibility change.");
-                    } catch (e) { console.log("Re-acquire failed", e); }
+                    } catch (e) {
+                        console.log("Re-acquire failed", e);
+                    }
                 }
             }
         });
@@ -243,7 +239,7 @@ app.registerExtension({
     },
 
     // ==============================================================================
-    // KICK IT BUTTON (>_<)!! (Canvas Defibrillator)
+    // KICK IT BUTTON (>_<)!!... (Canvas Defibrillator)
     // ==============================================================================
     setupKickItButton(caffeineBtn) {
         const btn = document.createElement("div");
@@ -278,12 +274,7 @@ app.registerExtension({
             btn.style.transform = "scale(1.1)";
 
             // 2. The Kick — Full graph serialize/reload cycle
-            // This is the same thing that happens when you save and re-open a workflow.
-            // It serializes all nodes, positions, widget values, and connections to JSON,
-            // then reconstructs the entire graph from that JSON. Broken wires are fixed
-            // because all connections are re-validated during reconstruction.
             console.log("[h4] KICKING THE GRID (Full Serialize/Reload Cycle)...");
-
             this._isHandlingError = false;
 
             try {
@@ -292,8 +283,6 @@ app.registerExtension({
                 console.log(`[h4] Graph serialized: ${Object.keys(graphData.nodes || {}).length || graphData.nodes?.length || 0} nodes captured.`);
 
                 // B. Reload the graph from the snapshot
-                // This reconstructs every node, widget, and connection from scratch.
-                // ComfyUI's loadGraphData handles all the validation and wire reconnection.
                 await app.loadGraphData(graphData);
                 console.log("[h4] Graph reloaded from snapshot. All connections re-validated.");
 
@@ -315,11 +304,9 @@ app.registerExtension({
             } catch (e) {
                 // Serialize/reload failed — fall back to basic canvas restart
                 console.error("[h4] Full reload failed, falling back to canvas restart:", e);
-
                 if (app.canvas) {
                     app.canvas.setDirty(true, true);
                     window.dispatchEvent(new Event('resize'));
-
                     try {
                         if (typeof app.canvas.stopMainLoop === 'function') {
                             app.canvas.stopMainLoop();
@@ -337,7 +324,6 @@ app.registerExtension({
                         console.error("[h4] Fallback also failed:", fallbackErr);
                     }
                 }
-
                 // Visual fallback indicator
                 btn.textContent = "(~_~)?";
                 btn.style.color = "#ffaa00";
@@ -354,7 +340,6 @@ app.registerExtension({
 
         document.body.appendChild(btn);
     },
-
 
     _sfwState: {
         KEY: "h4_sfw_mode"
@@ -384,8 +369,6 @@ app.registerExtension({
         return newMode;
     },
 
-
-
     hookTheEye(element) {
         if (element.dataset.h4EyeHooked) return;
         element.dataset.h4EyeHooked = "true";
@@ -394,12 +377,11 @@ app.registerExtension({
         const html = element.innerHTML;
         if (html.includes("👁️")) {
             // Replace first occurrence only
-            element.innerHTML = html.replace("👁️", "<span id='h4-secret-eye' style='cursor:pointer; display:inline-block; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);'>👁️</span>");
+            element.innerHTML = html.replace("👁️", "<span id='h4-secret-eye' style='cursor:pointer; display:inline-block; transition:all 0.3s;'>👁️</span>");
 
             const eye = element.querySelector("#h4-secret-eye");
             if (eye) {
                 eye.title = "Reviewing Surveillance Footage... (Double-click for SFW Toggle)";
-
                 eye.addEventListener("dblclick", (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -413,7 +395,6 @@ app.registerExtension({
                         eye.style.transform = "scale(1) rotate(0deg)";
                     }, 500);
                 });
-
                 console.log("[h4_FaceForge] Secret Eye Armed. Aim for the pupil.");
             }
         }
@@ -451,13 +432,13 @@ app.registerExtension({
 
     /**
      * Install console interceptor to capture ALL console output since launch.
-     * This allows the error popup to show the last 500 entries and
+     * This allows the error popup to show the last 500 entries and 
      * the Full Report to show EVERYTHING from launch to present.
      */
     installConsoleInterceptor() {
         if (this._originalConsole) return; // Already installed
-
         const self = this;
+
         this._originalConsole = {
             log: console.log.bind(console),
             warn: console.warn.bind(console),
@@ -468,6 +449,7 @@ app.registerExtension({
 
         const captureLog = (level, args) => {
             const timestamp = new Date().toISOString();
+
             const message = args.map(arg => {
                 if (arg === null) return 'null';
                 if (arg === undefined) return 'undefined';
@@ -476,12 +458,20 @@ app.registerExtension({
                 // PERFORMANCE FIX: Avoid deep stringify on large objects (like the graph)
                 // Use a shallow representative string instead
                 try {
-                    if (typeof arg === 'object') {
+                    if (typeof arg === 'object' && arg !== null) {
                         // Check if it's a DOM element or a very complex object
                         if (arg instanceof HTMLElement) return `<${arg.tagName.toLowerCase()} ...>`;
                         if (Array.isArray(arg)) return `Array(${arg.length})`;
+                        
+                        // [H4] NUCLEAR PERFORMANCE FIX: Do NOT stringify the entire app or graph
+                        if (arg.constructor && arg.constructor.name === "ComfyApp") return "[ComfyApp Object]";
+                        if (arg.constructor && arg.constructor.name === "LGraph") return "[LGraph Object]";
 
                         // Limit JSON.stringify for small objects only
+                        // We check keys count instead of length to avoid the stringify itself being the bottleneck
+                        const keys = Object.keys(arg);
+                        if (keys.length > 50) return `[Object with ${keys.length} keys]`;
+
                         const str = JSON.stringify(arg);
                         return str.length > 500 ? str.slice(0, 500) + '... (truncated)' : str;
                     }
@@ -498,8 +488,10 @@ app.registerExtension({
             });
 
             // Trim buffer if it exceeds max size
+            // PERFORMANCE: Using index-based trim if the buffer gets too massive
             if (self._logBuffer.length > self._logBufferMaxSize) {
-                self._logBuffer.shift();
+                // Remove first 1000 items at once if we hit the limit to avoid constant O(n) shifts
+                self._logBuffer.splice(0, 1000);
             }
         };
 
@@ -528,48 +520,60 @@ app.registerExtension({
     /**
      * Install network interceptor to capture fetch, XHR, and WebSocket activity.
      * All requests and responses are logged with timestamps.
+     * NUCLEAR FIX: Truly passive async tracking so UI thread never blocks on body parsing.
      */
     installNetworkInterceptor() {
         if (this._networkInterceptorInstalled) return;
         this._networkInterceptorInstalled = true;
         const self = this;
 
-        // Fetch interception
-        const originalFetch = window.fetch.bind(window);
-        window.fetch = async (...args) => {
+        // Fetch interception (Fully passive, non-blocking)
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
             const [resource, config] = args;
             const start = Date.now();
-            try {
-                const response = await originalFetch(...args);
+            
+            const fetchPromise = originalFetch.apply(this, args);
+            
+            // Branch off a passive logging promise chain that does NOT block the main return
+            fetchPromise.then(response => {
+                const duration = Date.now() - start;
                 const cloned = response.clone();
                 const contentType = cloned.headers.get('content-type') || '';
-                let body = '[binary data/stream]';
-
+                
                 if (contentType.includes('text') || contentType.includes('json')) {
-                    try {
-                        const text = await cloned.text();
-                        body = text.length > 500 ? text.slice(0, 500) + '... (truncated)' : text;
-                    } catch (e) {
-                        body = '[body read failed]';
-                    }
+                    cloned.text().then(text => {
+                        const body = text.length > 500 ? text.slice(0, 500) + '... (truncated)' : text;
+                        self._logBuffer.push({
+                            timestamp: new Date().toISOString(),
+                            level: 'NETWORK',
+                            message: `FETCH ${resource} ${config?.method || 'GET'} ${duration}ms Status: ${response.status} Response: ${body}`
+                        });
+                    }).catch(() => {
+                        self._logBuffer.push({
+                            timestamp: new Date().toISOString(),
+                            level: 'NETWORK',
+                            message: `FETCH ${resource} ${config?.method || 'GET'} ${duration}ms Status: ${response.status} Response: [body read failed]`
+                        });
+                    });
+                } else {
+                    self._logBuffer.push({
+                        timestamp: new Date().toISOString(),
+                        level: 'NETWORK',
+                        message: `FETCH ${resource} ${config?.method || 'GET'} ${duration}ms Status: ${response.status} Response: [binary data/stream]`
+                    });
                 }
-
-                const duration = Date.now() - start;
-                self._logBuffer.push({
-                    timestamp: new Date().toISOString(),
-                    level: 'NETWORK',
-                    message: `FETCH ${resource} ${config?.method || 'GET'} ${duration}ms Response: ${body}`
-                });
-                return response;
-            } catch (err) {
+            }).catch(err => {
                 const duration = Date.now() - start;
                 self._logBuffer.push({
                     timestamp: new Date().toISOString(),
                     level: 'NETWORK',
                     message: `FETCH ${resource} FAILED after ${duration}ms Error: ${err}`
                 });
-                throw err;
-            }
+            });
+
+            // Return the raw promise immediately so the caller isn't held hostage
+            return fetchPromise;
         };
 
         // XHR interception
@@ -579,11 +583,13 @@ app.registerExtension({
             let method, url;
             const open = xhr.open;
             const send = xhr.send;
+
             xhr.open = function (m, u) {
                 method = m;
                 url = u;
                 return open.apply(this, arguments);
             };
+
             xhr.send = function (body) {
                 const start = Date.now();
                 this.addEventListener('load', function () {
@@ -618,17 +624,35 @@ app.registerExtension({
         window.WebSocket = function (url, protocols) {
             const ws = new OriginalWebSocket(url, protocols);
             ws.addEventListener('open', () => {
-                self._logBuffer.push({ timestamp: new Date().toISOString(), level: 'NETWORK', message: `WebSocket CONNECT ${url}` });
+                self._logBuffer.push({
+                    timestamp: new Date().toISOString(),
+                    level: 'NETWORK',
+                    message: `WebSocket CONNECT ${url}`
+                });
             });
             ws.addEventListener('message', (event) => {
-                const dat = typeof event.data === 'string' ? (event.data.length > 500 ? event.data.slice(0, 500) + '...' : event.data) : '[binary]';
-                self._logBuffer.push({ timestamp: new Date().toISOString(), level: 'NETWORK', message: `WebSocket MSG from ${url}: ${dat}` });
+                const dat = typeof event.data === 'string' ?
+                    (event.data.length > 500 ? event.data.slice(0, 500) + '...' : event.data) :
+                    '[binary]';
+                self._logBuffer.push({
+                    timestamp: new Date().toISOString(),
+                    level: 'NETWORK',
+                    message: `WebSocket MSG from ${url}: ${dat}`
+                });
             });
             ws.addEventListener('close', (event) => {
-                self._logBuffer.push({ timestamp: new Date().toISOString(), level: 'NETWORK', message: `WebSocket CLOSE ${url} Code:${event.code}` });
+                self._logBuffer.push({
+                    timestamp: new Date().toISOString(),
+                    level: 'NETWORK',
+                    message: `WebSocket CLOSE ${url} Code:${event.code}`
+                });
             });
             ws.addEventListener('error', () => {
-                self._logBuffer.push({ timestamp: new Date().toISOString(), level: 'NETWORK', message: `WebSocket ERROR ${url}` });
+                self._logBuffer.push({
+                    timestamp: new Date().toISOString(),
+                    level: 'NETWORK',
+                    message: `WebSocket ERROR ${url}`
+                });
             });
             return ws;
         };
@@ -641,7 +665,7 @@ app.registerExtension({
      */
     getRecentLogs(count = 5000) {
         const entries = this._logBuffer.slice(-count);
-        return entries.map(e => `[${e.timestamp}] [${e.level}] ${e.message}`).join('\\n');
+        return entries.map(e => `[${e.timestamp}] [${e.level}] ${e.message}`).join('\n');
     },
 
     /**
@@ -690,30 +714,35 @@ app.registerExtension({
      * Stealth: Watch the Queue side-panel and discombobulate job entries in real-time.
      * Non-invasive: only touches the Queue UI, not system-critical popups.
      */
+    _queueTimer: null,
     startQueueWatcher() {
         const self = this;
         const observer = new MutationObserver((mutations) => {
-            // Check if discombobulator is on graph first (Nuclear Lean)
-            const discombobulator = app.graph?.findNodesByType("H4_Discombobulator")[0];
-            if (!discombobulator) return;
+            // [H4] NUCLEAR PERFORMANCE FIX: Prevent O(n^2) logic during startup
+            // Only observe if ComfyUI is fully registered and we are not in the middle of a massive redraw
+            if (!app.ui || !app.graph) return;
 
-            const mode = discombobulator.widgets?.[0]?.value || "1337";
+            // Debounce the discombobulation to prevent pinning the UI thread
+            if (this._queueTimer) clearTimeout(this._queueTimer);
+            this._queueTimer = setTimeout(() => {
 
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) { // Element
-                        this.discombobulateElement(node, mode);
-                    }
-                });
-            });
+                // Check if discombobulator is on graph first (Nuclear Lean)
+                const discombobulator = app.graph?.findNodesByType("H4_Discombobulator")[0];
+                if (!discombobulator) return;
 
-            // Occasional scan of existing items if they update via textContent change
-            // This handles the "In queue..." -> "Running..." -> "Finished" transitions
-            const queueItems = document.querySelectorAll(".comfy-queue-item, .comfy-history-item, .side-bar-panel-container .comfy-list-item");
-            queueItems.forEach(item => this.discombobulateElement(item, mode));
+                const mode = discombobulator.widgets?.[0]?.value || "1337";
+
+                // Occasional scan of existing items if they update via textContent change
+                // We scope this specifically to the panels to avoid global document scans
+                const queueItems = document.querySelectorAll(".comfy-queue-item, .comfy-history-item, .side-bar-panel-container .comfy-list-item");
+                queueItems.forEach(item => this.discombobulateElement(item, mode));
+
+            }, 250); // 250ms debounce is plenty for UI responsiveness
         });
 
-        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+        // Target the side-bar specifically if possible, otherwise body with strict characterData focus
+        const target = document.querySelector(".comfy-side-bar") || document.body;
+        observer.observe(target, { childList: true, subtree: true });
     },
 
     discombobulateElement(el, mode) {
@@ -723,6 +752,7 @@ app.registerExtension({
         while (node = walk.nextNode()) {
             const text = node.textContent.trim();
             if (text.length > 2 && !node._h4_discombobulated) {
+
                 // Ignore technical strings like timestamps or percentages if they look like numbers
                 if (/^\d+(\.\d+)?%?$/.test(text)) continue;
 
@@ -751,7 +781,11 @@ app.registerExtension({
             case "b1n4ry":
                 return text.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join(' ').slice(0, 30) + "...";
             case "B64":
-                try { return btoa(text).slice(0, 30) + "..."; } catch (e) { return text; }
+                try {
+                    return btoa(text).slice(0, 30) + "...";
+                } catch (e) {
+                    return text;
+                }
             case "V 0 1 D":
                 const zalgo = ["̷", "̵", "̶", "̷", "̸", "̡", "̢", "̧", "̨", "̛", "̛", "̛"];
                 return text.split('').map(char => char + zalgo[Math.floor(Math.random() * zalgo.length)] + zalgo[Math.floor(Math.random() * zalgo.length)]).join('');
@@ -794,7 +828,7 @@ app.registerExtension({
             const orig = nodeType.prototype.getExtraMenuOptions;
             nodeType.prototype.getExtraMenuOptions = function (canvas, options) {
                 if (orig) orig.apply(this, arguments);
-
+                
                 // Add separator if there are already options
                 if (options.length > 0 && options[options.length - 1] !== null) {
                     options.push(null);
@@ -815,506 +849,237 @@ app.registerExtension({
     },
 
     createGhostLayer() {
-        // Remove existing if any (reloads)
-        const existing = document.getElementById("h4-ghost-layer");
-        if (existing) existing.remove();
-
+        if (this.canvas) return;
         this.canvas = document.createElement("canvas");
-        this.canvas.id = "h4-ghost-layer";
+        this.canvas.id = "h4-big-brother-ghost";
 
-        // [BB-v11] ALIGNMENT STRATEGY: PARENT COUPLING (REDUX)
-        // We attach to the canvas container to get automatic clipping and position.
-        const parent = app.canvas.canvas.parentNode;
-        parent.style.position = "relative"; // Ensure parent is a positioning context
-        parent.appendChild(this.canvas);
+        // GHOST CSS: Pass through ALL clicks to ComfyUI beneath
+        Object.assign(this.canvas.style, {
+            position: "absolute",
+            top: "0",
+            left: "0",
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none", // CRITICAL
+            zIndex: "9998"         // Just below ComfyUI menus/modals
+        });
 
-        this.canvas.style.position = "absolute";
-        this.canvas.style.top = "0";
-        this.canvas.style.left = "0";
-        this.canvas.style.width = "100%";
-        this.canvas.style.height = "100%";
-        this.canvas.style.pointerEvents = "none";
-        this.canvas.style.zIndex = "10"; // [BB-v11] Lower Z (was 9000) to be under UI
-
+        // Insert into the main canvas container
+        const container = document.querySelector(".comfyui-body-left") || document.body;
+        container.appendChild(this.canvas);
         this.ctx = this.canvas.getContext("2d");
 
-        // High-DPI Handling
-        const handleResize = () => {
-            const dpr = window.devicePixelRatio || 1;
-            const rect = parent.getBoundingClientRect();
-            this.canvas.width = rect.width * dpr;
-            this.canvas.height = rect.height * dpr;
-        };
-
-        const resizeObserver = new ResizeObserver(() => handleResize());
-        resizeObserver.observe(parent);
-
-        // Initial size
-        handleResize();
+        this.resize();
+        window.addEventListener("resize", () => this.resize());
     },
 
-    // NOTE: getNodeOutputPos and getNodeInputPos are defined at the end of this extension object
-
-    injectCSS() {
-        const style = document.createElement("style");
-        style.type = "text/css";
-        style.innerHTML = `
-            .h4-death-modal {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(10, 10, 15, 0.98);
-                border: 2px solid ${this._state.wireColorError};
-                box-shadow: 0 0 50px ${this._state.wireColorError}aa;
-                color: #fff;
-                font-family: 'Consolas', 'Monaco', monospace;
-                z-index: 99999;
-                padding: 20px;
-                max-width: 800px;
-                width: 90%;
-                max-height: 80vh;
-                overflow-y: auto;
-                border-radius: 8px;
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-                animation: h4-fadein 0.2s ease-out;
-            }
-            @keyframes h4-fadein { from { opacity: 0; transform: translate(-50%, -45%); } to { opacity: 1; transform: translate(-50%, -50%); } }
-            
-            .h4-death-modal h2 {
-                color: ${this._state.wireColorError};
-                margin: 0;
-                text-transform: uppercase;
-                border-bottom: 1px solid ${this._state.wireColorError};
-                padding-bottom: 10px;
-                font-size: 1.5em;
-                text-align: center;
-                letter-spacing: 2px;
-            }
-            .h4-death-modal pre {
-                background: #000;
-                padding: 15px;
-                border: 1px solid #333;
-                overflow-x: auto;
-                color: #00ff99;
-                white-space: pre-wrap;
-                font-size: 0.9em;
-            }
-            .h4-death-modal .h4-controls {
-                display: flex;
-                justify-content: center;
-                flex-wrap: wrap;
-                gap: 12px;
-                margin-top: 10px;
-            }
-            .h4-death-modal button {
-                background: #222;
-                color: #fff;
-                border: 1px solid #555;
-                padding: 10px 20px;
-                cursor: pointer;
-                font-family: inherit;
-                text-transform: uppercase;
-                font-weight: bold;
-                font-size: 0.85em;
-                transition: all 0.2s;
-                display: flex;
-                align-items: center;
-                gap: 6px;
-            }
-            .h4-death-modal button:hover {
-                background: ${this._state.wireColorError};
-                border-color: ${this._state.wireColorError};
-                color: #000;
-            }
-            .h4-death-modal button.h4-btn-secondary {
-                border-color: #00bcd4;
-                color: #00bcd4;
-            }
-            .h4-death-modal button.h4-btn-secondary:hover {
-                background: #00bcd4;
-                border-color: #00bcd4;
-                color: #000;
-            }
-            .h4-death-modal button.h4-btn-github {
-                border-color: #8b949e;
-                color: #8b949e;
-                padding: 10px 16px;
-            }
-            .h4-death-modal button.h4-btn-github:hover {
-                background: #238636;
-                border-color: #238636;
-                color: #fff;
-            }
-            .h4-death-modal button .h4-icon-github {
-                width: 16px;
-                height: 16px;
-                fill: currentColor;
-            }
-        `;
-        document.head.appendChild(style);
+    resize() {
+        if (!this.canvas) return;
+        this.canvas.width = this.canvas.parentElement.clientWidth || window.innerWidth;
+        this.canvas.height = this.canvas.parentElement.clientHeight || window.innerHeight;
     },
 
     startLoop() {
         if (this.rafId) cancelAnimationFrame(this.rafId);
-
-        const loop = (timestamp) => {
-            this.render(timestamp);
+        const loop = () => {
+            this.render();
             this.rafId = requestAnimationFrame(loop);
         };
         this.rafId = requestAnimationFrame(loop);
     },
 
-    render(timestamp) {
-        if (!this._state.enabled || !this.ctx || !app.canvas) return;
+    render() {
+        if (!this.canvas || !this.ctx || !app.canvas) return;
 
-        // Clean Canvas (using physical pixels)
+        // 1. Clear the Ghost Layer
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // 1. Draw Cyber Grid (Startup Effect)
-        this.drawCyberGrid(timestamp);
+        // Discombobulator Easter Egg Check
+        this.handleDiscombobulatorGlitch();
 
-        // 1.1 Secret Ghost Logic: The Discombobulator Glitch
-        // Call this before coordinate transformation for simple screen-space check, 
-        // but we'll pass the transform anyway.
-        this.renderDiscombobulator(timestamp);
+        // Check master switch
+        if (!this._state.enabled) return;
 
-        // Only proceed if tracking is relevant for wires
-        const hasSelection = (app.canvas.selected_nodes && Object.keys(app.canvas.selected_nodes).length > 0);
-        const hasInfection = (this.infectedLinks.size > 0);
-
-        if (!hasSelection && !hasInfection) return;
-
-        // 2. Sync Coordinate System
+        // Sync transforms with ComfyUI's internal camera
+        const ds = app.canvas.ds;
         this.ctx.save();
+        this.ctx.translate(ds.offset[0], ds.offset[1]);
+        this.ctx.scale(ds.scale, ds.scale);
 
-        // 2a. High-DPI Scaling (Base System)
-        // This makes 1 logical unit = 1 physical pixel
-        // 1. Setup Context
-        const dpr = window.devicePixelRatio || 1;
+        // 2. Render Background Grid Wipe
+        this.drawGridWipe();
 
-        // 2. Get Transformation State (Source of Truth)
-        let t = 1;
-        let tx = 0;
-        let ty = 0;
-
-        if (app.canvas && typeof app.canvas.scale === "number") {
-            t = app.canvas.scale;
-            tx = app.canvas.tx;
-            ty = app.canvas.ty;
-        } else {
-            const ds = app.canvas ? app.canvas.ds : null;
-            if (ds) {
-                if (typeof ds.scale === 'number') t = ds.scale;
-                if (Array.isArray(ds.offset)) {
-                    tx = ds.offset[0];
-                    ty = ds.offset[1];
-                }
-            }
-        }
-
-        if (!isFinite(t)) t = 1;
-        if (!isFinite(tx)) tx = 0;
-        if (!isFinite(ty)) ty = 0;
-
-        // 3. Calculate Screen Offset (Header/Sidebar Alignment)
-        // We find the canvas element and get its bounding rect relative to viewport.
-        // This handles cases where the canvas is pushed down by headers/menus.
-        let screenDx = 0;
-        let screenDy = 0;
-        if (app.canvas && app.canvas.canvas) {
-            // [BB-v11] PARENT COUPLING: Ignore DOM Rect (handled by parent structure)
-            const rect = app.canvas.canvas.getBoundingClientRect();
-            // screenDx = rect.left; 
-            // screenDy = rect.top;
-            screenDx = 0;
-            screenDy = 0;
-        }
-
-        // Manual Calibration (User Override)
-        if (this._state.offsetX) screenDx += this._state.offsetX;
-        if (this._state.offsetY) screenDy += this._state.offsetY;
-
-        // 4. Final Matrix Application (The "Projector" Formula)
-        // [BB-v11] MATRIX REVERT: User reported "Floating" when (* t) was removed.
-        // Empirical Evidence: "Locked in" results require tx * t.
-        // It implies tx refers to Pre-Scale Graph Units in the LiteGraph state we are reading.
-
-        const finalScale = t * dpr;
-        // screenDx/Dy is effectively manual offset now
-        const finalTx = (tx * t + screenDx) * dpr;
-        const finalTy = (ty * t + screenDy) * dpr;
-
-        this.ctx.setTransform(finalScale, 0, 0, finalScale, finalTx, finalTy);
-
-        // [h4 DEBUG PROTOCOL] Render frame debug output
-        if (this._state.debugMode && hasSelection && !window.h4_render_logged) {
-            console.log(`[h4-DEBUG] Render Frame: t=${t.toFixed(3)}, tx=${tx.toFixed(1)}, ty=${ty.toFixed(1)}, sDx=${screenDx}, sDy=${screenDy}`);
-            window.h4_render_logged = true;
-        }
-
-        // [BB-v11] DEBUG DIAGNOSTIC: Draw a cyan box around the first selected node
-        // [BB-v11] Debug Diagnostic removed (Cyan box)
-
-        // [BB-v11] SELECTION HIGHLIGHT (Glowing Border)
-        if (hasSelection) {
-            this.ctx.save();
-            const color = this._state.wireColorSelect || "#00FF00";
-            this.ctx.strokeStyle = color;
-            this.ctx.lineWidth = 2 / t; // Constant screen width
-            this.ctx.shadowColor = color;
-            this.ctx.shadowBlur = 15; // Nice glow
-
-            const selectedIds = Object.keys(app.canvas.selected_nodes || {});
-
-            for (const nodeId of selectedIds) {
-                const node = app.graph.getNodeById(nodeId);
-                if (!node || !node.pos || !node.size) continue;
-
-                const titleHeight = (typeof LiteGraph !== "undefined" && LiteGraph.NODE_TITLE_HEIGHT) ? LiteGraph.NODE_TITLE_HEIGHT : 30;
-
-                let x = node.pos[0];
-                let y = node.pos[1] - titleHeight; // Include Header
-                let w = node.size[0];
-                let h = node.size[1] + titleHeight;
-
-                const r = 10; // Radius
-
-                this.ctx.beginPath();
-                if (this.ctx.roundRect) {
-                    this.ctx.roundRect(x, y, w, h, r);
-                } else {
-                    this.ctx.rect(x, y, w, h);
-                }
-                this.ctx.stroke();
-            }
-            this.ctx.restore();
-        }
-
-        // [BB-v11] INFECTION HIGHLIGHT (Red Error Box)
-        // Updated to match Selection Glow style (Universal Neon)
-        if (hasInfection) {
-            this.ctx.save();
-            const color = this._state.wireColorError || "#FF0000";
-            this.ctx.strokeStyle = color;
-            this.ctx.lineWidth = 2 / t; // Constant screen width
-            this.ctx.shadowColor = color;
-            this.ctx.shadowBlur = 15; // Universal Glow
-
-            for (const nodeId of this.infectedNodes) {
-                const node = app.graph.getNodeById(nodeId);
-                if (!node || !node.pos || !node.size) continue;
-
-                const titleHeight = (typeof LiteGraph !== "undefined" && LiteGraph.NODE_TITLE_HEIGHT) ? LiteGraph.NODE_TITLE_HEIGHT : 30;
-
-                let x = node.pos[0];
-                let y = node.pos[1] - titleHeight; // Include Header
-                let w = node.size[0];
-                let h = node.size[1] + titleHeight;
-
-                const r = 10; // Radius
-
-                this.ctx.beginPath();
-                if (this.ctx.roundRect) {
-                    this.ctx.roundRect(x, y, w, h, r);
-                } else {
-                    this.ctx.rect(x, y, w, h);
-                }
-                this.ctx.stroke();
-            }
-            this.ctx.restore();
-        }
-
-        // 3. Draw Wires (Now in correct Graph Space)
-        this.drawWires(t);
+        // 3. Render Surveillance Graphics (Wire highlighting)
+        this.drawWires();
 
         this.ctx.restore();
     },
 
-    drawCyberGrid(timestamp) {
-        // Animation State Logic
-        const elapsed = timestamp - this.animStart;
-        if (elapsed < this.gridDelay) return; // Delayed start
+    // -------------------------------------------------------------------------
+    // DISCOMBOBULATOR GLITCH EFFECTS (Rendered on Ghost Layer)
+    // -------------------------------------------------------------------------
+    handleDiscombobulatorGlitch() {
+        // Scan graph for the node occasionally (throttled by time)
+        const now = performance.now();
+        if (now - this._glitchState.lastGlitchTime > 1000) {
+            this._glitchState.lastGlitchTime = now;
+            // Only search if the UI is ready
+            if (app.graph) {
+                const disNode = app.graph.findNodesByType("H4_Discombobulator")[0];
+                if (disNode) {
+                    // Randomly trigger a glitch based on intensity
+                    const intensity = disNode.widgets?.[1]?.value || 0.5;
+                    // Example: At 1.0 (max), 50% chance per second to glitch
+                    if (Math.random() < (intensity * 0.5)) {
+                        this._glitchState.isGlitching = true;
+                        this._glitchState.glitchDuration = now + 100 + (Math.random() * 300); // 100-400ms
+                        this._glitchState.glitchType = Math.floor(Math.random() * 3);
+                    }
+                }
+            }
+        }
 
-        // Normalized progress 0.0 -> 1.0
+        if (this._glitchState.isGlitching) {
+            if (now > this._glitchState.glitchDuration) {
+                this._glitchState.isGlitching = false;
+                return;
+            }
+
+            // Render glitch on Ghost Layer (un-scaled, raw screen space)
+            const w = this.canvas.width;
+            const h = this.canvas.height;
+            const ctx = this.ctx;
+
+            ctx.save();
+            // We do NOT apply the camera transform here because we want the glitch to affect the "lens"
+
+            switch (this._glitchState.glitchType) {
+                case 0: // Chromatic Aberration Simulation (Screen slice shift)
+                    const sliceY = Math.random() * h;
+                    const sliceH = 20 + Math.random() * 100;
+                    const shiftX = (Math.random() - 0.5) * 50;
+
+                    // Draw semi-transparent neon rects to simulate RGB split
+                    ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
+                    ctx.fillRect(shiftX, sliceY, w, sliceH);
+                    ctx.fillStyle = "rgba(0, 255, 255, 0.1)";
+                    ctx.fillRect(-shiftX, sliceY + (Math.random() * 10 - 5), w, sliceH);
+                    break;
+
+                case 1: // Macro Block corruption
+                    ctx.fillStyle = "rgba(0, 255, 0, 0.05)";
+                    for (let i = 0; i < 5; i++) {
+                        ctx.fillRect(
+                            Math.random() * w,
+                            Math.random() * h,
+                            50 + Math.random() * 200,
+                            50 + Math.random() * 100
+                        );
+                    }
+                    break;
+
+                case 2: // Static / Noise band
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+                    const bandY = Math.random() * h;
+                    for (let i = 0; i < 100; i++) {
+                        ctx.fillRect(
+                            Math.random() * w,
+                            bandY + (Math.random() * 50 - 25),
+                            Math.random() * 10,
+                            Math.random() * 3
+                        );
+                    }
+                    break;
+            }
+            ctx.restore();
+        }
+    },
+
+
+    drawGridWipe() {
+        if (!this._state.showGrid) return;
+
+        const now = performance.now();
+        const elapsed = now - this.animStart;
+
+        // Wait for delay
+        if (elapsed < this.gridDelay) return;
+
         const progress = Math.min((elapsed - this.gridDelay) / this.gridDuration, 1.0);
-        if (progress >= 1.0) return; // Animation finished
 
-        // ----------------------------------------------------
-        // RIGHT-TO-LEFT Wipe Logic
-        // ----------------------------------------------------
-        // We want the grid to appear from Right Edge and move Left.
-        // Or we want the mask to reveal it from Right to Left.
+        // Easing: easeOutExpo for a fast start and slow finish
+        const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
 
-        // Let's interpret "Roll out from Right":
-        // It enters screen from right side and moves left? 
-        // Or it is static, but opacity reveals from Right?
-        // Let's do a Reveal Mask (Right -> Left).
+        const ctx = this.ctx;
+        const color = this._state.gridColor;
 
-        const w = this.canvas.width;
-        const h = this.canvas.height;
-        const spacing = 50;
+        // Calculate visible bounding box in graph coordinates
+        const ds = app.canvas.ds;
+        const winW = this.canvas.width / ds.scale;
+        const winH = this.canvas.height / ds.scale;
+        const startX = -ds.offset[0] / ds.scale;
+        const startY = -ds.offset[1] / ds.scale;
+        const endX = startX + winW;
+        const endY = startY + winH;
 
-        // Calculate the "leading edge" X position.
-        // Starts at W, moves to 0. 
-        // Pixels to the right of this X are "visible" (or fading in).
-        // Pixels to the left are invalid.
+        // The wipe scans horizontally across the screen
+        const currentX = startX + (winW * ease);
 
-        // Actually, let's have it sweep across.
-        // Start: x = w (Right edge)
-        // End: x = 0 (Left edge)
-        const wipeX = w - (w * progress);
+        const spacing = 100;
 
-        this.ctx.save();
-        this.ctx.strokeStyle = this._state.gridColor;
-        this.ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
 
-        // Clip region: Everything to the Right of wipeX
-        // Allows drawing from wipeX to Width.
-        // We add a gradient alpha mask for smoothness at the leading edge.
-
-        this.ctx.beginPath();
-        // Rect from wipeX to W
-        this.ctx.rect(0, 0, w, h);
-        // Actually, drawing the whole grid is cheap, let's just mask it with a gradient fill? 
-        // No, we need stroke alpha.
-
-        // Let's use a loop optimization.
-        // Draw Vertical lines
-        for (let x = 0; x < w; x += spacing) {
-            // Alpha based on distance from wipeX
-            // If x < wipeX: invisible (0)
-            // If x > wipeX: fade in
-
-            let alpha = 0;
-            if (x >= wipeX) {
-                // Fully visible if far behind the wipe
-                // Fade in range of 300px
-                const dist = x - wipeX;
-                alpha = Math.min(dist / 300, 1.0);
-
-                // Also fade out overall as time passes? 
-                // "fades into nothingness" -> User said "vanish as if merging"
-                // So at the end of animation, it should be gone.
-                // Wait, if progress is 1.0, wipeX is 0. Grid is fully visible?
-                // Then prompt said "fades into nothingness".
-                // So: Wipe In -> Full Grid -> Fade Out?
-                // Or: The wipe itself fades out the grid BEHIND it? 
-
-                // Let's do: Wipe IN (Right to Left).
-                // Then entire grid fades out.
-                // But that requires 2 stages.
-
-                // Optimization: "Roll out... then fades into nothingness"
-                // Let's have the "Leading Edge" be bright, and the "Trailing Edge" (right side) fade out?
-                // Like a scanner beam.
-
-                // Re-reading: "loads first then the overlay efficiently... rolls out from right to left... then fades into nothingness"
-
-                // Interpretation: 
-                // A scanner bar moves Right->Left.
-                // It leaves a grid behind it? Or the grid is only IN the scanner bar?
-                // "illusion the grid is being laid overtop and then vanishing"
-
-                // Let's do:
-                // Grid opacity is 1.0 at wipeX.
-                // Grid opacity fades to 0 as you go Right (Trailing).
-                // Grid opacity is 0 at Left (Ahead).
-
-                // So it's a moving band of grid from Right to Left.
-                // Band width = ~800px?
-
-                // Let's try to keep the grid "laid overtop" (persistent) then fade?
-                // Let's stick to a Reveal Wipe, then global fade.
-                // But simple is best.
-
-                // Refined Logic:
-                // Global Opacity = (1.0 - progress) * 2; // Hack to fade out at end?
-                // Let's just do the Wipe Reveal for now to satisfy "Roll out".
-
-                // Fade out the TAIL (Right Side) as the HEAD (Left Side) advances?
-                // No, "fades into nothingness" implies the whole thing goes away.
-                // Let's make it a Reveal (0->100%) then a global Fade (100%->0%).
-
-                // If progress < 0.8: Reveal Phase.
-                // If progress > 0.8: Fade Out Phase.
-            }
-
-            // Simple approach for "Roll Out and Vanish":
-            // A gradient mask moving Right -> Left.
-            // Visible area is [wipeX, w].
-            // But we also want it to fade out.
-            // Let's modulate global alpha by (1 - progress).
-            // So as it wipes left, the stuff on the right is already fading.
-
-            const globalFade = 1.0 - Math.pow(progress, 3); // accelerate fade at end
-
-            if (x < wipeX) alpha = 0;
-            else {
-                // Fade in edge
-                alpha = Math.min((x - wipeX) / 100, 1.0);
-            }
-            alpha *= globalFade;
-
-            if (alpha < 0.01) continue;
-
-            this.ctx.globalAlpha = alpha;
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, 0);
-            this.ctx.lineTo(x, h);
-            this.ctx.stroke();
+        // Vertical lines
+        const firstX = Math.floor(startX / spacing) * spacing;
+        for (let x = firstX; x <= currentX; x += spacing) {
+            ctx.moveTo(x, startY);
+            ctx.lineTo(x, endY);
         }
 
-        // Draw Horizontal lines
-        // They need to be masked by the X wipe too!
-        for (let y = 0; y < h; y += spacing) {
-            // Line from wipeX to W?
-            // We can just draw the full line and clip, or draw segment.
-            if (wipeX < w) {
-                // Calculate alpha for this horizontal line? 
-                // It's a gradient along the line.
-                // Creating a gradient for every line is expensive.
-                // Let's just draw the segment [wipeX, w] with a global alpha average?
-                // No, looks bad. 
-
-                // Better: Draw lines, apply Global Composite Operation "destination-in" with a gradient rect?
-                // YES. This is the Canvas way.
-            }
+        // Horizontal lines (clipped by currentX)
+        const firstY = Math.floor(startY / spacing) * spacing;
+        for (let y = firstY; y <= endY; y += spacing) {
+            ctx.moveTo(startX, y);
+            ctx.lineTo(currentX, y);
         }
-        this.ctx.restore();
 
-        // CANVAS COMPOSITE APPROACH (Faster & Prettier)
-        // 1. Draw Full Grid (off-screen or just draw it)
-        // 2. Clear Rect logic?
+        ctx.stroke();
 
-        // Actually, let's keep it simple for V1. The vertical lines loop above is fine.
-        // For horizontal lines, let's just fade them in based on the WipeX position generally.
-        // (It won't look like a perfect scanline, but close enough).
+        // Draw the glowing scanner line
+        if (progress < 1.0) {
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(255, 200, 0, 0.8)";
+            ctx.lineWidth = 3;
+            ctx.shadowColor = "rgba(255, 200, 0, 1)";
+            ctx.shadowBlur = 15;
 
-        this.ctx.save();
-        const globalFade = 1.0 - Math.pow(progress, 3);
-        this.ctx.globalAlpha = globalFade;
-        this.ctx.strokeStyle = this._state.gridColor;
-        this.ctx.lineWidth = 1;
+            ctx.moveTo(currentX, startY);
+            ctx.lineTo(currentX, endY);
+            ctx.stroke();
 
-        // Clip to right of wipeX
-        this.ctx.beginPath();
-        this.ctx.rect(wipeX, 0, w - wipeX, h);
-        this.ctx.clip();
-
-        for (let y = 0; y < h; y += spacing) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(wipeX, y); // Start at wipe
-            this.ctx.lineTo(w, y);
-            this.ctx.stroke();
+            // Reset shadow
+            ctx.shadowBlur = 0;
         }
-        this.ctx.restore();
     },
 
-    drawWires(t = 1.0) {
-        if (!app.graph || !app.graph.links || !this._state.showWires) return;
+    getNodeOutputPos(node, slot) {
+        // Uses LiteGraph internal logic to find the exact pin coordinate
+        if (!node.outputs || !node.outputs[slot]) return null;
+        return node.getConnectionPos(false, slot);
+    },
+
+    getNodeInputPos(node, slot) {
+        if (!node.inputs || !node.inputs[slot]) return null;
+        return node.getConnectionPos(true, slot);
+    },
+
+    drawWires() {
+        const t = app.canvas.ds.scale;
+
+        // Determine if we should draw normal wires (not just errors)
+        if (this.infectedLinks.size === 0 && !this._state.showWires) return;
 
         // [h4 DEBUG PROTOCOL] Wire draw loop debug
         if (this._state.debugMode && !window.h4_wire_debug) {
@@ -1341,6 +1106,7 @@ app.registerExtension({
 
             const nodeOrg = app.graph.getNodeById(link.origin_id);
             const nodeTgt = app.graph.getNodeById(link.target_id);
+
             if (!nodeOrg || !nodeTgt) continue;
 
             // [BB-v11] Safety: Ensure visible coordinates
@@ -1359,6 +1125,7 @@ app.registerExtension({
             }
 
             if (!posA || !posB) continue;
+
             // Double check for NaN
             if (isNaN(posA[0]) || isNaN(posA[1]) || isNaN(posB[0]) || isNaN(posB[1])) continue;
 
@@ -1378,7 +1145,6 @@ app.registerExtension({
             // [BB-v11] Line Width Logic
             // Wires get a slightly thicker base + strong glow (Universal Neon)
             this.ctx.lineWidth = width / t;
-
             this.ctx.strokeStyle = color;
             this.ctx.shadowColor = color;
             this.ctx.shadowBlur = blur;
@@ -1391,6 +1157,7 @@ app.registerExtension({
             let finalPosB = posB;
             if (link.target_slot >= 4) {
                 finalPosB = [posB[0], posB[1] + 45];
+                
                 // [h4 DEBUG PROTOCOL] Log slot correction when debug mode is active
                 if (this._state.debugMode && !window._h4_direct_fix_log) {
                     console.log(`[h4-DEBUG] Applying +45px to slot ${link.target_slot}: original=${posB[1].toFixed(1)}, corrected=${finalPosB[1].toFixed(1)}`);
@@ -1398,8 +1165,9 @@ app.registerExtension({
                 }
             }
 
-            this.ctx.beginPath();
 
+            this.ctx.beginPath();
+            
             // Draw matching wire style
             if (this._state.wireStyle === "Spline" || this._state.wireStyle === "Match") {
                 this.drawSpline(this.ctx, posA, finalPosB);
@@ -1410,6 +1178,7 @@ app.registerExtension({
                 // Circuit / Default
                 this.drawCircuit(this.ctx, posA, finalPosB);
             }
+
             this.ctx.stroke();
         }
     },
@@ -1428,6 +1197,7 @@ app.registerExtension({
         const cp1y = y1;
         const cp2x = x2 - (dist * 0.25);
         const cp2y = y2;
+
         ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x2, y2);
     },
 
@@ -1436,10 +1206,9 @@ app.registerExtension({
         const y1 = posA[1];
         const x2 = posB[0];
         const y2 = posB[1];
+
         ctx.moveTo(x1, y1);
-
         let midX = x1 + (x2 - x1) * 0.5;
-
         ctx.lineTo(midX, y1);
         ctx.lineTo(midX, y2);
         ctx.lineTo(x2, y2);
@@ -1447,8 +1216,8 @@ app.registerExtension({
 
     handleError(event) {
         if (!this._state.enabled || this._isHandlingError) return;
+        
         this._isHandlingError = true;
-
         try {
             // event can be from api listener (detail) or window listener (object)
             const error = event.detail || event;
@@ -1487,7 +1256,9 @@ app.registerExtension({
             }
         } finally {
             // Safety release
-            setTimeout(() => { this._isHandlingError = false; }, 1000);
+            setTimeout(() => {
+                this._isHandlingError = false;
+            }, 1000);
         }
     },
 
@@ -1496,9 +1267,8 @@ app.registerExtension({
         this.infectedLinks.clear();
         const modal = document.querySelector(".h4-death-modal");
         if (modal) modal.remove();
-
         // Optional: Re-trigger grid on run?
-        // this.animStart = performance.now(); 
+        // this.animStart = performance.now();
     },
 
     showDeathModal(errorMsg, traceback) {
@@ -1517,493 +1287,229 @@ app.registerExtension({
 
         const modal = document.createElement("div");
         modal.className = "h4-death-modal";
+
         // Inline override for dynamic color
         modal.style.borderColor = styleColor;
         modal.style.boxShadow = `0 0 50px ${styleColor}aa`;
 
         // GitHub icon SVG inline (from Octicons)
-        const githubIconSVG = `<svg class="h4-icon-github" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>`;
+        const githubIconSVG = `<svg height="16" viewBox="0 0 16 16" width="16" fill="currentColor" style="display:inline-block; vertical-align:middle; margin-right:5px;"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path></svg>`;
 
         modal.innerHTML = `
-            <h2 style="color: ${styleColor}; border-bottom-color: ${styleColor};">💀 EXECUTION FAILURE 💀</h2>
-            <div style="font-weight: bold; color: #fff; margin-bottom: 10px;">${sanitizedError}</div>
-            <div style="color: #888; font-size: 0.85em; margin-bottom: 5px;">Stack Trace:</div>
-            <pre style="max-height: 150px; overflow-y: auto; margin-bottom: 10px; border-color: #ff4444;">${sanitizedTrace}</pre>
-            <div style="color: #888; font-size: 0.85em; margin-bottom: 5px;">Recent Console Log (Last entries):</div>
-            <pre style="max-height: 400px; overflow-y: auto; font-size: 0.75em; color: #aaffaa;">${recentLogs || '(No console logs captured)'}</pre>
-            <div class="h4-controls">
-                <button class="h4-btn-secondary" data-action="show-report">SHOW FULL REPORT</button>
-                <button class="h4-btn-secondary" data-action="help-fix">HELP FIX THIS</button>
-                <button class="h4-btn-github" data-action="find-issues">${githubIconSVG} FIND ISSUES</button>
-                <button data-action="copy">COPY TRACE</button>
-                <button data-action="dismiss">DISMISS</button>
+            <div class="h4-modal-header" style="color: ${styleColor}; border-bottom: 1px solid ${styleColor};">
+                <span class="h4-blink">⚠️ SYSTEM FAULT DETECTED ⚠️</span>
+                <span class="h4-modal-close">✕</span>
+            </div>
+            <div class="h4-modal-body">
+                <div class="h4-modal-message">${sanitizedError}</div>
+                <div class="h4-modal-trace">${sanitizedTrace}</div>
+                <div class="h4-modal-log-title" style="color: ${styleColor};">Recent Console Output (Scrubbed)</div>
+                <div class="h4-modal-logs" id="h4-recent-logs">${recentLogs || '(No console logs captured)'}</div>
+            </div>
+            <div class="h4-modal-footer">
+                <button class="h4-btn-copy" id="h4-copy-btn">📋 Copy Report for Dev</button>
+                <button class="h4-btn-copy" id="h4-issue-btn" style="background:#222; border-color:#555;">${githubIconSVG} Report Issue</button>
+                <button class="h4-btn-copy h4-btn-full-log" id="h4-full-log-btn" style="background:#111; border-color:#444; color:#aaa;">📄 Download Full Log</button>
+                <div style="flex-grow:1"></div>
+                <div style="font-size:10px; color:#555;">(Personal paths scrubbed automatically)</div>
             </div>
         `;
 
-        // Attach event listeners via delegation for cleaner code
-        modal.querySelector('.h4-controls').addEventListener('click', (e) => {
-            const btn = e.target.closest('button');
-            if (!btn) return;
-
-            const action = btn.dataset.action;
-            switch (action) {
-                case 'show-report':
-                    this.showFullReport(sanitizedError, sanitizedTrace);
-                    break;
-                case 'help-fix':
-                    this.openHelpSearch(sanitizedError);
-                    break;
-                case 'find-issues':
-                    this.openGitHubIssues(sanitizedError);
-                    break;
-                case 'copy':
-                    navigator.clipboard.writeText(sanitizedTrace);
-                    btn.textContent = 'COPIED!';
-                    setTimeout(() => btn.textContent = 'COPY TRACE', 1000);
-                    break;
-                case 'dismiss':
-                    modal.remove();
-                    break;
-            }
-        });
-
         document.body.appendChild(modal);
+
+        modal.querySelector(".h4-modal-close").onclick = () => modal.remove();
+
+        modal.querySelector("#h4-copy-btn").onclick = () => {
+            const report = `=== H4 BUG REPORT ===\n\nERROR:\n${sanitizedError}\n\nTRACE:\n${sanitizedTrace}\n\nRECENT LOGS:\n${recentLogs}`;
+            navigator.clipboard.writeText(report);
+            const btn = modal.querySelector("#h4-copy-btn");
+            btn.textContent = "✅ Copied!";
+            btn.style.background = "#004400";
+            setTimeout(() => {
+                btn.textContent = "📋 Copy Report for Dev";
+                btn.style.background = "";
+            }, 2000);
+        };
+
+        modal.querySelector("#h4-issue-btn").onclick = () => {
+            // Encode the error title for the URL
+            const title = encodeURIComponent(`[Bug]: ${sanitizedError.split('\n')[0].substring(0, 50)}...`);
+            
+            // Format the body for GitHub markdown
+            const body = encodeURIComponent(
+`### Describe the bug
+${sanitizedError}
+
+### Traceback
+\`\`\`python
+${sanitizedTrace}
+\`\`\`
+
+### Recent Logs
+\`\`\`log
+${recentLogs.substring(0, 2000)}${recentLogs.length > 2000 ? '\n...[truncated]' : ''}
+\`\`\`
+
+*(Paste full log file here if downloaded)*
+`
+            );
+            
+            const url = `https://github.com/h4-f/h4_Live/issues/new?title=${title}&body=${body}`;
+            window.open(url, '_blank');
+        };
+
+        modal.querySelector("#h4-full-log-btn").onclick = () => {
+            const fullLog = this.sanitizeLog(this.getFullLog());
+            const blob = new Blob([
+                `=== H4 FULL DIAGNOSTIC LOG ===\n`,
+                `Generated: ${new Date().toISOString()}\n`,
+                `Error: ${sanitizedError}\n`,
+                `Trace: ${sanitizedTrace}\n\n`,
+                `--- FULL LOG STREAM ---\n\n`,
+                fullLog
+            ], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `h4_diagnostic_${Date.now()}.log`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
     },
 
     /**
-     * Sanitize log content to remove personal/sensitive information.
-     * Replaces paths with Windows environment variable placeholders.
-     * @param {string} text - Raw log text
-     * @returns {string} Sanitized text safe for public sharing
+     * Sanitizes strings to remove personal user paths (Windows and Linux/Mac).
+     * @param {string} str - The string to sanitize
+     * @returns {string} The scrubbed string
      */
-    sanitizeLog(text) {
-        if (!text || typeof text !== 'string') return text || '';
+    sanitizeLog(str) {
+        if (!str || typeof str !== 'string') return "";
+        let safe = str;
 
-        let sanitized = text;
+        // Windows: C:\Users\Username\ -> [USER_DIR]\
+        safe = safe.replace(/[A-Za-z]:\\Users\\[^\\]+\\/gi, "[USER_DIR]\\");
 
-        // 1. Windows user profile paths: C:\Users\{username}\ -> %USERPROFILE%\
-        sanitized = sanitized.replace(/[A-Za-z]:\\Users\\[^\\]+\\/gi, '%USERPROFILE%\\');
+        // Linux/Mac: /home/username/ -> [USER_DIR]/ or /Users/username/ -> [USER_DIR]/
+        safe = safe.replace(/\/home\/[^\/]+\//gi, "[USER_DIR]/");
+        safe = safe.replace(/\/Users\/[^\/]+\//gi, "[USER_DIR]/");
 
-        // 2. Also handle forward slashes: C:/Users/{username}/ -> %USERPROFILE%/
-        sanitized = sanitized.replace(/[A-Za-z]:\/Users\/[^\/]+\//gi, '%USERPROFILE%/');
-
-        // 3. Linux/Mac home paths: /home/{username}/ or /Users/{username}/ -> $HOME/
-        sanitized = sanitized.replace(/\/(home|Users)\/[^\/]+\//g, '$HOME/');
-
-        // 4. UNC paths (network shares): \\servername\share -> %NETWORKSHARE%
-        sanitized = sanitized.replace(/\\\\[^\\]+\\[^\\]+/g, '%NETWORKSHARE%');
-
-        // 5. Email addresses -> [EMAIL REDACTED]
-        sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL REDACTED]');
-
-        // 6. IPv4 addresses (but not localhost) -> [IP REDACTED]
-        sanitized = sanitized.replace(/\b(?!127\.0\.0\.1)(?!0\.0\.0\.0)\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP REDACTED]');
-
-        return sanitized;
+        return safe;
     },
 
-    /**
-     * Open a new window displaying the full sanitized error report.
-     * Styled to match the Death Modal aesthetic.
-     * @param {string} errorMsg - Sanitized error message
-     * @param {string} traceback - Sanitized stack trace
-     */
-    showFullReport(errorMsg, traceback) {
-        const reportWindow = window.open('', '_blank', 'width=1200,height=900,scrollbars=yes');
-        if (!reportWindow) {
-            alert('Popup blocked! Please allow popups for this site.');
-            return;
-        }
-
-        const timestamp = new Date().toISOString();
-
-        // Get the COMPLETE log from launch to present
-        const fullLog = this.sanitizeLog(this.getFullLog());
-        const logEntryCount = this._logBuffer.length;
-
-        const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>h4 FULL Error Report - ${timestamp}</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background: #0a0a0f;
-            color: #fff;
-            font-family: 'Consolas', 'Monaco', monospace;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        h1 {
-            color: #ff4444;
-            border-bottom: 2px solid #ff4444;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        h2 {
-            color: #00bcd4;
-            font-size: 1em;
-            text-transform: uppercase;
-            margin: 20px 0 10px 0;
-            cursor: pointer;
-            user-select: none;
-        }
-        h2:hover { color: #00ffff; }
-        h2::before { content: "▼ "; font-size: 0.8em; }
-        h2.collapsed::before { content: "▶ "; }
-        .section {
-            margin-bottom: 20px;
-        }
-        .section-title {
-            color: #00bcd4;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-        .error-message {
-            background: #1a1a25;
-            border: 1px solid #ff4444;
-            padding: 15px;
-            border-radius: 4px;
-            color: #ff8888;
-            font-weight: bold;
-        }
-        pre {
-            background: #000;
-            border: 1px solid #333;
-            padding: 15px;
-            overflow-x: auto;
-            color: #00ff99;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-size: 0.85em;
-            border-radius: 4px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        pre.traceback {
-            border-color: #ff4444;
-            color: #ff8888;
-            max-height: 200px;
-        }
-        pre.full-log {
-            font-size: 0.75em;
-            color: #aaffaa;
-            max-height: none;
-        }
-        .meta {
-            color: #666;
-            font-size: 0.8em;
-            margin-top: 20px;
-            padding-top: 10px;
-            border-top: 1px solid #333;
-        }
-        .controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        button {
-            background: #222;
-            color: #fff;
-            border: 1px solid #00bcd4;
-            padding: 10px 20px;
-            cursor: pointer;
-            font-family: inherit;
-            text-transform: uppercase;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
-        button:hover {
-            background: #00bcd4;
-            color: #000;
-        }
-        .stats {
-            background: #111;
-            border: 1px solid #333;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            font-size: 0.85em;
-        }
-        .stat-item { text-align: center; }
-        .stat-value { color: #00bcd4; font-size: 1.2em; font-weight: bold; }
-        .stat-label { color: #666; font-size: 0.8em; }
-        .collapsible { display: block; }
-        .collapsible.hidden { display: none; }
-    </style>
-</head>
-<body>
-    <h1>💀 h4 FULL Error Report</h1>
-    
-    <div class="stats">
-        <div class="stat-item">
-            <div class="stat-value">${logEntryCount}</div>
-            <div class="stat-label">Total Log Entries</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-value">${timestamp.split('T')[1].split('.')[0]}</div>
-            <div class="stat-label">Report Time</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-value">v12</div>
-            <div class="stat-label">Big Brother Version</div>
-        </div>
-    </div>
-    
-    <div class="section">
-        <div class="section-title">Error Message</div>
-        <div class="error-message">${errorMsg}</div>
-    </div>
-    
-    <h2 onclick="toggleSection(this, 'traceback-section')">Stack Trace</h2>
-    <div id="traceback-section" class="collapsible">
-        <pre class="traceback" id="traceback">${traceback}</pre>
-    </div>
-    
-    <h2 onclick="toggleSection(this, 'full-log-section')">Complete Console Log (Launch → Present)</h2>
-    <div id="full-log-section" class="collapsible">
-        <pre class="full-log" id="full-log">${fullLog || '(No console logs captured)'}</pre>
-    </div>
-    
-    <div class="meta">
-        <div>Generated: ${timestamp}</div>
-        <div>Extension: h4 Live ToolKit (Big Brother v12)</div>
-        <div>Log Buffer Size: ${logEntryCount} entries (max: 10,000)</div>
-        <div>Note: Personal paths, emails, and IPs have been sanitized for privacy.</div>
-    </div>
-    
-    <div class="controls">
-        <button onclick="copySection('traceback')">COPY TRACE</button>
-        <button onclick="copySection('full-log')">COPY FULL LOG</button>
-        <button onclick="copyAll()">COPY EVERYTHING</button>
-        <button onclick="window.close();">CLOSE</button>
-    </div>
-    
-    <script>
-        function toggleSection(header, sectionId) {
-            const section = document.getElementById(sectionId);
-            section.classList.toggle('hidden');
-            header.classList.toggle('collapsed');
-        }
-        
-        function copySection(id) {
-            const el = document.getElementById(id);
-            navigator.clipboard.writeText(el.innerText);
-            event.target.textContent = 'COPIED!';
-            setTimeout(() => event.target.textContent = event.target.textContent.replace('COPIED!', 'COPY ' + (id === 'traceback' ? 'TRACE' : 'FULL LOG')), 1000);
-        }
-        
-        function copyAll() {
-            const errorMsg = document.querySelector('.error-message').innerText;
-            const trace = document.getElementById('traceback').innerText;
-            const fullLog = document.getElementById('full-log').innerText;
-            const all = '=== ERROR MESSAGE ===\\n' + errorMsg + '\\n\\n=== STACK TRACE ===\\n' + trace + '\\n\\n=== FULL CONSOLE LOG ===\\n' + fullLog;
-            navigator.clipboard.writeText(all);
-            event.target.textContent = 'COPIED!';
-            setTimeout(() => event.target.textContent = 'COPY EVERYTHING', 1000);
-        }
-    </script>
-</body>
-</html>`;
-
-        reportWindow.document.write(htmlContent);
-        reportWindow.document.close();
-    },
-
-    /**
-     * Open ComfyUI GitHub issues search for help with the error.
-     * Searches the main ComfyUI repository.
-     * @param {string} errorMsg - Sanitized error message
-     */
-    openHelpSearch(errorMsg) {
-        // Extract key terms from the error (first 100 chars, cleaned)
-        const searchTerms = errorMsg.substring(0, 100).replace(/[^\w\s]/g, ' ').trim();
-        const query = encodeURIComponent(searchTerms + ' is:issue');
-        const url = `https://github.com/comfyanonymous/ComfyUI/issues?q=${query}`;
-        window.open(url, '_blank');
-    },
-
-    /**
-     * Open h4_Live GitHub issues search to find related issues.
-     * @param {string} errorMsg - Sanitized error message
-     */
-    openGitHubIssues(errorMsg) {
-        // Extract key terms from the error (first 100 chars, cleaned)
-        const searchTerms = errorMsg.substring(0, 100).replace(/[^\w\s]/g, ' ').trim();
-        const query = encodeURIComponent(searchTerms + ' is:issue');
-        const url = `https://github.com/m3rr/h4_Live/issues?q=${query}`;
-        window.open(url, '_blank');
-    },
-
-    /**
-     * Render Discombobulator Glitch: Identifies the node and triggers glitch effects
-     * strictly localized to its title bar area on a random interval.
-     */
-    renderDiscombobulator(timestamp) {
-        if (!app.graph) return;
-        const discombobulator = app.graph.findNodesByType("H4_Discombobulator")[0];
-        if (!discombobulator) return;
-
-        const now = Date.now();
-        // Transformation state from LiteGraph
-        const scale = app.canvas.ds.scale;
-        const tx = app.canvas.ds.offset[0];
-        const ty = app.canvas.ds.offset[1];
-
-        // Ensure the node is actually on screen before rendering effects
-        if (!app.canvas.visible_nodes || app.canvas.visible_nodes.indexOf(discombobulator) === -1) return;
-
-        // Glitch Trigger Logic
-        if (!this._glitchState.isGlitching) {
-            // Check cooldown (60s)
-            if (now - this._glitchState.lastGlitchTime > 60000) {
-                // 5% chance per frame once cooldown is over
-                if (Math.random() < 0.05) {
-                    this._glitchState.isGlitching = true;
-                    this._glitchState.glitchDuration = Math.floor(10 + Math.random() * 20); // 10-30 frames
-                    this._glitchState.glitchType = Math.floor(Math.random() * 3);
-                    this._glitchState.lastGlitchTime = now;
-                }
+    injectCSS() {
+        if (document.getElementById("h4-bb-css")) return;
+        const style = document.createElement("style");
+        style.id = "h4-bb-css";
+        style.textContent = `
+            .h4-death-modal {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 800px; /* Wider to accommodate logs */
+                max-width: 90vw;
+                background: #0a0a0a;
+                border: 2px solid; /* Color driven by JS */
+                color: #ff5555;
+                font-family: monospace;
+                padding: 0;
+                z-index: 10000;
+                border-radius: 8px;
+                display: flex;
+                flex-direction: column;
             }
-        }
-
-        if (this._glitchState.isGlitching) {
-            this._glitchState.glitchDuration--;
-            if (this._glitchState.glitchDuration <= 0) {
-                this._glitchState.isGlitching = false;
+            .h4-modal-header {
+                display: flex;
+                justify-content: space-between;
+                padding: 10px 15px;
+                font-weight: bold;
+                background: #111;
             }
-
-            // Calculate screen space position of node title
-            const x = (discombobulator.pos[0] + tx) * scale;
-            const y = (discombobulator.pos[1] + ty) * scale;
-            const w = discombobulator.size[0] * scale;
-            const h = (typeof LiteGraph !== "undefined" ? LiteGraph.NODE_TITLE_HEIGHT : 30) * scale;
-
-            this.applyGlitchEffect(x, y, w, h);
-        }
-    },
-
-    /**
-     * applyGlitchEffect: Paints noisy, colorful, and separated visual elements 
-     * on the Ghost Layer to simulate a cyberpunk glitch.
-     */
-    applyGlitchEffect(x, y, w, h) {
-        const ctx = this.ctx;
-        if (!ctx) return;
-        const type = this._glitchState.glitchType;
-
-        ctx.save();
-
-        if (type === 0) { // Chromatic Aberration / RGB Separation
-            ctx.fillStyle = "rgba(255, 0, 255, 0.4)";
-            ctx.fillRect(x - 5, y + 2, w, h);
-            ctx.fillStyle = "rgba(0, 255, 255, 0.4)";
-            ctx.fillRect(x + 5, y - 2, w, h);
-        }
-        else if (type === 1) { // Macro-blocking / Data Corruption
-            for (let i = 0; i < 6; i++) {
-                const colors = ["#00FF00", "#FF00FF", "#FFFF00", "#00FFFF", "#FFFFFF"];
-                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-                const blockW = Math.random() * (w * 0.4);
-                const blockH = Math.random() * (h * 0.8);
-                ctx.fillRect(x + Math.random() * w, y + Math.random() * h, blockW, blockH);
+            .h4-blink {
+                animation: h4-blink 1s infinite;
             }
-        }
-        else { // Digital Static / Noise
-            for (let i = 0; i < 80; i++) {
-                ctx.fillStyle = Math.random() > 0.5 ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.8)";
-                ctx.fillRect(x + Math.random() * w, y + Math.random() * h, 2, 2);
+            @keyframes h4-blink {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.2; }
             }
-            // Occasional full-line static
-            if (Math.random() > 0.7) {
-                ctx.fillStyle = "rgba(255,255,255,0.2)";
-                ctx.fillRect(x, y + Math.random() * h, w, 1);
+            .h4-modal-close {
+                cursor: pointer;
+                color: #888;
             }
-        }
-
-        ctx.restore();
-    },
-
-    /**
-     * Helper to get output position with fallback
-     */
-    getNodeOutputPos(node, slotIndex) {
-        const offset = this._state.wireOffsetY || 0;
-
-        const titleHeight = (typeof LiteGraph !== "undefined" && LiteGraph.NODE_TITLE_HEIGHT) ? LiteGraph.NODE_TITLE_HEIGHT : 30;
-        const slotHeight = (typeof LiteGraph !== "undefined" && LiteGraph.NODE_SLOT_HEIGHT) ? LiteGraph.NODE_SLOT_HEIGHT : 20;
-
-        // [BB-v11 FIX] Collapsed node handling
-        if (node.flags && node.flags.collapsed) {
-            const defaultCollapsedW = (typeof LiteGraph !== "undefined" && LiteGraph.NODE_COLLAPSED_WIDTH) ? LiteGraph.NODE_COLLAPSED_WIDTH : 140;
-            const w = node._collapsed_width || defaultCollapsedW;
-            return [node.pos[0] + w, node.pos[1] + (titleHeight * 0.5) + offset];
-        }
-
-        // [BB-v11 FIX] PRIORITY: Trust LiteGraph's native position calculation
-        if (node.getConnectionOutputPos) {
-            const lpos = node.getConnectionOutputPos(slotIndex);
-            if (lpos && !isNaN(lpos[0]) && !isNaN(lpos[1])) {
-                return [lpos[0], lpos[1] + offset];
+            .h4-modal-close:hover {
+                color: #fff;
             }
-        }
-
-        // [BB-v11 FIX] FALLBACK: Manual calculation only if LiteGraph fails
-        if (node.pos && node.size) {
-            return [
-                node.pos[0] + node.size[0],
-                node.pos[1] + titleHeight + (slotIndex * slotHeight) + (slotHeight * 0.5) + offset
-            ];
-        }
-        return undefined;
-    },
-
-    getNodeInputPos(node, slotIndex) {
-        // [h4 DEBUG PROTOCOL] Log when loading for first time if debug mode is on
-        if (this._state.debugMode && !window._h4_input_pos_loaded) {
-            console.log('%c[h4-DEBUG] getNodeInputPos function loaded', 'background: #333; color: #0f0; font-size: 12px;');
-            window._h4_input_pos_loaded = true;
-        }
-        const offset = this._state.wireOffsetY || 0;
-
-        const titleHeight = (typeof LiteGraph !== "undefined" && LiteGraph.NODE_TITLE_HEIGHT) ? LiteGraph.NODE_TITLE_HEIGHT : 30;
-        const slotHeight = (typeof LiteGraph !== "undefined" && LiteGraph.NODE_SLOT_HEIGHT) ? LiteGraph.NODE_SLOT_HEIGHT : 20;
-
-        // [BB-v11 FIX] Collapsed node handling
-        if (node.flags && node.flags.collapsed) {
-            return [node.pos[0], node.pos[1] + (titleHeight * 0.5) + offset];
-        }
-
-        // [BB-v11 FIX] Trust LiteGraph's native position calculation
-        // NOTE: The +45px slot correction for converted widgets is applied in drawWires(),
-        // not here. This keeps the base position calculation clean.
-        if (node.getConnectionInputPos) {
-            const lpos = node.getConnectionInputPos(slotIndex);
-            if (lpos && !isNaN(lpos[0]) && !isNaN(lpos[1])) {
-                // [h4 DEBUG PROTOCOL] Detailed slot position logging
-                if (this._state.debugMode) {
-                    const input = node.inputs ? node.inputs[slotIndex] : null;
-                    const inputName = input ? input.name : 'unknown';
-                    if (node.type && node.type.includes('Sampler')) {
-                        console.log(`[h4-DEBUG] getNodeInputPos: ${node.type} slot=${slotIndex} '${inputName}': lpos=[${lpos[0].toFixed(1)}, ${lpos[1].toFixed(1)}]`);
-                    }
-                }
-                return [lpos[0], lpos[1] + offset];
+            .h4-modal-body {
+                padding: 15px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                max-height: 70vh; /* Don't exceed screen height */
             }
-        }
-
-        // [BB-v11 FIX] FALLBACK: Manual calculation only if LiteGraph fails
-        return [
-            node.pos[0],
-            node.pos[1] + titleHeight + (slotIndex * slotHeight) + (slotHeight * 0.5) + offset
-        ];
-    },
+            .h4-modal-message {
+                font-size: 14px;
+                background: rgba(255,0,0,0.1);
+                padding: 10px;
+                border-left: 4px solid #ff0000;
+                word-wrap: break-word;
+            }
+            .h4-modal-trace {
+                background: #000;
+                color: #aaa;
+                padding: 10px;
+                font-size: 11px;
+                white-space: pre-wrap;
+                overflow-x: auto;
+                max-height: 150px;
+                border: 1px solid #333;
+            }
+            .h4-modal-log-title {
+                font-size: 12px;
+                font-weight: bold;
+                margin-top: 5px;
+            }
+            .h4-modal-logs {
+                background: #050505;
+                color: #888;
+                padding: 10px;
+                font-size: 10px;
+                white-space: pre-wrap;
+                overflow-y: auto;
+                flex-grow: 1; /* Take remaining space */
+                min-height: 100px;
+                border: 1px solid #222;
+            }
+            .h4-modal-footer {
+                padding: 10px 15px;
+                background: #111;
+                border-top: 1px solid #333;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .h4-btn-copy {
+                background: #333;
+                color: #fff;
+                border: 1px solid #555;
+                padding: 5px 15px;
+                cursor: pointer;
+                border-radius: 4px;
+                font-family: monospace;
+                font-weight: bold;
+                transition: 0.2s;
+                display: flex;
+                align-items: center;
+            }
+            .h4-btn-copy:hover {
+                background: #555;
+            }
+            .h4-btn-full-log:hover {
+                color: #fff !important;
+                border-color: #888 !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
 });

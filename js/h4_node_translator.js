@@ -88,6 +88,7 @@ app.registerExtension({
         if (!this._translations || !this._isActive || !app.graph) return;
 
         const lang = this._activeLang;
+        let changed = false;
 
         app.graph._nodes.forEach(node => {
             // Skip the translator itself
@@ -99,40 +100,34 @@ app.registerExtension({
 
             const target = def[lang];
 
-            // 1. Translate Title
-            // Store original title if not stored (and if it matches current title/type to avoid overwriting manual renames)
-            // Logic: If node.title == node.type, it's default. If user modified it, do we translate?
-            // User Discussion said: "Translating Node Titles is safe".
-            // Let's assume we translate whatever matches the standard name? 
-            // OR strictly overwrite?
-            // Safest: Store original. Overwrite.
-
             if (!node._h4_original_title) node._h4_original_title = node.title;
 
             // Only update if target title is defined
             if (target.title && node.title !== target.title) {
                 node.title = target.title;
+                changed = true;
             }
 
             // 2. Translate Widgets (Visual Label Only)
             if (target.widgets && node.widgets) {
                 node.widgets.forEach(w => {
-                    const translatedLabel = target.widgets[w.name]; // Match by internal identifier name
+                    const translatedLabel = target.widgets[w.name];
                     if (translatedLabel) {
-                        // Store original label if not set
                         if (!w._h4_original_label) w._h4_original_label = w.label || w.name;
 
-                        // Set the display label
                         if (w.label !== translatedLabel) {
                             w.label = translatedLabel;
+                            changed = true;
                         }
                     }
                 });
             }
         });
 
-        // Force redraw
-        app.graph.setDirtyCanvas(true, true);
+        // Force redraw ONLY if something changed
+        if (changed) {
+            app.graph.setDirtyCanvas(true, true);
+        }
     },
 
     revertTranslations() {
