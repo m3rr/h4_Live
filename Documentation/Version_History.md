@@ -2,6 +2,7 @@
 
 | Version | Date | Status | Highlights |
 | :--- | :--- | :--- | :--- |
+| **5.23.0** | 2026-02-25 | **Stable** | The Dual-Core Engine (Double Sampler). |
 | **5.22.0** | 2026-02-23 | **Stable** | The Absolute Recovery (Startup & TOML Fix). |
 | **5.21.0** | 2026-02-23 | Stable | The Great Unchaining (Redraw Fix). |
 | **5.20.0** | 2026-02-23 | Stable | Emergency Startup Fix & Sentinel Fortification. |

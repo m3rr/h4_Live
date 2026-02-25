@@ -2,6 +2,14 @@
 
 All notable changes to the h4_Live project will be documented in this file.
 
+## [5.23.0] - 2026-02-25
+### Added
+- **Phase XXXIII: The Dual-Core Engine (Double Sampler)**: Implemented `H4_DoubleSampler`, a powerhouse all-in-one sampling node.
+- **Dual-Stage Sampling**: Native support for primary and refiner/second-pass sampling within a single node.
+- **Sentient Prompting**: Integrated "Prompt Stutter" (randomized token repetition for emphasis) and "Wildcard" replacement systems.
+- **Dynamic UX**: Created `h4_DoubleSampler.js` with smart widget management that hides Stage 2 settings when disabled to maintain workspace purity.
+- **Registry Integration**: Fully registered in the h4_Live toolkit core.
+
 ## [5.22.0] - 2026-02-23
 ### Added
 - **Phase XXXII: The Absolute Recovery (Startup & TOML Fix)**: Resolved persistent startup hang by reverting to relative JS imports and hardening input/output guards in `h4_Oxidine.js`.

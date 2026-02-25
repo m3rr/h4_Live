@@ -234,6 +234,7 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 - [H4_PixelVisualizer (Diff Inspector)](#h4_pixelvisualizer-diff-inspector)
 - [H4_Varianator (Latent Riffler)](#h4_varianator-latent-riffler)
 - [H4_VisualTokenizer (Weights)](#h4_visualtokenizer-weights)
+- [H4_DoubleSampler (Dual-Core Engine)](#h4_doublesampler-dual-core-engine)
 
 ### Face manipulation suite (h4_faceforge/)
 - [H4_FaceForge (AIO Face Swap Engine)](#h4_faceforge-aio-face-swap-engine)
@@ -290,6 +291,23 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 **How it works:**
 - It automatically shape-shifts. When KSampler asks for a Model, Oxidine hands it the Model. When it asks for Positive conditioning, Oxidine hands it the Positive conditioning. 
 - You no longer need 6 different wires crossing your screen like a plate of spaghetti.
+
+---
+
+### H4_DoubleSampler (The Dual-Core Engine)
+**What it is:** The monster truck of samplers. It handles two-stage generation (Primary + Refiner), prompt transformation, and CFG sliding all in one node.
+
+**How to use it:**
+- **Stage 1 (Primary):** Set your base steps and sampler. This is where the heavy lifting happens.
+- **Stage 2 (Refiner):** Toggle this ON to enable a second pass. It uses the output of Stage 1 and refines it with a new sampler, scheduler, and denoise setting. Perfect for that "0.35 denoise finish" without adding another node.
+- **Sentient Prompting:** If you plug in a `CLIP` and use the `positive_text` input, you unlock the **Stutter** and **Wildcard** systems.
+  - **Prompt Stutter:** Randomly repeats words to put extreme emphasis on them.
+  - **Wildcards:** Use `__keyword__` in your text and define them in the `wildcard_text` box (e.g. `blue=red`).
+
+**Advanced Features:**
+- **CFG Sliding Scale:** Enable this to transition from one CFG value to another over the course of the steps.
+- **Seed Variation:** Adds chaos to your generation by mixing seeds (WIP).
+- **Auto-UI:** Stage 2 settings hide themselves when the toggle is OFF, keeping your graph clean.
 
 ---
 

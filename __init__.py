@@ -63,6 +63,7 @@ from .h4_model_save import H4_ModelSave
 from .h4_latent_selector import H4_LatentSelector
 from .h4_node_translator import H4_NodeTranslator
 from .h4_oxidine import H4_Oxidine
+from .h4_double_sampler import H4_DoubleSampler
 
 # FaceForge Module (AIO Face Swap Suite)
 from .h4_faceforge import (
@@ -125,8 +126,8 @@ NODE_CLASS_MAPPINGS = {
     "H4_UniversalLoader": H4_UniversalLoader,
     "H4_DocuScribe": H4_DocuScribe,
     "H4_SmartSave": H4_SmartSave,
-    "H4_NoteInjector": H4_NoteInjector,
     "H4_PixelVisualizer": H4_PixelVisualizer,
+    "H4_DoubleSampler": H4_DoubleSampler,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -166,6 +167,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_ModelSave": "h4 - Model Save (Simple)",
     "H4_LatentSelector": "h4 - Latent Presets",
     "H4_Oxidine": "h4 - Oxidine (Reroute)",
+    "H4_DoubleSampler": "h4 - Double Sampler (Advanced)",
 }
 
 WEB_DIRECTORY = "./js"

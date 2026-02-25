@@ -1,7 +1,7 @@
 {
     "H4_ModelMerger": {
         "title": "H4 Model Merger (The Lab)",
-        "description": "Okay, welcome to the Thunderdome. This isn't your average model merger. This is absolute, unadulterated MAD SCIENCE. We're talking deep, block-level weight manipulation—injecting the soul of one model into the body of another. Unlike basic mergers that just average everything out into a muddy mess, this bad boy lets you surgically target specific layers of the UNet. Want the composition of an SDXL base but the shading of that obscure anime checkpoint you found on Civitai at 3 AM? You can do that. Want to fix broken hands by grafting the 'Out' blocks of a better model? You can try. Just be warned: If you push the sliders too far, you're gonna conjure eldritch horrors. But when it hits? It's pure magic.",
+        "description": "Okay, welcome to the Thunderdome. This isn't your average model merger. This is absolute, unadulterated MAD SCIENCE. We're talking deep, block-level weight manipulation\u2014injecting the soul of one model into the body of another. Unlike basic mergers that just average everything out into a muddy mess, this bad boy lets you surgically target specific layers of the UNet. Want the composition of an SDXL base but the shading of that obscure anime checkpoint you found on Civitai at 3 AM? You can do that. Want to fix broken hands by grafting the 'Out' blocks of a better model? You can try. Just be warned: If you push the sliders too far, you're gonna conjure eldritch horrors. But when it hits? It's pure magic.",
         "usage": "Use this node when you're tired of using the same old checkpoints everyone else uses. It's for creating custom hybrid models on the fly, directly in your workflow, without filling your hard drive with 50GB of intermediate files. The 'Test Image' output lets you verify the merge instantly before you commit to a long render.",
         "inputs": {
             "model_count": {
@@ -187,7 +187,7 @@
     },
     "H4_SmartSave": {
         "title": "H4 SmartSave (The Brain)",
-        "description": "Saving images shouldn't be dumb. The default saver just dumps files. This one? This one has an IQ of 200. It embeds every single piece of metadata—prompt, seed, model hash, workflow graph—directly into the PNG chunks. But it also gives you a UI to *inspect* that data before you save. Plus, you can add custom user notes that get burned into the metadata too. Never forget *why* you used that specific LorA again.",
+        "description": "Saving images shouldn't be dumb. The default saver just dumps files. This one? This one has an IQ of 200. It embeds every single piece of metadata\u2014prompt, seed, model hash, workflow graph\u2014directly into the PNG chunks. But it also gives you a UI to *inspect* that data before you save. Plus, you can add custom user notes that get burned into the metadata too. Never forget *why* you used that specific LorA again.",
         "usage": "Replace the standard 'Save Image' node. Toggle 'Save to Disk' to actually write files, otherwise it just previews.",
         "inputs": {
             "images": {
@@ -1173,7 +1173,7 @@
             },
             "occlusion_enabled": {
                 "type": "BOOLEAN",
-                "description": "**Smart Masking**. \n Prevents the face from covering hair/hands/objects. \n ⚠️ **WARNING**: Creates a SAM (Segment Anything) model which uses lots of VRAM. Don't use on 4GB cards.",
+                "description": "**Smart Masking**. \n Prevents the face from covering hair/hands/objects. \n \u26a0\ufe0f **WARNING**: Creates a SAM (Segment Anything) model which uses lots of VRAM. Don't use on 4GB cards.",
                 "example": "False"
             },
             "preserve_glasses": {
@@ -1522,7 +1522,7 @@
     },
     "H4_NodeTranslator": {
         "title": "H4 Node Translator (The Babel Fish)",
-        "description": "Language barrier? Destroyed. This node translates the entire ComfyUI graph—Node Titles and Widget Labels—into your target language in real-time. It uses a local dictionary to map English terms to Spanish, Mandarin, German, etc. It's safe, visual-only, and doesn't break your workflow backend.",
+        "description": "Language barrier? Destroyed. This node translates the entire ComfyUI graph\u2014Node Titles and Widget Labels\u2014into your target language in real-time. It uses a local dictionary to map English terms to Spanish, Mandarin, German, etc. It's safe, visual-only, and doesn't break your workflow backend.",
         "usage": "Add node. Select 'Spanish'. Watch the UI transform instantly. (Currently WIP)",
         "inputs": {
             "language": {
@@ -1741,7 +1741,7 @@
     },
     "H4_Oxidine": {
         "title": "H4 Oxidine (The Shifter)",
-        "description": "Meet Oxidine. It's not just a reroute; it's a chemical catalyst for your workflow. Designed to be minimalist, 'scary' efficient, and sexy as hell. It transmorphs shapes—from clean circles to geometric hexagons—to fit your aesthetic. But beneath the chrome is a 'True Agnostic' brain. It doesn't care what you plug into it. It crawls downstream, figures out what the next node is 'thirsty' for, and delivers exactly that payload. One dot, infinite possibilities.",
+        "description": "Meet Oxidine. It's not just a reroute; it's a chemical catalyst for your workflow. Designed to be minimalist, 'scary' efficient, and sexy as hell. It transmorphs shapes\u2014from clean circles to geometric hexagons\u2014to fit your aesthetic. But beneath the chrome is a 'True Agnostic' brain. It doesn't care what you plug into it. It crawls downstream, figures out what the next node is 'thirsty' for, and delivers exactly that payload. One dot, infinite possibilities.",
         "usage": "Use it as a high-density intersection. Plug everything into it. Right-click [OXIDINE] to change shapes, colors, or activate Stealth Mode (invisible wires).",
         "features": [
             {
@@ -1765,6 +1765,152 @@
             "Enable 'Stealth Mode' to clean up spaghetti. Wires only appear when you need to see them.",
             "Use the 'Radioactive Yellow' color to make it pop against a dark canvas.",
             "Enable Debug Log to see the forensic manifest of data passing through the intersection."
+        ]
+    },
+    "H4_DoubleSampler": {
+        "title": "H4 Double Sampler (The Dual-Core Engine)",
+        "description": "Welcome to the ultimate sampling powerhouse. The H4 Double Sampler is more than just a node; it's a complete two-stage generation pipeline trapped inside a single interface. It combines a primary sampler with an optional high-performance refiner, sentient prompt manipulation (Stutter & Wildcards), and advanced CFG sliding scales. Whether you're doing a standard 1.0 denoise creation or a complex 0.35 denoise finishing pass, this node handles the handover with surgical precision. It's designed to declutter your graph by replacing multiple KSamplers and prompt encoders with a single, smart powerhouse.",
+        "usage": "Use this as your primary generation engine. Connect your Model, Prompts, and Latent to the Stage 1 inputs. If you want a refined second pass, toggle 'enable_stage_2' to 'ON' to reveal the refiner controls. Pulse the CLIP input if you want to use the 'Sentient Prompting' features.",
+        "inputs": {
+            "model": {
+                "type": "MODEL",
+                "description": "The diffusion model to be used for sampling.",
+                "example": "-"
+            },
+            "positive": {
+                "type": "CONDITIONING",
+                "description": "The positive prompt conditioning.",
+                "example": "-"
+            },
+            "negative": {
+                "type": "CONDITIONING",
+                "description": "The negative prompt conditioning.",
+                "example": "-"
+            },
+            "latent_image": {
+                "type": "LATENT",
+                "description": "The input latent image or empty latent.",
+                "example": "-"
+            },
+            "seed": {
+                "type": "INT",
+                "description": "The primary generation seed.",
+                "example": "123456789"
+            },
+            "steps": {
+                "type": "INT",
+                "description": "Total steps for the primary sampling stage.",
+                "example": "20"
+            },
+            "cfg": {
+                "type": "FLOAT",
+                "description": "Classifier Free Guidance scale. Higher values = stronger prompt adherence.",
+                "example": "8.0"
+            },
+            "sampler_name": {
+                "type": "COMBO",
+                "description": "The math engine used to solve the ODE.",
+                "example": "euler"
+            },
+            "scheduler": {
+                "type": "COMBO",
+                "description": "Determines how the noise level changes per step.",
+                "example": "normal"
+            },
+            "denoise": {
+                "type": "FLOAT",
+                "description": "The strength of the initial transformation. 1.0 is full creation.",
+                "example": "1.0"
+            },
+            "enable_stage_2": {
+                "type": "BOOLEAN",
+                "description": "The Master Toggle. Flip this to 'ON' to activate the second sampling pass (Refiner) and reveal its settings.",
+                "example": "True"
+            },
+            "stage_2_sampler": {
+                "type": "COMBO",
+                "description": "The sampler for the refiner stage.",
+                "example": "euler_ancestral"
+            },
+            "stage_2_scheduler": {
+                "type": "COMBO",
+                "description": "The scheduler for the refiner stage.",
+                "example": "karras"
+            },
+            "stage_2_steps": {
+                "type": "INT",
+                "description": "Step count for the refiner stage.",
+                "example": "10"
+            },
+            "stage_2_denoise": {
+                "type": "FLOAT",
+                "description": "Denoise strength for the refiner. Usually low (0.3 - 0.45) to refine details.",
+                "example": "0.35"
+            },
+            "stage_2_cfg": {
+                "type": "FLOAT",
+                "description": "Target CFG for the refiner stage.",
+                "example": "4.0"
+            },
+            "cfg_sliding_scale": {
+                "type": "BOOLEAN",
+                "description": "Enables the CFG Interpolation system. Transitions from 'cfg' to 'cfg_end' across the steps.",
+                "example": "True"
+            },
+            "cfg_end": {
+                "type": "FLOAT",
+                "description": "The target CFG value to hit by the final step.",
+                "example": "4.0"
+            },
+            "prompt_stutter": {
+                "type": "FLOAT",
+                "description": "The 'Sentience' factor. Probability of repeating words in the prompt for extreme emphasis.",
+                "example": "0.1"
+            },
+            "seed_variation": {
+                "type": "FLOAT",
+                "description": "Chaos level. Mixes the primary seed with the variation seed (WIP).",
+                "example": "0.05"
+            },
+            "variation_seed": {
+                "type": "INT",
+                "description": "The secondary seed for noise mixing.",
+                "example": "987654321"
+            },
+            "positive_text": {
+                "type": "STRING",
+                "description": "Raw text input for positive prompts. Enables Stutter and Wildcards.",
+                "example": "a beautiful landscape"
+            },
+            "wildcard_text": {
+                "type": "STRING",
+                "description": "Key=Value pairs for wildcard replacement (e.g. blue=red).",
+                "example": "blue=red"
+            }
+        },
+        "outputs": {
+            "LATENT": "The final processed latent image after Stage 1 (+ optional Stage 2).",
+            "IMAGE": "A decoded preview image (requires VAE input).",
+            "STRING": "The final processed prompt string after wildcards and stutters are applied."
+        },
+        "features": [
+            {
+                "name": "Refiner Handover",
+                "description": "Automatically passes the latent from Stage 1 to Stage 2 with zero extra wiring. Supports independent samplers and noise schedules."
+            },
+            {
+                "name": "Sentient Stuttering",
+                "description": "A unique randomization algorithm that repeats prompt tokens to focus on specific concepts."
+            },
+            {
+                "name": "Dynamic Wildcards",
+                "description": "In-node wildcard replacement. No more external files or complex nodes needed for simple text swaps."
+            }
+        ],
+        "tips": [
+            "Use Stage 2 with a low denoise (0.25 - 0.35) to fix faces and textures in a single go.",
+            "Connect the 'processed_prompt' output to a NoteInjector to see exactly how the stutter turned out.",
+            "Keep 'cfg_sliding_scale' on for long step counts to prevent over-baking as the image converges."
         ]
     }
 }
