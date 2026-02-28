@@ -1,203 +1,152 @@
+# 👁️ h4_Live ToolKit - The Mothership (Dynamic Discovery Engine)
+# ==============================================================================
+# v3.0 - Atomic Plugin Architecture
+# ==============================================================================
+# This is the central brain that scans the 'nodes/' shelf for hot-swappable nodes.
+# Deleting a folder in 'nodes/' safely removes it from the pack without side-effects.
 
-# ----------------------------------------------------------------------------------------------------
-# 🚀 h4_Live ToolKit | Nuclear Logic & Persistent State & Some other stuff. NOW WITH QoL Enhancements
-# ----------------------------------------------------------------------------------------------------
-import sys
 import os
+import sys
+import importlib
+import logging
+
+# Ensure root directory is in sys.path so members can import correctly
+sys.path.append(os.path.dirname(__file__))
+
+# Import the "OS" (Core Logic)
+from .core.h4_core import nuke_pycache, check_pack_version, _log
+
+# NUKE PYCACHE (Keeping the house clean)
+nuke_pycache(os.path.dirname(__file__))
+
 import shutil
 
-# [H4] Runtime Pycache Cleaner
-# This ensures a clean slate for the h4_Live suite on every server start.
-def nuke_pycache():
-    import stat
-    root = os.path.dirname(__file__)
-    print(f"\n[H4] ☢️  Initiating Runtime Pycache Nuke in: {root}")
-    
-    # Helper to force-delete read-only files (fixes Windows permission issues)
-    def remove_readonly(func, path, _):
-        os.chmod(path, stat.S_IWRITE)
-        func(path)
-        
-    count = 0
-    for dirpath, dirnames, filenames in os.walk(root):
-        # Remove __pycache__ directories
-        if "__pycache__" in dirnames:
-            p = os.path.join(dirpath, "__pycache__")
-            try:
-                shutil.rmtree(p, onerror=remove_readonly)
-                count += 1
-            except Exception as e:
-                print(f"[H4] ❌ Failed to nuke {p}: {e}")
-            dirnames.remove("__pycache__") # Don't traverse into it
-            
-    print(f"[H4] ☢️  Nuked {count} __pycache__ folders. System Clean.\n")
-
-nuke_pycache()
-
-# Version Check
-try:
-    from .version import __version__
-except ImportError:
-    __version__ = "?.?.?"
-
-# Import Nodes
-from .h4_traffic import H4_TrafficCop, H4_TrafficMerge, H4_TrafficRouter, H4_StateMonitor, H4_LoopIncrementer, H4_WirelessResetButton, H4_ImageBuffer
-from .h4_context import H4_ContextHub, H4_ContextUnpack
-from .h4_smart_debug import H4_SmartConsole
-from .h4_mission_control import H4_MissionControl, H4_LinearScheduler, H4_SeedGenerator
-from .h4_gridinator import H4_Gridinator
-from .h4_debug_error import H4_DebugErrorGenerator
-from .h4_discombobulator import H4_Discombobulator
-from .h4_datastream import H4_DataStream
-from .h4_axis import H4_AxisDriver
-from .h4_varianator import H4_Varianator
-from .h4_seed_sequencer import H4_SeedSequencer
-from .h4_notes import H4_NoteInjector
-from .h4_pixel_press import H4_PixelPress
-from .h4_pixel_visualizer import H4_PixelVisualizer
-from .h4_comparinator import H4_Comparinator
-from .h4_visual_tokenizer import H4_VisualTokenizer
-from .h4_loaders import H4_UniversalLoader
-from .h4_model_merger import H4_ModelMerger
-from .h4_model_save import H4_ModelSave
-from .h4_latent_selector import H4_LatentSelector
-from .h4_node_translator import H4_NodeTranslator
-from .h4_oxidine import H4_Oxidine
-from .h4_double_sampler import H4_DoubleSampler
-
-# FaceForge Module (AIO Face Swap Suite)
-from .h4_faceforge import (
-    H4_FaceForge,
-    H4_LoadFaceModel,
-    H4_BuildFaceModel,
-    H4_SaveFaceModel,
-    H4_IdentityEngine,
-    H4_FaceDetailer,
-    NODE_CLASS_MAPPINGS as FACEFORGE_CLASS_MAPPINGS,
-    NODE_DISPLAY_NAME_MAPPINGS as FACEFORGE_DISPLAY_MAPPINGS,
-)
-
-# DisplayAny Module
-from .h4_display_any import H4_DisplayAny
-
-# DocuScribe Module
-from .h4_docuscribe import H4_DocuScribe
-
-# SmartSave Module
-from .h4_smart_save import H4_SmartSave
-
-# Server / API Logic (Presets)
-from . import h4_server
-
-NODE_CLASS_MAPPINGS = {
-    "H4_TrafficCop": H4_TrafficCop,
-    "H4_TrafficMerge": H4_TrafficMerge,
-    "H4_TrafficRouter": H4_TrafficRouter,
-    "H4_StateMonitor": H4_StateMonitor,
-    "H4_ContextHub": H4_ContextHub,
-    "H4_ContextUnpack": H4_ContextUnpack,
-    "H4_SmartConsole": H4_SmartConsole,
-    "H4_MissionControl": H4_MissionControl,
-    "H4_LinearScheduler": H4_LinearScheduler,
-    "H4_SeedGenerator": H4_SeedGenerator,
-    "H4_LoopIncrementer": H4_LoopIncrementer,
-    "H4_WirelessResetButton": H4_WirelessResetButton,
-    "H4_ImageBuffer": H4_ImageBuffer,
-    "H4_Gridinator": H4_Gridinator,
-    "H4_DebugErrorGenerator": H4_DebugErrorGenerator,
-    "H4_Discombobulator": H4_Discombobulator,
-    "H4_DataStream": H4_DataStream,
-    "H4_AxisDriver": H4_AxisDriver,
-    "H4_Varianator": H4_Varianator,
-    "H4_SeedSequencer": H4_SeedSequencer,
-    "H4_NoteInjector": H4_NoteInjector,
-    "H4_PixelPress": H4_PixelPress,
-    "H4_Comparinator": H4_Comparinator,
-    "H4_VisualTokenizer": H4_VisualTokenizer,
-    "H4_ModelMerger": H4_ModelMerger,
-    "H4_ModelSave": H4_ModelSave,
-    "H4_LatentSelector": H4_LatentSelector,
-    # FaceForge Suite
-    **FACEFORGE_CLASS_MAPPINGS,
-    # Logic
-    "H4_NodeTranslator": H4_NodeTranslator,
-    "H4_Oxidine": H4_Oxidine,
-    "H4_DisplayAny": H4_DisplayAny,
-    "H4_UniversalLoader": H4_UniversalLoader,
-    "H4_DocuScribe": H4_DocuScribe,
-    "H4_SmartSave": H4_SmartSave,
-    "H4_PixelVisualizer": H4_PixelVisualizer,
-    "H4_DoubleSampler": H4_DoubleSampler,
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_TrafficCop": "h4 - Traffic Cop (Live Logic)",
-    "H4_TrafficMerge": "h4 - Traffic Merge (Safe Select)",
-    "H4_TrafficRouter": "h4 - Traffic Router (The Nexus)",
-    "H4_StateMonitor": "h4 - State Monitor",
-    "H4_ContextHub": "h4 - Context Hub (Mothership)",
-    "H4_ContextUnpack": "h4 - Context Unpack (Distributor)",
-    "H4_SmartConsole": "h4 - Smart Console (Debugger)",
-    "H4_MissionControl": "h4 - Mission Control (Dashboard)",
-    "H4_LinearScheduler": "h4 - Linear Scheduler (Signal Gen)",
-    "H4_SeedGenerator": "h4 - Seed Generator (Signal Gen)",
-    "H4_LoopIncrementer": "h4 - Loop Incrementer (Hybrid)",
-    "H4_WirelessResetButton": "h4 - Wireless Reset (Toggle)",
-    "H4_ImageBuffer": "h4 - Image Buffer (Anti-Lag)",
-    "H4_Gridinator": "h4 - Gridinator 9001",
-    "H4_DebugErrorGenerator": "h4 - Debug Error (TEST ONLY)",
-    "H4_Discombobulator": "h4 - The Discombobulator (Use with CAUTION)",
-    "H4_DataStream": "h4 - DataStream (Batch Loader)",
-    "H4_AxisDriver": "h4 - Axis Driver (Grid Tools)",
-    "H4_Varianator": "h4 - Varianator (Latent Riffler)",
-    "H4_SeedSequencer": "h4 - Seed Sequencer (Chaos Control)",
-    "H4_PixelPress": "h4 - Pixel Press (Density)",
-    # FaceForge Suite
-    **FACEFORGE_DISPLAY_MAPPINGS,
-    # Logic
-    "H4_NodeTranslator": "h4 - Node Translator (WIP)",
-    "H4_DisplayAny": "h4 - Display Any+ (Universal Monitor)",
-    "H4_UniversalLoader": "h4 - Universal Loader (Checkpoint/Diffusers)",
-    "H4_DocuScribe": "h4 - DocuScribe (Workflow Reporter)",
-    "H4_SmartSave": "h4 - SmartSave (Preview/Save)",
-    "H4_Comparinator": "h4 - Comparinator (A/B Test)",
-    "H4_NoteInjector": "h4 - Note Injector (Title Bar)",
-    "H4_VisualTokenizer": "h4 - Visual Tokenizer (Weights)",
-    "H4_ModelMerger": "h4 - Model Merger (Mad Science!)",
-    "H4_ModelSave": "h4 - Model Save (Simple)",
-    "H4_LatentSelector": "h4 - Latent Presets",
-    "H4_Oxidine": "h4 - Oxidine (Reroute)",
-    "H4_DoubleSampler": "h4 - Double Sampler (Advanced)",
-}
-
+# --- GLOBALS & PROTECTED ASSETS ---
+NODE_CLASS_MAPPINGS = {}
+NODE_DISPLAY_NAME_MAPPINGS = {}
 WEB_DIRECTORY = "./js"
 
-__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
+# Files that stay in the root /js folder and are NEVER deleted by the harvester
+PROTECTED_JS = ["h4_BigBrother.js", "h4_Dashboard.js", "h4_Sidebar.js", "assets", "h4_generation.js", "h4_ParameterTracer.js", "h4_LoreManager.js"]
 
-# ------------------------------------------------------------------------------
-# Console Status Report
-# ------------------------------------------------------------------------------
-def print_status():
-    green = "\033[92m"
-    reset = "\033[0m"
-    check = f"{green}✅{reset}"
-    
-    print(f"\n---------------------------------------------------------------------------------------------------------")
-    print(f" 🚀 h4_Live ToolKit | Version: {__version__}")
-    print(f"    (Nuclear Logic & Persistent State for ComfyUI)")
-    print(f"---------------------------------------------------------------------------------------------------------")
-    print(f"| {'Node Name':<70} | {'Global ID':<22} | {'Load':<6}|")
-    print(f"---------------------------------------------------------------------------------------------------------")
-    
-    for key, val in NODE_DISPLAY_NAME_MAPPINGS.items():
-        # Hide the stealth nodes from the terminal status list
-        if "Discombobulator" in key:
-            continue
+def harvest_js_assets(nodes_dir, root_js_dir):
+    """
+    Cleans root js/ folder (keeping protected files) and copies fresh JS from each node's /web folder.
+    This fulfills the "Hot Swappable" requirement for UI.
+    """
+    try:
+        if not os.path.exists(root_js_dir):
+            os.makedirs(root_js_dir)
             
-        # Clean up the name for display
-        name = val
-        print(f"| {name:<70} | {key:<22} |  {check}   |")
-        
-    print(f"---------------------------------------------------------------------------------------------------------\n")
+        # 1. Clean stale node JS
+        for item in os.listdir(root_js_dir):
+            if item not in PROTECTED_JS:
+                path = os.path.join(root_js_dir, item)
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
+                    
+        # 2. Harvest fresh JS
+        count = 0
+        for node_folder in os.listdir(nodes_dir):
+            web_path = os.path.join(nodes_dir, node_folder, "web")
+            if os.path.isdir(web_path):
+                for js_file in os.listdir(web_path):
+                    src = os.path.join(web_path, js_file)
+                    dst = os.path.join(root_js_dir, js_file)
+                    if os.path.isdir(src):
+                        shutil.copytree(src, dst, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(src, dst)
+                    count += 1
+        _log("MOTHERSHIP", f"📡 JS Harvest Complete: {count} assets synced.")
+        return True
+    except Exception as e:
+        _log("MOTHERSHIP", f"❌ JS Harvester Fault -> {e}", level="ERROR")
+        return False
 
-print_status()
+def dynamic_discovery():
+    """
+    Scans the './nodes/' directory for standalone modules (.py) or folders with __init__.py.
+    Builds the final NODE_CLASS_MAPPINGS and reports status to the console.
+    """
+    global NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
+    
+    root_dir = os.path.dirname(__file__)
+    nodes_dir = os.path.join(root_dir, "nodes")
+    root_js_dir = os.path.join(root_dir, "js")
+    
+    if not os.path.exists(nodes_dir):
+        _log(f"WARNING: The shelf directory '{nodes_dir}' is missing. Pack is offline.", level="ERROR")
+        return
+
+    # --- JS HARVEST ---
+    harvest_js_assets(nodes_dir, root_js_dir)
+
+    # --- Live Audit Table Header ---
+    _log("=" * 60)
+    _log(f"  h4_Live DISCOVERY: [ SHELF AUDIT v3 ]")
+    _log("-" * 60)
+    _log("{:<24} | {:<20} | {:<10}".format("MODULE", "NODE_STATUS", "INTEGRITY"))
+    _log("-" * 60)
+    
+    # 1. Gather all potential node modules
+    items = [i for i in os.listdir(nodes_dir) if not i.startswith("__")]
+    items.sort()
+    
+    for item in items:
+        item_path = os.path.join(nodes_dir, item)
+        is_python_file = item.endswith(".py")
+        is_folder = os.path.isdir(item_path)
+        
+        module_name = item.replace(".py", "") if is_python_file else item
+        full_module_path = f".nodes.{module_name}"
+        
+        status = "OFFLINE"
+        integrity = "VOID"
+        
+        try:
+            # 2. Dynamic Import
+            module = importlib.import_module(full_module_path, package=__name__)
+            
+            # 3. Pull Class Mappings if present
+            if hasattr(module, "NODE_CLASS_MAPPINGS"):
+                mappings = getattr(module, "NODE_CLASS_MAPPINGS")
+                NODE_CLASS_MAPPINGS.update(mappings)
+                
+                # Pull Display Name Mappings (Optional)
+                if hasattr(module, "NODE_DISPLAY_NAME_MAPPINGS"):
+                    display_mappings = getattr(module, "NODE_DISPLAY_NAME_MAPPINGS")
+                    NODE_DISPLAY_NAME_MAPPINGS.update(display_mappings)
+                
+                status = "[ ACTIVE ]"
+                integrity = f"OK ({len(mappings)})"
+            else:
+                status = "[ PASIVE ]"
+                integrity = "UTILITY"
+                
+        except Exception as e:
+            status = "[ ERROR  ]"
+            integrity = "FAILED"
+            _log(f"MOTHERSHIP: Fault in {module_name} -> {e}", level="ERROR")
+            
+        # 4. Print Table Row
+        _log("{:<24} | {:<20} | {:<10}".format(module_name, status, integrity))
+            
+    _log("-" * 60)
+    _log(f"  SYSTEM ONLINE: {len(NODE_CLASS_MAPPINGS)} nodes available across {len(items)} modules.")
+    _log("=" * 60)
+
+# Run the Discovery
+dynamic_discovery()
+
+# --- SERVER EXTENSION REGISTRATION ---
+# This ensures h4_server still registers its API endpoints
+try:
+    # Manual trigger for the server module to ensure it registers its routes
+    from .core import h4_server
+except Exception as e:
+    _log(f"MOTHERSHIP: Critical Engine Fault (Server) -> {e}", level="ERROR")
+
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
