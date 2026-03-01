@@ -1,7 +1,7 @@
 {
     "H4_System_Architecture": {
         "title": "h4_Live: System Architecture (The Mothership)",
-        "description": "Welcome to h4_Live v3.0—the first custom node pack built like an Operating System. We've moved away from standard 'monolithic' design (where everything is trapped in one file) to an **Atomic Plugin Architecture**. In this new era, the toolkit is divided into the **Engine (Core)** and the **Apps (Nodes)**. Every node you see in your menu is a standalone folder on the 'Shelf' (`/nodes/`). You can drag-and-drop these folders, share them with friends, or delete them to prune your pack. The root 'Mothership' dynamically scans the shelf on every boot and harvests the UI automatically. It's the ultimate in modular power.",
+        "description": "Welcome to h4_Live v7.0.0—the first custom node pack built like an Operating System. We've moved away from standard 'monolithic' design (where everything is trapped in one file) to an **Atomic Plugin Architecture**. In this new era, the toolkit is divided into the **Engine (Core)** and the **Apps (Nodes)**. Every node you see in your menu is a standalone folder on the 'Shelf' (`/nodes/`). You can drag-and-drop these folders, share them with friends, or delete them to prune your pack. The root 'Mothership' dynamically scans the shelf on every boot and harvests the UI automatically. It's the ultimate in modular power.",
         "dev_corner": {
             "paradigm": "Atomic Micro-Modularization",
             "loader": "Dynamic Importlib Discovery Engine",

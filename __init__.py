@@ -1,6 +1,6 @@
 # 👁️ h4_Live ToolKit - The Mothership (Dynamic Discovery Engine)
 # ==============================================================================
-# v3.0 - Atomic Plugin Architecture
+# v7.0.0 - Atomic Plugin Architecture
 # ==============================================================================
 # This is the central brain that scans the 'nodes/' shelf for hot-swappable nodes.
 # Deleting a folder in 'nodes/' safely removes it from the pack without side-effects.

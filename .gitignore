@@ -32,6 +32,7 @@ temp/
 *.pt
 *.bin
 *.pth
+what-i-done.md
 
 # IDEs
 .idea/
@@ -41,3 +42,4 @@ temp/
 
 README_backup.md
 comfyui_h4_live.code-workspace
+House_Work_Files/
