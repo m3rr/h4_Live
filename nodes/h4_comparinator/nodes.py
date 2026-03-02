@@ -11,7 +11,7 @@ from collections import deque, defaultdict
 from PIL import Image, ImageOps
 from server import PromptServer
 from ...core.h4_core import _log
-from ...core.h4_comparinator_vault import ComparinatorVault
+from ..h4_comparinator_vault.nodes import ComparinatorVault
 import shutil
 from aiohttp import web
 
@@ -354,3 +354,12 @@ try:
         
 except Exception as e:
     _log(f"API Registration Failed: {e}")
+
+
+NODE_CLASS_MAPPINGS = {
+    "H4_Comparinator": H4_Comparinator
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "H4_Comparinator": "H4 Comparinator"
+}

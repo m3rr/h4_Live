@@ -232,3 +232,12 @@ class H4_Varianator:
         _log(f"[Varianator] Complete. {len(variations)} generated.")
         
         return (images_out, latent_out, summary_text)
+
+
+NODE_CLASS_MAPPINGS = {
+    "H4_Varianator": H4_Varianator
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "H4_Varianator": "H4 Varianator"
+}

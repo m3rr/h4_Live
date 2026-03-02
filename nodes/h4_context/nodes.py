@@ -151,3 +151,12 @@ class H4_ContextUnpack:
         except Exception as e:
             print(f"❌ [H4_ContextUnpack] CRITICAL ERROR: {e}")
             return (None,)*10
+
+
+NODE_CLASS_MAPPINGS = {
+    "H4_ContextHub": H4_ContextHub
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "H4_ContextHub": "H4 ContextHub"
+}

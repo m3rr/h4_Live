@@ -250,3 +250,12 @@ class H4_SeedGenerator:
                 _log(f"[SeedGen] Broadcast Failed: {e}")
                 
         return (final_seed,)
+
+
+NODE_CLASS_MAPPINGS = {
+    "H4_MissionControl": H4_MissionControl
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "H4_MissionControl": "H4 MissionControl"
+}

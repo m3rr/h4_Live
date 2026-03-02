@@ -533,3 +533,12 @@ class H4_Gridinator:
     @classmethod
     def IS_CHANGED(cls, **kwargs):
         return float("nan")
+
+
+NODE_CLASS_MAPPINGS = {
+    "H4_Gridinator": H4_Gridinator
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "H4_Gridinator": "H4 Gridinator"
+}
