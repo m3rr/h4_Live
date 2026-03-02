@@ -14,12 +14,20 @@ import logging
 sys.path.append(os.path.dirname(__file__))
 
 # Import the "OS" (Core Logic)
-from .core.h4_core import nuke_pycache, check_pack_version, _log
+from .core.h4_core import _log
+
+import shutil
+
+def nuke_pycache(root_dir):
+    try:
+        for root, dirs, files in os.walk(root_dir):
+            if "__pycache__" in dirs:
+                shutil.rmtree(os.path.join(root, "__pycache__"), ignore_errors=True)
+    except:
+        pass
 
 # NUKE PYCACHE (Keeping the house clean)
 nuke_pycache(os.path.dirname(__file__))
-
-import shutil
 
 # --- GLOBALS & PROTECTED ASSETS ---
 NODE_CLASS_MAPPINGS = {}

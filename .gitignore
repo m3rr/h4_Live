@@ -33,6 +33,7 @@ temp/
 *.bin
 *.pth
 what-i-done.md
+logs.log
 
 # IDEs
 .idea/
