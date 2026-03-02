@@ -10,8 +10,8 @@ import json
 from collections import deque, defaultdict
 from PIL import Image, ImageOps
 from server import PromptServer
-from ..core.h4_core import _log
-from ..core.h4_comparinator_vault import ComparinatorVault
+from ...core.h4_core import _log
+from ...core.h4_comparinator_vault import ComparinatorVault
 import shutil
 from aiohttp import web
 
@@ -255,7 +255,7 @@ class H4_Comparinator:
         # 3. Vault Integration (The New Backend)
         meta = {}
         try:
-            from ..core.h4_session_manager import session_manager
+            from ...core.h4_session_manager import session_manager
             meta = session_manager.extract_metadata(prompt, unique_id)
             # Ensure mandatory fields for validation
             meta["image_id"] = node_id

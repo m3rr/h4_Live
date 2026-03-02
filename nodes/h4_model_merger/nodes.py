@@ -451,3 +451,12 @@ class H4_ModelMerger:
                 block_weight = kwargs.get(f"m{model_idx}_out_{block_num:02d}", 1.0)
             except: pass
         return w_global * block_weight
+
+
+NODE_CLASS_MAPPINGS = {
+    "H4_ModelMerger": H4_ModelMerger
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "H4_ModelMerger": "H4 ModelMerger"
+}

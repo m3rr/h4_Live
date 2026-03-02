@@ -10,7 +10,7 @@ import comfy.model_patcher
 import comfy.model_management
 import comfy.supported_models
 from comfy.model_detection import count_blocks
-from ..core.h4_core import _log
+from ...core.h4_core import _log
 
 class H4_UniversalLoader:
     """

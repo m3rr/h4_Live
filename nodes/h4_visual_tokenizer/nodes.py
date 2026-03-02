@@ -8,7 +8,7 @@ import torch
 import comfy.sd1_clip
 import comfy.model_management
 from server import PromptServer
-from ..core.h4_core import _log
+from ...core.h4_core import _log
 
 class H4_VisualTokenizer:
     """

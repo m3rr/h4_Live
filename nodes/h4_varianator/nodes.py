@@ -14,7 +14,7 @@ import nodes
 import comfy.samplers
 import comfy.model_management
 from typing import Any, Dict, List, Optional, Tuple, cast
-from ..core.h4_core import _log
+from ...core.h4_core import _log
 
 # ------------------------------------------------------------------------------
 # Constants

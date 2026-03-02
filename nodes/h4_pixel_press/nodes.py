@@ -321,3 +321,12 @@ class H4_PixelPress:
             raise e
             
         return (torch.stack(results),)
+
+
+NODE_CLASS_MAPPINGS = {
+    "H4_PixelPress": H4_PixelPress
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "H4_PixelPress": "H4 PixelPress"
+}

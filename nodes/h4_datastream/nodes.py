@@ -11,7 +11,7 @@ import folder_paths
 from PIL import Image, ImageOps, ImageSequence
 from server import PromptServer
 from aiohttp import web
-from ..core.h4_core import _log
+from ...core.h4_core import _log
 
 # ------------------------------------------------------------------------------
 # API: Server-Side Folder Browser (Localhost Only)

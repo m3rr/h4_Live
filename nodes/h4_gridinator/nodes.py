@@ -20,7 +20,7 @@ import math
 import os
 
 # Internal Imports
-from ..core.h4_core import _log
+from ...core.h4_core import _log
 
 class H4_Gridinator:
     """

@@ -81,3 +81,12 @@ class H4_LatentSelector:
         return ({"samples": latent}, width, height)
 
 
+
+
+NODE_CLASS_MAPPINGS = {
+    "H4_LatentSelector": H4_LatentSelector
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "H4_LatentSelector": "H4 LatentSelector"
+}

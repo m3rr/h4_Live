@@ -5,8 +5,8 @@
 # Rule 11 (Logging): Debug modes and value tracking.
 # Rule 21 (Debug Review): Input validation and type safety.
 # ------------------------------------------------------------------------------
-from ..core.h4_core import get_state, _log, increment_loop, reset_state, orbit_get, orbit_set
-from ..core.h4_utils import ANY_TYPE
+from ...core.h4_core import get_state, _log, increment_loop, reset_state, orbit_get, orbit_set
+from ...core.h4_utils import ANY_TYPE
 import random
 from server import PromptServer
 

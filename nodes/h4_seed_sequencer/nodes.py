@@ -11,7 +11,7 @@
 
 import secrets
 from typing import Any, Dict, Optional, Tuple
-from ..core.h4_core import _log
+from ...core.h4_core import _log
 
 class H4_SeedSequencer:
     """

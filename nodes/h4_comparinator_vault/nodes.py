@@ -4,7 +4,7 @@ import json
 import shutil
 import folder_paths
 from collections import defaultdict
-from ..core.h4_core import _log
+from ...core.h4_core import _log
 
 class ComparinatorVault:
     """

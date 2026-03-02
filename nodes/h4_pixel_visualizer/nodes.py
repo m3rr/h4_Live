@@ -65,3 +65,12 @@ class H4_PixelVisualizer:
         
         # 5. Return
         return (heatmap, side_by_side, image_a, image_b)
+
+
+NODE_CLASS_MAPPINGS = {
+    "H4_PixelVisualizer": H4_PixelVisualizer
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "H4_PixelVisualizer": "H4 PixelVisualizer"
+}
