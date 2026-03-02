@@ -68,10 +68,10 @@ def harvest_js_assets(nodes_dir, root_js_dir):
                     else:
                         shutil.copy2(src, dst)
                     count += 1
-        _log("MOTHERSHIP", f"📡 JS Harvest Complete: {count} assets synced.")
+        _log(f"MOTHERSHIP: 📡 JS Harvest Complete: {count} assets synced.")
         return True
     except Exception as e:
-        _log("MOTHERSHIP", f"❌ JS Harvester Fault -> {e}", level="ERROR")
+        _log(f"[ERROR] MOTHERSHIP: ❌ JS Harvester Fault -> {e}")
         return False
 
 def dynamic_discovery():
@@ -86,7 +86,7 @@ def dynamic_discovery():
     root_js_dir = os.path.join(root_dir, "js")
     
     if not os.path.exists(nodes_dir):
-        _log(f"WARNING: The shelf directory '{nodes_dir}' is missing. Pack is offline.", level="ERROR")
+        _log(f"[ERROR] WARNING: The shelf directory '{nodes_dir}' is missing. Pack is offline.")
         return
 
     # --- JS HARVEST ---
@@ -137,7 +137,7 @@ def dynamic_discovery():
         except Exception as e:
             status = "[ ERROR  ]"
             integrity = "FAILED"
-            _log(f"MOTHERSHIP: Fault in {module_name} -> {e}", level="ERROR")
+            _log(f"[ERROR] MOTHERSHIP: Fault in {module_name} -> {e}")
             
         # 4. Print Table Row
         _log("{:<24} | {:<20} | {:<10}".format(module_name, status, integrity))
@@ -155,6 +155,6 @@ try:
     # Manual trigger for the server module to ensure it registers its routes
     from .core import h4_server
 except Exception as e:
-    _log(f"MOTHERSHIP: Critical Engine Fault (Server) -> {e}", level="ERROR")
+    _log(f"[ERROR] MOTHERSHIP: Critical Engine Fault (Server) -> {e}")
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
