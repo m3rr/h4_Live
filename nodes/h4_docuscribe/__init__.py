@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_DocuScribe": "📜 H4 DocuScribe"
+    "H4_DocuScribe": "h4 - Docu Scribe"
 }

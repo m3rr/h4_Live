@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_DataStream": "h4 - DataStream (Batch Loader)",
+    "H4_DataStream": "h4 - DataStream",
 }

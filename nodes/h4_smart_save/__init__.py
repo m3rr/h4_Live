@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_SmartSave": "💾 H4 SmartSave (Preview/Save)"
+    "H4_SmartSave": "h4 - Smart Save"
 }

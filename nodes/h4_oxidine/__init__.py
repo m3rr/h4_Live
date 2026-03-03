@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_Oxidine": "h4 - Oxidine (Reroute)",
+    "H4_Oxidine": "h4 - Oxidine",
 }

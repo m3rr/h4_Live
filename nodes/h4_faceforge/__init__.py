@@ -34,7 +34,7 @@ async def get_sfw_status(request):
     enabled = is_sfw_enabled()
     return web.json_response({
         "sfw_enabled": enabled,
-        "mode": "on" if enabled else "off"
+        "mode": "h4 - Mode" if enabled else "off"
     })
 
 
@@ -48,7 +48,7 @@ async def toggle_sfw_status(request):
     
     return web.json_response({
         "sfw_enabled": new_state,
-        "mode": "on" if new_state else "off"
+        "mode": "h4 - Mode" if new_state else "off"
     })
 
 
@@ -67,13 +67,13 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_FaceForge": "h4 - FaceForge (AIO Face Swap)",
+    "H4_FaceForge": "h4 - Face Forge",
     "H4_LoadFaceModel": "h4 - Load Face Model",
     "H4_BuildFaceModel": "h4 - Build Face Model",
     "H4_SaveFaceModel": "h4 - Save Face Model",
-    "H4_IdentityEngine": "h4 - Identity Engine (Generator)",
-    "H4_FaceDetailer": "h4 - Face Detailer (Pore Restorer)",
-    "H4_DualCLIPTextEncode": "h4 - Dual CLIP Text Encode",
+    "H4_IdentityEngine": "h4 - Identity Engine",
+    "H4_FaceDetailer": "h4 - Face Detailer",
+    "H4_DualCLIPTextEncode": "h4 - Dual Clip Text Encode",
 }
 
 __all__ = [

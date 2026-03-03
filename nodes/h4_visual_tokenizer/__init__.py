@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_VisualTokenizer": "h4 - Visual Tokenizer (Weights)",
+    "H4_VisualTokenizer": "h4 - Visual Tokenizer",
 }

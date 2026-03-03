@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_Varianator": "h4 - Varianator (Latent Riffler)",
+    "H4_Varianator": "h4 - Varianator",
 }

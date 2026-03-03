@@ -6,6 +6,6 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_ContextHub": "h4 - Context Hub (Mothership)",
-    "H4_ContextUnpack": "h4 - Context Unpack (Distributor)",
+    "H4_ContextHub": "h4 - Context Hub",
+    "H4_ContextUnpack": "h4 - Context Unpack",
 }

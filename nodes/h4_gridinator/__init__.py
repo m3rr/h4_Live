@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_Gridinator": "h4 - Gridinator 9001",
+    "H4_Gridinator": "h4 - Gridinator",
 }

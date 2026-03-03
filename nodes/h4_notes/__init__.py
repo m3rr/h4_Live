@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_NoteInjector": "h4 - Note Injector (Title Bar)",
+    "H4_NoteInjector": "h4 - Note Injector",
 }

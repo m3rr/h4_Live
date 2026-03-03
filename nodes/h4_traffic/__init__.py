@@ -11,11 +11,11 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_TrafficRouter": "h4 - Traffic Router (The Nexus)",
-    "H4_TrafficCop": "h4 - Traffic Cop (Live Logic)",
-    "H4_TrafficMerge": "h4 - Traffic Merge (Safe Select)",
+    "H4_TrafficRouter": "h4 - Traffic Router",
+    "H4_TrafficCop": "h4 - Traffic Cop (Splitter)",
+    "H4_TrafficMerge": "h4 - Traffic Merge (Zipper)",
     "H4_StateMonitor": "h4 - State Monitor",
-    "H4_LoopIncrementer": "h4 - Loop Incrementer (Hybrid)",
-    "H4_WirelessResetButton": "h4 - Wireless Reset (Toggle)",
-    "H4_ImageBuffer": "h4 - Image Buffer (Anti-Lag)",
+    "H4_LoopIncrementer": "h4 - Loop Incrementer",
+    "H4_WirelessResetButton": "h4 - Wireless Reset Button",
+    "H4_ImageBuffer": "h4 - Universal Buffer",
 }

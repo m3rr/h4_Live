@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_PixelPress": "h4 - Pixel Press (Density)",
+    "H4_PixelPress": "h4 - Pixel Press",
 }

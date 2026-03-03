@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_ModelMerger": "h4 - Model Merger (Mad Science!)",
+    "H4_ModelMerger": "h4 - Model Merger",
 }

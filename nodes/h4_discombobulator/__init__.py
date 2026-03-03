@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_Discombobulator": "h4 - The Discombobulator (Use with CAUTION)",
+    "H4_Discombobulator": "h4 - Discombobulator",
 }

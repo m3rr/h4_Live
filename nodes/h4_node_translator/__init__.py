@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_NodeTranslator": "h4 - Node Translator (WIP)",
+    "H4_NodeTranslator": "h4 - Node Translator",
 }

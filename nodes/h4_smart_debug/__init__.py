@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_SmartConsole": "h4 - Smart Console (Debugger)",
+    "H4_SmartConsole": "h4 - Smart Console (Debug)",
 }

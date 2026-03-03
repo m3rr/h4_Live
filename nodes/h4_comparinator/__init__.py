@@ -5,5 +5,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_Comparinator": "h4 - Comparinator (A/B Test)",
+    "H4_Comparinator": "h4 - Comparinator",
 }

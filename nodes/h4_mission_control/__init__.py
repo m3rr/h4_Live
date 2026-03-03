@@ -7,7 +7,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_MissionControl": "h4 - Mission Control (Dashboard)",
-    "H4_LinearScheduler": "h4 - Linear Scheduler (Signal Gen)",
-    "H4_SeedGenerator": "h4 - Seed Generator (Signal Gen)",
+    "H4_MissionControl": "h4 - Mission Control",
+    "H4_LinearScheduler": "h4 - Linear Scheduler",
+    "H4_SeedGenerator": "h4 - Seed Generator",
 }
