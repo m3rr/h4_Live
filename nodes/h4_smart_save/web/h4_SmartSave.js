@@ -547,10 +547,21 @@ class SmartSaveUI {
 
             thumb.style.backgroundImage = `url("${thumbUrl}")`;
 
-            // Single click: select, auto-open params panel, and show parameters
-            // Single click: select, auto-open params panel, and show parameters
+            // Single click: select, auto-open params panel, view in node, and show parameters
             thumb.onclick = async () => {
                 this.selected = item;
+                
+                // [User Request] Preview the history item directly in the node pane
+                if (this.node) {
+                    this.node.imgs = [{
+                        filename: item.filename,
+                        type: item.type,
+                        subfolder: item.subfolder
+                    }];
+                    this.node.imageIndex = 0;
+                    app.graph.setDirtyCanvas(true, true);
+                }
+
                 this.renderStrip();
 
                 // [H4] Lazy Loading Metadata Fetch
@@ -890,6 +901,8 @@ app.registerExtension({
 
                 const onExecuted = this.onExecuted;
                 this.onExecuted = function () {
+                    // [User Request] Automatically clear history selection on new generation to preview newest image
+                    ui.selected = null;
                     if (onExecuted) onExecuted.apply(this, arguments);
                     hideWidgets();
                     ui.crawlLive();
