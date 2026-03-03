@@ -137,12 +137,3 @@ class H4_SmartConsole:
                 lines.append("Object: Complex Object (Use +ULTRA for details)")
                 
         return lines
-
-
-NODE_CLASS_MAPPINGS = {
-    "H4_SmartConsole": H4_SmartConsole
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_SmartConsole": "H4 SmartConsole"
-}

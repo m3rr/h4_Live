@@ -184,12 +184,3 @@ class H4_SeedSequencer:
              
         self._last_emitted_seed = result
         return (result,)
-
-
-NODE_CLASS_MAPPINGS = {
-    "H4_SeedSequencer": H4_SeedSequencer
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_SeedSequencer": "H4 SeedSequencer"
-}

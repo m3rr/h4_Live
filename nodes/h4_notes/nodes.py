@@ -118,12 +118,3 @@ class H4_NoteInjector:
             
         result = torch.stack(out_images)
         return (result,)
-
-
-NODE_CLASS_MAPPINGS = {
-    "H4_NoteInjector": H4_NoteInjector
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_NoteInjector": "H4 NoteInjector"
-}

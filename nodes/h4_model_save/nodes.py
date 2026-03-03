@@ -239,12 +239,3 @@ class H4_ModelSave:
                 torch.cuda.empty_cache()
 
         return {}
-
-
-NODE_CLASS_MAPPINGS = {
-    "H4_ModelSave": H4_ModelSave
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_ModelSave": "H4 ModelSave"
-}

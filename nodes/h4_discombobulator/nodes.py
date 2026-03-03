@@ -45,11 +45,3 @@ class H4_Discombobulator:
     def IS_CHANGED(cls, **kwargs):
         # We don't want this to ever trigger a rerun on its own
         return float("NaN")
-
-NODE_CLASS_MAPPINGS = {
-    "H4_Discombobulator": H4_Discombobulator
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_Discombobulator": "The Discombobulator (Use with CAUTION)"
-}

@@ -440,5 +440,3 @@ class H4_SovereignProxy:
         return f"<H4_SovereignProxy types={present}>"
 
 # Registration
-NODE_CLASS_MAPPINGS = {"H4_Oxidine": H4_Oxidine}
-NODE_DISPLAY_NAME_MAPPINGS = {"H4_Oxidine": "h4 - Oxidine"}

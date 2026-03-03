@@ -568,23 +568,3 @@ class H4_ImageBuffer:
 # ------------------------------------------------------------------------------
 # EXPORTS
 # ------------------------------------------------------------------------------
-
-NODE_CLASS_MAPPINGS = {
-    "H4_TrafficRouter": H4_TrafficRouter,
-    "H4_TrafficCop": H4_TrafficCop,
-    "H4_TrafficMerge": H4_TrafficMerge,
-    "H4_StateMonitor": H4_StateMonitor,
-    "H4_LoopIncrementer": H4_LoopIncrementer,
-    "H4_WirelessResetButton": H4_WirelessResetButton,
-    "H4_ImageBuffer": H4_ImageBuffer,
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_TrafficRouter": "🚦 H4 Traffic Router",
-    "H4_TrafficCop": "🚥 H4 Traffic Cop (Splitter)",
-    "H4_TrafficMerge": "🤐 H4 Traffic Merge (Zipper)",
-    "H4_StateMonitor": "👀 H4 State Monitor",
-    "H4_LoopIncrementer": "➕ H4 Loop Incrementer",
-    "H4_WirelessResetButton": "🔴 H4 Wireless Reset Button",
-    "H4_ImageBuffer": "📦 H4 Universal Buffer",
-}

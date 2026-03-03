@@ -581,12 +581,3 @@ class H4_UniversalLoader:
             self._validate_model_clip(model, clip, unet_name if unet_name else ckpt_name, clip_name)
 
             return (model, clip, vae)
-
-
-NODE_CLASS_MAPPINGS = {
-    "H4_UniversalLoader": H4_UniversalLoader
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_UniversalLoader": "H4 UniversalLoader"
-}

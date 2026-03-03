@@ -36,11 +36,3 @@ class H4_NodeTranslator:
     @classmethod
     def IS_CHANGED(cls, **kwargs):
         return float("NaN")
-
-NODE_CLASS_MAPPINGS = {
-    "H4_NodeTranslator": H4_NodeTranslator
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_NodeTranslator": "🌐 h4 Node Translator (WIP)"
-}

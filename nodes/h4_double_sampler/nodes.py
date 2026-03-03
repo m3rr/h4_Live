@@ -194,6 +194,3 @@ class H4_DoubleSampler:
             transformed = " ".join(new_words)
             
         return transformed
-
-NODE_CLASS_MAPPINGS = {"H4_DoubleSampler": H4_DoubleSampler}
-NODE_DISPLAY_NAME_MAPPINGS = {"H4_DoubleSampler": "h4 - Double Sampler"}

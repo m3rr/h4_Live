@@ -141,12 +141,3 @@ class H4_VisualTokenizer:
         PromptServer.instance.send_sync("h4.visual_tokenizer.update", ui_payload)
         
         return (text,)
-
-
-NODE_CLASS_MAPPINGS = {
-    "H4_VisualTokenizer": H4_VisualTokenizer
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_VisualTokenizer": "H4 VisualTokenizer"
-}

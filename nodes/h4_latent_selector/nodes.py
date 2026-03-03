@@ -79,14 +79,3 @@ class H4_LatentSelector:
         latent = torch.zeros([batch_size, 4, height // 8, width // 8], device=comfy.model_management.intermediate_device())
             
         return ({"samples": latent}, width, height)
-
-
-
-
-NODE_CLASS_MAPPINGS = {
-    "H4_LatentSelector": H4_LatentSelector
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_LatentSelector": "H4 LatentSelector"
-}

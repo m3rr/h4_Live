@@ -354,12 +354,3 @@ try:
         
 except Exception as e:
     _log(f"API Registration Failed: {e}")
-
-
-NODE_CLASS_MAPPINGS = {
-    "H4_Comparinator": H4_Comparinator
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_Comparinator": "H4 Comparinator"
-}

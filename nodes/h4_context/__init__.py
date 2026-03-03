@@ -1,1 +1,11 @@
-from .nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
+from .nodes import H4_ContextHub, H4_ContextUnpack
+
+NODE_CLASS_MAPPINGS = {
+    "H4_ContextHub": H4_ContextHub,
+    "H4_ContextUnpack": H4_ContextUnpack,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "H4_ContextHub": "h4 - Context Hub (Mothership)",
+    "H4_ContextUnpack": "h4 - Context Unpack (Distributor)",
+}

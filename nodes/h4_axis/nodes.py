@@ -251,12 +251,3 @@ class H4_AxisDriver:
             slot_payloads.get("Z", ""),
             summary,
         )
-
-
-NODE_CLASS_MAPPINGS = {
-    "H4_AxisDriver": H4_AxisDriver
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_AxisDriver": "H4 AxisDriver"
-}

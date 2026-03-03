@@ -240,12 +240,3 @@ class H4_DataStream:
         })
         
         return (image_tensor, filename, effective_index, total_count, is_last)
-
-
-NODE_CLASS_MAPPINGS = {
-    "H4_DataStream": H4_DataStream
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_DataStream": "H4 DataStream"
-}
