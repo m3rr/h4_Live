@@ -102,10 +102,36 @@
             }
         },
         "zh": {
-            "title": "保存图像",
-            "widgets": {
-                "filename_prefix": "文件名用于"
-            }
+            "title": "保存图像"
+        }
+    },
+    "Global_UI": {
+        "es": {
+            "Add Node": "Añadir Nodo",
+            "Properties": "Propiedades",
+            "Clone": "Clonar",
+            "Remove": "Eliminar",
+            "Inputs": "Entradas",
+            "Outputs": "Salidas",
+            "Search": "Buscar"
+        },
+        "zh": {
+            "Add Node": "添加节点",
+            "Properties": "属性",
+            "Clone": "克隆",
+            "Remove": "移除",
+            "Inputs": "输入",
+            "Outputs": "输出",
+            "Search": "搜索"
+        },
+        "de": {
+            "Add Node": "Knoten hinzufügen",
+            "Properties": "Eigenschaften",
+            "Clone": "Klonen",
+            "Remove": "Entfernen",
+            "Inputs": "Eingänge",
+            "Outputs": "Ausgänge",
+            "Search": "Suche"
         }
     }
 }

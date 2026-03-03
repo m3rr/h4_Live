@@ -81,48 +81,38 @@ class H4_VisualTokenizer:
         # We'll stick to the core tokenizer logic logic found in sd1_clip.py's tokenize()
         # simplified for visualization.
         
+        # Extract the underlying HuggingFace Tokenizer to properly tokenize words.
+        # ComfyUI dynamically wraps tokenizers depending on SD1.5/SDXL/Flux architectures.
+        def find_hf_tokenizer(obj, depth=0):
+            if depth > 4 or obj is None: return None
+            # Check if it has the standard HuggingFace methods
+            if hasattr(obj, "convert_tokens_to_ids") and hasattr(obj, "tokenize"):
+                return obj
+            # Check common wrappers
+            for attr in ["tokenizer", "clip_l", "cond_stage_model", "text_encoder"]:
+                if hasattr(obj, attr):
+                    res = find_hf_tokenizer(getattr(obj, attr), depth + 1)
+                    if res: return res
+            return None
+
+        hx_tokenizer = find_hf_tokenizer(clip)
+            
         for segment_text, segment_weight in weighted_segments:
-            # Tokenize this chunk
-            # The tokenizer might add start/end tokens if we aren't careful?
-            # comfy.sd1_clip.SD1Tokenizer.tokenize_with_weights usually does the whole job.
-            
-            # Let's use the tokenizer's internal 'tokenizer' (CLIPTokenizer) directly
-            # to just get ids for this segment.
-            
-            # Handling generic tokenizer wrapper
-            # usually tokenizer.tokenize(text) -> list of strings
-            # tokenizer.convert_tokens_to_ids(list) -> list of ints
-            
-            # Comfy's wrapper `tokenizer` usually has `clip_tokenizer` or similar?
-            # Let's inspect `tokenizer` object in Comfy. It is `SD1Tokenizer`
-            # It has `self.tokenizer` which is the `transformers.CLIPTokenizer`
-            
-            raw_tokenizer = getattr(tokenizer, "tokenizer", None)
-            
-            if not raw_tokenizer:
-                 # Attempt simple access assuming standard interface
-                 raw_tokenizer = tokenizer 
-            
             try:
-                # Tokenize (returns strings like ['a', 'cat</w>'])
-                # We need to be careful about automatic start/end tokens.
-                # 'tokenize' usually doesn't add them? 'encode' does.
-                tokens = raw_tokenizer.tokenize(segment_text)
-                
-                # Get IDs
-                ids = raw_tokenizer.convert_tokens_to_ids(tokens)
-                
-                # Combine
-                for t_str, t_id in zip(tokens, ids):
-                    # Clean up token string (remove </w> if present, etc)
-                    display_str = t_str.replace("</w>", "")
-                    
-                    token_data.append({
-                        "token": display_str,
-                        "id": t_id,
-                        "weight": segment_weight
-                    })
-                    
+                if hx_tokenizer:
+                    tokens = hx_tokenizer.tokenize(segment_text)
+                    ids = hx_tokenizer.convert_tokens_to_ids(tokens)
+                    for t_str, t_id in zip(tokens, ids):
+                        # Clean up subword markers for display
+                        display_str = t_str.replace("</w>", "")
+                        token_data.append({
+                            "token": display_str,
+                            "id": t_id,
+                            "weight": segment_weight
+                        })
+                else:
+                    # Fallback if architecture totally changed
+                    token_data.append({"token": segment_text, "id": -1, "weight": segment_weight})
             except Exception as e:
                 _log(f"[{node_id}] ⚠️ Tokenization Error on '{segment_text}': {e}")
                 token_data.append({"token": segment_text, "id": -1, "weight": segment_weight})

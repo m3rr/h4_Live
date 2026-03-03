@@ -128,11 +128,72 @@ app.registerExtension({
         if (changed) {
             app.graph.setDirtyCanvas(true, true);
         }
+
+        // Global UI DOM translation
+        if (this._translations["Global_UI"] && this._translations["Global_UI"][lang]) {
+            this.translateGlobalUI(this._translations["Global_UI"][lang]);
+        }
+    },
+
+    translateGlobalUI(dict) {
+        // We only want to set this up once per active session
+        if (!this._uiObserver) {
+            console.log("🌐 [H4 Translator] Starting DOM Observer for Menus and Search");
+            this._uiObserver = new MutationObserver((mutations) => {
+                if (!this._isActive || !this._activeLang || !this._translations["Global_UI"]) return;
+                const d = this._translations["Global_UI"][this._activeLang];
+                if (!d) return;
+
+                // Simple text replacement function for specific nodes
+                const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+                let node;
+                while (node = walker.nextNode()) {
+                    // Only process text nodes inside Comfy UI popups/menus/search
+                    if (node.parentElement &&
+                        (node.parentElement.closest(".lite-searchbox") ||
+                            node.parentElement.closest(".litegraph.lite-contextmenu") ||
+                            node.parentElement.closest(".comfy-menu") ||
+                            node.parentElement.closest(".dialog") ||
+                            node.parentElement.tagName === "BUTTON")) {
+
+                        const text = node.nodeValue.trim();
+                        if (text && d[text]) {
+                            // Store original to revert later if needed
+                            if (!node.parentElement._h4_original_text) {
+                                node.parentElement._h4_original_text = text;
+                            }
+                            node.nodeValue = node.nodeValue.replace(text, d[text]);
+                        }
+                    }
+                }
+            });
+
+            // Observe body for added menus/dialogs
+            this._uiObserver.observe(document.body, { childList: true, subtree: true });
+        }
+
+        // Run an initial pass right now
+        // Trigger a dummy mutation to force the observer to walk existing text
+        document.body.appendChild(document.createElement("span")).remove();
     },
 
     revertTranslations() {
-        if (!app.graph) return;
-        console.log("🌐 [H4 Translator] Reverting translations...");
+        if (!this._originalStore) return;
+
+        console.log("🇪🇸 -> 🇬🇧 [H4 Translator] Reverting to origin...");
+        let changed = false;
+
+        // Revert global UI text
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while (node = walker.nextNode()) {
+            if (node.parentElement && node.parentElement._h4_original_text) {
+                node.nodeValue = node.parentElement._h4_original_text;
+                delete node.parentElement._h4_original_text;
+            }
+        }
+
+        if (!app.graph) return; // Keep this check for graph-related reverts
 
         app.graph._nodes.forEach(node => {
             // Restore Title

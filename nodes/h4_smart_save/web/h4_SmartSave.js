@@ -285,7 +285,7 @@ class SmartSaveUI {
             // Visual feedback
             const old = refreshBtn.textContent;
             refreshBtn.textContent = "...";
-            this.fetchHistory().then(() => {
+            this.fetchHistory(false, true).then(() => {
                 refreshBtn.textContent = old;
             });
         };
@@ -296,7 +296,7 @@ class SmartSaveUI {
         bar.appendChild(refreshBtn);
         this.root.appendChild(bar);
 
-        // 3. Param Panel (Fixed position on document.body, appears to the right of the node)
+        // 3. Param Panel
         this.drawer = document.createElement("div");
         this.drawer.className = "h4-smart-drawer";
         document.body.appendChild(this.drawer);
@@ -326,7 +326,6 @@ class SmartSaveUI {
     /**
      * Updates the fixed-position parameter panel to sit to the RIGHT of the node.
      * Converts node graph coordinates to screen coordinates using the canvas transform.
-     * Called every draw frame so the panel tracks the node during pan/zoom.
      */
     updateDrawerPosition() {
         if (!this.drawer || !this.drawer.classList.contains("open")) return;
@@ -338,7 +337,6 @@ class SmartSaveUI {
         const nodeW = this.node.size[0];
 
         // Convert graph coords to screen coords using the canvas DataStore transform
-        // screen_pos = (graph_pos + offset) * scale
         const scale = app.canvas.ds.scale;
         const offsetX = app.canvas.ds.offset[0];
         const offsetY = app.canvas.ds.offset[1];
@@ -358,13 +356,6 @@ class SmartSaveUI {
     // -------------------------------------------------------------------------
     // HELPERS
     // -------------------------------------------------------------------------
-
-    /**
-     * Creates a Comparinator-style toggle button element.
-     * @param {string} label - The text label for the toggle.
-     * @param {function} onToggle - Callback invoked with (boolean) when toggled.
-     * @returns {HTMLElement} The toggle wrapper element.
-     */
     _createToggle(label, onToggle) {
         const wrap = document.createElement("div");
         wrap.className = "h4-toggle-wrap";
@@ -372,12 +363,9 @@ class SmartSaveUI {
             <div class="h4-toggle-pill"><div class="h4-toggle-knob"></div></div>
             <div class="h4-toggle-label">${label}</div>
         `;
-        // State is managed externally via classList mostly, but local var for click handler
-        // Check if the element has 'active' class assigned immediately after creation for sync
         let active = false;
 
         wrap.onclick = () => {
-            // Check current DOM state to sync (since we might set class externally)
             const isCurrentlyActive = wrap.classList.contains("active");
             active = !isCurrentlyActive; // Toggle
 
@@ -387,12 +375,6 @@ class SmartSaveUI {
         return wrap;
     }
 
-    /**
-     * Animates the history drawer open/close AND the node height simultaneously.
-     * The drawer height is set directly via JS (no CSS transition) to stay
-     * perfectly in sync with the node's setSize() calls.
-     * @param {boolean} opening - Whether the drawer is opening or closing.
-     */
     _animateDrawer(opening) {
         const startDrawerH = opening ? 0 : DRAWER_HEIGHT;
         const targetDrawerH = opening ? DRAWER_HEIGHT : 0;
@@ -401,19 +383,13 @@ class SmartSaveUI {
 
         const animate = (time) => {
             const progress = Math.min((time - startTime) / duration, 1);
-            // Easing curve approximately matching cubic-bezier(0.19, 1, 0.22, 1)
             const eased = 1 - Math.pow(1 - progress, 4);
 
-            // Update drawer CSS height
             const currentDrawerH = startDrawerH + (targetDrawerH - startDrawerH) * eased;
             this.histDrawer.style.height = `${currentDrawerH}px`;
 
-            // Update _currentWidgetHeight so computeSize reports the correct value
-            // This prevents ComfyUI from clipping the DOM widget container
             this._currentWidgetHeight = BAR_HEIGHT + currentDrawerH;
 
-            // Force node to match its computed minimum (title + inputs + widgets)
-            // This works for both expanding (open) and shrinking (close)
             const sz = this.node.computeSize();
             this.node.setSize([this.node.size[0], sz[1]]);
             app.graph.setDirtyCanvas(true, true);
@@ -421,7 +397,6 @@ class SmartSaveUI {
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
-                // Final snap to exact target values
                 this.histDrawer.style.height = `${targetDrawerH}px`;
                 this._currentWidgetHeight = BAR_HEIGHT + targetDrawerH;
                 const finalSz = this.node.computeSize();
@@ -431,12 +406,6 @@ class SmartSaveUI {
         requestAnimationFrame(animate);
     }
 
-    /**
-     * Shows or hides the custom_metadata widget on the node.
-     * When shown, it re-enables the widget as a normal STRING input.
-     * When hidden, it collapses the widget to zero height.
-     * @param {boolean} show - Whether to show the widget.
-     */
     _toggleMetaWidget(show) {
         if (!this.node.widgets) return;
         const w = this.node.widgets.find(w => w.name === "custom_metadata");
@@ -445,18 +414,14 @@ class SmartSaveUI {
         const startNodeH = this.node.size[1];
 
         if (show) {
-            // Restore as a visible multiline string input
             w.type = "customtext";
             w.computeSize = () => [this.node.size[0], META_HEIGHT];
             w.hidden = false;
-            // Expand node to fit the textarea
             this.node.setSize([this.node.size[0], startNodeH + META_HEIGHT]);
         } else {
-            // Collapse widget to zero height
             w.type = "converted-widget";
             w.computeSize = () => [0, -4];
             w.hidden = true;
-            // Shrink node
             this.node.setSize([this.node.size[0], startNodeH - META_HEIGHT]);
         }
         app.graph.setDirtyCanvas(true, true);
@@ -465,28 +430,21 @@ class SmartSaveUI {
     // -------------------------------------------------------------------------
     // DATA FETCHING
     // -------------------------------------------------------------------------
-    async fetchHistory(silent = false) {
+    async fetchHistory(silent = false, forceRender = false) {
         try {
-            // detailed logging for debugging
-            // console.log("[SmartSave] Fetching history..."); 
             const res = await api.fetchApi("/h4/smart_save/history");
             if (res.ok) {
                 const data = await res.json();
-                // console.log(`[SmartSave] History fetched: ${data.length} items`, data[0]);
-
-                // Simple diff check to avoid unnecessary re-renders
                 const currentSig = this.history[0]?.timestamp;
                 const newSig = data[0]?.timestamp;
 
-                if (currentSig !== newSig || this.history.length !== data.length) {
-                    // [H4] Silent Poll unless 10 mins passed
+                if (forceRender || currentSig !== newSig || this.history.length !== data.length) {
                     if (!this._lastLogTime) this._lastLogTime = 0;
                     if (!silent && (Date.now() - this._lastLogTime > 600000)) {
                         console.log(`[SmartSave] Updating history strip. New: ${data.length}, Old: ${this.history.length}`);
                         this._lastLogTime = Date.now();
                     }
-                    // EMERGENCY CAP: Limit to 10 items to prevent lag
-                    this.history = data.slice(0, 10);
+                    this.history = data.slice(0, 50);
                     this.renderStrip();
                 }
             } else {
@@ -550,16 +508,17 @@ class SmartSaveUI {
             // Single click: select, auto-open params panel, view in node, and show parameters
             thumb.onclick = async () => {
                 this.selected = item;
-                
+
                 // [User Request] Preview the history item directly in the node pane
                 if (this.node) {
-                    this.node.imgs = [{
-                        filename: item.filename,
-                        type: item.type,
-                        subfolder: item.subfolder
-                    }];
+                    const previewImg = new Image();
+                    previewImg.onload = () => {
+                        this.node.imgs = [previewImg];
+                        app.graph.setDirtyCanvas(true, true);
+                    };
+                    // fullUrl is already defined above via api.apiURL
+                    previewImg.src = fullUrl;
                     this.node.imageIndex = 0;
-                    app.graph.setDirtyCanvas(true, true);
                 }
 
                 this.renderStrip();

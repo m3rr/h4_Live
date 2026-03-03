@@ -213,15 +213,23 @@ try:
             
             files_found = []
             
-            # [H4] Performance Optimization: Use os.scandir for linear speed
+            # [H4] Performance Optimization: Limited recursive scan for subfolders
             for base_dir, dir_type in scan_targets:
                 try:
-                    # We only scan the top-level or one level deep if prefix implies it?
-                    # For now, let's stick to a flat scan of the root target to ensure speed.
-                    with os.scandir(base_dir) as it:
-                        for entry in it:
-                            if entry.is_file() and entry.name.lower().endswith(exts):
-                                files_found.append((entry.path, entry.stat().st_mtime, base_dir, dir_type))
+                    for root, dirs, files in os.walk(base_dir):
+                        # Limit depth to prevent massive hangs. depth=0 is base_dir. Max depth 2.
+                        depth = root[len(base_dir):].count(os.sep)
+                        if depth > 2:
+                            del dirs[:] # Stop recursing here
+                            continue
+
+                        for file in files:
+                            if file.lower().endswith(exts):
+                                full_path = os.path.join(root, file)
+                                try:
+                                    files_found.append((full_path, os.path.getmtime(full_path), base_dir, dir_type))
+                                except OSError:
+                                    pass
                 except Exception as e:
                     print(f"[H4_SmartSave] Scan error for {base_dir}: {e}")
 
