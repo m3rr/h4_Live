@@ -11,6 +11,17 @@
                 "denoise": "Eliminar Ruido"
             }
         },
+        "fr": {
+            "title": "Échantillonneur K",
+            "widgets": {
+                "seed": "Graine",
+                "steps": "Étapes",
+                "cfg": "Échelle CFG",
+                "sampler_name": "Échantillonneur",
+                "scheduler": "Planificateur",
+                "denoise": "Débruitage"
+            }
+        },
         "zh": {
             "title": "K采样器",
             "widgets": {
@@ -21,117 +32,150 @@
                 "scheduler": "调度器",
                 "denoise": "降噪"
             }
-        },
-        "de": {
-            "title": "K-Abtaster",
-            "widgets": {
-                "seed": "Samen",
-                "steps": "Schritte",
-                "cfg": "CFG-Skala",
-                "sampler_name": "Abtaster",
-                "scheduler": "Zeitplaner",
-                "denoise": "Entrauschen"
-            }
-        }
-    },
-    "CheckpointLoaderSimple": {
-        "es": {
-            "title": "Cargador de Checkpoint",
-            "widgets": {
-                "ckpt_name": "Nombre del Modelo"
-            }
-        },
-        "zh": {
-            "title": "模型加载器",
-            "widgets": {
-                "ckpt_name": "模型名称"
-            }
-        },
-        "de": {
-            "title": "Checkpoint-Lader",
-            "widgets": {
-                "ckpt_name": "Modellname"
-            }
-        }
-    },
-    "EmptyLatentImage": {
-        "es": {
-            "title": "Imagen Latente Vacía",
-            "widgets": {
-                "width": "Ancho",
-                "height": "Alto",
-                "batch_size": "Tamaño del Lote"
-            }
-        },
-        "zh": {
-            "title": "空潜在图像",
-            "widgets": {
-                "width": "宽度",
-                "height": "高度",
-                "batch_size": "批次大小"
-            }
-        }
-    },
-    "CLIPTextEncode": {
-        "es": {
-            "title": "Codificación de Texto CLIP (Prompt)",
-            "widgets": {
-                "text": "Texto / Prompt"
-            }
-        },
-        "zh": {
-            "title": "CLIP文本编码 (提示词)",
-            "widgets": {
-                "text": "文本"
-            }
-        }
-    },
-    "VAEDecode": {
-        "es": {
-            "title": "Decodificador VAE"
-        },
-        "zh": {
-            "title": "VAE解码"
-        }
-    },
-    "SaveImage": {
-        "es": {
-            "title": "Guardar Imagen",
-            "widgets": {
-                "filename_prefix": "Prefijo de Archivo"
-            }
-        },
-        "zh": {
-            "title": "保存图像"
         }
     },
     "Global_UI": {
-        "es": {
-            "Add Node": "Añadir Nodo",
-            "Properties": "Propiedades",
-            "Clone": "Clonar",
-            "Remove": "Eliminar",
-            "Inputs": "Entradas",
-            "Outputs": "Salidas",
-            "Search": "Buscar"
+        "en": {
+            "Queue": "Queue",
+            "Run": "Run",
+            "History": "History",
+            "Settings": "Settings",
+            "Add Node": "Add Node",
+            "Properties": "Properties",
+            "Clone": "Clone",
+            "Remove": "Remove"
+        },
+        "fr": {
+            "Queue": "File d'attente",
+            "Run": "Exécuter",
+            "History": "Historique",
+            "Settings": "Réglages",
+            "Search": "Rechercher",
+            "Add Node": "Ajouter un Nœud",
+            "Properties": "Propriétés",
+            "Properties Panel": "Panneau de Propriétés",
+            "Clone": "Cloner",
+            "Remove": "Supprimer",
+            "Inputs": "Entrées",
+            "Outputs": "Sorties",
+            "Prompt": "Invite",
+            "Negative": "Négatif",
+            "Positive": "Positif",
+            "Load": "Charger",
+            "Save": "Enregistrer",
+            "Execution": "Exécution",
+            "Running": "En cours",
+            "Complete": "Terminé",
+            "Error": "Erreur",
+            "Cancel": "Annuler",
+            "Refresh": "Actualiser",
+            "Manager": "Gestionnaire",
+            "Title": "Titre",
+            "Mode": "Mode",
+            "Resize": "Redimensionner",
+            "Collapse": "Réduire",
+            "Pin": "Épingler",
+            "Colors": "Couleurs",
+            "Shapes": "Formes",
+            "Bypass": "Ignorer",
+            "Copy": "Copier",
+            "Paste": "Coller",
+            "Delete": "Supprimer",
+            "Group": "Groupe",
+            "Node": "Nœud",
+            "Checkpoint": "Point de Contrôle",
+            "Sampler": "Échantillonneur",
+            "Scheduler": "Planificateur",
+            "Denoise": "Débruitage",
+            "Steps": "Étapes",
+            "Seed": "Graine",
+            "CFG": "CFG",
+            "Clip": "CLIP",
+            "Vae": "VAE",
+            "Model": "Modèle",
+            "Latent": "Latent",
+            "Image": "Image",
+            "Width": "Largeur",
+            "Height": "Hauteur",
+            "Batch": "Lot",
+            "Upscale": "Agrandir",
+            "Preview": "Aperçu",
+            "Export": "Exporter",
+            "Import": "Importer",
+            "Workflow": "Flux de travail",
+            "Workspace": "Espace de travail"
         },
         "zh": {
+            "Queue": "队列",
+            "Run": "运行",
+            "History": "历史记录",
+            "Settings": "设置",
+            "Search": "搜索",
             "Add Node": "添加节点",
             "Properties": "属性",
+            "Properties Panel": "属性面板",
             "Clone": "克隆",
             "Remove": "移除",
             "Inputs": "输入",
             "Outputs": "输出",
-            "Search": "搜索"
-        },
-        "de": {
-            "Add Node": "Knoten hinzufügen",
-            "Properties": "Eigenschaften",
-            "Clone": "Klonen",
-            "Remove": "Entfernen",
-            "Inputs": "Eingänge",
-            "Outputs": "Ausgänge",
-            "Search": "Suche"
+            "Prompt": "提示词",
+            "Negative": "负面",
+            "Positive": "正面",
+            "Load": "加载",
+            "Save": "保存",
+            "Execution": "执行",
+            "Running": "运行中",
+            "Complete": "完成",
+            "Error": "错误",
+            "Cancel": "取消",
+            "Refresh": "刷新",
+            "Manager": "管理器",
+            "Title": "标题",
+            "Mode": "模式",
+            "Resize": "重置大小",
+            "Collapse": "折叠",
+            "Pin": "固定",
+            "Colors": "颜色",
+            "Shapes": "形状",
+            "Bypass": "跳过",
+            "Copy": "复制",
+            "Paste": "粘贴",
+            "Delete": "删除",
+            "Group": "组",
+            "Node": "节点",
+            "Add": "添加",
+            "Clip": "CLIP",
+            "VAE": "VAE",
+            "Model": "模型",
+            "Latent": "潜空间",
+            "Image": "图像",
+            "Checkpoint": "大模型",
+            "Sampler": "采样器",
+            "Scheduler": "调度器",
+            "Denoise": "降噪",
+            "Steps": "步数",
+            "Seed": "种子",
+            "CFG": "相关性",
+            "Width": "宽度",
+            "Height": "高度",
+            "Batch": "批次",
+            "Upscale": "放大",
+            "Preview": "预览",
+            "Export": "导出",
+            "Import": "导入",
+            "Workflow": "工作流",
+            "Workspace": "工作区",
+            "Reload Node": "重新加载节点",
+            "Convert to Subgraph": "转换为子图",
+            "Queue Selected Output Nodes (rgthree)": "队列选中输出节点 (rgthree)",
+            "Queue Group Output Nodes (rgthree)": "队列组输出节点 (rgthree)",
+            "Add GetNode": "添加 GetNode",
+            "Add SetNode": "添加 SetNode",
+            "Add PreviewAsTextNode": "添加预览文本节点",
+            "Copy (Clipspace)": "复制 (剪贴板)",
+            "Reject UE Links": "拒绝 UE 链接",
+            "UE Connectable Inputs": "UE 可连接输入",
+            "Convert to Group Node (Deprecated)": "转换为组节点 (已弃用)"
         }
     }
 }

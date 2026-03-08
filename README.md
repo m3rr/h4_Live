@@ -1,5 +1,7 @@
 # h4_Live
-A stateful, loop-friendly utility belt for ComfyUI, built to make workflows feel less like “one-shot vending machines” and more like… actual processes.
+A stateful, loop-friendly utility belt for ComfyUI, built to make workflows feel less like “one-shot vending machines” and more like… actual processes. Keep in mind this is a Massive project and is currently STILL IN DEVELOPMENT. So it's a WIP some nodes will act funny, and some are not fully flushed out yet - however, all nodes operate as intended, if you come across any issues , Join my server on Discord. 
+
+https://discord.gg/hDCHn4aJe5
 ---
 
 ## Quick links

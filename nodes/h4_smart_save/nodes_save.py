@@ -225,6 +225,8 @@ try:
 
                         for file in files:
                             if file.lower().endswith(exts):
+                                if "thumb" in file.lower():
+                                    continue
                                 full_path = os.path.join(root, file)
                                 try:
                                     files_found.append((full_path, os.path.getmtime(full_path), base_dir, dir_type))

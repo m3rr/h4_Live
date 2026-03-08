@@ -16,11 +16,12 @@ class H4_NodeTranslator:
         return {
             "required": {
                 "language": ([
+                    "English (en)",
+                    "French (fr)",
                     "Spanish (es)", 
                     "Mandarin (zh)", 
-                    "German (de)",
-                    "English (en)"
-                ], {"default": "Spanish (es)", "tooltip": "Select the target language for node titles and widgets."}),
+                    "German (de)"
+                ], {"default": "English (en)", "tooltip": "Select the target language for node titles and widgets."}),
                 "mode": (["Active", "Disabled"], {"default": "Active", "tooltip": "Enable or disable live translation."}),
             },
         }

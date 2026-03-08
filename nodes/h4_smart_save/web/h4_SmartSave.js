@@ -96,8 +96,15 @@ const STYLE = `
     background-position: center;
     border-radius: 2px;
 }
-.h4-smart-thumb:hover { transform: scale(1.05); border-color: #666; }
-.h4-smart-thumb.active { border-color: #00ff55; box-shadow: 0 0 10px rgba(0,255,85,0.4); }
+.h4-smart-thumb:hover { transform: scale(1.05); }
+
+.h4-smart-thumb.type-output { border-color: #00aa44; border-width: 2px; }
+.h4-smart-thumb.type-temp { border-color: #cccc00; border-width: 2px; }
+.h4-smart-thumb.type-missing { border-color: #aa0000; border-width: 2px; }
+
+.h4-smart-thumb.type-output.active { border-color: #00ff55; box-shadow: 0 0 10px rgba(0,255,85,0.6); }
+.h4-smart-thumb.type-temp.active { border-color: #ffff00; box-shadow: 0 0 10px rgba(255,255,0,0.6); }
+.h4-smart-thumb.type-missing.active { border-color: #ff0000; box-shadow: 0 0 10px rgba(255,0,0,0.8); }
 
 /* --- PARAM PANEL (Fixed position, right side of node) --- */
 .h4-smart-drawer {
@@ -434,7 +441,11 @@ class SmartSaveUI {
         try {
             const res = await api.fetchApi("/h4/smart_save/history");
             if (res.ok) {
-                const data = await res.json();
+                let data = await res.json();
+
+                // [User Request] Allow both output and temp items.
+                // data = data.filter(item => item.type === "output");
+
                 const currentSig = this.history[0]?.timestamp;
                 const newSig = data[0]?.timestamp;
 
@@ -504,6 +515,21 @@ class SmartSaveUI {
             const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
 
             thumb.style.backgroundImage = `url("${thumbUrl}")`;
+
+            // Assign class based on type initially
+            let thumbClass = item.type === "output" ? "type-output" : "type-temp";
+            thumb.classList.add(thumbClass);
+
+            // Check if source image actually exists
+            fetch(fullUrl, { method: "HEAD" }).then(res => {
+                if (!res.ok) {
+                    thumb.classList.remove("type-output", "type-temp");
+                    thumb.classList.add("type-missing");
+                }
+            }).catch(e => {
+                thumb.classList.remove("type-output", "type-temp");
+                thumb.classList.add("type-missing");
+            });
 
             // Single click: select, auto-open params panel, view in node, and show parameters
             thumb.onclick = async () => {
