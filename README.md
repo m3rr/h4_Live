@@ -2,6 +2,13 @@
 A stateful, loop-friendly utility belt for ComfyUI, built to make workflows feel less like “one-shot vending machines” and more like… actual processes. Keep in mind this is a Massive project and is currently STILL IN DEVELOPMENT. So it's a WIP some nodes will act funny, and some are not fully flushed out yet - however, all nodes operate as intended, if you come across any issues , Join my server on Discord. 
 
 https://discord.gg/hDCHn4aJe5
+
+And a final note, This node pack , is not meant for comfyui Desktop edition. As CDE (I'm coining that abbreviation now... it's mine Comfy Desktop Edition... I invted it , you saw it here first. 
+
+Anyway - because I use a lot of javascript to hijack the Queue, and canvas, and make heavy changes to the nodes them selves. Their appearance and structure. SOOOO That being said, if you're running CDE , these nodes will function but will not have the flair, nor will it have half the QoL changes. 
+
+So Be Aware, - This is your only Warning. 
+It Will not be 100% "Fleshed out" if running CDE. 
 ---
 
 ## Quick links
