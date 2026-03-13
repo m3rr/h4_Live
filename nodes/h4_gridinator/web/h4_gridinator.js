@@ -1,12 +1,11 @@
-// FILE: js/h4_gridinator.js
 import { app } from "../../scripts/app.js";
+import { ComfyWidgets } from "../../scripts/widgets.js";
 
 app.registerExtension({
     name: "h4.Gridinator9001",
     async nodeCreated(node, app) {
         if (node.comfyClass === "H4_Gridinator") {
 
-            // 0. CUSTOM UPLOAD WIDGET Logic
             // 0. CUSTOM UPLOAD WIDGET Logic
             setTimeout(() => {
                 const uploadWidget = node.widgets.find(w => w.name === "image_upload");
@@ -161,22 +160,11 @@ app.registerExtension({
 
                     btn.name = "Upload Image"; // Correct Internal Name now
 
-                    // Move to Top logic REMOVED to prevent index shifting
-                    // The button will now stay at the bottom, preserving widget order.
-                    /* 
-                    const btnIdx = node.widgets.indexOf(btn);
-                    if (btnIdx > -1) {
-                        node.widgets.splice(btnIdx, 1);
-                        node.widgets.unshift(btn);
-                    }
-                    */
-
                     node.onResize && node.onResize(node.size);
                     node.setDirtyCanvas(true, true);
                 }
             }, 100);
 
-            // 1. THE TOOLTIP
             // 1. THE TOOLTIP
             node.getTooltip = function () {
                 return "ITS OVER 9000?!?!";
@@ -234,7 +222,6 @@ app.registerExtension({
                 const oldWidget = node.widgets[index];
 
                 // Check redundancy
-                // if (newType === "combo" && oldWidget.type === "combo") return; // <--- BUG WAS HERE: This prevented option updates!
                 if (newType === "text" && (oldWidget.type === "text" || oldWidget.type === "customtext")) return;
 
                 // Value Logic
@@ -245,16 +232,29 @@ app.registerExtension({
                     }
                 }
 
-                // Remove Old
+                // Cleanup existing DOM overlay if any
+                if (oldWidget.onRemove) {
+                    oldWidget.onRemove();
+                }
+
+                // Remove Old from arrays
                 node.widgets.splice(index, 1);
 
                 // Create New
-                const widgetOptions = (newType === "combo") ? { values: optionsValues } : {};
-                const newWidget = node.addWidget(newType, widgetName, cleanValue, null, widgetOptions);
+                let newWidget;
+                if (newType === "customtext") {
+                    // Use ComfyWidgets to generate the proper DOM <textarea>
+                    const res = ComfyWidgets["STRING"](node, widgetName, ["STRING", { multiline: true }], app);
+                    newWidget = res.widget;
+                    newWidget.value = cleanValue;
+                } else {
+                    const widgetOptions = (newType === "combo") ? { values: optionsValues } : {};
+                    newWidget = node.addWidget(newType, widgetName, cleanValue, null, widgetOptions);
+                }
 
-                // Reorder
-                node.widgets.pop(); // Remove from end
-                node.widgets.splice(index, 0, newWidget); // Insert at index
+                // Reorder: We pop it off the end (since addWidget/ComfyWidgets adds to end) and insert at `index`
+                const popped = node.widgets.pop();
+                node.widgets.splice(index, 0, popped);
 
                 // Refresh
                 node.setDirtyCanvas(true);
@@ -269,19 +269,30 @@ app.registerExtension({
                 const zVal = node.widgets.find(w => w.name === "grid_z_mode")?.value;
 
                 const hasLora = (xVal === "LoRA" || yVal === "LoRA" || zVal === "LoRA");
-
                 const loraWidget = node.widgets.find(w => w.name === "lora_strength");
+                
                 if (loraWidget) {
                     const targetType = hasLora ? "number" : "hidden";
                     if (loraWidget.type !== targetType) {
                         loraWidget.type = targetType;
                         loraWidget.computeSize = hasLora ? undefined : () => [0, -4];
-
-                        // Resize safely
-                        node.onResize && node.onResize(node.size);
-                        node.setDirtyCanvas(true, true);
                     }
                 }
+
+                // --- PROMPT OVERHAUL (Dual Mode Hiding) ---
+                const hasAxialPrompt = (xVal === "Prompt" || yVal === "Prompt" || zVal === "Prompt" || 
+                                        xVal === "Multi-Prompt" || yVal === "Multi-Prompt" || zVal === "Multi-Prompt");
+                const posPrompt = node.widgets.find(w => w.name === "positive_prompt");
+                if (posPrompt) {
+                    const targetType = hasAxialPrompt ? "hidden" : "customtext";
+                    if (posPrompt.type !== targetType) {
+                        posPrompt.type = targetType;
+                        posPrompt.computeSize = hasAxialPrompt ? () => [0, -4] : undefined;
+                    }
+                }
+
+                node.onResize && node.onResize(node.size);
+                node.setDirtyCanvas(true, true);
             }
 
             MODES.forEach(axis => {
@@ -303,6 +314,16 @@ app.registerExtension({
                             replaceWidget(node, valName, "combo", samplers);
                         } else if (val === "Scheduler") {
                             replaceWidget(node, valName, "combo", schedulers);
+                        } else if (val === "Prompt" || val === "Multi-Prompt") {
+                            // Swap to MULTILINE Text for you
+                            replaceWidget(node, valName, "customtext", []);
+                            const w = node.widgets.find(x => x.name === valName);
+                            if (w) {
+                                w.label = `${axis.toUpperCase()}-AXIS ${val === "Prompt" ? "PROMPT (Lines)" : "MULTI-PROMPT (;)"}`;
+                                // Ensure I treat this as multiline
+                                w.options = w.options || {};
+                                w.options.multiline = true;
+                            }
                         } else {
                             replaceWidget(node, valName, "text", []);
                         }

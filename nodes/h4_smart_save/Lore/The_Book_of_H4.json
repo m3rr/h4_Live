@@ -16,7 +16,7 @@
     },
     "H4_ModelMerger": {
         "title": "H4 Model Merger (The Lab)",
-        "description": "Okay, welcome to the Thunderdome. This isn't your average model merger. This is absolute, unadulterated MAD SCIENCE. We're talking deep, block-level weight manipulation\u2014injecting the soul of one model into the body of another. Unlike basic mergers that just average everything out into a muddy mess, this bad boy lets you surgically target specific layers of the UNet. Want the composition of an SDXL base but the shading of that obscure anime checkpoint you found on Civitai at 3 AM? You can do that. Want to fix broken hands by grafting the 'Out' blocks of a better model? You can try. Just be warned: If you push the sliders too far, you're gonna conjure eldritch horrors. But when it hits? It's pure magic.",
+        "description": "Okay, welcome to the Thunderdome. This isn't your average model merger. This is absolute, unadulterated MAD SCIENCE. We're talking deep, block-level weight manipulation—injecting the soul of one model into the body of another. Unlike basic mergers that just average everything out into a muddy mess, this bad boy lets you surgically target specific layers of the UNet. Want the composition of an SDXL base but the shading of that obscure anime checkpoint you found on Civitai at 3 AM? You can do that. Want to fix broken hands by grafting the 'Out' blocks of a better model? You can try. Just be warned: If you push the sliders too far, you're gonna conjure eldritch horrors. But when it hits? It's pure magic.",
         "usage": "Use this node when you're tired of using the same old checkpoints everyone else uses. It's for creating custom hybrid models on the fly, directly in your workflow, without filling your hard drive with 50GB of intermediate files. The 'Test Image' output lets you verify the merge instantly before you commit to a long render.",
         "inputs": {
             "model_count": {
@@ -24,14 +24,19 @@
                 "description": "How many checkpoints are we smashing together? '2' is the standard (Base + Style). '3' is for when you're feeling greedy or trying to balance out two strong styles with a neutral base.",
                 "example": "2 (Classic Mix)"
             },
+            "w_1 / w_2 / w_3": {
+                "type": "FLOAT",
+                "description": "The 'Global Influence' for each model. This acts as a multiplier for everything underneath. If you set Model 2 to 0.5, even its strongest blocks will only contribute half their power to the final mix.",
+                "example": "1.0 (Full Power)"
+            },
             "settings": {
                 "type": "BOOLEAN",
-                "description": "Flip this switch to unlock the 'Mad Science' drawer. It reveals granular weight sliders for every single block of the UNet (IN0-11, MID, OUT0-11). If you leave this OFF, it just does a boring standard merge. But where's the fun in that?",
+                "description": "Flip this switch to unlock the **'Mad Science'** drawer. It reveals granular weight sliders for every single block of the UNet. \n\n - **IN0-11**: The foundation. Affects composition, layout, and large shapes. \n - **MID**: The core logic and coherence. \n - **OUT0-11**: The finish. Affects textures, lighting, shading, and style. \n\n If you leave this OFF, I just do a standard merge based on your Global Weights. But where's the fun in that?",
                 "example": "True (I know what I'm doing)"
             },
             "memory_manager": {
                 "type": "BOOLEAN",
-                "description": "Look, merging models takes VRAM. A lot of it. If you're rocking a 4090, you can leave this OFF. But for the rest of us mortals with <24GB VRAM, turn this ON. It loads models one by one, merges them, and flushes them. It's slower, but it stops your PC from crashing.",
+                "description": "Look, merging models takes VRAM. A lot of it. If you're rocking a 4090, you can leave this OFF. But for the rest of us mortals with <24GB VRAM, turn this ON. It implements my **Intelligent Memory Protocol**: loading models one by one, merging them, and flushing them from cache instantly. It's slower, but it stops your PC from crashing.",
                 "example": "True (Save my poor GPU)"
             },
             "testing_mode": {
@@ -41,33 +46,23 @@
             },
             "interpolation_mode": {
                 "type": "COMBO",
-                "description": "The mathematical formula used to blend the weights. 'Weighted Average'/Standard is usually best. 'Add Difference' is good for checkpoints that are close relatives. 'Sigmoid' is for when you want to get weird.",
+                "description": "The mathematical formula I use to blend the weights. \n\n - **Weighted Average**: Standard base/ratio blend. \n - **Symmetric Average**: My preferred mode for 3-model merges. It balances Model 1's base against the invaders. \n - **Add Difference**: For 'Delta' merging (Checkpoint A + (Checkpoint B - Checkpoint C)).",
                 "example": "Weighted Average (The reliable one)"
             },
             "decode_test_image": {
                 "type": "BOOLEAN",
-                "description": "Listen, VAE decoding is heavy. If you're merging huge SDXL models and just want a quick check, turn this OFF. We'll give you a raw LATENT output instead. Saves VRAM, saves time. We'll show a blue placeholder image to remind you it's running 'Latent Only' mode.",
+                "description": "Listen, VAE decoding is heavy. If you're merging huge SDXL models and just want a quick check, turn this OFF. I'll give you a raw LATENT output instead. Saves VRAM, saves time. I'll show a blue placeholder image to remind you it's running 'Latent Only' mode.",
                 "example": "False (Speed Demon Mode)"
             },
-            "test_width": {
+            "test_width / test_height": {
                 "type": "INT",
-                "description": "The width of the internal test generation. Default is 512 because it's fast, but if you're merging SDXL, you probably want 1024 or higher provided your GPU doesn't melt.",
+                "description": "The dimensions of the internal test generation. Default is 512 because it's fast, but for SDXL merges, you probably want 1024 or higher provided your GPU doesn't melt.",
                 "example": "1024"
             },
-            "test_height": {
-                "type": "INT",
-                "description": "Height. Vertical slice? Square? Up to you.",
-                "example": "1024"
-            },
-            "clip_source": {
+            "clip_source / vae_source": {
                 "type": "COMBO",
-                "description": "Where to get the CLIP from? 'Merged' blends them (using model weights). 'Model 1' keeps the base CLIP (safest).",
+                "description": "Select exactly which model provides the CLIP and VAE. Often, a 'Merged' CLIP is what you want, but sticking to Model 1's VAE ensures color consistency.",
                 "example": "Merged"
-            },
-            "vae_source": {
-                "type": "COMBO",
-                "description": "Which VAE to use? Standard is 'Model 1' (Base).",
-                "example": "Model 1"
             },
             "test_seed": {
                 "type": "INT",
@@ -103,38 +98,38 @@
         "outputs": {
             "MODEL": "The resulting frankenstein Model (UNet). Pipe this into your KSampler.",
             "CLIP": "The merged CLIP model. Don't forget this! Text encoding needs to match the UNet usually.",
-            "VAE": "The VAE from the first model (or override). Essential for decoding.",
+            "VAE": "The VAE from the chosen model. Essential for decoding.",
             "TEST_LATENT": "The raw latent output of the internal test generation. Perfect for sending to a separate 'Save Latent' node or HiRes Fix.",
             "TEST_IMAGE": "The decoded image of the test generation. If 'decode_test_image' is OFF, this will be a blue square. Don't panic, it's a feature."
         },
         "features": [
             {
                 "name": "Smart Decode",
-                "description": "We put some brains in the decoder. If your image is gargantuan (>1024px), it automatically switches to 'Tiled' mode to save memory. Small image? Standard fast decode."
+                "description": "I put some brains in the decoder. If your image is gargantuan (>1024px), I automatically switch to 'Tiled' mode to save memory. Small image? Standard fast decode."
             },
             {
                 "name": "FP32 Fallback",
-                "description": "Ever get those dreaded black square outputs? Yeah, we hatet hem too. This node detects if the VAE crapped out (NaNs or zeros) and automatically retries the decode in full Float32 precision. It just works."
+                "description": "Ever get those dreaded black square outputs? Yeah, I hate them too. This node detects if the VAE crapped out (NaNs or zeros) and automatically retries the decode in full Float32 precision. It just works."
             },
             {
                 "name": "Architecture Safety",
-                "description": "Trying to merge an SD1.5 model with an SDXL turbo model? That's illegal. And it creates garbage static. We check the architecture type before merging and scream at you in the console if they don't match."
+                "description": "Trying to merge an SD1.5 model with an SDXL turbo model? That's illegal. And it creates garbage static. I check the architecture type before merging and scream at you in the console if they don't match."
             }
         ],
         "tips": [
-            "Use 'Weighted Average' unless you have a PhD in math.",
+            "Use 'Symmetric Average' if you are merging 3 models and want Model 1's unique features to stand a fighting chance.",
             "Unlock 'Settings' to experiment. Lower Input blocks usually affect composition/shapes. Higher Output blocks affect fine details/textures/lighting.",
             "If you seek pure speed, turn 'decode_test_image' OFF and use the 'TEST_LATENT' output."
         ]
     },
     "H4_Comparinator": {
         "title": "H4 Comparinator (The Sniper)",
-        "description": "Ever generate two images and squint at them trying to decide which one has better hands? Yeah, we all have. The Comparinator fixes that. It's a professional-grade A/B testing suite with a built-in SNIPER SCOPE. It captures your image stream, saves a history (locally, in 'The Vault'), and lets you compare generations side-by-side with a slick sliding divider. You can lock a 'Gold Standard' image to the left pane and endlessly compare new variations against it on the right. It's the ultimate tool for refining prompts or testing checkpoints.",
+        "description": "Ever generate two images and squint at them trying to decide which one has better hands? Yeah, we all have. The Comparinator fixes that. It's a professional-grade A/B testing suite with a built-in SNIPER SCOPE. It captures your image stream, saves a history (locally, in **'The Vault'**), and lets you compare generations side-by-side with a slick sliding divider. You can lock a 'Gold Standard' image to the left pane and endlessly compare new variations against it on the right. It's the ultimate tool for refining prompts or testing checkpoints.",
         "usage": "Throw this at the very end of your workflow. Instead of a 'Save Image' or 'Preview Image' node, use this. It does both, but better. Trust me, once you start using the slider, you can't go back.",
         "inputs": {
             "image_a": {
                 "type": "IMAGE",
-                "description": "The 'Before' or 'Reference' image.",
+                "description": "The 'Before' or 'Reference' image. Typically your baseline.",
                 "example": "-"
             },
             "image_b": {
@@ -144,23 +139,23 @@
             },
             "save_mode": {
                 "type": "BOOLEAN",
-                "description": "If ON, saves the comparison result to your output folder. If OFF, just shows it in the UI.",
-                "example": "False"
+                "description": "Flip this to **💾 SAVE** to permanently write the comparison results to your output folder. In **PREVIEW** mode, images are temporary and will eventually be cleaned up.",
+                "example": "False (Preview)"
             },
             "filename_prefix": {
                 "type": "STRING",
-                "description": "Prefix for saved files.",
+                "description": "Prefix for saved files. I suggest something descriptive like 'Hand_Test_'.",
                 "example": "h4_Compare_"
             },
             "frozen_image": {
                 "type": "IMAGE",
-                "description": "Overrides Image B. Useful for freezing a comparison state so you can test against a static target.",
+                "description": "The 'Anchor'. Overrides Image B. Useful for freezing a comparison state so you can test 50 different prompts against the exact same static target.",
                 "example": "-"
             },
             "metadata_text": {
                 "type": "STRING",
-                "description": "Custom notes to embed in the saved file.",
-                "example": "Test Run 1"
+                "description": "Custom notes to embed in the saved file. I'll burn these right into the PNG header for you.",
+                "example": "Test Run 1: High CFG"
             },
             "save_settings": {
                 "type": "BOOLEAN",
@@ -174,20 +169,24 @@
         },
         "features": [
             {
+                "name": "The Vault (Persistent History)",
+                "description": "I save every comparison to disk in `output/h4_comparisons/`. This means your history survives a browser refresh or a server restart. If you close ComfyUI and come back tomorrow, your Sniper captures are still waiting for you."
+            },
+            {
+                "name": "Manual Save Trigger",
+                "description": "Found a comparison you love while in PREVIEW mode? You don't have to re-run! Use the **'Save Now'** button in the UI to instantly move those temp images to permanent storage."
+            },
+            {
                 "name": "Sniper Scope",
                 "description": "Zoom in. Enhance. See that pixel? That's the one that ruins the whole composition. The cursor acts as a magnifying glass."
             },
             {
-                "name": "The Vault",
-                "description": "We save your history locally. In `comfyui_h4_live/comparinator/`. Organized by date. We also auto-clean old folders so your disk doesn't explode."
+                "name": "Parameters Drawer",
+                "description": "Slide up from the bottom to see EXACTLY how an image was made. I'll show you the Prompt, Seed, Steps, CFG, Model, and every LoRA I found in the metadata."
             },
             {
                 "name": "Split-View Slider",
                 "description": "The centerpiece. Drag the handle left and right to wipe between Image A (Live/Reference) and Image B (History). It's oddly satisfying."
-            },
-            {
-                "name": "Parameters Drawer",
-                "description": "Slide up from the bottom to see EXACTLY how an image was made. Shows Prompt, Seed, Steps, CFG, Model, LoRA (with strength), etc. Works for both Live and History images."
             },
             {
                 "name": "Auto-Previous",
@@ -195,14 +194,14 @@
             }
         ],
         "tips": [
-            "Use the 'Auto-Previous' feature to iterate quickly on prompts. It's a game changer.",
-            "Right-click to Lock. Seriously, try it.",
-            "Click the 'Parameters Toggle' to open the Metadata Drawer and see exactly what seed/prompt created that masterpiece."
+            "Use the 'Frozen Image' input to keep a 'Reference' image on the left while you rapidly iterate on the right.",
+            "Right-click the center divider to lock it into place if your hand is shaky.",
+            "The History Filmstrip at the bottom lets you jump back through your last 20 snapshots instantly."
         ]
     },
     "H4_SmartSave": {
         "title": "H4 SmartSave (The Brain)",
-        "description": "Saving images shouldn't be dumb. The default saver just dumps files. This one? This one has an IQ of 200. It embeds every single piece of metadata\u2014prompt, seed, model hash, workflow graph\u2014directly into the PNG chunks. But it also gives you a UI to *inspect* that data before you save. Plus, you can add custom user notes that get burned into the metadata too. Never forget *why* you used that specific LorA again.",
+        "description": "Saving images shouldn't be dumb. The default saver just dumps files. This one? This one has an IQ of 200. It embeds every single piece of metadata—prompt, seed, model hash, workflow graph—directly into the PNG chunks. But it also gives you a UI to *inspect* that data before you save. Plus, you can add custom user notes that get burned into the metadata too. Never forget *why* you used that specific LorA again.",
         "usage": "Replace the standard 'Save Image' node. Toggle 'Save to Disk' to actually write files, otherwise it just previews.",
         "inputs": {
             "images": {
@@ -217,19 +216,27 @@
             },
             "save_mode": {
                 "type": "BOOLEAN",
-                "description": "The Master Switch. \n **ON**: Writes the image to your output folder (Permanent). \n **OFF**: Just shows a preview in the UI (Temporary). Use OFF for testing.",
-                "example": "False"
+                "description": "The Master Switch. \n **💾 SAVE TO DISK**: Writes the image to your output folder (Permanent). \n **👁️ PREVIEW ONLY**: Just shows a preview in the UI (Temporary). Use this during prompt-crafting to save your hard drive.",
+                "example": "False (Preview)"
             },
             "custom_metadata": {
                 "type": "STRING",
-                "description": "Inject your own data here. Must be JSON format. Great for tagging experiments.",
-                "example": "{\"my_tag\": \"experiment_v1\"}"
+                "description": "Inject your own data here. Must be JSON format. I'll embed this forever in the image header. Perfect for tracking experiment versions or author credits.",
+                "example": "{\"version\": \"2.4\", \"mood\": \"dark\"}"
             }
         },
         "features": [
             {
+                "name": "FIFO Disk Pruning",
+                "description": "I've got your back. I implement a **First-In-First-Out (FIFO)** pruning logic. I keep the last **50 images** per prefix folder and automatically delete the oldest ones beyond that. Your output folder will never become a multi-terabyte graveyard of failed experiments again."
+            },
+            {
+                "name": "History Filmstrip",
+                "description": "The UI features a scrolling 'Filmstrip' of your last 15 generations. Hover over any thumbnail to see its metadata, or click to expand. It works for both Temp previews and Permanent saves."
+            },
+            {
                 "name": "Metadata Drawer",
-                "description": "A slide-up drawer that shows you the exact Prompt, Seed, and Settings used for the image. You can even type in your own 'Notes' field."
+                "description": "A slide-up drawer that shows you the exact Prompt, Seed, and Settings used for the image. You can even type in your own 'Notes' field which I then burn into the PNG."
             },
             {
                 "name": "Console Logging",
@@ -239,6 +246,10 @@
                 "name": "Stealth Mode",
                 "description": "It doesn't bloat the UI with unnecessary previews if you don't want them. Pure utility."
             }
+        ],
+        "tips": [
+            "Organization is key: Use slashes in your prefix (e.g. `Character_Tests/V1_HighCFG`) to automatically create subfolders.",
+            "The JSON field is powerful: You can use it to store and later read structured data back from your images programmatically."
         ]
     },
     "H4_TrafficCop": {
@@ -825,209 +836,64 @@
         }
     },
     "H4_Gridinator": {
-        "title": "H4 Gridinator 9001 (OVER 9000!!!)",
-        "description": "Welcome to the endgame. The Gridinator is an X/Y/Z Plotter on steroids. Unlike other grid nodes that require complex node setups, this is a MONOLITH. It handles Model Loading, LoRA patching, Sampling, Decoding, and Stitching all internally. It supports fuzzy-matching for model names (type 'juggernaut' and it finds the full filename). It features a 'Sliding Scale' generator for finding the sweet spot of Step counts or CFG values. It even supports 'Prompt Stutter' for repeating tokens.",
-        "usage": "Connect a VAE (optional). Set your axes. Click Queue. Wait for the magic.",
+        "title": "H4 Gridinator 9001 (The Over 9000 Grid)",
+        "description": "Behold the Gridinator. It is the ultimate tool for comparing Models, LoRAs, Prompts, and Settings in a massive, multi-dimensional grid. Whether you're doing an X/Y test or a deep 3D Z-stack, I've got you covered. This isn't just a simple table; it's a **VRAM-Optimized Engine**. I intelligently group tasks by Model and LoRA to minimize expensive memory swaps. I'll render your 50-cell grid significantly faster than standard methods because I'm not a dummy who reloads the checkpoint for every single image.",
+        "usage": "Connect your checkpoint and set your Axis modes. Use this instead of a standard sampler when you want to see a broad range of possibilities at once.",
         "inputs": {
             "image_upload": {
-                "type": "IMAGE_UPLOAD",
-                "description": "Drag and drop an image here to run Img2Img. If empty, it runs Txt2Img.",
-                "example": "my_face.jpg"
+                "type": "IMAGE",
+                "description": "CRITICAL FOR IMG2IMG. Upload your source image here. If I see an image, I automatically enter Img2img mode. If empty, I default to Txt2Img. Supported: .jpg, .png, .webp.",
+                "example": "my_base_sketch.png"
             },
             "base_model": {
                 "type": "COMBO",
-                "description": "The main brain. Pick your checkpoint from the list. If it's not here, check your folders! This acts as the 'default' model unless an Axis overrides it.",
-                "example": "sd_xl_base_1.0.safetensors"
+                "description": "THE BRAIN: Your primary Checkpoint. For grids comparing OTHER models, this acts as the default if an axis value is missing.",
+                "example": "PonyDiffusion_V6"
             },
             "base_model_fuzzy": {
                 "type": "STRING",
-                "description": "Lazy mode. Type 'pony' or 'juggernaut' here, and the node will search your checkpoint folder for the first filename that matches. It overrides the dropdown above.",
+                "description": "FUZZY HUNTER: Can't find your model? Type a piece of the name here (e.g., 'juggernaut'). I'll scan your folders and find the best match. This OVERRIDES the dropdown.",
                 "example": "juggernaut"
             },
-            "width": {
-                "type": "INT",
-                "description": "Image width in pixels. 1024 is safe for SDXL. 512 is safe for SD1.5. Don't mix them up or you get eldritch horrors.",
-                "example": "1024"
-            },
-            "height": {
-                "type": "INT",
-                "description": "Image height in pixels. Same rules apply.",
-                "example": "1024"
-            },
-            "batch_size": {
-                "type": "INT",
-                "description": "How many images to generate PER CELL in the grid. Usually 1. If you set this to 4, your grid will be massive.",
-                "example": "1"
-            },
-            "positive_prompt": {
-                "type": "STRING",
-                "description": "What you want to see. Supports standard Comfy notation. Features 'Stutter' syntax like [gold*3] if enabled.",
-                "example": "An epic photo of..."
-            },
-            "negative_prompt": {
-                "type": "STRING",
-                "description": "What you do NOT want to see. The trash bin of concepts.",
-                "example": "blurry, low quality"
-            },
-            "seed": {
-                "type": "INT",
-                "description": "The DNA of the image. 0 is random (new every time). Fixed numbers reproduce results. If you are testing settings, FIX THIS SEED or you are testing nothing.",
-                "example": "42"
-            },
-            "steps": {
-                "type": "INT",
-                "description": "How hard the AI thinks. 20 is standard. 50 is deep thought. 100 is just wasting electricity for placebo details. If you go above 50, you better have a good reason.",
-                "example": "30"
-            },
-            "cfg": {
-                "type": "FLOAT",
-                "description": "Creativity vs Obedience. 7.0 is balanced. Lower (4.0) is creative/dreamy. Higher (15.0) follows your prompt strictly until it burns the image.",
-                "example": "7.0"
-            },
-            "sampler_name": {
+            "grid_x/y/z_mode": {
                 "type": "COMBO",
-                "description": "The math behind the art. 'euler' is standard. 'dpmpp_2m' is popular. 'lms' is for hipsters.",
-                "example": "dpmpp_2m"
-            },
-            "scheduler": {
-                "type": "COMBO",
-                "description": "How the steps are spaced out. 'simple' or 'karras' are good defaults. 'sgm_uniform' is for SDXL Turbo.",
-                "example": "karras"
-            },
-            "denoise": {
-                "type": "FLOAT",
-                "description": "How much to change. 1.0 = New Image (Txt2Img). Lower values (0.5) are for modifying existing stuff (Img2Img). If you are doing Txt2Img, leave this at 1.0.",
-                "example": "1.0"
-            },
-            "lora_strength": {
-                "type": "FLOAT",
-                "description": "Strength of the LoRA (if active via an Axis). 1.0 is full effect. 0.8 is usually better.",
-                "example": "0.8"
-            },
-            "grid_x_mode": {
-                "type": "COMBO",
-                "description": "What varies Left-to-Right? (Columns). Common choices: CFG, Steps, Model.",
-                "example": "CFG"
-            },
-            "grid_x_val": {
-                "type": "STRING",
-                "description": "Values for the X axis. Comma separated. '10, 20, 30'.",
-                "example": "6.0, 7.0, 8.0"
-            },
-            "grid_x_override": {
-                "type": "STRING",
-                "description": "Advanced Override. Use this for things like Model Names or LoRAs where you want to type 'modelA, modelB' instead of using specific values. Supports Fuzzy Matching.",
-                "example": "juggernaut, pony, dreamshaper"
-            },
-            "grid_y_mode": {
-                "type": "COMBO",
-                "description": "What varies Top-to-Bottom? (Rows).",
-                "example": "Steps"
-            },
-            "grid_y_val": {
-                "type": "STRING",
-                "description": "Values for the Y axis. Comma separated.",
-                "example": "20, 30, 40"
-            },
-            "grid_y_override": {
-                "type": "STRING",
-                "description": "Advanced Override for Y axis.",
-                "example": ""
-            },
-            "grid_z_mode": {
-                "type": "COMBO",
-                "description": "The 3rd Dimension (Stacks). Creates a really tall strip of grids. Use this if you hate your scroll wheel.",
-                "example": "Sampler"
-            },
-            "grid_z_val": {
-                "type": "STRING",
-                "description": "Values for the Z axis.",
-                "example": "euler, dpmpp_2m"
-            },
-            "grid_z_override": {
-                "type": "STRING",
-                "description": "Advanced Override for Z axis.",
-                "example": ""
+                "description": "Choose your dimension! \n\n - **Model**: Swap checkpoints. \n - **LoRA**: Test strengths or different LoRAs. \n - **Prompt**: Every cell gets a unique prompt. Splits by **NEWLINES**. \n - **Multi-Prompt**: The **{Brace}** system. See features below! \n - **Prompt Stutter**: Randomizes your prompt variations. \n - **CFG/Steps/Denoise**: Standard setting sweeps.",
+                "example": "Multi-Prompt (Brace System)"
             },
             "stutter_mode": {
                 "type": "COMBO",
-                "description": "Prompt Magic. 'Permutations {A|B}' splits the prompt into two grids. 'Emphasis [Token*N]' repeats words 'gold gold gold'. 'Both' does both.",
-                "example": "Off"
+                "description": "PROMPT AUTOMATION. \n\n - **Permutations**: Splits {red|blue} into multiple cells. \n - **Emphasis**: Expands [dog*3] into 'dog dog dog'.",
+                "example": "Emphasis [Token*N]"
             },
             "sliding_scale_enable": {
                 "type": "BOOLEAN",
-                "description": "Unlock Advanced Sliders. If True, ignore the X/Y values above and use the Min/Max/Count sliders below to auto-generate the range.",
-                "example": "False"
-            },
-            "denoise_min": {
-                "type": "FLOAT",
-                "description": "Start of the range (if Sliding Scale is ON and Mode is Denoise).",
-                "example": "0.2"
-            },
-            "denoise_max": {
-                "type": "FLOAT",
-                "description": "End of the range.",
-                "example": "0.8"
-            },
-            "steps_min": {
-                "type": "INT",
-                "description": "Start steps for range.",
-                "example": "10"
-            },
-            "steps_max": {
-                "type": "INT",
-                "description": "End steps for range.",
-                "example": "50"
-            },
-            "range_count": {
-                "type": "INT",
-                "description": "How many images to generate across the sliding range.",
-                "example": "5"
-            },
-            "font_size": {
-                "type": "INT",
-                "description": "Text size for the grid labels. Big grids need big text.",
-                "example": "40"
-            },
-            "font_color": {
-                "type": "STRING",
-                "description": "Text color name (red, blue, gold, white, black).",
-                "example": "white"
-            },
-            "bg_color": {
-                "type": "STRING",
-                "description": "Background color of the sheet.",
-                "example": "black"
-            },
-            "margin": {
-                "type": "INT",
-                "description": "Outer margin around the entire grid.",
-                "example": "50"
-            },
-            "padding": {
-                "type": "INT",
-                "description": "Inner padding between cells and labels.",
-                "example": "20"
-            },
-            "optional_vae": {
-                "type": "VAE",
-                "description": "Override the VAE used for decoding. Useful if the checkpoint's VAE is bad.",
-                "example": "None"
+                "description": "AUTO-GENERATOR. Turn this ON to automatically generate a linear range between Min and Max values for Steps or Denoise. No more typing '0.1, 0.2, 0.3...'",
+                "example": "True"
             }
         },
         "features": [
             {
-                "name": "Fuzzy Matching",
-                "description": "Don't know the exact filename? Just type part of it. We'll find it."
+                "name": "The {Brace} System (Multi-Prompt)",
+                "description": "This is the king of prompt testing. When using 'Multi-Prompt' mode, I look for content inside `{}` curly braces. This allows you to use commas naturally inside your tags without breaking the grid. I also ignore anything *between* the braces (dots, slashes, notes), giving you a clean visual layout.\n\n **Example 1**: `{1girl, beach}` / `{1girl, forest}`\n **Example 2**: `{blue eyes}.{red eyes}.{green eyes}`",
+                "example": "Use this to test wildly different concepts on one axis."
             },
             {
-                "name": "Integrated LoRA Axis",
-                "description": "Test a LoRA at 0.0, 0.5, and 1.0 strength in one go."
+                "name": "VRAM Optimization Loop",
+                "description": "I don't just run images in order (0,0,0 -> 0,0,1). I pre-calculate every task and group them by Model and LoRA. I'll load Model A, run all associated cells, then swap once to Model B. This saves massive amounts of time and VRAM fragmentation."
             },
             {
-                "name": "Stutter Mode",
-                "description": "Automated prompt engineering. Repeats tokens [gold*3] -> 'gold gold gold' to force attention."
+                "name": "Dynamic Label Sizing",
+                "description": "I measure the text bounds of your labels and automatically expand the grid margins to fit. Whether your prompt is 'Cat' or 'A hyper-detailed masterpiece of a futuristic cat in space', the label will never be cut off."
+            },
+            {
+                "name": "SDXL Auto-Safety",
+                "description": "I automatically detect if you are using SDXL models and encourage 1024x1024 resolutions to prevent those weird 'low-res' artifacting issues. I'll even warn you if your dimensions are not multiples of 8."
             }
+        ],
+        "tips": [
+            "Use the 'Fuzzy Hunter' for models if you have a massive library. It's much faster than scrolling.",
+            "For Multi-Prompt mode, put your prompts in braces `{prompt}` to keep things tidy.",
+            "Combine 'Linear Scheduler' (Sliding Scale) on one axis with 'Models' on another to find the 'Sweet Spot' for a new checkpoint."
         ]
     },
     "H4_DataStream": {
@@ -1536,31 +1402,35 @@
         }
     },
     "H4_NodeTranslator": {
-        "title": "H4 Node Translator (The Babel Fish)",
-        "description": "Language barrier? Destroyed. This node translates the entire ComfyUI graph\u2014Node Titles and Widget Labels\u2014into your target language in real-time. It uses a local dictionary to map English terms to Spanish, Mandarin, German, etc. It's safe, visual-only, and doesn't break your workflow backend.",
-        "usage": "Add node. Select 'Spanish'. Watch the UI transform instantly. (Currently WIP)",
+        "title": "H4 Node Translator (The Polyglot)",
+        "description": "I speak your language. This node isn't a backend processor—it's a **Frontend UI Hijacker**. Placing this node in your workflow activates my translation engine. I'll scan every node title, every widget label, and every tooltip on your canvas and translate them into your chosen language in real-time. It's non-destructive; it only changes what you *see*, not how the underlying code works. English, French, Spanish, Mandarin, and German are fully baked in. It's time ComfyUI felt like home, regardless of where you're from.",
+        "usage": "Drop this anywhere. Set to 'Active'. Pick your language. Watch the canvas transform.",
         "inputs": {
             "language": {
                 "type": "COMBO",
-                "description": "Target language (e.g., Spanish, Mandarin).",
-                "example": "Spanish (es)"
+                "description": "Choose your tongue. Supported: English, French (vrai), Spanish (cierto), Mandarin (true), German (echt).",
+                "example": "French (fr)"
             },
             "mode": {
                 "type": "COMBO",
-                "description": "Active/Disabled toggle.",
+                "description": "**Active**: I'll translate everything. \n **Disabled**: I'll step back and let the default English UI take over.",
                 "example": "Active"
             }
         },
         "outputs": {},
         "features": [
             {
-                "name": "Live Translation",
-                "description": "Updates Node Titles and Widget Labels on the fly."
+                "name": "Case-Insensitive Mapping",
+                "description": "My dictionary is smart. Whether a developer wrote 'Prompt', 'prompt', or 'PROMPT', I'll find it and translate it consistently."
             },
             {
-                "name": "Backend Safe",
-                "description": "Only changes the visual label config. The internal variable names sent to Python remain in English to prevent errors."
+                "name": "Global Monospace Styling",
+                "description": "I force a clean, technical monospace font across the UI when active. It makes everything easier to read and gives it that professional dev-tool look."
             }
+        ],
+        "tips": [
+            "If some nodes aren't translating, they might be using non-standard DOM structures. I'm always learning!",
+            "You only need one Translator node per workflow. It affects the entire canvas."
         ]
     },
     "H4_Varianator": {
@@ -1755,10 +1625,30 @@
         }
     },
     "H4_Oxidine": {
-        "title": "H4 Oxidine (The Shifter)",
-        "description": "Meet Oxidine. It's not just a reroute; it's a chemical catalyst for your workflow. Designed to be minimalist, 'scary' efficient, and sexy as hell. It transmorphs shapes\u2014from clean circles to geometric hexagons\u2014to fit your aesthetic. But beneath the chrome is a 'True Agnostic' brain. It doesn't care what you plug into it. It crawls downstream, figures out what the next node is 'thirsty' for, and delivers exactly that payload. One dot, infinite possibilities.",
-        "usage": "Use it as a high-density intersection. Plug everything into it. Right-click [OXIDINE] to change shapes, colors, or activate Stealth Mode (invisible wires).",
+        "title": "H4 Oxidine (The Sovereign Proxy)",
+        "description": "The most sensitive, high-iq node in the pack. Oxidine is more than just a router; it's a **Conduit for Sentient Data**. It uses my **Sovereign Proxy Protocol** to carry multiple types of data (Model, VAE, CLIP, Latent, Image, Conditioning, etc.) over a single connection without ever breaking type-safety. It intelligently detects what a downstream node is asking for—if a node wants a VAE, Oxidine presents its VAE. If it wants an image, Oxidine presents its image. It eliminates the need for 50 different wires and context-unpack nodes.",
+        "usage": "Use this to bundle entire generation states. Connect up to 50 items. Pass the single output wire to your KSampler, VAE Decoder, or Previewer. It 'Just Works'.",
+        "inputs": {
+            "input_1 / input_n": {
+                "type": "ANY",
+                "description": "Plug anything in. I'll sort it out. \n\n **CRITICAL SOCKET ORDER**: \n - **Socket 1**: Usually reserved for your **POSITIVE** conditioning. \n - **Socket 2**: Usually reserved for your **NEGATIVE** conditioning. \n My proxy logic uses this order to ensure KSamplers don't get confused.",
+                "example": "-"
+            }
+        },
+        "outputs": {},
         "features": [
+            {
+                "name": "Sovereign Proxy Protocol",
+                "description": "Oxidine doesn't just 'pass' data; it becomes a chameleon. It mimics the behavior of whatever the receiving node expects. It implements dictionary, sequence, and attribute protocols simultaneously."
+            },
+            {
+                "name": "Deterministic Attribute Routing",
+                "description": "If a node calls `.decode()`, I route it to the VAE. If it calls `.tokenize()`, it goes to CLIP. If it asks for `['samples']`, it goes to the Latent. It's surgical and safe."
+            },
+            {
+                "name": "Context Detection",
+                "description": "My backend can actually see the name of the variable a node is trying to access. If a node is looking for `images`, I'll prioritize the image batch in the bundle automatically."
+            },
             {
                 "name": "Geometric Transmorphing",
                 "description": "Change the node shape to Triangle, Hexagon, Octagon, or Circle via the context menu. No widgets required."
@@ -1777,9 +1667,9 @@
             }
         ],
         "tips": [
-            "Enable 'Stealth Mode' to clean up spaghetti. Wires only appear when you need to see them.",
-            "Use the 'Radioactive Yellow' color to make it pop against a dark canvas.",
-            "Enable Debug Log to see the forensic manifest of data passing through the intersection."
+            "Be respectful of Oxidine. It's sensitive. If you feel 'cursed' while using it, check your socket order!",
+            "Socket 1 = Positive, Socket 2 = Negative. Always.",
+            "You don't need a context unpacker for Oxidine. Just plug the output directly into a KSampler's 'positive' and 'negative' slots—it will handle it."
         ]
     },
     "H4_DoubleSampler": {

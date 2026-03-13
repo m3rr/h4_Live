@@ -12,11 +12,7 @@ import comfy.utils
 import nodes
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
-import random
 import re
-import itertools
-import itertools
-import math
 import os
 
 # Internal Imports
@@ -38,7 +34,7 @@ class H4_Gridinator:
         schedulers = comfy.samplers.KSampler.SCHEDULERS
         
         # Axis Modes
-        modes = ["None", "Model", "LoRA", "Prompt Stutter", "Steps", "CFG", "Denoise", "Sampler", "Scheduler", "Seed", "Negative Stutter"]
+        modes = ["None", "Model", "LoRA", "Prompt", "Multi-Prompt", "Prompt Stutter", "Steps", "CFG", "Denoise", "Sampler", "Scheduler", "Seed", "Negative Stutter"]
 
         # Fix for KeyError: 'input' - specific manual listing
         input_dir = folder_paths.get_input_directory()
@@ -47,62 +43,62 @@ class H4_Gridinator:
         return {
             "required": {
                 # --- IMAGE UPLOAD (TOP PRIORITY) ---
-                "image_upload": (sorted(files), {"tooltip": "Upload an image directly here for Img2Img."}),
+                "image_upload": (sorted(files), {"tooltip": "CRITICAL FOR IMG2IMG: Upload the base image you want me to modify here. This image acts as the 'source' for all my grid variations. If you leave this empty and haven't connected an external image, I will default to Txt2Img mode automatically. Supported formats: .jpg, .png, .webp. Tip: If your grid looks like colorful noise, check if your Denoise is too high (1.0) or your image didn't load!"}),
 
                 # --- CORE SETTINGS ---
-                "base_model": (checkpoints, {"tooltip": "The main brain. Pick your checkpoint from the list. If it's not here, check your folders!"}),
-                "base_model_fuzzy": ("STRING", {"default": "", "multiline": False, "tooltip": "Can't find it in the list? Type a part of the name here (like 'juggernaut') and we'll hunt it down for you."}),
+                "base_model": (checkpoints, {"tooltip": "THE BRAIN: Choose your primary Checkpoint/Model here. This is the foundation from which I will draw all images. For grids comparing OTHER models (Architecture mode), this acts as my 'Default' model if an axis value is missing or for any axis not designated as 'Model'. Note: SDXL models require you to use 1024x1024, SD1.5 models prefer 512x512."}),
+                "base_model_fuzzy": ("STRING", {"default": "", "multiline": False, "tooltip": "FUZZY HUNTER: Can't find your model in the dropdown? Type a fragment of the name here (e.g., 'juggernaut' or 'pony'). I will scan your entire models folder and find the best match for you. This is great for those with 1000+ models where dropdowns become a nightmare. If filled, this OVERRIDES my dropdown selection above."}),
                 
                 # --- EMPTY LATENT SETTINGS ---
-                "width": ("INT", {"default": 1024, "min": 64, "max": 8192, "step": 8, "tooltip": "Image width in pixels. 1024 for SDXL, 512 for SD1.5."}),
-                "height": ("INT", {"default": 1024, "min": 64, "max": 8192, "step": 8, "tooltip": "Image height in pixels. 1024 for SDXL, 512 for SD1.5."}),
-                "batch_size": ("INT", {"default": 1, "min": 1, "max": 64, "tooltip": "How many images per cell. Usually 1 for grids."}),
+                "width": ("INT", {"default": 1024, "min": 64, "max": 8192, "step": 8, "tooltip": "HORIZONTAL RESOLUTION: The width of your output images in pixels. Rule of Thumb: 512 for SD1.5, 768 for SD2.1, 1024 for SDXL. Going too high here without a powerful GPU will cause 'Out of Memory' (OOM) errors. Always ask me for multiples of 8!"}),
+                "height": ("INT", {"default": 1024, "min": 64, "max": 8192, "step": 8, "tooltip": "VERTICAL RESOLUTION: The height of your output images in pixels. Tall for portraits (1216), Square for general (1024), Wide for landscapes (768/832). Same memory rules as Width apply. High resolutions exponentially increase my generation time and your VRAM usage."}),
+                "batch_size": ("INT", {"default": 1, "min": 1, "max": 64, "tooltip": "INTERNAL BATCH: How many images you want me to generate SIMULTANEOUSLY for a single cell. Usually set to 1 for grids to keep my layout clean. If you set this higher, the grid will only show the FIRST image of the batch, which is usually a waste of VRAM unless you are doing complex batch-processing."}),
                 
-                "positive_prompt": ("STRING", {"default": "An epic photo of...", "multiline": True, "tooltip": "What do you want to see? You can use {A|B} for permutations or [word*3] to emphasize stuff."}),
-                "negative_prompt": ("STRING", {"default": "blurry, low quality", "multiline": True, "tooltip": "What do you NOT want to see? No bad hands, no blurring, etc."}),
+                "positive_prompt": ("STRING", {"default": "An epic photo of...", "multiline": True, "tooltip": "DREAM DICTATION: Tell me what you want to see. Be descriptive! Use commas to separate your concepts. Use [weight*1.2] to emphasize words to me. If you use the 'Prompt' Axis Mode, THIS BOX WILL AUTOMATICALLY HIDE to prevent confusion, as your axis values will take over the driver's seat. Tip: Start with subject, then lighting, then style, then camera details."}),
+                "negative_prompt": ("STRING", {"default": "blurry, low quality", "multiline": True, "tooltip": "THE FORBIDDEN ZONE: Tell me what you DON'T want in your art. List things like 'deformed iris', 'bad hands', 'watermark', 'text'. A strong negative prompt is the secret sauce to me giving you professional-looking art. Most models have specific recommended negatives (e.g., 'lowres, bad anatomy')."}),
                 
                 # --- SAMPLING DEFAULTS ---
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "tooltip": "The DNA of the image. 0 is random, fixed numbers reproduce results."}),
-                "steps": ("INT", {"default": 20, "min": 1, "max": 100, "tooltip": "How hard the AI thinks. 20 is standard, 50 is deep thought. Too high just wastes time."}),
-                "cfg": ("FLOAT", {"default": 7.0, "min": 0.0, "max": 100.0, "step": 0.1, "tooltip": "Creativity vs Obedience. 7.0 is balanced. Lower is creative, Higher follows your prompt strictly."}),
-                "sampler_name": (samplers, {"tooltip": "The math behind the art. 'euler' is standard, 'dpmpp_2m' is popular. Try them out!"}),
-                "scheduler": (schedulers, {"tooltip": "How the steps are spaced out. 'simple' or 'karras' are good defaults."}),
-                "denoise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "How much to change. 1.0 = New Image. Lower values are for modifying existing stuff."}),
-                "lora_strength": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01, "label": "LoRA Strength (LOOK HERE!!!!)", "tooltip": "Strength of the LoRA (if active). 1.0 = Full Effect. Example: Start at 0.8 to blend style without frying it. NOTE: For Img2Img, remember to lower Denoise (e.g. 0.6) or you'll just overwrite your image!"}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "tooltip": "THE COSMIC RNG: The starting point of my noise generation. 0 means every run is unique (Random). Using a fixed number allows me to reproduce the EXACT same image for you if nothing else changes. Think of it as the DNA of the generation. In a grid, if Seed isn't an axis, every cell uses this same DNA to ensure differences you see are from the parameters, not luck."}),
+                "steps": ("INT", {"default": 20, "min": 1, "max": 100, "tooltip": "THOUGHT CYCLES: How many times you want me to refine the image. 20 is the sweet spot for speed/quality. 1-10 results in a blurry mess. 30-50 adds fine detail for you but takes me longer. Above 50 often hits diminishing returns or introduces artifacts. High step counts = High time cost."}),
+                "cfg": ("FLOAT", {"default": 7.0, "min": 0.0, "max": 100.0, "step": 0.1, "tooltip": "CREATIVITY VS OBEDIENCE: Classifier Free Guidance. 1.0 = I completely ignore you. 7.0 = Standard balance. 10.0-15.0 = I follow your words extremely strictly but I might 'fry' the colors and edges. Think of it as my 'Volume' knob."}),
+                "sampler_name": (samplers, {"tooltip": "THE MATHEMATICIAN: The algorithm I use to denoise. 'euler' is the classic. 'dpmpp_2m' or 'dpmpp_sde' with 'karras' are the modern champions for realism. Each sampler has a different 'personality' - experiment to find your favorite look!"}),
+                "scheduler": (schedulers, {"tooltip": "THE PACEMAKER: Controls how I remove the noise over the steps. 'normal' is linear. 'karras' focuses on early/late steps for better convergence. 'simple' is fast. 'exponential' is aggressive. Usually paired with specific samplers recommended by model creators."}),
+                "denoise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "RECONSTRUCTION STRENGTH: 1.0 = Total replacement (Standard Txt2Img). 0.5 = I keep 50% of your source image and add 50% generation. 0.0 = Pixel-perfect match (I make no change). ESSENTIAL for Img2Img - usually start around 0.6 to keep your base structure while I add detail."}),
+                "lora_strength": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01, "label": "LoRA Strength (LOOK HERE!!!!)", "tooltip": "STYLE AMPLIFIER: How much of the chosen LoRA's personality you want me to inject. 1.0 is full effect. -1.0 reverses the effect (weird!). Be careful: high strengths (above 1.5) can destroy the image coherence. Ask me for 0.7-0.9 for subtle blending."}),
                 
                 # --- THE GRID (X/Y/Z) ---
-                "grid_x_mode": (modes, {"default": "None", "tooltip": "What varies Left-to-Right? Model, CFG, Steps?"}),
-                "grid_x_val": ("STRING", {"default": "", "multiline": False, "tooltip": "Values for X. Comma separated (e.g. '20, 30, 40'). Right-Click to pick Models!"}),
-                "grid_x_override": ("STRING", {"default": "", "multiline": False, "placeholder": "Type exact names here, comma separated", "tooltip": "MULTI-VALUE OVERRIDE: If filled, this REPLACES the dropdown above. Use for comparing multiple models/LoRAs. Type full filenames comma-separated (e.g. 'modelA.safetensors, modelB.safetensors'). Fuzzy matching works - just type part of the name!"}),
+                "grid_x_mode": (modes, {"default": "None", "tooltip": "X-AXIS (COLUMNS): Choose which parameter varies from Left to Right. If you set this to 'Prompt', I will split your input by NEWLINES. If 'Multi-Prompt', I will split by SEMICOLONS (;). These modes preserve your commas, allowing individual complex prompts!"}),
+                "grid_x_val": ("STRING", {"default": "", "multiline": False, "tooltip": "AXIS VALUES: Enter your variants here. For 'Prompt' mode, separate with NEWLINES. For 'Multi-Prompt', separate with SEMICOLONS (;). For standard modes (Steps, CFG), use COMMAS. If you pick 'Model' or 'LoRA', use the dropdown or right-click to pick files!"}),
+                "grid_x_override": ("STRING", {"default": "", "multiline": False, "placeholder": "Type exact names here, comma separated", "tooltip": "MANUAL OVERRIDE: If you want to use files/values NOT in the dropdowns (like a subfolder model), type them here. This takes absolute priority over the Mode/Value boxes above. Format: 'filenameA, filenameB'. Commas are the separator here."}),
                 
-                "grid_y_mode": (modes, {"default": "None", "tooltip": "What varies Top-to-Bottom?"}),
-                "grid_y_val": ("STRING", {"default": "", "multiline": False, "tooltip": "Values for Y. Comma separated."}),
-                "grid_y_override": ("STRING", {"default": "", "multiline": False, "placeholder": "Type exact names here, comma separated", "tooltip": "MULTI-VALUE OVERRIDE: If filled, this REPLACES the dropdown above. Use for comparing multiple items on this axis."}),
+                "grid_y_mode": (modes, {"default": "None", "tooltip": "Y-AXIS (ROWS): Choose which parameter varies from Top to Bottom. Tip: Compare Samplers on X and Schedulers on Y for a masterclass in algorithm differences. If using a prompt mode, it will override the base prompt below!"}),
+                "grid_y_val": ("STRING", {"default": "", "multiline": False, "tooltip": "AXIS VALUES: Same as X-Axis. Remember: Prompt = Newlines, Multi-Prompt = Semicolons (;), Others = Commas."}),
+                "grid_y_override": ("STRING", {"default": "", "multiline": False, "placeholder": "Type exact names here, comma separated", "tooltip": "MANUAL OVERRIDE: Same as X-Axis override. Takes priority over Y-Axis boxes. Commas are ALWAYS the separator for manual overrides."}),
                 
-                "grid_z_mode": (modes, {"default": "None", "tooltip": "The 3rd Dimension (Stacks). Creates a really tall strip of grids."}),
-                "grid_z_val": ("STRING", {"default": "", "multiline": False, "tooltip": "Values for Z. Comma separated."}),
-                "grid_z_override": ("STRING", {"default": "", "multiline": False, "placeholder": "Type exact names here, comma separated", "tooltip": "MULTI-VALUE OVERRIDE: If filled, this REPLACES the dropdown above."}),
+                "grid_z_mode": (modes, {"default": "None", "tooltip": "Z-AXIS (STACKS): The 3rd Dimension. This creates multiple distinct grids or a 'deep stack'. Use this for comparing across Models while X/Y compare Prompts/Settings. If set to a prompt mode, each prompt creates a new stack!"}),
+                "grid_z_val": ("STRING", {"default": "", "multiline": False, "tooltip": "AXIS VALUES: Same as X/Y. Remember: Prompt = Newlines, Multi-Prompt = Semicolons (;), Others = Commas."}),
+                "grid_z_override": ("STRING", {"default": "", "multiline": False, "placeholder": "Type exact names here, comma separated", "tooltip": "MANUAL OVERRIDE: Same as X/Y override. Takes priority over Z-Axis boxes. Commas are ALWAYS the separator for manual overrides."}),
 
                 # --- STUTTER & STYLING ---
-                "stutter_mode": (["Off", "Permutations {A|B}", "Emphasis [Token*N]", "Both"], {"default": "Off", "tooltip": "Prompt Magic: 'Off' = no processing. 'Permutations' splits {A|B}. 'Emphasis' repeats [words*N]."}),
-                "lora_strength": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "Strength of the LoRA (if active). 1.0 = Full Effect. Example: Start at 0.8 to blend style without frying it. NOTE: For Img2Img, remember to lower Denoise (e.g. 0.6) or you'll just overwrite your image!"}),
+                "stutter_mode": (["Off", "Permutations {A|B}", "Emphasis [Token*N]", "Both"], {"default": "Off", "tooltip": "PROMPT AUTOMATION: 'Permutations' splits {red|blue} into multiple cells (if your axis mode matches). 'Emphasis' expands [dog*3] into 'dog dog dog'. A massive time-saver for repetitive prompt testing."}),
                 
                 # --- SLIDING SCALE (Optional Ranges) ---
-                "sliding_scale_enable": ("BOOLEAN", {"default": False, "label": "Enable Sliding Scale", "tooltip": "Unlock the Advanced Sliders below. Auto-generates ranges for you."}),
-                "denoise_min": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "Start of the range (if Sliding Scale is ON)."}),
-                "denoise_max": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "End of the range."}),
-                "steps_min": ("INT", {"default": 10, "min": 1, "max": 100, "tooltip": "Start steps for range."}),
-                "steps_max": ("INT", {"default": 30, "min": 1, "max": 100, "tooltip": "End steps for range."}),
-                "range_count": ("INT", {"default": 4, "min": 2, "max": 100, "tooltip": "How many images to generate across the range."}),
+                "sliding_scale_enable": ("BOOLEAN", {"default": False, "label": "Enable Sliding Scale", "tooltip": "AUTO-GENERATOR: Tired of typing '10, 20, 30, 40'? Turning this ON allows me to automatically generate a linear range between the Min and Max values below. This only applies if you set an Axis Mode to 'Steps' or 'Denoise'."}),
+                "denoise_min": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "RANGE START (Denoise): The lowest value in your generated scale."}),
+                "denoise_max": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "RANGE END (Denoise): The highest value in your generated scale."}),
+                "steps_min": ("INT", {"default": 10, "min": 1, "max": 100, "tooltip": "RANGE START (Steps): The lowest step count in your generated scale."}),
+                "steps_max": ("INT", {"default": 30, "min": 1, "max": 100, "tooltip": "RANGE END (Steps): The highest step count in your generated scale."}),
+                "range_count": ("INT", {"default": 4, "min": 2, "max": 100, "tooltip": "DENSITY: How many images you want me to spread across the range. e.g. Start 10, End 40, Count 4 means I will give you [10, 20, 30, 40]."}),
 
-                "font_size": ("INT", {"default": 40, "min": 10, "max": 200, "tooltip": "Text size for the grid labels."}),
-                "font_color": ("STRING", {"default": "white", "tooltip": "Text color (red, blue, gold, etc)."}),
-                "bg_color": ("STRING", {"default": "black", "tooltip": "Background color of the sheet."}),
-                "margin": ("INT", {"default": 50, "min": 0, "max": 500, "tooltip": "Outer margin around the entire grid."}),
-                "padding": ("INT", {"default": 20, "min": 0, "max": 200, "tooltip": "Inner padding between cells and labels."}),
+                "font_size": ("INT", {"default": 40, "min": 10, "max": 200, "tooltip": "LEGIBILITY: The point size of the grid labels I draw for you. If your grid is huge, make this larger so you can read it in the preview!"}),
+                "font_color": ("STRING", {"default": "white", "tooltip": "AESTHETICS: The color of the label text I render. I accept standard names like 'red', 'gold', 'lime' or Hex codes like '#FF00FF'."}),
+                "bg_color": ("STRING", {"default": "black", "tooltip": "CANVAS COLOR: The color of the space between images and the outer margins. Dark colors usually make images 'pop' better."}),
+                "margin": ("INT", {"default": 50, "min": 0, "max": 500, "tooltip": "OUTER SPACE: The thickness of the border around the entire final grid sheet in pixels."}),
+                "padding": ("INT", {"default": 20, "min": 0, "max": 200, "tooltip": "INNER SPACE: The gap between individual image cells and between images and their labels."}),
             },
             "optional": {
-                "optional_vae": ("VAE", {"tooltip": "Override the VAE. (Optional, usually models have one built-in)."})
+                "optional_vae": ("VAE", {"tooltip": "VAE OVERRIDE: Optional. If you want me to use a specific VAE instead of the one baked into the model, connect it here. This is critical for SDXL models if your base checkpoint has a broken VAE or for specialized artistic looks."}),
+                "image_input": ("IMAGE", {"tooltip": "EXTERNAL IMAGE: If you have an image coming from another node (like a Load Image or a Masked image), connect it here. I will prioritize this over your 'image_upload' dropdown above. Essential for complex Img2Img pipelines!"})
             }
         }
 
@@ -149,11 +145,11 @@ class H4_Gridinator:
         # Fuzzy match
         for ckpt in all_checks:
             if name.lower() in ckpt.lower():
-                _log(f"Gridinator: Fuzzy loaded '{ckpt}' for input '{name}'")
+                _log(f"Hey! I fuzzy loaded '{ckpt}' because you gave me '{name}'.")
                 ckpt_path = folder_paths.get_full_path("checkpoints", ckpt)
                 return comfy.sd.load_checkpoint_guess_config(ckpt_path)
                 
-        raise ValueError(f"Gridinator: Cound not find checkpoint '{name}'")
+        raise ValueError(f"Whoops! I could not find a checkpoint named '{name}'. Check your spelling!")
 
     def fuzzy_load_lora(self, name, model, clip, strength):
         """Loads a LoRA by fuzzy matching the name and applies it."""
@@ -173,14 +169,14 @@ class H4_Gridinator:
                     break
         
         if target_lora:
-            _log(f"Gridinator: Applying LoRA '{target_lora}' at strength {strength}")
+            _log(f"Applying LoRA '{target_lora}' at strength {strength} for this batch.")
             lora_path = folder_paths.get_full_path("loras", target_lora)
             # Fix: Must load the LoRA tensors first!
             lora_tensors = comfy.utils.load_torch_file(lora_path)
             model_lora, clip_lora = comfy.sd.load_lora_for_models(model, clip, lora_tensors, strength, strength)
             return model_lora, clip_lora
             
-        _log(f"Gridinator: WARNING - Could not find LoRA '{name}', skipping.")
+        _log(f"WARNING: I couldn't find your LoRA '{name}', so I'm skipping it!")
         return model, clip
 
     def apply_stutter(self, text, mode):
@@ -215,8 +211,26 @@ class H4_Gridinator:
                 return [int(x) for x in shards]
                 
         # Standard Parsing
-        raw_list = [x.strip() for x in val_string.split(",") if x.strip()]
+        if mode == "Prompt":
+            # Proper Prompt Test: Split by newline to preserve commas inside tags
+            raw_list = [x.strip() for x in val_string.split("\n") if x.strip()]
+        elif mode == "Multi-Prompt":
+            # BRACE SYSTEM: Extract everything inside { ... }
+            # This allows people to use commas safely and add slashes or dots between braces for flair.
+            # Regex: finds everything between { and }
+            braces = re.findall(r"\{(.*?)\}", val_string)
+            if braces:
+                raw_list = [x.strip() for x in braces if x.strip()]
+            else:
+                # Fallback to Semicolon if no braces are found
+                raw_list = [x.strip() for x in val_string.split(";") if x.strip()]
+        else:
+            raw_list = [x.strip() for x in val_string.split(",") if x.strip()]
         
+        # If no values provided for an active mode, return [None] to avoid empty Cartesian product
+        if not raw_list:
+            return [None]
+            
         if mode in ["Steps", "Seed"]:
             return [int(x) for x in raw_list]
         elif mode in ["CFG", "Denoise"]:
@@ -253,93 +267,85 @@ class H4_Gridinator:
         checkpoint_target = base_model
         if base_model_fuzzy and base_model_fuzzy.strip():
             checkpoint_target = base_model_fuzzy.strip()
-            _log(f"Gridinator: Using Fuzzy Override: '{checkpoint_target}'")
+            _log(f"I am prioritizing your Fuzzy Override: '{checkpoint_target}' over the dropdown.")
         
         # Initial Load (if not overridden by grid)
         if "Model" not in [grid_x_mode, grid_y_mode, grid_z_mode]:
-            _log(f"Gridinator: Loading Base Model: {checkpoint_target}")
+            _log(f"Loading your Base Model: {checkpoint_target}")
             current_model, current_clip, current_vae, _ = self.fuzzy_load_checkpoint(checkpoint_target)
 
-        # 4. The LOOP
-        total_steps = len(x_vals) * len(y_vals) * len(z_vals)
-        step_count = 0
+        # 4. PRE-CALCULATE ALL TASKS (SCENARIO 2 - VRAM OPTIMIZATION)
+        # We build a list of all grid cells and group them by (Model, LoRA) 
+        # to minimize swaps and patching.
         
+        all_tasks = []
         for z_idx, z in enumerate(z_vals):
             for y_idx, y in enumerate(y_vals):
                 for x_idx, x in enumerate(x_vals):
-                    step_count += 1
-                    _log(f"Gridinator: Rendering Cell {step_count}/{total_steps} [X:{x} Y:{y} Z:{z}]")
+                    # Parameters for THIS cell
+                    task_params = {
+                        "x_idx": x_idx, "y_idx": y_idx, "z_idx": z_idx,
+                        "x_val": x, "y_val": y, "z_val": z,
+                        "steps": steps, "cfg": cfg, "denoise": denoise,
+                        "sampler": sampler_name, "scheduler": scheduler,
+                        "seed": seed, "pos": positive_prompt, "neg": negative_prompt,
+                        "model_name": base_model,
+                        "lora_name": "None" 
+                    }
                     
-                    # --- PARAMETER OVERRIDES ---
-                    p_steps = steps
-                    p_cfg = cfg
-                    p_denoise = denoise
-                    p_sampler = sampler_name
-                    p_scheduler = scheduler
-                    p_seed = seed
-                    p_pos = positive_prompt
-                    p_neg = negative_prompt
-                    
-                    # Apply overrides based on current X/Y/Z mode
-                    def apply_override(mode, val):
-                        nonlocal p_steps, p_cfg, p_denoise, p_sampler, p_scheduler, p_seed, p_pos, p_neg
-                        if mode == "Steps": p_steps = val
-                        elif mode == "CFG": p_cfg = val
-                        elif mode == "Denoise": p_denoise = val
-                        elif mode == "Seed": p_seed = val
-                        elif mode == "Sampler": p_sampler = val
-                        elif mode == "Scheduler": p_scheduler = val
-                        elif mode == "Prompt Stutter": p_pos = val # Wait, handled dynamically?
-                        elif mode == "Negative Stutter": p_neg = val
-                    
-                    apply_override(grid_x_mode, x)
-                    apply_override(grid_y_mode, y)
-                    apply_override(grid_z_mode, z)
+                    # Apply Overrides
+                    def apply_task_override(mode, val, params):
+                        # Use strings as modes for comparison
+                        if mode == "Steps": params["steps"] = val
+                        elif mode == "CFG": params["cfg"] = val
+                        elif mode == "Denoise": params["denoise"] = val
+                        elif mode == "Seed": params["seed"] = val
+                        elif mode == "Sampler": params["sampler"] = val
+                        elif mode == "Scheduler": params["scheduler"] = val
+                        elif mode in ["Prompt", "Multi-Prompt"]: params["pos"] = val
+                        elif mode == "Prompt Stutter": params["pos"] = val
+                        elif mode == "Negative Stutter": params["neg"] = val
+                        elif mode == "Model": params["model_name"] = val
+                        elif mode == "LoRA": params["lora_name"] = val
 
-                    # --- MODEL LOADING (If Dynamic) ---
-                    # Check if any axis is 'Model', if so, load it
-                    model_to_load = base_model
-                    if grid_x_mode == "Model": model_to_load = x
-                    if grid_y_mode == "Model": model_to_load = y
-                    if grid_z_mode == "Model": model_to_load = z
+                    apply_task_override(grid_x_mode, x, task_params)
+                    apply_task_override(grid_y_mode, y, task_params)
+                    apply_task_override(grid_z_mode, z, task_params)
                     
-                    # Optimization: Only reload if changed
-                    # For prototype, we might reload if mode is active. 
-                    # Simpler: If mode is active, always load.
-                    if "Model" in [grid_x_mode, grid_y_mode, grid_z_mode]:
-                        current_model, current_clip, current_vae, _ = self.fuzzy_load_checkpoint(model_to_load)
+                    all_tasks.append(task_params)
 
-                    # --- LORA APPLICATION (If Dynamic) ---
-                    # We always start from the base "current_model"/clip and apply fresh lora
-                    # This prevents infinite stacking if we just modified current_model in place
-                    # Optimization: In a loop, this re-patches every time. It's safer than unpatching.
-                    
-                    model_for_run = current_model
-                    clip_for_run = current_clip
-                    
-                    def check_apply_lora(mode, val):
-                        nonlocal model_for_run, clip_for_run
-                        if mode == "LoRA":
-                            model_for_run, clip_for_run = self.fuzzy_load_lora(val, model_for_run, clip_for_run, lora_strength)
-                            
-                    check_apply_lora(grid_x_mode, x)
-                    check_apply_lora(grid_y_mode, y)
-                    check_apply_lora(grid_z_mode, z)
+        # 5. Group Tasks by Model (to minimize heavy swaps)
+        # and sub-group by LoRA (to minimize patching)
+        from collections import defaultdict
+        grouped_tasks = defaultdict(lambda: defaultdict(list))
+        for t in all_tasks:
+            grouped_tasks[t["model_name"]][t["lora_name"]].append(t)
 
+        total_cells = len(all_tasks)
+        cells_done = 0
+
+        # 6. The OPTIMIZED LOOP
+        for model_name, lora_groups in grouped_tasks.items():
+            _log(f"[VRAM OPTIMIZATION ON]: Swapping to Model: {model_name}")
+            current_model, current_clip, current_vae, _ = self.fuzzy_load_checkpoint(model_name)
+            
+            for lora_name, tasks in lora_groups.items():
+                # Apply LoRA once for this group of tasks
+                model_for_run, clip_for_run = self.fuzzy_load_lora(lora_name, current_model, current_clip, lora_strength)
+                
+                for t in tasks:
+                    cells_done += 1
+                    _log(f"Rendering Cell {cells_done} of {total_cells} [X:{t['x_val']} | Y:{t['y_val']} | Z:{t['z_val']}]")
+                    
                     # --- PROMPT PROCESSING ---
-                    # Stutter Logic
-                    final_pos = self.apply_stutter(p_pos, stutter_mode)
-                    final_neg = self.apply_stutter(p_neg, stutter_mode)
+                    # Ensure we have strings (fix for NoneType crash)
+                    current_pos = t["pos"] if t["pos"] is not None else ""
+                    current_neg = t["neg"] if t["neg"] is not None else ""
                     
-                    # Special Case: Permutation Grid
-                    # If inputs were permutations, they are handled by parse_values 
-                    # (Users must manually input separate strings for standard grid, 
-                    #  or we detect {A|B} in prompt and expand it into axes? 
-                    #  User asked for "Permutations" as an option. 
-                    #  For now, let's assume the user puts explicit prompts in the text box or sets mode "Prompt Stutter"
+                    final_pos = self.apply_stutter(current_pos, stutter_mode)
+                    final_neg = self.apply_stutter(current_neg, stutter_mode)
                     
                     # --- SAMPLING ---
-                    # 1. Encode Conditionings
                     # 1. Encode Conditionings
                     tokens_pos = clip_for_run.tokenize(final_pos)
                     cond, pooled = clip_for_run.encode_from_tokens(tokens_pos, return_pooled=True)
@@ -349,67 +355,51 @@ class H4_Gridinator:
                     cond, pooled = clip_for_run.encode_from_tokens(tokens_neg, return_pooled=True)
                     cond_neg = [[cond, {"pooled_output": pooled}]]
 
-                    # 2. Latent Setup (Txt2Img vs Img2Img)
+                    # 2. Latent Setup
                     vae_to_use = optional_vae if optional_vae else current_vae
                     latent_payload = {}
                     
+                    # Image Input Logic
+                    source_img = None
                     if image_input is not None:
-                         # 1. Priority: Connected Image
                          source_img = image_input
                     elif image_upload and image_upload != "undefined":
-                         # 2. Priority: Uploaded Image
-                         # Load image from path
                          img_path = folder_paths.get_annotated_filepath(image_upload)
                          if os.path.exists(img_path):
                              i = Image.open(img_path)
-                             i = i.convert("RGB") # Ensure RGB
+                             i = i.convert("RGB")
                              i = np.array(i).astype(np.float32) / 255.0
-                             source_img = torch.from_numpy(i).unsqueeze(0) # [1, H, W, C]
-                         else:
-                             _log(f"Gridinator: Could not find uploaded image: {image_upload}")
-                             source_img = None
-                    else:
-                         source_img = None
-
+                             source_img = torch.from_numpy(i).unsqueeze(0)
+                    
                     if source_img is not None:
-                         # Img2Img Mode
-                         # Resize logic
-                         samples = source_img.movedim(-1, 1) # [B, C, H, W]
+                         samples = source_img.movedim(-1, 1)
                          samples = comfy.utils.common_upscale(samples, width, height, "bilinear", "center")
-                         samples = samples.movedim(1, -1) # Back to [B, H, W, C]
-                         
-                         # VAE Encode
-                         encoded = vae_to_use.encode(samples[:,:,:,0:3]) # Drop alpha if exists
+                         samples = samples.movedim(1, -1)
+                         encoded = vae_to_use.encode(samples[:,:,:,0:3])
                          latent_payload = {"samples": encoded}
                     else:
-                         # Txt2Img Mode
                          latent = torch.zeros([batch_size, 4, height // 8, width // 8])
                          latent_payload = {"samples": latent}
 
                     # 3. KSampler
-                    # We use standard common_ksampler
                     common_sampler = nodes.common_ksampler(
                         model=model_for_run, 
-                        seed=p_seed, 
-                        steps=p_steps, 
-                        cfg=p_cfg, 
-                        sampler_name=p_sampler, 
-                        scheduler=p_scheduler, 
+                        seed=t["seed"], 
+                        steps=t["steps"], 
+                        cfg=t["cfg"], 
+                        sampler_name=t["sampler"], 
+                        scheduler=t["scheduler"], 
                         positive=cond_pos, 
                         negative=cond_neg, 
                         latent=latent_payload, 
-                        denoise=p_denoise
+                        denoise=t["denoise"]
                     )
                     
-                    # 4. Decode
+                    # 4. Decode & Save Result
                     decoded = vae_to_use.decode(common_sampler[0]["samples"])
-                    
-                    # 5. Convert to PIL
-                    img_tensor = decoded
-                    i = 255. * img_tensor.cpu().numpy()
+                    i = 255. * decoded.cpu().numpy()
                     img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8)[0])
-                    
-                    results_grid[(x_idx, y_idx, z_idx)] = img
+                    results_grid[(t["x_idx"], t["y_idx"], t["z_idx"])] = img
 
         # 5. STITCHING (The Gridinator)
         final_image = self.stitch_grid(results_grid, x_vals, y_vals, z_vals, grid_x_mode, grid_y_mode, grid_z_mode, font_size, font_color, bg_color, margin, padding)
@@ -420,8 +410,13 @@ class H4_Gridinator:
         return (final_tensor,)
 
     def stitch_grid(self, results, x_vals, y_vals, z_vals, x_mode, y_mode, z_mode, f_size, f_color, bg_color, margin, padding):
-        """Assembles the individual images into a labeled grid."""
+        """Assembles the individual images into a labeled grid for you."""
         
+        # Safety Check
+        if not results:
+            _log("Hey, I couldn't find any results to stitch! Returning a blank canvas for you.")
+            return Image.new("RGB", (512, 512), bg_color)
+
         # Dimensions from first image
         sample_w, sample_h = list(results.values())[0].size
         
