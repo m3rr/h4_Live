@@ -1,7 +1,7 @@
 # h4_visual_tokenizer / H4_VisualTokenizer (The Mind Reader)
 
 ## What it is
-A debugging tool parsing string processing algorithms that displays exactly how the underlying AI model translates, tokenizes, cuts, and statistically weighs your conversational prompt matrix structurally.
+A debugging tool parsing string processing algorithms that displays exactly how the underlying system translates, tokenizes, cuts, and statistically weighs your conversational prompt matrix structurally.
 
 ## Expanded Description
 Prompting generation nodes often feels like interacting with a black box interface. You write `"a beautiful incredibly complex insanely detailed hyperrealistic cat 8k"` and frequently have zero perception of whether the model actively recognized `insanely detailed` individually or dropped the phrase off the back boundary of the input context limits entirely. 
@@ -9,9 +9,9 @@ Prompting generation nodes often feels like interacting with a black box interfa
 The `H4_VisualTokenizer` dives actively into the nested structure of standard `CLIP` transformer methodologies. It uncovers the raw Python `transformers.CLIPTokenizer` algorithm, parses your input String visually, executes exactly mapping `convert_tokens_to_ids()`, evaluates inherent syntax formatting (such as `(cat:1.5)` attention weights), and broadcasts a physical matrix update array directly into a formatted UI structure on the specific node canvas view.
 
 ## Features
-- **Token Visualization:** Visualizes textual words parsed strictly as the isolated fragments the neural net identifies (e.g., `hyperrealistic` structurally translated to `"hyper"` and `"realistic"` block tokens separately).
+- **Token Visualization:** Visualizes textual words parsed strictly as the isolated fragments the processing model identifies (e.g., `hyperrealistic` structurally translated to `"hyper"` and `"realistic"` block tokens separately).
 - **Weight Observation:** Maps the exact parameter of numerical multiplier data. If you format text to `(cityscape:1.2)`, it visibly renders the heavier weighting properties locally allowing you to definitively verify syntax processing rules applied by ComfyUI successfully caught your text input.
-- **Truncation Tracking:** Displays whether you exceeded standard 75-token CLIP boundary conditions indicating the exact structural point your prompt ceased feeding input values to the primary neural generation path.
+- **Truncation Tracking:** Displays whether you exceeded standard 75-token CLIP boundary conditions indicating the exact structural point your prompt ceased feeding input values to the primary generation path.
 
 ## Use Case Scenarios
 **Scenario 1: Truncation Analysis Validation**

@@ -13,7 +13,7 @@ from ...core.h4_core import _log
 class H4_VisualTokenizer:
     """
     👁️ H4 Visual Tokenizer
-    "See what the AI sees."
+    "Visualize underlying token processing."
     
     Visualizes Tokenization & Weights.
     """

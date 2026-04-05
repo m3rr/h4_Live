@@ -646,7 +646,7 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 ---
 
 ### H4_VisualTokenizer (The Mind Reader)
-**What it is:** A debugging tool that shows you exactly how the AI tokenizes your prompt.
+**What it is:** A debugging tool that shows you exactly how the prompt is processed and tokenized.
 **Why use it:**
 - To see why your prompt is being ignored.
 - To visualize weights: `(cat:1.2)` shows up as a heavier bar.

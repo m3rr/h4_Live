@@ -934,7 +934,7 @@ export const h4_Dashboard = {
         },
         "H4_VisualTokenizer": {
             "title": "H4 Visual Tokenizer (The Mind)",
-            "description": "See what the AI sees. Visualizes how your prompt is broken down into tokens and weighted by the CLIP model. Helps debug why 'cat' is being ignored.",
+            "description": "Visualize token processing. Displays how your prompt is broken down into tokens and weighted by the CLIP model. Helps debug why 'cat' is being ignored.",
             "usage": "Connect CLIP and write Text. Run. See visualization in the node."
         },
         "H4_MissionControl": {

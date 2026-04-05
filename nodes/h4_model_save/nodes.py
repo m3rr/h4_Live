@@ -146,7 +146,7 @@ class H4_ModelSave:
         #   - model_config.process_unet_state_dict_for_saving()
         #     → Adds correct UNet prefix (e.g., "model.diffusion_model." for SD/SDXL)
         #   - model_config.process_clip_state_dict_for_saving()
-        #     → SDXL: Converts OpenAI→HuggingFace CLIP format, maps to
+        #     → SDXL: Converts standard→HuggingFace CLIP format, maps to
         #       "conditioner.embedders.0/1." prefixes
         #     → SD1.5: Maps to "cond_stage_model." prefix
         #   - model_config.process_vae_state_dict_for_saving()

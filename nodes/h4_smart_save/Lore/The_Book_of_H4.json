@@ -530,7 +530,7 @@
         "inputs": {
             "base_model": {
                 "type": "COMBO",
-                "description": "Which AI architecture? \n **SD1.5**: 512px base. \n **SDXL**: 1024px base. \n **Flux**: 1024px flexible. \n **Wan/Z-Image**: 1280x720 base (Video).",
+                "description": "Which base architecture? \n **SD1.5**: 512px base. \n **SDXL**: 1024px base. \n **Flux**: 1024px flexible. \n **Wan/Z-Image**: 1280x720 base (Video).",
                 "example": "SDXL"
             },
             "aspect_ratio": {
@@ -697,7 +697,7 @@
     },
     "H4_VisualTokenizer": {
         "title": "H4 Visual Tokenizer (The Mind)",
-        "description": "See what the AI sees. Visualizes how your prompt is broken down into tokens and weighted by the CLIP model. Helps debug why 'cat' is being ignored.",
+        "description": "Visualize exactly how your prompt is broken down into tokens and weighted by the CLIP model. Helps debug why 'cat' is being ignored.",
         "usage": "Connect CLIP and write Text. Run. See visualization in the node.",
         "inputs": {
             "clip": {
@@ -1101,7 +1101,7 @@
             },
             "ckpt_name": {
                 "type": "COMBO",
-                "description": "The Master AI Model (SDXL/SD1.5 Checkpoint).",
+                "description": "The Master Checkpoint (SDXL/SD1.5).",
                 "example": "juggernautXL_v9.safetensors"
             },
             "positive_dna": {

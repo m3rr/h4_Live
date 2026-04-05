@@ -32,7 +32,7 @@ Data is displayed in two places for maximum visibility:
 1.  **The Console Window**:
     *   The black CMD/Terminal window where ComfyUI runs.
     *   The logs here are **Color Coded** (Cyan/Green).
-    *   They are formatted perfectly for copy-pasting into LLMs (like ChatGPT/Claude) to ask for help with errors.
+    *   They are formatted for easy copy-pasting into documentation or support forums to get help with errors.
     
 2.  **The Node UI**:
     *   The node itself has a text box that updates live.

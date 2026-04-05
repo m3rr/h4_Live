@@ -38,14 +38,14 @@ Here is every single knob and dial explained in plain English, so you know exact
 ### **4. The Engine Room (Sampling Settings)**
 These are your standard ComfyUI settings, but built-in:
 *   **Seed**: The DNA of the image. Keep it the same to test other settings, or change it to get a totally new composition.
-*   **Steps**: How long the AI thinks.
+*   **Steps**: Processing duration.
     *   *20* is standard.
     *   *50* is high detail.
     *   *100* is usually a waste of time.
-*   **CFG (Creativity Scale)**: How strict the AI should be.
-    *   *Lower (2-4)*: The AI ignores you and dreams wildly.
+*   **CFG (Creativity Scale)**: Guidance strictness.
+    *   *Lower (2-4)*: The generator use more creative freedom.
     *   *Mid (7-8)*: The Goldilocks zone.
-    *   *High (12+)*: The AI follows your prompt so hard it might burn the image.
+    *   *High (12+)*: The generator follows your prompt strictly.
 *   **Sampler / Scheduler**: The math used to draw. `euler` + `normal` is old reliable. `dpmpp_2m` + `karras` is the modern favorite.
 *   **Denoise**: How much to change things. `1.0` means creating from nothing (txt2img). Lower values are for img2img (refining).
 

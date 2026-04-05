@@ -46,7 +46,7 @@ The Router takes two inputs (Start Data & Loop Data) and two settings (Start Den
 ## �️ Detailed Walkthrough of Inputs
 
 ### 1. The Controls (Left Side)
-*   **first_denoise** (`FLOAT`): The strength of the AI for the very first frame.
+*   **first_denoise** (`FLOAT`): The processing strength for the very first frame.
     *   *Recommendation:* **1.00** (Full Creation).
 *   **loop_denoise** (`FLOAT`): The strength for every subsequent frame.
     *   *Recommendation:* **0.40 - 0.60**.

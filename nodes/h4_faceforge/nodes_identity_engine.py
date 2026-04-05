@@ -26,7 +26,7 @@ class H4_IdentityEngine:
                 "preset": ("STRING", {"default": "None", "tooltip": "Select a saved character preset."}), # JS converts to Combo
                 
                 # --- Standalone Loader ---
-                "ckpt_name": (folder_paths.get_filename_list("checkpoints"), {"tooltip": "The main AI Brain (Checkpoint). Determines the art style."}),
+                "ckpt_name": (folder_paths.get_filename_list("checkpoints"), {"tooltip": "The primary Checkpoint. Determines the art style."}),
                 "vae_name": (["Baked", "Use Input"] + folder_paths.get_filename_list("vae"), {"tooltip": "Color correction. 'Baked' means use what's inside the Checkpoint."}),
                 "clip_name": (["Use Checkpoint", "Use Input"] + folder_paths.get_filename_list("clip"), {"tooltip": "Text Interpreter. 'Use Checkpoint' is usually best."}),
                 

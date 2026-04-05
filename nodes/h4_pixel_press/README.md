@@ -4,7 +4,7 @@
 The ultimate "Retina Engine" Image Processing Node. Provides True Supersampling Anti-Aliasing (SSAA) and High Dynamic Range (HDR) tonemapping enhancements mathematically constrained within the CIELAB color-space framework.
 
 ## Expanded Description
-AI generation natively produces images scaled around 1024px. Attempting to blow these directly up using naive nearest-neighbor scaling causes blocky, pixelated output. Upscaling via 4x Upscalers can make them overly slick and waxy. 
+Base generation natively produces images scaled around 1024px. Attempting to blow these directly up using naive nearest-neighbor scaling causes blocky, pixelated output. Upscaling via 4x Upscalers can make them overly slick and waxy. 
 
 The `H4_PixelPress` mimics high-end video game rendering to forge "impossible details". It scales the original image by 2x, 3x, or 4x size in a massive memory buffer, then sharpens and applies dynamic range illumination enhancements (crushing shallow shadows, limiting blown-out light highlights) at this newly massive resolution, before employing Lanczos interpolation metrics to squash the image back down to its initial native scale. 
 

@@ -15,7 +15,7 @@ The `H4_SeedSequencer` has an internal state memory track allowing independent p
 
 ## Use Case Scenarios
 **Scenario 1: Controlling Video Generation Coherence**
-You are trying to output frames for an AI animation. A completely random seed per frame creates a strobing, terrible video. A fixed seed lacks required geometric variance across the 500 frames. You set the Sequencer to `Incremental`. The node outputs Seed `7000`, processes the frame, then updates its state to `7001`, then `7002`. This produces smooth, deterministically evolving generation states free of aggressive chaos.
+You are trying to output frames for an animation sequence. A completely random seed per frame creates a strobing, terrible video. A fixed seed lacks required geometric variance across the 500 frames. You set the Sequencer to `Incremental`. The node outputs Seed `7000`, processes the frame, then updates its state to `7001`, then `7002`. This produces smooth, deterministically evolving generation states free of aggressive chaos.
 
 **Scenario 2: Creating a Shareable Format Code**
 You want to share your prompt formula on Reddit and allow users to reproduce your specific output. Using a 16-digit random number leads to frequent copy/paste errors. You set the Sequencer to constrain numeric emission to 6 digits, resulting in `642819`. It guarantees perfectly reproducible UI data sharing.
