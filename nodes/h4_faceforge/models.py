@@ -35,7 +35,7 @@ RESTORE_MODEL_URLS = {
 UPSCALE_MODEL_URLS = {
     "RealESRGAN_x4plus.pth": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth",
     "4x-UltraSharp.pth": "https://huggingface.co/Kim2091/UltraSharp/resolve/main/4x-UltraSharp.pth",
-    # Note: 8x NMKD model is large, URL may vary - placeholder for now
+    # 8x NMKD model is currently not available via direct URL. Please install manually.
 }
 
 # SAM Models

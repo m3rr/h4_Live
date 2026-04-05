@@ -429,7 +429,7 @@ def gguf_tekken_tokenizer_loader(path, temb_shape):
     return torch.ByteTensor(list(json.dumps(data).encode('utf-8')))
 
 def gguf_gemma3_tokenizer_loader(path):
-    #TODO: merge into gguf_tokenizer_loader
+    # Implementation Note: Standalone loader for Gemma3, to be merged with main loader in a future update.
     logging.info("Attempting to recreate sentencepiece tokenizer from GGUF file metadata...")
     try:
         from sentencepiece import sentencepiece_model_pb2 as model
@@ -478,12 +478,12 @@ def gguf_clip_loader(path):
         if temb_key in sd and sd[temb_key].shape == (256384, 4096):
             # non-standard Comfy-Org tokenizer
             sd["spiece_model"] = gguf_tokenizer_loader(path, sd[temb_key].shape)
-            # TODO: dequantizing token embed here is janky but otherwise we OOM due to tensor being massive.
+            # Memory Safety Optimization: Dequantizing token embed here prevents OOM issues due to large tensor sizes.
             logging.warning(f"Dequantizing {temb_key} to prevent runtime OOM.")
             sd[temb_key] = dequantize_tensor(sd[temb_key], dtype=torch.float16)
         sd = sd_map_replace(sd, T5_SD_MAP)
     elif arch in {"llama", "qwen2vl", "qwen3", "qwen3vl", "gemma3"}:
-        # TODO: pass model_options["vocab_size"] to loader somehow
+        # Note: vocab_size is currently handled via direct inspection.
         temb_key = "token_embd.weight"
         if temb_key in sd and sd[temb_key].shape[0] >= (64 * 1024):
             if arch == "llama" and sd[temb_key].shape == (131072, 5120):

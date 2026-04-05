@@ -6,7 +6,10 @@ import comfy.sd
 import folder_paths
 import nodes
 from .nodes_faceforge import H4_FaceForge
-from .models import get_face_models
+from .models import (
+    get_face_models, get_swap_models, get_restore_models, 
+    get_upscale_models, get_sam_models
+)
 from .utils import _log
 
 class H4_IdentityEngine:
@@ -48,8 +51,21 @@ class H4_IdentityEngine:
                 "swap_enabled": ("BOOLEAN", {"default": True, "tooltip": "Turn ON to enable face swapping."}),
                 "face_similarity": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.05, "tooltip": "How strictly to copy the face features. Higher = More likeness, but maybe weird."}),
                 "restore_enabled": ("BOOLEAN", {"default": True, "tooltip": "Fix blurry faces automatically."}),
-                "restore_visibility": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05, "tooltip": "Blend the fix. 1.0 = Full Fix."}),
-                "restore_model": (["GFPGANv1.4", "codeformer", "RestoreFormer"], {"tooltip": "The repair tool to use."}),
+                "restore_visibility": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05, "tooltip": "Restore strength. 1.0 = Full Fix."}),
+                "restore_model": (get_restore_models(), {"default": "codeformer-v0.1.0.pth", "tooltip": "The repair tool to use."}),
+                "codeformer_weight": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.05, "tooltip": "Fidelity vs. Quality. 0.0 = High Fidelity, 1.0 = Smooth Skin."}),
+                
+                # --- Advanced Forge ---
+                "swap_model": (get_swap_models(), {"default": "inswapper_128.onnx", "tooltip": "The logic engine for the swap."}),
+                "boost_enabled": ("BOOLEAN", {"default": False, "tooltip": "High-Res swap? Slower but sharper."}),
+                "occlusion_enabled": ("BOOLEAN", {"default": True, "tooltip": "Prevent face from overlapping hair/hands."}),
+                "sam_model": (get_sam_models(), {"default": "none", "tooltip": "SAM model for perfect occlusion masks."}),
+                "preserve_glasses": ("BOOLEAN", {"default": True, "tooltip": "Attempt to keep the target's eyewear."}),
+                
+                # --- Upscaling ---
+                "upscale_enabled": ("BOOLEAN", {"default": False, "tooltip": "Upscale the FINAL result."}),
+                "upscale_model": (get_upscale_models(), {"default": "none", "tooltip": "The upscaler engine."}),
+                "upscale_face_only": ("BOOLEAN", {"default": False, "tooltip": "Only upscale the face region? (Saves VRAM)"}),
             },
             "optional": {
                 "model_opt": ("MODEL",),
@@ -73,6 +89,8 @@ class H4_IdentityEngine:
     def generate_identity(self, preset, ckpt_name, vae_name, clip_name, seed, steps, cfg, sampler_name, scheduler, denoise,
                          positive_dna, positive, negative, width, height, batch_size,
                          face_image, face_model, swap_enabled, face_similarity, restore_enabled, restore_visibility, restore_model,
+                         codeformer_weight, swap_model, boost_enabled, occlusion_enabled, sam_model, preserve_glasses,
+                         upscale_enabled, upscale_model, upscale_face_only,
                          model_opt=None, clip_opt=None, vae_opt=None, image_optional=None, positive_text=None, negative_text=None):
 
         _log(f"--- IdentityEngine Started (Preset: {preset}) ---")
@@ -196,18 +214,16 @@ class H4_IdentityEngine:
             restore_enabled=restore_enabled,
             restore_model=restore_model,
             restore_visibility=restore_visibility,
-            # Missing Arguments Defaults
-            swap_model="inswapper_128.onnx",
-            codeformer_weight=0.5,
-            boost_enabled=False,
-            # Feature Strings
-            upscale_enabled=False, 
-            upscale_model="none",
-            upscale_face_only=False,
-            occlusion_enabled=True,
-            preserve_glasses=True,
-            preserve_hair=False,
-            sam_model="none"
+            codeformer_weight=codeformer_weight,
+            swap_model=swap_model,
+            boost_enabled=boost_enabled,
+            occlusion_enabled=occlusion_enabled,
+            sam_model=sam_model,
+            preserve_glasses=preserve_glasses,
+            preserve_hair=False, # Removed from IE for simplicity but available in main Forge
+            upscale_enabled=upscale_enabled, 
+            upscale_model=upscale_model,
+            upscale_face_only=upscale_face_only,
         )[0]
         
         return (result_image, final_model, final_clip, final_vae)

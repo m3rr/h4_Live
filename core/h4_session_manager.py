@@ -1,5 +1,5 @@
 # FILE: custom_nodes/comfyui_h4_live/h4_server.py
-# (Partial update placeholder - I will edit the existing file)
+# This file implements the H4_SessionManager class for transient session data management.
 import os
 import json
 import logging

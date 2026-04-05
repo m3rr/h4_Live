@@ -43,31 +43,44 @@ cleanup_old_thumbnails()
 # ------------------------------------------------------------------------------
 # Thumbnail Logic
 # ------------------------------------------------------------------------------
+import hashlib
+
 def create_thumbnail(path, filename):
     """
     Generates a 256px WebP thumbnail for the given image path.
+    Uses a SHA-256 hash of the full path to avoid filename collisions.
     Returns the path to the cached thumbnail.
     """
-    thumb_name = f"thumb_{filename}.webp"
+    if not path or not os.path.exists(path):
+        return None
+
+    # [H4] Generate unique key based on absolute path to prevent collisions
+    # This ensures folderA/img1.png and folderB/img1.png have distinct thumbs
+    abs_path = os.path.abspath(path)
+    path_hash = hashlib.sha256(abs_path.encode('utf-8')).hexdigest()[:16]
+    
+    thumb_name = f"thumb_{path_hash}_{filename}.webp"
     thumb_path = os.path.join(THUMB_DIR, thumb_name)
     
-    # Cache Hit
+    # Cache Hit (Speed optimization)
     if os.path.exists(thumb_path):
+        # Optional: check mtime to invalidate stale cache?
+        # For performance, we trust the hash if the file hasn't changed.
         return thumb_path
         
     try:
-        if not os.path.exists(path): return None
-        
+        # Load and process image efficiently
         img = Image.open(path)
         img = ImageOps.exif_transpose(img)
         
-        img.thumbnail((256, 256), Image.Resampling.LANCZOS)
+        # [H4] Fast Resize (LANCZOS is high quality, but BICUBIC is faster for thumbs)
+        img.thumbnail((256, 256), Image.Resampling.BICUBIC)
         
-        # Optimization: Save as WebP (Lossy 60) for minimal size
-        img.save(thumb_path, "WEBP", quality=60)
+        # Optimization: Save as WebP (Lossy 60) for minimal size and fast transfer
+        img.save(thumb_path, "WEBP", quality=60, method=0) # method=0 for speed
         return thumb_path
     except Exception as e:
-        print(f"[h4_server] Thumbnail generation failed for {path}: {e}")
+        print(f"[h4_server] ❌ Thumbnail generation failed for {path}: {e}")
         return None
 
 # ------------------------------------------------------------------------------

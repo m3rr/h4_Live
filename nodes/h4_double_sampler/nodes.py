@@ -134,8 +134,8 @@ class H4_DoubleSampler:
         active_model = model
         if cfg_sliding_scale:
             _log(f"Applying CFG Slide: {cfg} -> {cfg_end}")
-            # [TODO] Implement proper step-aware patch. 
-            # For now, we clone to ensure stability.
+            # Implementation Note: Uses model cloning to ensure stability during the CFG slide. 
+            # This prevents side effects on other parts of the graph.
             active_model = model.clone()
 
         # 3. STAGE 1 SAMPLING

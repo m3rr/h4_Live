@@ -213,32 +213,43 @@ try:
             
             files_found = []
             
-            # [H4] Performance Optimization: Limited recursive scan for subfolders
+            files_found = []
+            
+            # [H4] High-Performance Scan Optimization
+            # Instead of a deep walk, we do a targeted breadth scan of base_dir and its immediate subfolders.
             for base_dir, dir_type in scan_targets:
                 try:
-                    for root, dirs, files in os.walk(base_dir):
-                        # Limit depth to prevent massive hangs. depth=0 is base_dir. Max depth 2.
-                        depth = root[len(base_dir):].count(os.sep)
-                        if depth > 2:
-                            del dirs[:] # Stop recursing here
-                            continue
-
-                        for file in files:
-                            if file.lower().endswith(exts):
-                                if "thumb" in file.lower():
-                                    continue
-                                full_path = os.path.join(root, file)
+                    # 1. Scan root files first
+                    with os.scandir(base_dir) as it:
+                        for entry in it:
+                            if entry.is_file() and entry.name.lower().endswith(exts):
+                                if "thumb_" in entry.name.lower(): continue
                                 try:
-                                    files_found.append((full_path, os.path.getmtime(full_path), base_dir, dir_type))
-                                except OSError:
-                                    pass
+                                    files_found.append((entry.path, entry.stat().st_mtime, base_dir, dir_type))
+                                except OSError: pass
+                            
+                            # 2. Scan immediate subfolders (one level deep is usually enough for prefix/subfolders)
+                            elif entry.is_dir() and not entry.name.startswith("."):
+                                try:
+                                    with os.scandir(entry.path) as sub_it:
+                                        for sub_entry in sub_it:
+                                            if sub_entry.is_file() and sub_entry.name.lower().endswith(exts):
+                                                if "thumb_" in sub_entry.name.lower(): continue
+                                                try:
+                                                    files_found.append((sub_entry.path, sub_entry.stat().st_mtime, base_dir, dir_type))
+                                                except OSError: pass
+                                except Exception: pass
+                                
+                    # Safety Break: If we found thousands of files, we stop there to prevent API hanging.
+                    if len(files_found) > 1000:
+                         break
                 except Exception as e:
                     print(f"[H4_SmartSave] Scan error for {base_dir}: {e}")
 
             # Sort by Modified Time (Newest First)
             files_found.sort(key=lambda x: x[1], reverse=True)
-            # Limit to top 15 for the filmstrip UI
-            top_limited = files_found[:15]
+            # Limit to top 25 for the filmstrip UI (Increased from 15 for better history visibility)
+            top_limited = files_found[:25]
             
             for path, mtime, base_dir, dir_type in top_limited:
                 try:
@@ -247,33 +258,21 @@ try:
                     filename = os.path.basename(rel_path)
                     subfolder = subfolder.replace("\\", "/")
                     
-                    # [H4] LAZY LOADING: We NO LONGER open the image here.
-                    # Metadata fetch is deferred to the /h4/metadata endpoint.
                     history.append({
                         "filename": filename,
                         "subfolder": subfolder,
                         "type": dir_type,
                         "timestamp": int(mtime * 1000)
                     })
-                    
                 except Exception as e:
                     print(f"[H4_SmartSave] Error processing {path}: {e}")
                     continue
-                    
-            # print(f"[H4_SmartSave] Found {len(files_found)} images. Returning top 50.")
-            # print(f"[H4_SmartSave] Found {len(files_found)} images. Returning top 50.")
-            
-            # [H4] FIFO Check on GET?
-            # User requested pruning "in the film strip"
-            # We did pruning on SAVE, but if files accumulate from other sources, we might want to ensure consistency.
-            # However, deleting files just by viewing is risky if the prefix isn't known here (we scan everything).
-            # So we only prune on SAVE.
             
             # [H4] Sanitize NaN/Inf values which break JS JSON.parse
             import math
             def clean_nan(obj):
-                if isinstance(obj, float):
-                    if math.isnan(obj) or math.isinf(obj):
+                if isinstance(obj, (float, int)):
+                    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
                         return None
                 elif isinstance(obj, dict):
                     return {k: clean_nan(v) for k, v in obj.items()}
@@ -282,8 +281,6 @@ try:
                 return obj
 
             history = clean_nan(history)
-
-            # print(f"[H4_SmartSave] Returning {len(history)} items to frontend.")
             return web.json_response(history)
             
         except Exception as e:

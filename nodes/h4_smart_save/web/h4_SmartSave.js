@@ -189,18 +189,11 @@ class SmartSaveUI {
 
         this.initDOM();
 
-        // Initial Fetch after a short delay to ensure ComfyUI is ready
+        // [H4] Initial Fetch
         setTimeout(() => this.fetchHistory(), 1000);
 
-        // [H4] Polling (30s silent)
-        this.pollInterval = setInterval(() => this.fetchHistory(true), 30000);
-
-        // [H4] Execution Listeners
-        this._onExecuted = (e) => {
-            // Wait for file system flush
-            setTimeout(() => this.fetchHistory(true), 1000);
-        };
-        api.addEventListener("executed", this._onExecuted);
+        // [H4] Polling (60s silent) - Reduced frequency to save resources
+        this.pollInterval = setInterval(() => this.fetchHistory(true), 60000);
     }
 
     cleanup() {
@@ -212,7 +205,6 @@ class SmartSaveUI {
         }
         // [H4] ZOMBIE KILLER
         if (this.pollInterval) clearInterval(this.pollInterval);
-        if (this._onExecuted) api.removeEventListener("executed", this._onExecuted);
     }
 
     onRemoved() {
@@ -885,13 +877,21 @@ app.registerExtension({
                 };
 
                 const onExecuted = this.onExecuted;
-                this.onExecuted = function () {
-                    // [User Request] Automatically clear history selection on new generation to preview newest image
+                this.onExecuted = function (output) {
+                    // [H4] Atomic Execution Sync
+                    // 1. Clear selection to focus on new results
                     ui.selected = null;
+                    
+                    // 2. Call parent logic (this updates the internal Comfy node preview)
                     if (onExecuted) onExecuted.apply(this, arguments);
+                    
+                    // 3. UI Housekeeping
                     hideWidgets();
                     ui.crawlLive();
-                    setTimeout(() => ui.fetchHistory(), 500);
+                    
+                    // 4. History Sync - we wait slightly for file system flush
+                    // Using a more aggressive fetch for immediate results
+                    setTimeout(() => ui.fetchHistory(false, true), 1000);
                 };
 
                 const onRemoved = this.onRemoved;
