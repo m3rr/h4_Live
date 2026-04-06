@@ -187,7 +187,8 @@ class H4_DoubleSampler:
             if chaos_range and "-" in chaos_range:
                 try:
                     parts = chaos_range.split("-")
-                    min_w = float(parts[0]); max_w = float(parts[1])
+                    min_w = float(parts[0])
+                    max_w = float(parts[1])
                 except: pass
 
             for i in range(max(1, int(chaos_batch))):
