@@ -1158,6 +1158,35 @@ Enhanced error reporting surfaces expanded diagnostic context beyond stock messa
 
 ---
 
+## Version History & Changelog
+
+### v7.5.6 - THE MUTATION MANIFESTO
+*   **H4_DoubleSampler (v7.5.6)**: 
+    *   **Chaos Engine Phase 2**: Absolute chaos integration. The engine now operates as a **Branching Second Pass**. Select from 'Pure Chaos', 'Odds', 'Evens', 'Every #nth number', or 'Random Pulse' modes.
+    *   **Mutation Strength**: Added `chaos_denoise` to control exactly how much your chaotic prompt overwrites the original composition.
+    *   **Legend v3**: Updated the in-image stat tracker with high-visibility color coding for Passes and a "🔥 CHAOS ENGINE ACTIVE" badge for variants.
+*   **H4_SmartSave (v7.5.6)**:
+    *   **Lightbox Traveler**: Integrated Full Keyboard Control (`ArrowLeft`/ArrowRight`) and UI buttons for deep history traversal directly inside the Lightbox.
+    *   **Index Persistence**: History indexing is now synchronized with the film strip, ensuring you never lose your place during a deep dive.
+*   **H4_DisplayAny (v7.5.6)**:
+    *   **Safety Zone Implementation**: Hardened the UI layout with a permanent 85px left-margin "Safety Zone" to prevent input labels from bleeding into your data visualizer.
+*   **Global Version Sync**: All core systems now synchronized to **v7.5.6**.
+
+### v7.0.1
+- **Chaos Engine v2 Integration**: The `H4_DoubleSampler` (Logic Stage 4) now hosts the definitive Chaos Engine with mode-aware widget surfacing.
+- **Dynamic Node Evolution**: The sampling hub now transforms its title based on active features (`h4_Smart Sampler` -> `Double Sampler` -> `h4_Double_Sampler +` -> `h4_CHAOS ENGINE`).
+- **Universal Tooltip Overhaul**: 100% tooltip coverage on the Sampler node with casual explanations and real-world examples.
+- **History Traveler**: Implemented full Lightbox navigation (Next/Prev/Keyboard) in `H4_SmartSave` and `H4_Comparinator`.
+- **Branding Audit**: Synchronized nomenclature across the pack; Seed Generator now uses the "Pure Entropy" moniker to avoid confusion.
+- **Engine Hardening**: Enhanced path resolution for the IdentityEngine and fixed UI drawer collisions in High-DPI modes.
+
+### v7.0.0
+- **Atomic Plugin Architecture**: Initial release of the folder-based node shelf.
+- **Dynamic Discovery**: Automatic node harvesting and JS asset synchronization.
+- **Mission Control**: Introduction of centralized loop management.
+
+---
+
 ## License and credits
 This is a clean node pack. If you ship it, keep it tidy.
 If you remix it, be cool about it.

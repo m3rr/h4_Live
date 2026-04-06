@@ -196,7 +196,7 @@ class H4_SeedGenerator:
                 }),
                 "mode": (["Incremental", "Fixed", "Random"], {
                     "default": "Incremental",
-                    "tooltip": "Incremental: Start + Loop Count. Fixed: Always Start. Random: Pure Chaos."
+                    "tooltip": "Incremental: Start + Loop Count. Fixed: Always Start. Random: Pure Entropy."
                 }),
                 "broadcast": ("BOOLEAN", {
                     "default": False,
@@ -239,7 +239,7 @@ class H4_SeedGenerator:
             final_seed = start_seed
         elif mode == "Incremental":
             final_seed = start_seed + count
-        else: # Random
+        else: # Random (Pure Entropy)
             final_seed = random.randint(0, 0xffffffffffffffff)
             
         if broadcast:

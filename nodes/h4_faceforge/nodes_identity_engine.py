@@ -99,36 +99,40 @@ class H4_IdentityEngine:
         # ----------------------------------------------------------------
         model, clip, vae = None, None, None
         
-        # Priority: Wire > Loader (User preference? Usually Wire overrides Loader)
-        # Plan: If wire is connected, use it. If not, load checkpoint.
-        
+        # Priority: Wire > Loader
         if model_opt:
             model = model_opt
         else:
             _log(f"Loading Checkpoint: {ckpt_name}")
-            out = comfy.sd.load_checkpoint_guess_config(folder_paths.get_full_path("checkpoints", ckpt_name), output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
-            model = out[0]
-            # Use loaded CLIP/VAE as defaults unless overridden below
-            if not clip_opt: clip = out[1]
-            if not vae_opt: vae = out[2]
+            ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
+            if not ckpt_path: raise FileNotFoundError(f"Checkpoint not found: {ckpt_name}")
+            out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
+            model, clip, vae = out[0], out[1], out[2]
 
+        # Resolve CLIP
         if clip_opt:
-            clip = clip_opt
-        elif clip is None:
-            # Load CLIP (Specific or Checkpoint fallback)
-            if clip_name != "Use Checkpoint" and clip_name != "Use Input":
-                 clip_path = folder_paths.get_full_path("clip", clip_name)
-                 clip = comfy.sd.load_clip(path=clip_path, embedding_directory=folder_paths.get_folder_paths("embeddings"))
-
+             clip = clip_opt
+        elif clip is None or (clip_name != "Use Checkpoint" and clip_name != "Use Input"):
+             if clip_name not in ["Use Checkpoint", "Use Input"]:
+                  clip_path = folder_paths.get_full_path("clip", clip_name)
+                  if clip_path:
+                      clip = comfy.sd.load_clip(path=clip_path, embedding_directory=folder_paths.get_folder_paths("embeddings"))
+        
+        # Resolve VAE
         if vae_opt:
-            vae = vae_opt
-        elif vae is None:
-             if vae_name != "Baked" and vae_name != "Use Input":
-                 vae_path = folder_paths.get_full_path("vae", vae_name)
-                 vae = comfy.sd.VAE(sd=comfy.utils.load_torch_file(vae_path))
+             vae = vae_opt
+        elif vae is None or (vae_name != "Baked" and vae_name != "Use Input"):
+             if vae_name not in ["Baked", "Use Input"]:
+                  vae_path = folder_paths.get_full_path("vae", vae_name)
+                  if vae_path:
+                      vae = comfy.sd.VAE(sd=comfy.utils.load_torch_file(vae_path))
 
-        # Output loaded models (Passthrough)
+        if not model or not clip or not vae:
+            _log(f"Incomplete model context: M:{model is not None}, C:{clip is not None}, V:{vae is not None}", level="ERROR")
+            raise ValueError("IdentityEngine requires a valid Model, CLIP, and VAE. Please check your loaders/inputs.")
+
         final_model, final_clip, final_vae = model, clip, vae
+        _log("Model Context Resolved.")
 
         # 2. Text Encode
         # ----------------------------------------------------------------

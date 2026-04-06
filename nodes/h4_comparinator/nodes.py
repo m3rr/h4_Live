@@ -80,10 +80,11 @@ class H4_Comparinator:
                  if os.path.exists(vault_path): return vault_path
                  
             # 2. Search Vault via filename (fallback)
-            # This is slow, so we prefer relative_path
-            for root, _, files in os.walk(ComparinatorVault.ROOT_DIR):
-                if filename in files:
-                    return os.path.join(root, filename)
+            # Optimized to avoid deep recursive walk
+            for entry in os.scandir(ComparinatorVault.ROOT_DIR):
+                if entry.is_dir():
+                    check_path = os.path.join(entry.path, filename)
+                    if os.path.exists(check_path): return check_path
                     
         # 3. Default to Temp (works for "temp" source and "temp_recovery")
         temp_dir = folder_paths.get_temp_directory()

@@ -1,34 +1,56 @@
-# h4_double_sampler / H4_DoubleSampler (The Dual-Core Engine)
+# H4_DoubleSampler - The Omni-Hub Upgrade
 
-## What it is
-The monster truck of samplers. It combines two-stage generation (Primary block + Refiner block), sentient prompt processing (Stutter & Wildcards), and a sliding CFG scale into a single, unified node that keeps your graph clean and your options open.
+Welcome to the **H4_DoubleSampler**, the absolute beating heart of your generation workflow. This isn't just a sampler; it's a high-performance orchestration hub designed to take your prompts, smash them into a billion pieces, and reconstruct them into something you actually want to look at. We’ve just finished a massive upgrade that brings the **Chaos Engine Subsystem** directly into the interface.
 
-## Expanded Description
-Normally, if you want to generate an image to 80% completion with an Euler sampler, and then finish the last 20% of denoising with a DPM++ SDE sampler (for extreme photorealistic details), you must wire two massive `KSampler (Advanced)` nodes together, split the steps, match the seeds manually, and wire positive/negative conditioning to both.
+---
 
-The `H4_DoubleSampler` encapsulates that entire pattern. 
+## ⚡ The Big "Hammer" Walkthrough
 
-Beyond sampling, it features "Sentient Prompting". While standard Comfy nodes wait for a pre-encoded `CONDITIONING` tensor, the DoubleSampler accepts raw text and a `CLIP` model directly. This allows it to manipulate the text *before* encoding it. It can instantly process custom Wildcard dictionaries (`{red|blue|green} hair`), and perform "Prompt Stutters" (`[cat*5]` -> `cat, cat, cat, cat, cat`) for explosive prompt weighting without using confusing internal attention syntax.
+If you're wondering how to get started, it's simple: plug in your usual suspects (Model, CLIP, VAE, Latents) and start cranking. But if you want to find the real magic, you need to look at the bottom.
 
-## Parameters and Interface
-- **Stage 1 Settings:** `steps`, `sampler_name`, `scheduler`. Standard base processing.
-- **Stage 2 Settings (Toggleable):** `start_at_step`. When you flip the UI Toggle to "ON", Stage 2 settings unhide themselves. This defines when the Refiner kicks in, using the secondary sampler and scheduler you define.
-- **CFG Options:** A dual-slider system to dynamically transition from a loose, low-CFG at the start of generation to a heavily restrictive, high-CFG near the end to "tighten" composition.
-- **Inputs:** `model`, `clip`, `vae`, `latent`, `positive_text`, `negative_text`, `wildcard_text`.
+### ⚡ ENGAGE CHAOS ENGINE
+See that big flashy orange button at the bottom of the node? Click it. This opens the **Chaos Drawer**. We tucked all the "weird" settings inside this sliding panel to keep the node from looking like a giant wall of switches when you just want a standard generation. 
 
-## Use Case Scenarios
-**Scenario 1: The 'DPM Detail Handoff'**
-SDXL works incredibly fast using the `lcm` sampler, but images often look plastic or low-detail. You set Stage 1 to `lcm` or `euler_a` for 20 steps to block out the composition rapidly. You toggle Stage 2 "ON", set it to `dpmpp_3m_sde` starting at Step 21, and let it run for 10 more steps. The image finishes rapidly but gains all the microscopic texture detail of the slower SDE solver.
+Once inside the drawer, you have access to the **Chaos Engine**. Its whole job is to take your prompt and randomly inject weights (intensities) into words while you aren't looking. This is the ultimate "I'm stuck, show me something cool" button.
 
-**Scenario 2: Unlocking Chaos with Stuttering**
-You want to force a model to generate a specific aesthetic: an extremely messy grunge room. Standard weights `(messy grunge room:1.5)` aren't working. You type `[messy*5] [grunge*3] room` into the positive text input. The node physically replicates the words under the hood, absolutely flooding the token space and forcing compliance.
+### 🧪 Every Knob Explained (The Casual Guide)
 
-## Examples
-- **Using a Wildcard Bank**:
-  1. In the `wildcard_text` input box, type:
-     `hair=[red, blue, green, blonde, black]`
-     `clothes=[a suit, a dress, armor, rags]`
-  2. In your `positive_text` box, type:
-     `a beautiful woman with {hair} hair, wearing {clothes}, standing in a city.`
-  3. Connect an `H4_SeedSequencer` set to "Random".
-  4. Every time you generate, the node will autonomously parse the bank, select a random combination, encode it, and sample it. You will never get the same image twice.
+#### **The Core Settings**
+*   **Seed**: The DNA of your image. This number kicks off the noise. Even a one-digit change creates a whole new world.
+*   **Steps**: How many times the model looks at the noise to find an image. More steps = more detail, but don't go too crazy or it gets deep-fried.
+*   **CFG**: How hard the model listens to your prompt. 7-9 is the sweet spot. Go higher (15+) for aggressive style; go lower (4-5) for "dreamy" vibes.
+*   **Sampler/Scheduler**: The math behind the magic. Just stick with `euler` and `normal` if you’re new, or `dpmpp_2m` and `karras` if you want that crispy modern look.
+
+#### **The Chaos Engine (Hidden in the Drawer)**
+*   **Chaos Mode**: This is the pattern-setter. 
+    *   `Pure Chaos`: Hammers EVERY word with random weight.
+    *   `Odds/Evens`: Only hits every other word. Keeps some structure while getting weird.
+    *   `Random Pulse`: Hits words like a heartbeat. Unpredictable and great for discovery.
+*   **Chaos Batch**: Set this to 4 or 6. It will run the generation that many times in a row, each one with totally different random prompt weights. It's like a slot machine for art.
+*   **Chaos Range**: Defaults to `-1.0 to 1.5`. The `1.5` side makes things super intense and detailed. The `-1.0` side tries to "subtract" the word entirely.
+*   **Show Legend**: Toggling this ON burns a little diagnostic board into the top-left of your preview image. It shows the Seed, CFG, and steps so you can recreate it later even if you lose the workflow file.
+
+---
+
+## 🛠️ THE DEV CORNER (Jargon Level: MAXIMUM)
+
+For the technical architects and latent-space navigators, here is the low-level breakdown of the **H4_DoubleSampler's** internal state-machine and execution logic.
+
+### **Asynchronous Batch Orchestration**
+The node implements a deterministic batching loop that overrides standard linear execution. When `chaos_batch` is $\mathbb{N} > 1$, the internal function `execute_sampling` initiates a repetitive sampling sequence. For each index $i \in \{0 \dots N-1\}$, the global seed is incremented by $i$ to maintain pseudo-random determinism across the stack.
+
+### **Surgical Token Weighting Injection**
+The **Chaos Engine** operates on a pre-tokenization string-level parsing algorithm. It identifies "Protected Tokens" (Regex: `BREAK`, `(`, `)`, `:`, etc.) and excludes them from the randomization pool. Eligible tokens are then encapsulated in weighting tuples `(token:weight)` where $weight \sim \mathcal{U}(min\_w, max\_w)$. This modified string is then passed to the `CLIP` encoder in real-time, bypassing static conditioning caches to ensure every batch iteration has a unique latent-guidance vector.
+
+### **Diagnostic Metadata Pass-Through**
+We have implemented 5 dedicated **Output Shuttles** (`SEED_OUT`, `CFG_OUT`, etc.). These pins are dynamically bound to the internal state values post-execution. They enable downstream graph logic to capture the "Truth" of a generation, especially useful when using global randomization or sliding CFG scales.
+
+### **Post-Process Pixel Layering (The Legend)**
+The legend rendering is performed via a `PIL.ImageDraw` injection layer. After the `latent_image` is decoded via the `VAE`, the resulting image tensor is cast to a `numpy` array, parsed into a pixel-buffer, and overlaid with a text-shadowed diagnostic board. This ensures that the generated `IMAGE` output carries its own identity manifest without requiring sidecar JSON files.
+
+### **CFG Sliding Scale Dynamics**
+When `cfg_sliding_scale` is active, the model undergoes a linear interpolation of the Guidance Scale across the sampling steps. This reduces typical CFG "burn" and allows for high-energy initial structure with a soft, detailed landing in the terminal steps.
+
+---
+**[H4_DoubleSampler - Revision 2.5 - Stable Build]**
+No trace artifacts detected. Operational opacity confirmed.

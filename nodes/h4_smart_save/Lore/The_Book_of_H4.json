@@ -1,7 +1,7 @@
 {
     "H4_System_Architecture": {
         "title": "h4_Live: System Architecture (The Mothership)",
-        "description": "Welcome to h4_Live v7.0.0—the first custom node pack built like an Operating System. We've moved away from standard 'monolithic' design (where everything is trapped in one file) to an **Atomic Plugin Architecture**. In this new era, the toolkit is divided into the **Engine (Core)** and the **Apps (Nodes)**. Every node you see in your menu is a standalone folder on the 'Shelf' (`/nodes/`). You can drag-and-drop these folders, share them with friends, or delete them to prune your pack. The root 'Mothership' dynamically scans the shelf on every boot and harvests the UI automatically. It's the ultimate in modular power.",
+        "description": "Welcome to h4_Live v7.5.6—the first custom node pack built like an Operating System. We've moved away from standard 'monolithic' design (where everything is trapped in one file) to an **Atomic Plugin Architecture**. In this new era, the toolkit is divided into the **Engine (Core)** and the **Apps (Nodes)**. Every node you see in your menu is a standalone folder on the 'Shelf' (`/nodes/`). You can drag-and-drop these folders, share them with friends, or delete them to prune your pack. The root 'Mothership' dynamically scans the shelf on every boot and harvests the UI automatically. It's the ultimate in modular power.",
         "dev_corner": {
             "paradigm": "Atomic Micro-Modularization",
             "loader": "Dynamic Importlib Discovery Engine",
@@ -1673,13 +1673,13 @@
         ]
     },
     "H4_DoubleSampler": {
-        "title": "H4 Double Sampler (The Dual-Core Engine)",
-        "description": "Welcome to the ultimate sampling powerhouse. The H4 Double Sampler is more than just a node; it's a complete two-stage generation pipeline trapped inside a single interface. It combines a primary sampler with an optional high-performance refiner, sentient prompt manipulation (Stutter & Wildcards), and advanced CFG sliding scales. Whether you're doing a standard 1.0 denoise creation or a complex 0.35 denoise finishing pass, this node handles the handover with surgical precision. It's designed to declutter your graph by replacing multiple KSamplers and prompt encoders with a single, smart powerhouse.",
-        "usage": "Use this as your primary generation engine. Connect your Model, Prompts, and Latent to the Stage 1 inputs. If you want a refined second pass, toggle 'enable_stage_2' to 'ON' to reveal the refiner controls. Pulse the CLIP input if you want to use the 'Sentient Prompting' features.",
+        "title": "H4 Double Sampler (The Generation Hub)",
+        "description": "Welcome to the absolute beating heart of the toolkit. The H4 Double Sampler is no longer just a node—it's a sentient generation hub. It combines a professional two-stage sampling pipeline with the high-octane **Chaos Engine Subsystem**. It handles Stage 1 base creation and Stage 2 refinement with zero extra wiring, while allowing you to inject controlled entropy into your prompts via the sliding Chaos Drawer. This is the node you use when you want to stop guessing and start discovering art at a high frequency.",
+        "usage": "Use this as your primary generation engine. Connect Model, CLIP, and VAE. If you want to see the real power, click the **⚡ ENGAGE CHAOS** button at the bottom of the node to open the drawer. Use the 'processed_prompt' output to track how the engine modified your tokens.",
         "inputs": {
             "model": {
                 "type": "MODEL",
-                "description": "The diffusion model to be used for sampling.",
+                "description": "The UNet / Diffusion model.",
                 "example": "-"
             },
             "positive": {
@@ -1694,128 +1694,94 @@
             },
             "latent_image": {
                 "type": "LATENT",
-                "description": "The input latent image or empty latent.",
+                "description": "Empty or input latent.",
                 "example": "-"
             },
             "seed": {
                 "type": "INT",
-                "description": "The primary generation seed.",
+                "description": "Primary DNA of the image.",
                 "example": "123456789"
             },
             "steps": {
                 "type": "INT",
-                "description": "Total steps for the primary sampling stage.",
+                "description": "Pass 1 sampling steps.",
                 "example": "20"
             },
             "cfg": {
                 "type": "FLOAT",
-                "description": "Classifier Free Guidance scale. Higher values = stronger prompt adherence.",
+                "description": "Guidance scale. 7.0-9.0 is the sweet spot.",
                 "example": "8.0"
             },
             "sampler_name": {
                 "type": "COMBO",
-                "description": "The math engine used to solve the ODE.",
+                "description": "Math engine (e.g. euler, dpmpp).",
                 "example": "euler"
             },
             "scheduler": {
                 "type": "COMBO",
-                "description": "Determines how the noise level changes per step.",
+                "description": "Noise schedule (e.g. normal, karras).",
                 "example": "normal"
             },
             "denoise": {
                 "type": "FLOAT",
-                "description": "The strength of the initial transformation. 1.0 is full creation.",
+                "description": "Transformation strength. 1.0 is a fresh start.",
                 "example": "1.0"
             },
             "enable_stage_2": {
                 "type": "BOOLEAN",
-                "description": "The Master Toggle. Flip this to 'ON' to activate the second sampling pass (Refiner) and reveal its settings.",
+                "description": "Master toggle for the Refiner / 2nd Pass pass.",
                 "example": "True"
             },
-            "stage_2_sampler": {
+            "chaos_mode": {
                 "type": "COMBO",
-                "description": "The sampler for the refiner stage.",
-                "example": "euler_ancestral"
+                "description": "(CHAOS DRAWER) Pick the injection style: Pure Chaos, Odds/Evens, Every #, or Random Pulse.",
+                "example": "Random Pulse"
             },
-            "stage_2_scheduler": {
-                "type": "COMBO",
-                "description": "The scheduler for the refiner stage.",
-                "example": "karras"
-            },
-            "stage_2_steps": {
+            "chaos_every": {
                 "type": "INT",
-                "description": "Step count for the refiner stage.",
-                "example": "10"
+                "description": "(CHAOS DRAWER) Skip frequency for 'Every #' mode.",
+                "example": "3"
             },
-            "stage_2_denoise": {
-                "type": "FLOAT",
-                "description": "Denoise strength for the refiner. Usually low (0.3 - 0.45) to refine details.",
-                "example": "0.35"
+            "chaos_range": {
+                "type": "STRING",
+                "description": "(CHAOS DRAWER) Weight spectrum. e.g. -1.0 to 1.5.",
+                "example": "-1.0-1.5"
             },
-            "stage_2_cfg": {
-                "type": "FLOAT",
-                "description": "Target CFG for the refiner stage.",
-                "example": "4.0"
+            "chaos_batch": {
+                "type": "INT",
+                "description": "(CHAOS DRAWER) Number of unique variants to generate in one run.",
+                "example": "4"
             },
-            "cfg_sliding_scale": {
+            "show_legend": {
                 "type": "BOOLEAN",
-                "description": "Enables the CFG Interpolation system. Transitions from 'cfg' to 'cfg_end' across the steps.",
+                "description": "(CHAOS DRAWER) Burn diagnostic stats directly onto the preview pixels.",
                 "example": "True"
-            },
-            "cfg_end": {
-                "type": "FLOAT",
-                "description": "The target CFG value to hit by the final step.",
-                "example": "4.0"
-            },
-            "prompt_stutter": {
-                "type": "FLOAT",
-                "description": "The 'Sentience' factor. Probability of repeating words in the prompt for extreme emphasis.",
-                "example": "0.1"
-            },
-            "seed_variation": {
-                "type": "FLOAT",
-                "description": "Chaos level. Mixes the primary seed with the variation seed (WIP).",
-                "example": "0.05"
-            },
-            "variation_seed": {
-                "type": "INT",
-                "description": "The secondary seed for noise mixing.",
-                "example": "987654321"
-            },
-            "positive_text": {
-                "type": "STRING",
-                "description": "Raw text input for positive prompts. Enables Stutter and Wildcards.",
-                "example": "a beautiful landscape"
-            },
-            "wildcard_text": {
-                "type": "STRING",
-                "description": "Key=Value pairs for wildcard replacement (e.g. blue=red).",
-                "example": "blue=red"
             }
         },
         "outputs": {
-            "LATENT": "The final processed latent image after Stage 1 (+ optional Stage 2).",
-            "IMAGE": "A decoded preview image (requires VAE input).",
-            "STRING": "The final processed prompt string after wildcards and stutters are applied."
+            "LATENT": "Batch of processed latents.",
+            "IMAGE": "Decoded preview image (with optional Legend burn-in).",
+            "STRING": "The final processed prompt string.",
+            "SEED_OUT / CFG_OUT / etc": "High-fidelity diagnostic outputs (Only visible when Chaos is ON)."
         },
         "features": [
             {
-                "name": "Refiner Handover",
-                "description": "Automatically passes the latent from Stage 1 to Stage 2 with zero extra wiring. Supports independent samplers and noise schedules."
+                "name": "Chaos Engine Subsystem",
+                "description": "A sliding drawer UI that houses advanced entropy injection tools. It hammer prompt tokens with random weights in real-time, allowing for rapid style exploration."
             },
             {
-                "name": "Sentient Stuttering",
-                "description": "A unique randomization algorithm that repeats prompt tokens to focus on specific concepts."
+                "name": "Diagnostic Legend Burn-In",
+                "description": "Professional-grade HUD. It burns Seed, CFG, Sampler, and Pass 1/2 stats into the top corner of your images so you never lose your settings again."
             },
             {
-                "name": "Dynamic Wildcards",
-                "description": "In-node wildcard replacement. No more external files or complex nodes needed for simple text swaps."
+                "name": "Dynamic Shuttles",
+                "description": "Output pins that only appear when you need them. They export the internal 'truth' of the sampler for downstream logic processing."
             }
         ],
         "tips": [
-            "Use Stage 2 with a low denoise (0.25 - 0.35) to fix faces and textures in a single go.",
-            "Connect the 'processed_prompt' output to a NoteInjector to see exactly how the stutter turned out.",
-            "Keep 'cfg_sliding_scale' on for long step counts to prevent over-baking as the image converges."
+            "Keep 'Chaos Mode' on 'Random Pulse' for the most organic prompt discoveries.",
+            "Use 'Show Legend' when sharing images with friends so they know exactly how to recreate your masterpiece.",
+            "The Chaos Drawer stays closed by default to keep your workflow clean and professional."
         ]
     }
 }

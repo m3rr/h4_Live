@@ -1,6 +1,6 @@
 # 👁️ h4_Live ToolKit - The Mothership (Dynamic Discovery Engine)
 # ==============================================================================
-# v7.0.0 - Atomic Plugin Architecture
+# v7.0.1 - Atomic Plugin Architecture
 # ==============================================================================
 # This is the central brain that scans the 'nodes/' shelf for hot-swappable nodes.
 # Deleting a folder in 'nodes/' safely removes it from the pack without side-effects.
@@ -32,6 +32,7 @@ nuke_pycache(os.path.dirname(__file__))
 # --- GLOBALS & PROTECTED ASSETS ---
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
+__version__ = "7.5.6"
 WEB_DIRECTORY = "./js"
 
 # Files that stay in the root /js folder and are NEVER deleted by the harvester

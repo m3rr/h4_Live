@@ -11,7 +11,7 @@ class ComparinatorVault:
     Manages the physical storage of Comparinator history.
     Root: comfyui_h4_live/comparinator/
     Structure: YYYY-MM-DD-[N]/image_id.json
-    Policy: FIFO (Max 10 folders), Capacity (Max 100 images/folder)
+    Policy: FIFO (Max 10 folders), Capacity (Max 25 images/total)
     """
     ROOT_DIR = os.path.join(os.path.dirname(__file__), "comparinator")
     MAX_FOLDERS = 10
@@ -20,11 +20,13 @@ class ComparinatorVault:
     # Cache
     _HISTORY_CACHE = None
     _CACHE_VALID = False
+    _VAULT_MTIME = 0
 
     @classmethod
     def invalidate_cache(cls):
         cls._CACHE_VALID = False
         cls._HISTORY_CACHE = None
+        cls._VAULT_MTIME = 0
 
     @classmethod
     def get_todays_folder(cls):
@@ -145,31 +147,34 @@ class ComparinatorVault:
     @classmethod
     def _enforce_capacity(cls):
         """
-        [H4 FIFO] strictly limits total vault size to 100 entries.
+        [H4 FIFO] strictly limits total vault size to 25 entries.
         Deletes oldest JSONs and their images.
         """
-        HISTORY_LIMIT = 100
+        # [H4] Performance Policy: 25 items balances UX and local storage footprint.
+        HISTORY_LIMIT = 25
         
         if not os.path.exists(cls.ROOT_DIR): return
 
-        # Gather all items
+        # Gather all items efficiently
         all_items = []
-        for root, dirs, files in os.walk(cls.ROOT_DIR):
-            for f in files:
-                if f.endswith(".json"):
-                    full_path = os.path.join(root, f)
-                    try:
-                        with open(full_path, "r", encoding="utf-8") as jf:
-                            data = json.load(jf)
-                            ts = data.get("timestamp", 0)
-                            all_items.append({
-                                "path": full_path,
-                                "timestamp": ts,
-                                "data": data,
-                                "root": root
-                            })
-                    except:
-                        pass
+        if not os.path.exists(cls.ROOT_DIR): return
+
+        for entry in os.scandir(cls.ROOT_DIR):
+            if entry.is_dir():
+                for subentry in os.scandir(entry.path):
+                    if subentry.is_file() and subentry.name.endswith(".json"):
+                        try:
+                            with open(subentry.path, "r", encoding="utf-8") as jf:
+                                data = json.load(jf)
+                                ts = data.get("timestamp", 0)
+                                all_items.append({
+                                    "path": subentry.path,
+                                    "timestamp": ts,
+                                    "data": data,
+                                    "root": entry.path
+                                })
+                        except:
+                            pass
         
         # Sort Newest -> Oldest
         all_items.sort(key=lambda x: x["timestamp"], reverse=True)
@@ -178,7 +183,9 @@ class ComparinatorVault:
             return
 
         # Identify items to prune
-        to_prune = all_items[HISTORY_LIMIT:]
+        to_prune = []
+        if len(all_items) > HISTORY_LIMIT:
+            to_prune = all_items[HISTORY_LIMIT:]
         _log(f"[Vault] 🧹 Pruning {len(to_prune)} items to maintain limit of {HISTORY_LIMIT}...")
 
         for item in to_prune:
@@ -229,57 +236,48 @@ class ComparinatorVault:
 
         history = []
         
-        # 1. Scan Vault
+        # 1. Scan Vault with MTime check
         if os.path.exists(cls.ROOT_DIR):
-             # Walk all folders
-            for root, dirs, files in os.walk(cls.ROOT_DIR):
-                for f in files:
-                    if f.endswith(".json"):
-                        try:
-                            with open(os.path.join(root, f), "r", encoding="utf-8") as jf:
-                                data = json.load(jf)
-                                
-                                # Add Source Info
-                                data["source"] = "vault"
-                                
-                                # Construct Relative Path for Images
-                                folder_name = os.path.basename(root)
-                                
-                                def make_path(fname):
-                                    if not fname: return None
-                                    # Web URLs must use forward slashes, even on Windows
-                                    return f"{folder_name}/{fname}"
+            v_mtime = os.path.getmtime(cls.ROOT_DIR)
+            t_dir = folder_paths.get_temp_directory()
+            t_mtime = os.path.getmtime(t_dir) if os.path.exists(t_dir) else 0
+            
+            # Combine mtimes for a unified 'Sync Token'
+            sync_token = v_mtime + t_mtime
+            
+            if cls._CACHE_VALID and cls._HISTORY_CACHE is not None and sync_token <= cls._VAULT_MTIME:
+                return cls._HISTORY_CACHE
+            
+            cls._VAULT_MTIME = sync_token
+
+            for entry in os.scandir(cls.ROOT_DIR):
+                if entry.is_dir():
+                    for subentry in os.scandir(entry.path):
+                        if subentry.is_file() and subentry.name.endswith(".json"):
+                            try:
+                                with open(subentry.path, "r", encoding="utf-8") as jf:
+                                    data = json.load(jf)
+                                    data["source"] = "vault"
+                                    folder_name = entry.name
                                     
-                                data["relative_path_a"] = make_path(data.get("filename_a"))
-                                data["relative_path_b"] = make_path(data.get("filename_b"))
-                                
-                                # Check if image exists in Vault (REPAIR LOGIC)
-                                vault_img_path = os.path.join(root, data["filename_b"])
-                                if not os.path.exists(vault_img_path):
-                                     # Try to revive from Temp
-                                     temp_path = os.path.join(folder_paths.get_temp_directory(), data["filename_b"])
-                                     if os.path.exists(temp_path):
-                                          try:
-                                              shutil.copy(temp_path, vault_img_path)
-                                              # And A
-                                              if "filename_a" in data:
-                                                  src_a = os.path.join(folder_paths.get_temp_directory(), data["filename_a"])
-                                                  dst_a = os.path.join(root, data["filename_a"])
-                                                  if os.path.exists(src_a): shutil.copy(src_a, dst_a)
-                                          except: pass
-                                
-                                history.append(data)
-                        except:
-                            pass
+                                    def make_path(fname):
+                                        if not fname: return None
+                                        return f"{folder_name}/{fname}"
+                                        
+                                    data["relative_path_a"] = make_path(data.get("filename_a"))
+                                    data["relative_path_b"] = make_path(data.get("filename_b"))
+                                    history.append(data)
+                            except:
+                                pass
+            cls._VAULT_MTIME = sync_token
         
         # 2. Temp Recovery Logic
         try:
             temp_dir = folder_paths.get_temp_directory()
-            temp_files = os.listdir(temp_dir)
             temp_groups = defaultdict(dict)
-            
-            for f in temp_files:
-                if f.startswith("h4_comp_") and f.endswith(".webp"):
+            for entry in os.scandir(temp_dir):
+                if entry.is_file() and entry.name.startswith("h4_comp_") and entry.name.endswith(".webp"):
+                    f = entry.name
                     parts = f.replace(".webp","").split("_")
                     if len(parts) >= 5:
                         type_suffix = parts[-1] 

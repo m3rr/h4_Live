@@ -305,6 +305,22 @@ def register_routes():
         except Exception as e:
             return web.json_response({"error": str(e)}, status=500)
 
+    # 8.7 Full Resolution Vault Image
+    @PromptServer.instance.routes.get("/h4/comparinator/image")
+    async def get_vault_image(request):
+        filename = request.query.get("filename")
+        if not filename: return web.Response(status=404)
+        if ".." in filename: return web.Response(status=403)
+        
+        # Mapping: /nodes/h4_comparinator_vault/comparinator/
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+        vault_base = os.path.join(base_dir, "nodes", "h4_comparinator_vault", "comparinator")
+        full_path = os.path.normpath(os.path.join(vault_base, filename))
+        
+        if os.path.exists(full_path):
+            return web.FileResponse(full_path)
+        return web.Response(status=404)
+
     # 9. Thumbnail API (Memory Optimization)
     @PromptServer.instance.routes.get("/h4/thumbnail")
     async def get_thumbnail(request):
@@ -318,7 +334,6 @@ def register_routes():
         if ".." in filename or ".." in subfolder: return web.Response(status=403)
 
         # Resolve Source Path
-        # We try to find the file using ComfyUI's standard logic (if exposed) or manual lookup
         source_path = None
         
         if folder_type == "output":
@@ -330,22 +345,17 @@ def register_routes():
         else:
             base = folder_paths.get_output_directory()
             
-        if subfolder:
-            source_path = os.path.join(base, subfolder, filename)
+        # [H4] Handle subfolder properly for vault items
+        if subfolder and "comparinator" in subfolder:
+             # subfolder usually looks like 'comparinator/2026-04-06'
+             # vault_base is the root 'comparinator' folder in the vault node
+             base_dir = os.path.dirname(os.path.dirname(__file__))
+             vault_root = os.path.join(base_dir, "nodes", "h4_comparinator_vault")
+             # Join the vault root with the subfolder (which starts with 'comparinator/')
+             source_path = os.path.normpath(os.path.join(vault_root, subfolder, filename))
         else:
-            source_path = os.path.join(base, filename)
-            
-        # Vault Logic Override?
-        # If the file isn't found, check if it's a Vault path relative to root extension
-        if not os.path.exists(source_path) and "comparinator" in subfolder:
-             # Try h4_comparinator local path
-             # subfolder might be "comparinator/2023-..."
-             # We need to map this to the extension dir
-             ext_root = os.path.dirname(__file__)
-             vault_path = os.path.join(ext_root, subfolder, filename)
-             if os.path.exists(vault_path):
-                 source_path = vault_path
-
+             source_path = os.path.normpath(os.path.join(base, subfolder or "", filename))
+             
         if not source_path or not os.path.exists(source_path):
             return web.Response(status=404)
             
