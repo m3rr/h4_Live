@@ -59,27 +59,27 @@ class H4_DoubleSampler:
                 "scheduler": (SCHEDULER_NAMES, {"default": "normal"}),
                 "denoise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 
-                # --- STAGE 2 (REFINER) ---
+                # --- TOGGLE SWITCHES (Always visible, always required) ---
                 "enable_stage_2": ("BOOLEAN", {"default": False, "label_on": "ON", "label_off": "OFF"}),
+                "enable_chaos_engine": ("BOOLEAN", {"default": False, "label_on": "ON", "label_off": "OFF"}),
+                "enable_extra_options": ("BOOLEAN", {"default": False, "label_on": "ON", "label_off": "OFF"}),
+            },
+            "optional": {
+                # --- STAGE 2 (REFINER) — Gated by enable_stage_2 toggle ---
                 "stage_2_sampler": (SAMPLER_NAMES, {"default": "euler"}),
                 "stage_2_scheduler": (SCHEDULER_NAMES, {"default": "normal"}),
                 "stage_2_steps": ("INT", {"default": 10, "min": 1, "max": 10000}),
                 "stage_2_denoise": ("FLOAT", {"default": 0.35, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "stage_2_cfg": ("FLOAT", {"default": 8.0, "min": 0.0, "max": 100.0, "step":0.1, "round": 0.01}),
                 
-                # --- CHAOS ENGINE TRIGGER ---
-                "enable_chaos_engine": ("BOOLEAN", {"default": False, "label_on": "ON", "label_off": "OFF"}),
-                
-                # --- ADVANCED CONTROLS / EXTRA ---
-                "enable_extra_options": ("BOOLEAN", {"default": False, "label_on": "ON", "label_off": "OFF"}),
+                # --- ADVANCED CONTROLS — Gated by enable_extra_options toggle ---
                 "cfg_sliding_scale": ("BOOLEAN", {"default": False, "tooltip": "When ON, the CFG will shift from its start value to the CFG End value over the course of the steps."}),
                 "cfg_end": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 100.0, "step":0.1, "round": 0.01, "tooltip": "The landing target for the CFG slide. Lower values give more 'air' to the image near the end."}),
-                
                 "prompt_stutter": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.05, "tooltip": "Probability of randomly repeating tokens to trick the model into deep-fried emphasis levels."}),
                 "seed_variation": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "Global chaos delta. Higher values force the seed to drift away from the baseline pattern."}),
                 "variation_seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "tooltip": "The core of the noise drift. Change this to explore a different flavor of chaos."}),
 
-                # --- CHAOS ENGINE (DRAWER TARGETS) ---
+                # --- CHAOS ENGINE — Gated by enable_chaos_engine toggle ---
                 "chaos_mode": (["OFF", "Pure Chaos", "Odds", "Evens", "Every #nth number", "Random Pulse"], {"default": "OFF", "tooltip": "Pick your injection pattern. 'Pure Chaos' hits everything; 'Odds/Evens' creates structured noise; 'Every #nth number' gives you frequency control; 'Random Pulse' keeps it weird."}),
                 "chaos_every": ("INT", {"default": 3, "min": 1, "max": 100, "tooltip": "The specific input for your 'nth' number. 3 means every 3rd word gets hammered by the chaos logic."}),
                 "chaos_range": ("STRING", {"default": "-1.0-1.5", "tooltip": "Min-Max weight spectrum. High values (1.5+) explode detail; Negative values (-1.0) try to delete concepts."}),
@@ -87,8 +87,8 @@ class H4_DoubleSampler:
                 "chaos_denoise": ("FLOAT", {"default": 0.45, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "The 'Mutation Strength' for Chaos variants. High values (0.7+) allow the chaos to completely overwrite the original; low values (0.3) just add subtle weirdness."}),
                 "show_legend": ("BOOLEAN", {"default": False, "tooltip": "Burn the diagnostic stats directly onto the top-left of the preview image."}),
                 "label_seed": ("BOOLEAN", {"default": False, "tooltip": "Explicitly output the seed used for each specific batch index."}),
-            },
-            "optional": {
+
+                # --- EXTERNAL CONNECTIONS (Never gated, always optional) ---
                 "clip": ("CLIP",),
                 "vae": ("VAE",),
                 "positive_text": ("STRING", {"multiline": True, "placeholder": "Raw Positive Prompt (Enables Stutter/Wildcard)"}),
@@ -103,10 +103,14 @@ class H4_DoubleSampler:
     CATEGORY = "h4_Live/Generation"
 
     def execute_sampling(self, model, positive, negative, latent_image, seed, steps, cfg, sampler_name, scheduler, denoise, 
-                         enable_stage_2, stage_2_sampler, stage_2_scheduler, stage_2_steps, stage_2_denoise, stage_2_cfg,
-                         enable_chaos_engine,
-                         enable_extra_options, cfg_sliding_scale, cfg_end, prompt_stutter, seed_variation, variation_seed, 
-                         chaos_mode, chaos_every, chaos_range, chaos_batch, chaos_denoise, show_legend, label_seed,
+                         enable_stage_2, enable_chaos_engine, enable_extra_options,
+                         # Stage 2 — optional, gated by enable_stage_2
+                         stage_2_sampler="euler", stage_2_scheduler="normal", stage_2_steps=10, stage_2_denoise=0.35, stage_2_cfg=8.0,
+                         # Extra Options — optional, gated by enable_extra_options
+                         cfg_sliding_scale=False, cfg_end=4.0, prompt_stutter=0.0, seed_variation=0.0, variation_seed=0,
+                         # Chaos Engine — optional, gated by enable_chaos_engine
+                         chaos_mode="OFF", chaos_every=3, chaos_range="-1.0-1.5", chaos_batch=1, chaos_denoise=0.45, show_legend=False, label_seed=False,
+                         # External Connections — always optional
                          clip=None, vae=None, positive_text="", negative_text="", wildcard_text=""):
         
         _log(f"Engaging H4_DoubleSampler | Seed: {seed} | Chaos: {chaos_mode}")
