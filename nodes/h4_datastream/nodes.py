@@ -14,7 +14,8 @@ from aiohttp import web
 try:
     from ...core.h4_core import _log
 except ImportError:
-    def _log(msg): print(f"[DataStream] {msg}")
+    def _log(msg):
+        print(f"[DataStream] {msg}")
 
 # ------------------------------------------------------------------------------
 # API: Server-Side Folder Browser (Localhost Only)

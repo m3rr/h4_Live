@@ -13,7 +13,8 @@ from server import PromptServer
 try:
     from ...core.h4_core import _log
 except ImportError:
-    def _log(msg): print(f"[H4_Comparinator] {msg}")
+    def _log(msg):
+        print(f"[H4_Comparinator] {msg}")
 
 try:
     from ..h4_comparinator_vault.nodes import ComparinatorVault
@@ -21,9 +22,11 @@ except ImportError:
     class MockVault:
         ROOT_DIR = os.path.join(folder_paths.get_output_directory(), "h4_comparinator_vault")
         @staticmethod
-        def save_entry(*args, **kwargs): pass
+        def save_entry(*args, **kwargs):
+            pass
         @staticmethod
-        def get_all_history(): return []
+        def get_all_history():
+            return []
     ComparinatorVault = MockVault
 
 try:

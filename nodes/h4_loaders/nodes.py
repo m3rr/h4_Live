@@ -19,7 +19,8 @@ import torch
 try:
     from ...core.h4_core import _log
 except ImportError:
-    def _log(msg): print(f"[H4_Loaders] {msg}")
+    def _log(msg):
+        print(f"[H4_Loaders] {msg}")
 
 # ==============================================================================
 # Helper for Image Loading natively

@@ -14,7 +14,8 @@ import gc
 try:
     from ...core.h4_core import _log
 except ImportError:
-    def _log(msg): print(f"[Mutate] {msg}")
+    def _log(msg):
+        print(f"[Mutate] {msg}")
 from .processors import (
     tensor_to_pil, pil_to_tensor,
     apply_color_grade, apply_sharpness, apply_upscale,

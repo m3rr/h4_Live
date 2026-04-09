@@ -13,15 +13,22 @@ except ImportError:
     _STATE = {"loop_count": 0}
     _BUFFER = None
     _ORBIT = {}
-    def get_state(): return _STATE
-    def increment_loop(): _STATE["loop_count"] += 1
+    def get_state():
+        return _STATE
+    def increment_loop():
+        _STATE["loop_count"] += 1
     def reset_state(): 
         _STATE["loop_count"] = 0
         return 0
-    def orbit_set(k, v): _ORBIT[k] = v
-    def orbit_get(k): return _ORBIT.get(k)
-    def buffer_image(v): global _BUFFER; _BUFFER = v
-    def get_buffered_image(): return _BUFFER
+    def orbit_set(k, v):
+        _ORBIT[k] = v
+    def orbit_get(k):
+        return _ORBIT.get(k)
+    def buffer_image(v):
+        global _BUFFER
+        _BUFFER = v
+    def get_buffered_image():
+        return _BUFFER
     ANY_TYPE = "*"
 import datetime
 

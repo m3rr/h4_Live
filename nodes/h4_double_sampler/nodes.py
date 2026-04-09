@@ -19,7 +19,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 try:
     from ...core.h4_core import _log
 except ImportError:
-    def _log(msg): print(f"[Double Sampler] {msg}")
+    def _log(msg):
+        print(f"[Double Sampler] {msg}")
 
 # ------------------------------------------------------------------------------
 # Discovery Helpers

@@ -11,7 +11,8 @@ from server import PromptServer
 try:
     from ...core.h4_core import _log
 except ImportError:
-    def _log(msg): print(f"[Visual Tokenizer] {msg}")
+    def _log(msg):
+        print(f"[Visual Tokenizer] {msg}")
 
 class H4_VisualTokenizer:
     """
