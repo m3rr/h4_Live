@@ -1,4 +1,4 @@
-import { app } from "../../scripts/app.js";
+import { app } from "/scripts/app.js";
 
 /**
  * h4_LatentSelector.js - Intelligent Resolution Management

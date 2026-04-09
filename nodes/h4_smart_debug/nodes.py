@@ -1,7 +1,10 @@
 import torch
 import numpy as np
 import datetime
-from ...core.h4_utils import ANY_TYPE
+try:
+    from ...core.h4_utils import ANY_TYPE
+except ImportError:
+    ANY_TYPE = "*"
 
 class H4_SmartConsole:
     """

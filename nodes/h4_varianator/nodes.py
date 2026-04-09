@@ -14,7 +14,10 @@ import nodes
 import comfy.samplers
 import comfy.model_management
 from typing import Any, Dict, List, Optional, Tuple, cast
-from ...core.h4_core import _log
+try:
+    from ...core.h4_core import _log
+except ImportError:
+    def _log(msg): print(f"[Varianator] {msg}")
 
 # ------------------------------------------------------------------------------
 # Constants

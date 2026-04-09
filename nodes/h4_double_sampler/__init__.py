@@ -7,3 +7,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_DoubleSampler": "h4 - Double Sampler (Advanced)",
 }
+
+# [H4] Standalone Modularity
+WEB_DIRECTORY = "./web"

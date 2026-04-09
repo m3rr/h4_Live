@@ -7,3 +7,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_Discombobulator": "h4 - Discombobulator",
 }
+
+# [H4] Standalone Modularity
+WEB_DIRECTORY = "./web"

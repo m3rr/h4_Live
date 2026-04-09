@@ -32,47 +32,65 @@ nuke_pycache(os.path.dirname(__file__))
 # --- GLOBALS & PROTECTED ASSETS ---
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
-__version__ = "7.5.6"
+__version__ = "7.6.5"
 WEB_DIRECTORY = "./js"
 
 # Files that stay in the root /js folder and are NEVER deleted by the harvester
-PROTECTED_JS = ["h4_BigBrother.js", "h4_Dashboard.js", "h4_Sidebar.js", "assets", "h4_generation.js", "h4_ParameterTracer.js", "h4_LoreManager.js"]
+PROTECTED_JS = [
+    "h4_BigBrother.js", "h4_Dashboard.js", "h4_Sidebar.js", "assets", 
+    "h4_generation.js", "h4_ParameterTracer.js", "h4_LoreManager.js",
+    "h4_Comparinator.js" # Performance/Stability Protection
+]
 
 def harvest_js_assets(nodes_dir, root_js_dir):
     """
-    Cleans root js/ folder (keeping protected files) and copies fresh JS from each node's /web folder.
-    This fulfills the "Hot Swappable" requirement for UI.
+    Synchronizes JS assets from individual node folders to the root WEB_DIRECTORY.
     """
     try:
         if not os.path.exists(root_js_dir):
-            os.makedirs(root_js_dir)
+            os.makedirs(root_js_dir, exist_ok=True)
+            _log(f"MOTHERSHIP: Created root JS directory at {root_js_dir}")
             
-        # 1. Clean stale node JS
+        # 1. Clean stale node JS (ignore protected)
         for item in os.listdir(root_js_dir):
             if item not in PROTECTED_JS:
                 path = os.path.join(root_js_dir, item)
-                if os.path.isdir(path):
-                    shutil.rmtree(path)
-                else:
-                    os.remove(path)
+                try:
+                    if os.path.isdir(path):
+                        shutil.rmtree(path)
+                    else:
+                        os.remove(path)
+                except Exception as e:
+                    _log(f"MOTHERSHIP: [WARNING] Lock on {item} - skipping prune. {e}")
                     
         # 2. Harvest fresh JS
         count = 0
+        if not os.path.exists(nodes_dir):
+            return False
+
         for node_folder in os.listdir(nodes_dir):
+            if node_folder.startswith("__"): continue
+            
             web_path = os.path.join(nodes_dir, node_folder, "web")
             if os.path.isdir(web_path):
                 for js_file in os.listdir(web_path):
                     src = os.path.join(web_path, js_file)
                     dst = os.path.join(root_js_dir, js_file)
-                    if os.path.isdir(src):
-                        shutil.copytree(src, dst, dirs_exist_ok=True)
-                    else:
-                        shutil.copy2(src, dst)
-                    count += 1
+                    
+                    try:
+                        if os.path.isdir(src):
+                            shutil.copytree(src, dst, dirs_exist_ok=True)
+                        else:
+                            shutil.copy2(src, dst)
+                        count += 1
+                        # _log(f"  + Synced: {js_file} from {node_folder}")
+                    except Exception as e:
+                        _log(f"MOTHERSHIP: [ERROR] Failed to sync {js_file}: {e}")
+
         _log(f"MOTHERSHIP: 📡 JS Harvest Complete: {count} assets synced.")
         return True
     except Exception as e:
-        _log(f"[ERROR] MOTHERSHIP: ❌ JS Harvester Fault -> {e}")
+        _log(f"[ERROR] MOTHERSHIP: ❌ JS Harvester Critical Fault -> {e}")
         return False
 
 def dynamic_discovery():

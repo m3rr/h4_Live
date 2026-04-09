@@ -7,3 +7,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_Comparinator": "h4 - Comparinator",
 }
+
+# [H4] Standalone Modularity: Direct web directory registration
+WEB_DIRECTORY = "./web"

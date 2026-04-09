@@ -1,4 +1,4 @@
-# H4_DoubleSampler v7.5.6 - THE MUTATION MANIFESTO
+# H4_DoubleSampler v7.6.5 - THE MUTATION MANIFESTO
 # Stage-Driven Generation Component
 # [LANDMARK] File: h4_double_sampler.py
 # [LANDMARK] Purpose: Dual-stage sampling with advanced prompt/cfg/seed controls.
@@ -16,7 +16,10 @@ import comfy.samplers
 import comfy.sample
 import comfy.model_management
 from typing import Any, Dict, List, Optional, Tuple, Union
-from ...core.h4_core import _log
+try:
+    from ...core.h4_core import _log
+except ImportError:
+    def _log(msg): print(f"[Double Sampler] {msg}")
 
 # ------------------------------------------------------------------------------
 # Discovery Helpers

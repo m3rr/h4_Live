@@ -11,22 +11,22 @@ function enforceSilence(node) {
     try {
         Object.defineProperty(node, "title_mode", {
             get: function () { return 2; },
-            set: function (v) {},
+            set: function (v) { },
             configurable: true,
             enumerable: false
         });
-    } catch (e) {}
+    } catch (e) { }
 
-    node.title          = " ";
+    node.title = " ";
     node.show_title_bar = false;
-    node.title_height   = 0;
-    node.resizable      = false;
-    node.flags           = node.flags || {};
-    node.flags.no_titlebar   = true;
-    node.flags.no_labels     = true;
+    node.title_height = 0;
+    node.resizable = false;
+    node.flags = node.flags || {};
+    node.flags.no_titlebar = true;
+    node.flags.no_labels = true;
     node.flags.no_background = true;
-    node.bgcolor  = "#00000000";
-    node.color    = "#00000000";
+    node.bgcolor = "#00000000";
+    node.color = "#00000000";
     node.boxcolor = "#00000000";
 }
 
@@ -45,7 +45,7 @@ app.registerExtension({
         }, 0);
 
         if (node.scoutNeighborThirst) node.scoutNeighborThirst();
-        if (node.updatePruning)       node.updatePruning();
+        if (node.updatePruning) node.updatePruning();
     },
 
     beforeRegisterNodeDef(nodeType, nodeData, app) {
@@ -53,18 +53,18 @@ app.registerExtension({
             if (nodeData.name !== "H4_Oxidine") return;
 
             const TYPE_COLORS = {
-                MODEL:        "#b5a2ff",
-                VAE:          "#ff3333",
-                CLIP:         "#ffff33",
-                LATENT:       "#ff33ff",
-                IMAGE:        "#33ffff",
+                MODEL: "#b5a2ff",
+                VAE: "#ff3333",
+                CLIP: "#ffff33",
+                LATENT: "#ff33ff",
+                IMAGE: "#33ffff",
                 CONDITIONING: "#ffa500",
-                MASK:         "#996633",
-                STRING:       "#ffffff",
-                INT:          "#00ff00",
-                FLOAT:        "#00ff00",
-                NUMBER:       "#00ff00",
-                CONTEXT:      "#888888"
+                MASK: "#996633",
+                STRING: "#ffffff",
+                INT: "#00ff00",
+                FLOAT: "#00ff00",
+                NUMBER: "#00ff00",
+                CONTEXT: "#888888"
             };
 
             const MOODS = [
@@ -75,14 +75,14 @@ app.registerExtension({
             ];
 
             const NEON_COLORS = {
-                "Neon Green":         "#00FF00",
+                "Neon Green": "#00FF00",
                 "Radioactive Yellow": "#CAFF00",
-                "Latent Pink":        "#FF00FF",
-                "Ghost White":        "#FFFFFF",
-                "Nightmare Red":      "#FF0000",
-                "Sentient Cyan":      "#00f0ff",
-                "Void Purple":        "#7b00ff",
-                "Cyber Orange":       "#FF8C00"
+                "Latent Pink": "#FF00FF",
+                "Ghost White": "#FFFFFF",
+                "Nightmare Red": "#FF0000",
+                "Sentient Cyan": "#00f0ff",
+                "Void Purple": "#7b00ff",
+                "Cyber Orange": "#FF8C00"
             };
 
             nodeType.prototype.scoutNeighborThirst = function () {
@@ -97,8 +97,8 @@ app.registerExtension({
                             const thirsts = {};
                             this.outputs.forEach((output, index) => {
                                 const foundTypes = new Set();
-                                const queue     = [];
-                                const visited   = new Set();
+                                const queue = [];
+                                const visited = new Set();
 
                                 (output?.links || []).forEach(lID => {
                                     const lnk = app.graph?.links?.[lID];
@@ -121,7 +121,7 @@ app.registerExtension({
                                             if (lnk) queue.push({ nodeID: lnk.target_id, slot: lnk.target_slot, depth: depth + 1 });
                                         });
                                     } else if (target.inputs?.[slot]) {
-                                        const type     = (target.inputs[slot]?.type || "ANY").toUpperCase();
+                                        const type = (target.inputs[slot]?.type || "ANY").toUpperCase();
                                         const portName = (target.inputs[slot]?.name || "ANY").toUpperCase();
                                         foundTypes.add(`${type}:${portName}`);
                                     }
@@ -164,8 +164,8 @@ app.registerExtension({
             nodeType.prototype.getConnectionSlot = function () {
                 const res = originalGetConnectionSlot
                     ? originalGetConnectionSlot.apply(this, arguments)
-                    : (window.LiteGraph?.LGraphNode?.prototype?.getConnectionSlot 
-                       || Object.getPrototypeOf(nodeType.prototype)?.getConnectionSlot)?.apply(this, arguments);
+                    : (window.LiteGraph?.LGraphNode?.prototype?.getConnectionSlot
+                        || Object.getPrototypeOf(nodeType.prototype)?.getConnectionSlot)?.apply(this, arguments);
 
                 const TYPE_INPUT = window.LiteGraph ? window.LiteGraph.INPUT : 1;
 
@@ -186,8 +186,8 @@ app.registerExtension({
             nodeType.prototype.onNodeCreated = function () {
                 this.properties = this.properties || {};
                 this.properties.shape = this.properties.shape || "Blob";
-                this.properties.mode  = this.properties.mode  || "Normal";
-                this.properties.mood  = this.properties.mood  || "(b'.')b";
+                this.properties.mode = this.properties.mode || "Normal";
+                this.properties.mood = this.properties.mood || "(b'.')b";
                 this.properties.color = this.properties.color || "#00f0ff";
                 this.properties.debug_log = this.properties.debug_log || false;
                 this.properties.thirst_list = this.properties.thirst_list || {};
@@ -256,11 +256,11 @@ app.registerExtension({
             nodeType.prototype.updatePruning = function () {
                 try {
                     const mode = this.properties?.mode || "Normal";
-                    if (mode === "Large")   this.size = [120, 120];
-                    else if (mode === "Medium")  this.size = [90, 90];
-                    else if (mode === "Small")   this.size = [40, 40];
+                    if (mode === "Large") this.size = [120, 120];
+                    else if (mode === "Medium") this.size = [90, 90];
+                    else if (mode === "Small") this.size = [40, 40];
                     else if (mode === "Stealth") this.size = [30, 30];
-                    else                         this.size = [60, 60];
+                    else this.size = [60, 60];
 
                     const cx = this.size[0] / 2;
                     const cy = this.size[1] / 2;
@@ -296,10 +296,10 @@ app.registerExtension({
                 enforceSilence(this);
 
                 const shape = this._isVirus ? "Spikey" : (this.properties?.shape || "Blob");
-                const mode  = this.properties?.mode || "Normal";
+                const mode = this.properties?.mode || "Normal";
                 const activeColor = this.getSentientColor();
-                
-                const size   = this.size[0];
+
+                const size = this.size[0];
                 const center = size / 2;
                 const radius = center - (mode === "Ninja" ? 15 : 10);
                 const isHovered = app.canvas && (app.canvas.node_over === this || this.isSelected);
@@ -310,7 +310,7 @@ app.registerExtension({
                     const alpha = mode === "Ninja"
                         ? (isHovered ? "FF" : "15")
                         : (isHovered ? "FF" : "44");
-                    
+
                     const applyAlpha = (slot) => {
                         const ids = slot.links ? slot.links : (slot.link ? [slot.link] : []);
                         ids.forEach(lID => {
@@ -320,7 +320,7 @@ app.registerExtension({
                     };
                     (this.inputs || []).forEach(applyAlpha);
                     (this.outputs || []).forEach(applyAlpha);
-                    
+
                     if (mode === "Ninja" && !isHovered) ctx.globalAlpha = 0.15;
                 }
 
@@ -355,12 +355,12 @@ app.registerExtension({
                         for (let i = 0; i <= segs; i++) {
                             const angle = (i * Math.PI * 2) / segs;
                             const pulse = (i % 2 === 0) ? radius * 0.6 : Math.sin(angle * 4 + time) * 4;
-                            ctx.lineTo(center + (radius + pulse) * Math.cos(angle), 
-                                       center + (radius + pulse) * Math.sin(angle));
+                            ctx.lineTo(center + (radius + pulse) * Math.cos(angle),
+                                center + (radius + pulse) * Math.sin(angle));
                         }
                         ctx.closePath();
                         ctx.strokeStyle = "#FF0000";
-                        ctx.shadowBlur  = 15;
+                        ctx.shadowBlur = 15;
                         ctx.shadowColor = "#FF0000";
                         break;
                     }
@@ -406,7 +406,7 @@ app.registerExtension({
                 }
 
                 if (shape !== "h4" && shape !== "Comfy") ctx.stroke();
-                
+
                 ctx.fillStyle = activeColor;
                 ctx.beginPath();
                 ctx.arc(center, center, (mode === "Stealth" || mode === "Small") ? 3 : 5, 0, Math.PI * 2);
@@ -435,7 +435,7 @@ app.registerExtension({
                     setTimeout(() => {
                         this._animating = false;
                         this.setDirtyCanvas(true, false);
-                    }, 33); 
+                    }, 33);
                 }
 
                 ctx.restore();
@@ -443,7 +443,7 @@ app.registerExtension({
 
             nodeType.prototype.onDrawTitleBar = function () { return true; };
             nodeType.prototype.onDrawForeground = function () { return true; };
-            nodeType.prototype.drawTitleBar = function () {};
+            nodeType.prototype.drawTitleBar = function () { };
 
             const getExtraMenuOptions = nodeType.prototype.getExtraMenuOptions;
             nodeType.prototype.getExtraMenuOptions = function (canvas, options) {

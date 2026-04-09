@@ -11,7 +11,10 @@ import folder_paths
 from PIL import Image, ImageOps, ImageSequence
 from server import PromptServer
 from aiohttp import web
-from ...core.h4_core import _log
+try:
+    from ...core.h4_core import _log
+except ImportError:
+    def _log(msg): print(f"[DataStream] {msg}")
 
 # ------------------------------------------------------------------------------
 # API: Server-Side Folder Browser (Localhost Only)

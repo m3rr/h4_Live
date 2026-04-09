@@ -19,3 +19,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_WirelessResetButton": "h4 - Wireless Reset Button",
     "H4_ImageBuffer": "h4 - Universal Buffer",
 }
+
+# [H4] Standalone Modularity
+WEB_DIRECTORY = "./web"

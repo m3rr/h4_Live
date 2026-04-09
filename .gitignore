@@ -48,3 +48,18 @@ h4_update_version/
 old_init_2.txt
 script_changes.diff
 node.zip
+
+# h4 Nuclear - AI & Research Sanitization
+CLINE.MD
+fix_it.py
+name_fixer.py
+.ruff_cache/
+*.diff
+*.log
+*.zip
+.gemini/
+.antigravity/
+research_notes/
+audit_results.txt
+fix_nodes_standalone.py
+

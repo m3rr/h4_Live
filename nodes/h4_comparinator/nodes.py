@@ -10,8 +10,29 @@ import json
 from collections import deque, defaultdict
 from PIL import Image, ImageOps
 from server import PromptServer
-from ...core.h4_core import _log
-from ..h4_comparinator_vault.nodes import ComparinatorVault
+try:
+    from ...core.h4_core import _log
+except ImportError:
+    def _log(msg): print(f"[H4_Comparinator] {msg}")
+
+try:
+    from ..h4_comparinator_vault.nodes import ComparinatorVault
+except ImportError:
+    class MockVault:
+        ROOT_DIR = os.path.join(folder_paths.get_output_directory(), "h4_comparinator_vault")
+        @staticmethod
+        def save_entry(*args, **kwargs): pass
+        @staticmethod
+        def get_all_history(): return []
+    ComparinatorVault = MockVault
+
+try:
+    from ...core.h4_session_manager import session_manager
+except ImportError:
+    class MockSession:
+        @staticmethod
+        def tag_execution(*args, **kwargs): pass
+    session_manager = MockSession
 import shutil
 from aiohttp import web
 

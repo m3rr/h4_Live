@@ -11,3 +11,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_LinearScheduler": "h4 - Linear Scheduler",
     "H4_SeedGenerator": "h4 - Seed Generator",
 }
+
+# [H4] Standalone Modularity
+WEB_DIRECTORY = "./web"

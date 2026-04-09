@@ -5,8 +5,24 @@
 # Rule 11 (Logging): Detailed payload inspection.
 # Rule 21 (Debug Review): Input/Output validation.
 # ------------------------------------------------------------------------------
-from ...core.h4_core import get_state, increment_loop, reset_state, orbit_set, orbit_get, buffer_image, get_buffered_image
-from ...core.h4_utils import ANY_TYPE
+try:
+    from ...core.h4_core import get_state, increment_loop, reset_state, orbit_set, orbit_get, buffer_image, get_buffered_image
+    from ...core.h4_utils import ANY_TYPE
+except ImportError:
+    # Nuclear Fallback: Minimal state if core is missing
+    _STATE = {"loop_count": 0}
+    _BUFFER = None
+    _ORBIT = {}
+    def get_state(): return _STATE
+    def increment_loop(): _STATE["loop_count"] += 1
+    def reset_state(): 
+        _STATE["loop_count"] = 0
+        return 0
+    def orbit_set(k, v): _ORBIT[k] = v
+    def orbit_get(k): return _ORBIT.get(k)
+    def buffer_image(v): global _BUFFER; _BUFFER = v
+    def get_buffered_image(): return _BUFFER
+    ANY_TYPE = "*"
 import datetime
 
 def _log(node_name: str, message: str):
@@ -417,7 +433,7 @@ class H4_StateMonitor:
 
 
 # ------------------------------------------------------------------------------
-# NEW NODES (v7.5.6) - INCREMENT & LAG REPAIR
+# NEW NODES (v7.6.5) - INCREMENT & LAG REPAIR
 # ------------------------------------------------------------------------------
 
 class H4_LoopIncrementer:

@@ -11,7 +11,10 @@
 
 import secrets
 from typing import Any, Dict, Optional, Tuple
-from ...core.h4_core import _log
+try:
+    from ...core.h4_core import _log
+except ImportError:
+    def _log(msg): print(f"[Seed Sequencer] {msg}")
 
 class H4_SeedSequencer:
     """

@@ -5,8 +5,23 @@
 # Rule 11 (Logging): Debug modes and value tracking.
 # Rule 21 (Debug Review): Input validation and type safety.
 # ------------------------------------------------------------------------------
-from ...core.h4_core import get_state, _log, increment_loop, reset_state, orbit_get, orbit_set
-from ...core.h4_utils import ANY_TYPE
+# ------------------------------------------------------------------------------
+# H4 IMPORTS (Nuclear Fallbacks)
+# ------------------------------------------------------------------------------
+try:
+    from ...core.h4_core import get_state, _log, increment_loop, reset_state, orbit_get, orbit_set
+    from ...core.h4_utils import ANY_TYPE
+except ImportError:
+    # Standalone Mock State
+    _STANDALONE_STATE = {"loop_count": 0}
+    def get_state(): return _STANDALONE_STATE
+    def _log(msg): print(f"[Mission Control] {msg}")
+    def increment_loop(): _STANDALONE_STATE["loop_count"] += 1
+    def reset_state(): _STANDALONE_STATE["loop_count"] = 0
+    def orbit_get(k): return None
+    def orbit_set(k, v): pass
+    ANY_TYPE = "*"
+
 import random
 from server import PromptServer
 

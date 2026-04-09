@@ -7,3 +7,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_AxisDriver": "h4 - Axis Driver",
 }
+
+# [H4] Standalone Modularity
+WEB_DIRECTORY = "./web"

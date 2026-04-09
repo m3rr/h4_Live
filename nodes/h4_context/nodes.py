@@ -1,7 +1,10 @@
 import torch
 
 # H4 IMPORTS
-from ...core.h4_utils import ANY_TYPE
+try:
+    from ...core.h4_utils import ANY_TYPE
+except ImportError:
+    ANY_TYPE = "*"
 
 class H4_ContextHub:
     """

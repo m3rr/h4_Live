@@ -270,7 +270,7 @@ app.registerExtension({
 
                 const hasLora = (xVal === "LoRA" || yVal === "LoRA" || zVal === "LoRA");
                 const loraWidget = node.widgets.find(w => w.name === "lora_strength");
-                
+
                 if (loraWidget) {
                     const targetType = hasLora ? "number" : "hidden";
                     if (loraWidget.type !== targetType) {
@@ -280,8 +280,8 @@ app.registerExtension({
                 }
 
                 // --- PROMPT OVERHAUL (Dual Mode Hiding) ---
-                const hasAxialPrompt = (xVal === "Prompt" || yVal === "Prompt" || zVal === "Prompt" || 
-                                        xVal === "Multi-Prompt" || yVal === "Multi-Prompt" || zVal === "Multi-Prompt");
+                const hasAxialPrompt = (xVal === "Prompt" || yVal === "Prompt" || zVal === "Prompt" ||
+                    xVal === "Multi-Prompt" || yVal === "Multi-Prompt" || zVal === "Multi-Prompt");
                 const posPrompt = node.widgets.find(w => w.name === "positive_prompt");
                 if (posPrompt) {
                     const targetType = hasAxialPrompt ? "hidden" : "customtext";

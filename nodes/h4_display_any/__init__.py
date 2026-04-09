@@ -9,3 +9,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 }
 
 __all__ = ["H4_DisplayAny"]
+
+# [H4] Standalone Modularity
+WEB_DIRECTORY = "./web"

@@ -919,8 +919,18 @@ export const h4_Dashboard = {
         },
         "H4_UniversalLoader": {
             "title": "H4 Universal Loader (The Source)",
-            "description": "The One Loader to Rule Them All. It handles standard Checkpoints (.safetensors) AND separated Diffusers components (UNET/CLIP/VAE). \n\n **Features:** \n - **Smart Validaton**: Detects if you mix SDXL limits with T5 encoders (crash prevention). \n - **GGUF Support**: Auto-delegates to ComfyUI-GGUF input (if installed) for quantized models. \n - **Wan Support**: Native detection and loading for Wan 2.1 video models (including GGUF).",
+            "description": "The One Loader to Rule Them All. It handles standard Checkpoints (.safetensors) AND separated Diffusers components (UNET/CLIP/VAE). It also inherently accepts single LoRAs.\n\n **Features:** \n - **Smart Validaton**: Detects if you mix SDXL limits with T5 encoders (crash prevention). \n - **GGUF Support**: Auto-delegates to ComfyUI-GGUF input (if installed) for quantized models. \n - **Wan Support**: Native detection and loading for Wan 2.1 video models (including GGUF).",
             "usage": "Select 'Checkpoint' for normal use. Select 'Diffusers' for advanced mixing."
+        },
+        "h4_Complete_Loader": {
+            "title": "H4 Complete Loader (The Swiss Army Knife)",
+            "description": "The Universal Loader on steroids. It inherits all the insane automated architecture routing of the standard Source Loader, but it features a custom HTML-overlay interface that hides all the image uploading bloat until you click 'Smart Upload Image(s)'. You grab 4 images, it magically spawns the inputs and loads them right out into the graph alongside your Checkpoint/UNET, VAE, CLIP, and LoRA. The interface is mathematically bound to have a zero-pixel footprint for any features you aren't currently using.",
+            "usage": "Drop it in, choose your model and LoRA, and click the upload button if you need reference inputs. Drag outputs straight to your IPAdapters."
+        },
+        "h4_Multi_ImgUpload": {
+            "title": "H4 Multi Image Upload (The Bulk Handler)",
+            "description": "Stripped of the models, stripped of the LoRAs, this is just for raw image ingestion. Same magic smart-upload button as the Complete Loader, but it scales up to 10 images at once. Unused slots are fully collapsed so it never takes up ungodly amounts of canvas real estate.",
+            "usage": "Click 'Smart Upload Image(s)' and select up to 10 files. Connect the resulting images wherever needed."
         },
         "H4_ModelSave": {
             "title": "H4 Model Save (The Vault)",
@@ -961,6 +971,11 @@ export const h4_Dashboard = {
             "title": "H4 Face Detailer (The Surgeon)",
             "description": "Face Swaps often lose texture (skin pores, wrinkles). The Detailer fixes this by cropping the face, running a high-res Img2Img pass on it with a specialized model/LoRA, and blending it back using a soft-edge mask.",
             "usage": "Connect image. Adjust denoise. Queue."
+        },
+        "H4_Mutate": {
+            "title": "H4 Mutate (The Frankenstein Machine)",
+            "description": "Look, generating an image is only half the battle. Once the pixels hit the canvas, you usually stare at it and think: 'Hmm, could be punchier.' Instead of chaining 15 different image processing nodes together, you use H4_Mutate. It is a monolithic, dynamically toggleable post-processing powerhouse giving you 7 distinct sections of image manipulation: Color Grade, Sharpness, Upscale, Style Transfer, Film & Grain, Vignette, and Effects.\n\nThe best part? It's completely modular. The node starts as a clean pass-through. You only turn ON the sections you need, and only those controls expand.",
+            "usage": "Drop it after your primary generation. Turn on Color to tweak gamma/tint. Turn on Film to add Portra 400 emulation. Turn on Effects to add bloom. Reorganize the Pipeline Order if you want upscale to happen before sharpening."
         }
     },
 

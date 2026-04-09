@@ -1,5 +1,5 @@
-import { app } from "../../scripts/app.js";
-import { api } from "../../scripts/api.js";
+import { app } from "/scripts/app.js";
+import { api } from "/scripts/api.js";
 
 // ------------------------------------------------------------------------------
 // H4 SmartSave UI - Film Strip, Lightbox & Parameter Drawer
@@ -638,7 +638,7 @@ class SmartSaveUI {
 
         const header = document.createElement("div");
         header.style.cssText = "color:#00ff55; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #333; padding-bottom:5px; display:flex; justify-content:space-between;";
-        header.innerHTML = `<span>${isLive ? "LIVE PARAMETERS (ACTIVE)" : "HISTORY PARAMETERS"}</span><span style='color:#444; font-size:8px;'>v7.5.6</span>`;
+        header.innerHTML = `<span>${isLive ? "LIVE PARAMETERS (ACTIVE)" : "HISTORY PARAMETERS"}</span><span style='color:#444; font-size:8px;'>v7.6.5</span>`;
         this.drawer.appendChild(header);
 
         if (!isLive) console.log("[SmartSave] Rendering History Drawer for item:", item);

@@ -8,7 +8,10 @@ import torch
 import comfy.sd1_clip
 import comfy.model_management
 from server import PromptServer
-from ...core.h4_core import _log
+try:
+    from ...core.h4_core import _log
+except ImportError:
+    def _log(msg): print(f"[Visual Tokenizer] {msg}")
 
 class H4_VisualTokenizer:
     """

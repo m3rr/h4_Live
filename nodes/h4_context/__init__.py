@@ -9,3 +9,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_ContextHub": "h4 - Context Hub",
     "H4_ContextUnpack": "h4 - Context Unpack",
 }
+
+# [H4] Standalone Modularity
+WEB_DIRECTORY = "./web"

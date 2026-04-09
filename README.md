@@ -240,6 +240,7 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 ### Data processing and batch tools
 - [H4_DataStream (Batch Loader)](#h4_datastream-batch-loader)
 - [H4_PixelPress (SSAA/HDR)](#h4_pixelpress-ssaahdr)
+- [H4_Mutate (The Finisher)](#h4_mutate-the-finisher)
 - [H4_PixelVisualizer (Diff Inspector)](#h4_pixelvisualizer-diff-inspector)
 - [H4_Varianator (Latent Riffler)](#h4_varianator-latent-riffler)
 - [H4_VisualTokenizer (Weights)](#h4_visualtokenizer-weights)
@@ -491,32 +492,31 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 - Mostly used if you are creating a "Preset Bank" of grids (e.g., "My Standard Render Test").
 - You likely won't touch this manually unless you are a cyborg.
 
-### H4_Comparinator (The A/B Test God)
-**What it is:** The bastard child of a lightbox, a diff viewer, and a forensic lab. It lets you compare two images with a sliding reticle, zoom in to see atomic-level defects, and crawl the graph to see exactly how you messed up your settings.
+### H4_Comparinator v3.0 (The Final Forensic Utility)
+**What it is:** The bastard child of a lightbox, a diff viewer, and a forensic lab. It lets you compare two images with a sliding reticle, zoom in to see atomic-level defects, and crawl the graph to see exactly how you messed up your settings. Now nuclearly re-engineered into the **V3.0 specification** for multi-history deep-diffing.
 
 **The Inputs:**
-- **image_a**: The "Control" or "Before" image. If you don't plug this in, the node sits there judging you.
-- **image_b**: The "Test" or "After" image.
-- **frozen_image**: If connected, this overrides Image B. Useful if you want to lock a specific state while you ruin Image A with experiments.
-- **metadata_text**: JSON metadata injection. See SmartSave. Same deal.
-- **save_mode**: If ON, it saves comparisons to disk. If OFF, it's just for looking pretty.
+- **image_a**: The "Control" or "Before" image. Usually your latest generation (The Live Slot).
+- **image_b**: The "Test" or "After" image. If empty, it automatically pulls from your vault history.
+- **frozen_image**: If connected, this overrides Image B. Useful if you want to lock a specific "Gold Standard" while you iterate on new variations.
+- **save_mode**: If ON, it commits your captures to disk. If OFF, it’s just for looking pretty.
 
-**The Interface (Where the magic happens):**
-- **Compare Mode (Slider):** A red line splits the screen. Drag it. Left is A, Right is B. It's fluid, lag-free, and addictive.
-- **Blink Mode (Spacebar):** Hold Spacebar to make Image B vanish. Release to bring it back. Because sometimes dragging a slider isn't fast enough for your brain to catch the difference.
-- **Inspectinator Mode:** Toggle this switch to turn the right pane into a microscope. Points a reticle on the left, shows a zoomed view on the right. Now with a **500% Zoom Slider** because apparently 100% wasn't enough for you pixel peepers.
-- **Parameter Drawer:** The "How did I make this?" panel. It crawls your workflow graph (yes, backwards) to find the KSampler, Seed, Steps, and Prompts that created the image. It even logs the history so you can see settings from 50 generations ago.
+**The Interface (V3.0 Features):**
+- **Compare Mode (Slider):** A red line splits the screen. Drag it. Left is A, Right is B. It's fluid, lag-free, and addictive. Tap **Spacebar** to toggle visibility of Pane 2 instantly for 'Blink' testing.
+- **Inspectinator Mode:** Toggle this switch to engage the **Sniper Scope**. Points a reticle on the Navigator (left), shows a magnified view on the Magnifier (right). The reticle itself has internal magnification optics (V3.0) for high-precision diagnostic hunting.
+- **Histories Mode:** The dual-pane vault. Compares your latest generation against your Green selection in Pane 1, and your Green selection against your Red selection in Pane 2. Total temporal coverage of your creative process.
+- **Telemetry Drawer:** The "How did I make this?" panel. It separates **PROMPT SPECS** (Models, VAEs, CLIPs, LoRAs) from **GENERATION SETTINGS** (Seed, CFG, Denoise) for instant forensic analysis.
 
-**History Strip:**
-- Stores your last 50 runs.
-- **Single Click:** Loads that image into the "B" slot for comparison against the current live output.
-- **Double Click:** Opens the Lightbox.
-- **Right Click:** Locks an image as "Reference". It gets a gold border. Now EVERY new generation compares against this locked image. Perfect for "can I beat my best result?" sessions.
+**History Strip (Tri-State Workflow):**
+- **Left Click**: Selects image as **GREEN (Primary)**. Anchor for A/B testing.
+- **Right Click**: Selects image as **RED (Secondary)**. Used in Histories mode.
+- **Shift + Right Click**: **LOCK (Yellow)**. Persistent across sessions.
+- **Right-Click Background**: Atomic Reset. Clears all selections and returns to single-pane mode.
 
 **Why use it:**
 - because "eyeballing it" is for amateurs.
-- because you need to prove RGTHREE's scheduler is actually different.
-- because it looks cool.
+- because you need to track convergence across 50 generations.
+- because the Sniper Scope makes you feel like a data-assassin.
 
 ---
 
@@ -621,6 +621,29 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 - **tiled_processing:** **KEEP THIS ON.** Unless you have 48GB VRAM, processing a 4096x4096x4 (64MP) image in one go will crash your PC. Tiling saves lives.
 
 **Warning:** This node is slow because it does a LOT of math. Use it at the end of your workflow, not during the sketch phase.
+
+---
+
+### H4_Mutate (The Finisher)
+**What it is:** The all-in-one post-processing beast. It takes an image in and pushes a mutated image out.
+**Why you need it:**
+- Because you want to color grade without opening Photoshop.
+- Because you generated the perfect composition, but you want to steal the color palette or texture from another image.
+- Because you want to add cinematic vignettes, 35mm film grain, or bloom to give it that "finished" look.
+
+**The Drawers (Toggle what you need):**
+- **Color Grade:** Hue, saturation, contrast, temperature, and gamma.
+- **Sharpness:** Make those pixels punch. Includes radius control.
+- **Upscale:** Quick resize (up to 4x or downscale) using proper methods like Lanczos or Mitchell.
+- **Style Transfer:** This is the big one. Plug in up to 4 'Style' images and transfer their look onto your main image. Supports dumb color swapping (Reinhard) and actual neural texture cloning (AdaIN, WCT). Includes multi-image blending (e.g., Mix Image A at 50% and Image B at 50%).
+- **Film & Grain:** Emulate 11 classic film stocks like Portra 400 or Velvia 50. Add monochrome or color grain.
+- **Vignette:** Add moody darkened edges to draw the eye.
+- **Effects:** Bloom (glow), chromatic aberration, and posterization.
+
+**Dev Corner:**
+* Architecture: Drawer-based, compute-on-demand widget layout. The node spawns strictly with essential connection points. JS listeners dynamically manifest widget arrays and additional `IMAGE` input sockets based on active booleans and existing connections.
+* Pipeline Orchestration: An ordered dictionary enforces execution sequencing across `processors.py`, ensuring destructive functions (upscaling/sharpening) respect color-space or FFT-based frequency modifications. A `custom` pipeline order parses priority IDs directly via state management.
+* Style Transfer Engines: Fully independent of the `ComfyUI` diffusers execution context. Employs mathematically optimal transport (sliced Wasserstein distance), frequency domain FFT texture swap, and `torchvision` VGG19 feature extraction for AdaIN and Whitening-Coloring Transforms (WCT). SVD functions include a `try/except` guard with an AdaIN failback pattern for degenerate matrices.
 
 ---
 
@@ -955,6 +978,17 @@ Yes. Enhanced error reporting can be jarring at first, but it is designed to be 
 - Hard refresh the browser.
 - Check console for extension load logs.
 
+### Frozen Noodles or Glitched Nodes (KICK THE GRID)
+If your canvas becomes unresponsive, wires look disconnected (but should be connected), or nodes are "stuck" in a drag state, use the **KICK THE GRID** button found in your top-right toolbar (icon: `(>_<)!!`).
+
+**What it does:**
+- It performs a full, non-destructive **Serialize/Reload cycle**.
+- It captures the current graph as a JSON snapshot and force-rehydrates it into the workspace.
+- It refreshes the internal `LiteGraph` state without requiring a browser refresh.
+
+**⚠️ Warning for Custom Noodle Users:**
+If you are using **Third-Party Noodle/Wire rendering systems** (e.g., extensions that turn your wires into circuit boards or geometric paths), the **KICK THE GRID** function may NOT fix visual noodle artifacts. While the underlying logical connections will be restored, the custom visual rendering layer managed by those third-party extensions often requires a full browser refresh to reset.
+
 ---
 
 ## Dev Corner (technical deep dive)
@@ -1160,17 +1194,17 @@ Enhanced error reporting surfaces expanded diagnostic context beyond stock messa
 
 ## Version History & Changelog
 
-### v7.5.6 - THE MUTATION MANIFESTO
-*   **H4_DoubleSampler (v7.5.6)**: 
+### v7.6.5 - THE MUTATION MANIFESTO
+*   **H4_DoubleSampler (v7.6.5)**: 
     *   **Chaos Engine Phase 2**: Absolute chaos integration. The engine now operates as a **Branching Second Pass**. Select from 'Pure Chaos', 'Odds', 'Evens', 'Every #nth number', or 'Random Pulse' modes.
     *   **Mutation Strength**: Added `chaos_denoise` to control exactly how much your chaotic prompt overwrites the original composition.
     *   **Legend v3**: Updated the in-image stat tracker with high-visibility color coding for Passes and a "🔥 CHAOS ENGINE ACTIVE" badge for variants.
-*   **H4_SmartSave (v7.5.6)**:
+*   **H4_SmartSave (v7.6.5)**:
     *   **Lightbox Traveler**: Integrated Full Keyboard Control (`ArrowLeft`/ArrowRight`) and UI buttons for deep history traversal directly inside the Lightbox.
     *   **Index Persistence**: History indexing is now synchronized with the film strip, ensuring you never lose your place during a deep dive.
-*   **H4_DisplayAny (v7.5.6)**:
+*   **H4_DisplayAny (v7.6.5)**:
     *   **Safety Zone Implementation**: Hardened the UI layout with a permanent 85px left-margin "Safety Zone" to prevent input labels from bleeding into your data visualizer.
-*   **Global Version Sync**: All core systems now synchronized to **v7.5.6**.
+*   **Global Version Sync**: All core systems now synchronized to **v7.6.5**.
 
 ### v7.0.1
 - **Chaos Engine v2 Integration**: The `H4_DoubleSampler` (Logic Stage 4) now hosts the definitive Chaos Engine with mode-aware widget surfacing.
@@ -1194,4 +1228,13 @@ If you remix it, be cool about it.
 We build weird tools so people can make cool stuff.
 And also because we got mad at the canvas one night and chose violence.
 
-(Yes, there might be one typo in here. As a treat. Probably.)
+I was trying to explain the new Comparinator logic to a friend yesterday, but I think I lost them at 'Tri-State Selection'. They asked if that was a new type of heavy-metal sandwich. I said, 'No, but it does have some pretty beefy features if you know how to slice the data.' 
+
+... That's a pun, isn't it? My bad. I guess I'm just a bit... *latent* with my humor today.
+
+Anyway, the toolkit is stable, the modes are hardened, and the vault is locked. Have fun breaking the speed limit of creativity.
+
+**Be Your Best**
+    **h4** - (b'.')b
+---
+*Built for the h4_Live Ecosystem. No compromise. No placeholders. Just power.*

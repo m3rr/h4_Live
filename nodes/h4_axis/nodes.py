@@ -11,7 +11,10 @@
 import json
 import copy
 from typing import Any, Dict, List, Optional, Tuple
-from ...core.h4_core import _log
+try:
+    from ...core.h4_core import _log
+except ImportError:
+    def _log(msg): print(f"[Axis Driver] {msg}")
 
 # ------------------------------------------------------------------------------
 # Constants

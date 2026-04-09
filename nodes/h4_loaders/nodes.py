@@ -10,7 +10,42 @@ import comfy.model_patcher
 import comfy.model_management
 import comfy.supported_models
 from comfy.model_detection import count_blocks
-from ...core.h4_core import _log
+import os
+import node_helpers
+from PIL import Image, ImageOps
+import numpy as np
+import torch
+
+try:
+    from ...core.h4_core import _log
+except ImportError:
+    def _log(msg): print(f"[H4_Loaders] {msg}")
+
+# ==============================================================================
+# Helper for Image Loading natively
+# ==============================================================================
+def _load_image(image_name):
+    if image_name == "none" or not image_name:
+        return None, None
+    image_path = folder_paths.get_annotated_filepath(image_name)
+    if not image_path:
+        return None, None
+    try:
+        img = Image.open(image_path)
+        img = node_helpers.pillow(ImageOps.exif_transpose, img)
+        img_rgb = img.convert("RGB")
+        image = np.array(img_rgb).astype(np.float32) / 255.0
+        image = torch.from_numpy(image)[None,]
+        if 'A' in img.getbands():
+            mask = np.array(img.getchannel('A')).astype(np.float32) / 255.0
+            mask = 1. - mask
+        else:
+            mask = np.zeros((64,64), dtype=np.float32, copy=False)
+        mask = torch.from_numpy(mask)
+        return image, mask
+    except Exception as e:
+        _log(f"[WARNING] Failed to load image {image_name}: {e}")
+        return None, None
 
 class H4_UniversalLoader:
     """
@@ -29,6 +64,8 @@ class H4_UniversalLoader:
                 "unet_name": (folder_paths.get_filename_list("diffusion_models") + folder_paths.get_filename_list("unet_gguf") if "unet_gguf" in folder_paths.folder_names_and_paths else folder_paths.get_filename_list("diffusion_models"), {"tooltip": "Standalone UNET model (Supports .gguf if ComfyUI-GGUF is installed)."}),
                 "vae_name": (["Baked / None"] + folder_paths.get_filename_list("vae"), {"tooltip": "Standalone VAE model."}),
                 "clip_name": (["Baked / None"] + folder_paths.get_filename_list("clip") + (folder_paths.get_filename_list("clip_gguf") if "clip_gguf" in folder_paths.folder_names_and_paths else []), {"tooltip": "Standalone CLIP model (Supports .gguf)."}),
+                "lora_name": (["None"] + folder_paths.get_filename_list("loras"), {"tooltip": "Optional LORA model to apply."}),
+                "lora_strength": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "Strength of the LORA."}),
             }
         }
     
@@ -93,9 +130,9 @@ class H4_UniversalLoader:
         except Exception as e:
             _log(f"Validation Warning: Could not validate Model/CLIP compatibility: {e}")
 
-    def load(self, load_mode, ckpt_name=None, unet_name=None, vae_name="Baked / None", clip_name="Baked / None"):
+    def load(self, load_mode, ckpt_name=None, unet_name=None, vae_name="Baked / None", clip_name="Baked / None", lora_name="None", lora_strength=1.0):
         _log(f"UniversalLoader: Mode [{load_mode}]")
-        _log(f"UniversalLoader Inputs: ckpt='{ckpt_name}', unet='{unet_name}', clip='{clip_name}'")
+        _log(f"UniversalLoader Inputs: ckpt='{ckpt_name}', unet='{unet_name}', clip='{clip_name}', lora='{lora_name}'")
         
         # ----------------------------------------------------------------------
         # MODE 1: Checkpoint (Standard)
@@ -127,6 +164,14 @@ class H4_UniversalLoader:
                 clip = out[1]
                 vae = out[2]
                 
+                # Apply LORA if specified
+                if lora_name != "None":
+                    lora_path = folder_paths.get_full_path("loras", lora_name)
+                    if lora_path:
+                        lora = comfy.utils.load_torch_file(lora_path, safe_load=True)
+                        model, clip = comfy.sd.load_lora_for_models(model, clip, lora, lora_strength, lora_strength)
+                        _log(f"Applied LORA: {lora_name} at strength {lora_strength}")
+
                 # Run Validation (Now reachable)
                 self._validate_model_clip(model, clip, ckpt_name, "Baked")
                 
@@ -577,7 +622,95 @@ class H4_UniversalLoader:
                  _log("Warning: No VAE selected in Diffusers mode!")
                  vae = None
 
-            # 4. Final Validation (Runtime Guard)
+            # 4. Apply Lora
+            if lora_name != "None":
+                lora_path = folder_paths.get_full_path("loras", lora_name)
+                if lora_path:
+                    lora = comfy.utils.load_torch_file(lora_path, safe_load=True)
+                    model, clip = comfy.sd.load_lora_for_models(model, clip, lora, lora_strength, lora_strength)
+                    _log(f"Applied LORA: {lora_name} at strength {lora_strength}")
+
+            # 5. Final Validation (Runtime Guard)
             self._validate_model_clip(model, clip, unet_name if unet_name else ckpt_name, clip_name)
 
             return (model, clip, vae)
+
+
+# ==============================================================================
+# H4_CompleteLoader
+# ==============================================================================
+
+class H4_CompleteLoader(H4_UniversalLoader):
+    """
+    Universal Loader on steroids with integrated Image uploading.
+    Allows loading up to 4 dynamic images alongside standard Checkpoint / UNET / VAE / CLIP loading.
+    JS Extension manages the interface to appear sleek with one upload button.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        input_dir = folder_paths.get_input_directory()
+        files = ["none"] + [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+        
+        # Start with Universal Loader schema
+        schema = H4_UniversalLoader.INPUT_TYPES()
+        
+        # Add dynamic image properties
+        for i in range(1, 5):
+            schema["optional"][f"image_{i}"] = (files, {"image_upload": True})
+            
+        return schema
+        
+    RETURN_TYPES = tuple(["MODEL", "CLIP", "VAE"] + [item for i in range(1, 5) for item in ("IMAGE", "MASK")])
+    RETURN_NAMES = tuple(["MODEL", "CLIP", "VAE"] + [item for i in range(1, 5) for item in (f"IMAGE_{i}", f"MASK_{i}")])
+    FUNCTION = "load_complete"
+    CATEGORY = "h4_Live/Loaders"
+
+    def load_complete(self, load_mode, ckpt_name=None, unet_name=None, vae_name="Baked / None", clip_name="Baked / None",
+                      lora_name="None", lora_strength=1.0,
+                      image_1="none", image_2="none", image_3="none", image_4="none"):
+        model, clip, vae = self.load(load_mode, ckpt_name, unet_name, vae_name, clip_name, lora_name, lora_strength)
+        
+        results = [model, clip, vae]
+        for img_name in [image_1, image_2, image_3, image_4]:
+            img, mask = _load_image(img_name)
+            # Must return a mock tensor if missing so the graph doesn't crash if explicitly linked but empty?
+            # actually if the user wired it, it usually evaluates. Returning None is fine and handled by ComfyUI
+            # but if it breaks on None, we yield 1x1 black tensors. We will just return None if unassigned.
+            results.append(img)
+            results.append(mask)
+
+        return tuple(results)
+
+
+# ==============================================================================
+# H4_MultiImgUpload
+# ==============================================================================
+
+class H4_MultiImgUpload:
+    """
+    Batch loader for specific images, stripped down from Complete Loader.
+    Up to 10 images with dynamically appearing slots.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        input_dir = folder_paths.get_input_directory()
+        files = ["none"] + [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+        
+        return {
+            "required": {},
+            "optional": {f"image_{i}": (files, {"image_upload": True}) for i in range(1, 11)}
+        }
+        
+    RETURN_TYPES = tuple([item for i in range(1, 11) for item in ("IMAGE", "MASK")])
+    RETURN_NAMES = tuple([item for i in range(1, 11) for item in (f"IMAGE_{i}", f"MASK_{i}")])
+    FUNCTION = "load_images"
+    CATEGORY = "h4_Live/Loaders"
+
+    def load_images(self, **kwargs):
+        results = []
+        for i in range(1, 11):
+            img_name = kwargs.get(f"image_{i}", "none")
+            img, mask = _load_image(img_name)
+            results.append(img)
+            results.append(mask)
+        return tuple(results)

@@ -16,7 +16,10 @@ import re
 import os
 
 # Internal Imports
-from ...core.h4_core import _log
+try:
+    from ...core.h4_core import _log
+except ImportError:
+    def _log(msg): print(f"[Gridinator] {msg}")
 
 class H4_Gridinator:
     """

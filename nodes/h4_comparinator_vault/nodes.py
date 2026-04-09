@@ -4,7 +4,10 @@ import json
 import shutil
 import folder_paths
 from collections import defaultdict
-from ...core.h4_core import _log
+try:
+    from ...core.h4_core import _log
+except ImportError:
+    def _log(msg): print(f"[H4_Vault] {msg}")
 
 class ComparinatorVault:
     """
@@ -13,6 +16,18 @@ class ComparinatorVault:
     Structure: YYYY-MM-DD-[N]/image_id.json
     Policy: FIFO (Max 10 folders), Capacity (Max 25 images/total)
     """
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {}}
+    
+    RETURN_TYPES = ()
+    FUNCTION = "noop"
+    CATEGORY = "h4_Live/Internal"
+    
+    def noop(self):
+        return ()
+
     ROOT_DIR = os.path.join(os.path.dirname(__file__), "comparinator")
     MAX_FOLDERS = 10
     MAX_IMAGES_PER_FOLDER = 100

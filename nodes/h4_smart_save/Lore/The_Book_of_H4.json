@@ -1,7 +1,7 @@
 {
     "H4_System_Architecture": {
         "title": "h4_Live: System Architecture (The Mothership)",
-        "description": "Welcome to h4_Live v7.5.6—the first custom node pack built like an Operating System. We've moved away from standard 'monolithic' design (where everything is trapped in one file) to an **Atomic Plugin Architecture**. In this new era, the toolkit is divided into the **Engine (Core)** and the **Apps (Nodes)**. Every node you see in your menu is a standalone folder on the 'Shelf' (`/nodes/`). You can drag-and-drop these folders, share them with friends, or delete them to prune your pack. The root 'Mothership' dynamically scans the shelf on every boot and harvests the UI automatically. It's the ultimate in modular power.",
+        "description": "Welcome to h4_Live v7.6.5—the first custom node pack built like an Operating System. We've moved away from standard 'monolithic' design (where everything is trapped in one file) to an **Atomic Plugin Architecture**. In this new era, the toolkit is divided into the **Engine (Core)** and the **Apps (Nodes)**. Every node you see in your menu is a standalone folder on the 'Shelf' (`/nodes/`). You can drag-and-drop these folders, share them with friends, or delete them to prune your pack. The root 'Mothership' dynamically scans the shelf on every boot and harvests the UI automatically. It's the ultimate in modular power.",
         "dev_corner": {
             "paradigm": "Atomic Micro-Modularization",
             "loader": "Dynamic Importlib Discovery Engine",
@@ -12,6 +12,20 @@
             "You can delete any folder in /nodes/ to safely remove that node pack component.",
             "Adding a new h4_node folder automatically syncs its Python and JS to ComfyUI.",
             "The /core/ folder is the mothership engine. Never touch it unless you're writing OS-level logic."
+        ]
+    },
+    "KICK_THE_GRID": {
+        "title": "(>_<)!! — KICK THE GRID (Canvas Defibrillator)",
+        "description": "Found in the top-right toolbar (the button that looks like a frustrated Kirby face), **KICK THE GRID** is an emergency 'Canvas Defibrillator'. It is designed to resolve deep logic freezes, stuck UI widgets, or those phantom 'Frozen Noodles' where wires appear connected but the backend isn't receiving data. It works by performing a high-speed **Full Gravity Serialize/Reload Cycle**. It snaps your entire graph into a JSON string and force-rehydrates it into the ComfyUI engine in milliseconds. It is the 'Nuclear Option' to fix the UI without refreshing the browser and losing your execution queue.",
+        "usage": "Click the button when the UI feels 'sluggish' or wires look incorrect. You'll see a visual confirmation: (>_<)!! (Idle) -> (0_0)!!! (Kicking) -> (^_^)b (Success).",
+        "warning": {
+            "title": "Custom Noodle Systems",
+            "content": "If you are using **Third-Party Noodle/Wire rendering systems** (e.g., custom themes that turn wires into circuit boards or geometric paths), Kicking the Grid may NOT resolve wire-rendering glitches. While it will restore the underlying logic and node state, the visual rendering of those custom noodles is managed by the third-party extension and may remain in a glitched state until a full browser refresh."
+        },
+        "tips": [
+            "Use this before doing a full browser refresh to save your Queue position.",
+            "If your nodes are overlapping or 'stuck' in a drag state, a Grid Kick often breaks the lock.",
+            "Visual artifacts like 'Ghost Pins' (outputs that shouldn't be there) are the #1 target for this tool."
         ]
     },
     "H4_ModelMerger": {
@@ -123,80 +137,57 @@
         ]
     },
     "H4_Comparinator": {
-        "title": "H4 Comparinator (The Sniper)",
-        "description": "Ever generate two images and squint at them trying to decide which one has better hands? Yeah, we all have. The Comparinator fixes that. It's a professional-grade A/B testing suite with a built-in SNIPER SCOPE. It captures your image stream, saves a history (locally, in **'The Vault'**), and lets you compare generations side-by-side with a slick sliding divider. You can lock a 'Gold Standard' image to the left pane and endlessly compare new variations against it on the right. It's the ultimate tool for refining prompts or testing checkpoints.",
-        "usage": "Throw this at the very end of your workflow. Instead of a 'Save Image' or 'Preview Image' node, use this. It does both, but better. Trust me, once you start using the slider, you can't go back.",
+        "title": "H4 Comparinator v3.0 (The Final Forensic Utility)",
+        "description": "Welcome to Version 3.0—the absolute, zero-compromise diagnostic workstation for Stable Diffusion scientists. The Comparinator has been nuclearly re-engineered to handle more than just A/B sliding. It is now a state-aware forensics suite that lets you crawl through your generation history, lock comparison targets, and zoom in with a high-fidelity **SNIPER SCOPE**. \n\n Whether you're tracking the minute convergence effects of a new scheduler or proving that a 0.02 CFG tweak actually changed the texture of a character's iris, the Comparinator provides the ground-truth. It doesn't just show images; it exposes the math behind them through an integrated **Parameters Drawer** that crawls your workflow graph to find exactly how each pixel was born.",
+        "usage": "Drop this at the end of your workflow. By default, it stays in a lean, single-pane mode. Use the toggle switches to expand your vision. Click the **Histories** toggle to open the dual-pane vault, or flip the **Inspectinator** switch to engage the magnification engine.",
         "inputs": {
             "image_a": {
                 "type": "IMAGE",
-                "description": "The 'Before' or 'Reference' image. Typically your baseline.",
+                "description": "The 'Primary' or 'Before' image. Usually your latest generation (Live Slot).",
                 "example": "-"
             },
             "image_b": {
                 "type": "IMAGE",
-                "description": "The 'After' or 'Test' image. (Optional - if empty, it just uses the next image in the stream).",
+                "description": "The 'Secondary' or 'After' image. If empty, the node automatically pulls from the Vault history.",
+                "example": "-"
+            },
+            "frozen_image": {
+                "type": "IMAGE",
+                "description": "The 'Anchor'. Overrides Image B. Perfect for freezing a 'Gold Reference' you want to beat.",
                 "example": "-"
             },
             "save_mode": {
                 "type": "BOOLEAN",
-                "description": "Flip this to **💾 SAVE** to permanently write the comparison results to your output folder. In **PREVIEW** mode, images are temporary and will eventually be cleaned up.",
-                "example": "False (Preview)"
-            },
-            "filename_prefix": {
-                "type": "STRING",
-                "description": "Prefix for saved files. I suggest something descriptive like 'Hand_Test_'.",
-                "example": "h4_Compare_"
-            },
-            "frozen_image": {
-                "type": "IMAGE",
-                "description": "The 'Anchor'. Overrides Image B. Useful for freezing a comparison state so you can test 50 different prompts against the exact same static target.",
-                "example": "-"
-            },
-            "metadata_text": {
-                "type": "STRING",
-                "description": "Custom notes to embed in the saved file. I'll burn these right into the PNG header for you.",
-                "example": "Test Run 1: High CFG"
-            },
-            "save_settings": {
-                "type": "BOOLEAN",
-                "description": "If True, saves extended generation metadata (Prompt, Seed, Checkpoint name) into the image file header.",
-                "example": "True"
+                "description": "Flip to **💾 SAVE** to commit your comparison captures to disk. In **PREVIEW** mode, images are temporary and will eventually vanish into the Ether.",
+                "example": "False"
             }
         },
         "outputs": {
-            "image_a": "Pass-through of Image A.",
-            "image_b": "Pass-through of Image B."
+            "image_a": "Pass-through of the primary channel.",
+            "image_b": "Pass-through of the secondary channel."
         },
         "features": [
             {
-                "name": "The Vault (Persistent History)",
-                "description": "I save every comparison to disk in `output/h4_comparisons/`. This means your history survives a browser refresh or a server restart. If you close ComfyUI and come back tomorrow, your Sniper captures are still waiting for you."
+                "name": "Tri-State Selection Workflow",
+                "description": "Interact with the filmstrip history like a pro. \n - **GREEN**: Primary reference (Selected). \n - **RED**: Secondary reference (OtherB) for dual-histories comparison. \n - **YELLOW**: Persistent Lock (Shift+Right Click). The image stays put even as you queue new jobs."
             },
             {
-                "name": "Manual Save Trigger",
-                "description": "Found a comparison you love while in PREVIEW mode? You don't have to re-run! Use the **'Save Now'** button in the UI to instantly move those temp images to permanent storage."
+                "name": "Sniper Scope Optics",
+                "description": "High-performance slaving between the Navigator (left) and Magnifier (right). The reticle itself acts as a scope, displaying a magnified 'micro-preview' while you hunt for artifacts."
             },
             {
-                "name": "Sniper Scope",
-                "description": "Zoom in. Enhance. See that pixel? That's the one that ruins the whole composition. The cursor acts as a magnifying glass."
+                "name": "Histories Mode",
+                "description": "An expanded 50/50 dual-pane mode. Compares your latest generation against your Green-selection AND your Green-selection against your Red-selection simultaneously. Total diagnostic coverage."
             },
             {
-                "name": "Parameters Drawer",
-                "description": "Slide up from the bottom to see EXACTLY how an image was made. I'll show you the Prompt, Seed, Steps, CFG, Model, and every LoRA I found in the metadata."
-            },
-            {
-                "name": "Split-View Slider",
-                "description": "The centerpiece. Drag the handle left and right to wipe between Image A (Live/Reference) and Image B (History). It's oddly satisfying."
-            },
-            {
-                "name": "Auto-Previous",
-                "description": "By default, whenever a new image comes in, the *previous* generation is automatically loaded into the right pane. Instant 'Current vs Last' comparison."
+                "name": "Telemetry Drawer",
+                "description": "A slide-up panel that reveals the DNA of the selected image. It separates 'Prompt Specs' (Models, VAEs, CLIPs, LoRAs) from 'Generation Settings' (Seed, CFG, Denoise) for easy reading."
             }
         ],
         "tips": [
-            "Use the 'Frozen Image' input to keep a 'Reference' image on the left while you rapidly iterate on the right.",
-            "Right-click the center divider to lock it into place if your hand is shaky.",
-            "The History Filmstrip at the bottom lets you jump back through your last 20 snapshots instantly."
+            "Use the 'Blink' mode (Spacebar) for high-frequency difference detection between A and B.",
+            "Right-click the filmstrip to instantly clear all diagnostic selections and go back to lean mode.",
+            "The Sniper Scope background magnification is calculated at 1.5x of your magnifier zoom to provide the best 'hunting' experience."
         ]
     },
     "H4_SmartSave": {
@@ -694,6 +685,79 @@
         "outputs": {
             "pressed_image": "The dense result."
         }
+    },
+    "H4_Mutate": {
+        "title": "H4 Mutate (The Finisher)",
+        "description": "The ultimate post-processing beast. It takes an image in and pushes a mutated image out. The node starts small—just a list of toggle switches. Turn on only the sections you need: Color Grade, Sharpness, Upscale, Style Transfer, Film Emulation, Vignette, and visual Effects. It's built for finalizing your images at the pixel level, completely separate from Latent space or Checkpoints. \n\n Warning: It can make a picture look like a masterpiece, or it can absolutely nuke it if you push the sliders too far.",
+        "usage": "Drop this right before your Save Image or Comparinator. Toggle on 'enable_color' to fix the saturation. Toggle on 'enable_style' and hook up some reference images to steal their visual style. The 'pipeline_order' changes how the effects stack—grading before upscaling looks different than grading after.",
+        "inputs": {
+            "image": {
+                "type": "IMAGE",
+                "description": "Your soon-to-be-mutated image.",
+                "example": "-"
+            },
+            "enable_* toggles": {
+                "type": "BOOLEAN",
+                "description": "There are 7 of these. They control the drawers. If you want to color grade, flip 'enable_color' to ON, and the color sliders will magically appear. Keep the node small by only turning on what you need.",
+                "example": "True"
+            },
+            "pipeline_order": {
+                "type": "COMBO",
+                "description": "The sequence matters. Do you upscale *before* adding film grain, or *after*? 'default' does everything in a sane order. 'custom' lets you assign exact priority numbers to each effect.",
+                "example": "default"
+            },
+            "hue_shift / saturation / gamma": {
+                "type": "FLOAT",
+                "description": "(Color Section) The holy trinity of color correction. Gamma brightens midtones without blowing out your highlights.",
+                "example": "1.0"
+            },
+            "scale_factor": {
+                "type": "FLOAT",
+                "description": "(Upscale Section) 2.0 doubles the size. 0.5 shrinks it down.",
+                "example": "2.0"
+            },
+            "style_method": {
+                "type": "COMBO",
+                "description": "(Style Section) How we steal the look. 'adain' and 'wct' use neural VGG networks for deep texture cloning. 'reinhard_color' is stupid fast but only steals the color palette.",
+                "example": "adain"
+            },
+            "style_image_1...4": {
+                "type": "IMAGE",
+                "description": "(Dynamic Sockets) Plug a style reference image here. Once you plug one in, the next socket appears. Mutate can blend up to 4 styles together.",
+                "example": "-"
+            },
+            "film_preset": {
+                "type": "COMBO",
+                "description": "(Film Section) 11 classic film stocks. Try CineStill 800T for cyberpunk vibes, or Velvia 50 for nuclear landscape colors.",
+                "example": "none"
+            },
+            "mask": {
+                "type": "MASK",
+                "description": "Want to only mutate the background? Plug a mask in here. Use 'mask_feather' to blur the edges so it blends seamlessly.",
+                "example": "-"
+            }
+        },
+        "outputs": {
+            "IMAGE": "The completely mutated result."
+        },
+        "features": [
+            {
+                "name": "Dynamic Drawers",
+                "description": "The node expands and contracts based on your toggles to save canvas space."
+            },
+            {
+                "name": "Neural Style Transfer",
+                "description": "Includes genuine AdaIN and WCT style transfer engines running directly on pixels, without needing to loop back through a diffusion model."
+            },
+            {
+                "name": "Fallback Safety",
+                "description": "If you feed it an impossible task and run out of VRAM, it catches the error and safely passes your original image through instead of crashing your render."
+            }
+        ],
+        "tips": [
+            "Use 'mask' with a subtle 'mask_feather' to color grade just the subject or just the background.",
+            "If using 'wct' style transfer, keep your scale factor at 1.0 until you find the look you want, as it takes some compute."
+        ]
     },
     "H4_VisualTokenizer": {
         "title": "H4 Visual Tokenizer (The Mind)",

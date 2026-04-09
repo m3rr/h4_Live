@@ -1,5 +1,5 @@
-import { app } from "../../scripts/app.js";
-import { api } from "../../scripts/api.js";
+import { app } from "/scripts/app.js";
+import { api } from "/scripts/api.js";
 
 // ------------------------------------------------------------------------------
 // H4 Comparinator -> THE HOLY GRAIL [Ver 3.0 - MULTI-LAYER & CRAWLER]
@@ -212,14 +212,26 @@ const STYLE = `
     overflow: hidden;
 }
 .h4-thumb:hover { transform: scale(1.05); border-color: #444; }
-.h4-thumb.active { border-color: #00ff55; box-shadow: 0 0 15px rgba(0,255,85,0.6); }
-.h4-thumb.active::after {
-    content: 'ACTIVE'; position: absolute; bottom: 0; width: 100%;
+.h4-thumb.sel-green { border-color: #00ff55; box-shadow: 0 0 15px rgba(0,255,85,0.6); }
+.h4-thumb.sel-green::after {
+    content: 'GREEN'; position: absolute; bottom: 0; width: 100%;
     background: #00ff55; color: #000; font-size: 7px; text-align: center; font-weight: 900;
     z-index: 10;
 }
-.h4-thumb.locked-ref { border-color: #aa8800; box-shadow: 0 0 15px rgba(170,136,0,0.4); opacity: 0.9; }
-.h4-thumb.locked-ref::before {
+.h4-thumb.sel-red { border-color: #ff3300; box-shadow: 0 0 15px rgba(255,51,0,0.6); }
+.h4-thumb.sel-red::after {
+    content: 'RED'; position: absolute; bottom: 0; width: 100%;
+    background: #ff3300; color: #000; font-size: 7px; text-align: center; font-weight: 900;
+    z-index: 10;
+}
+.h4-thumb.sel-yellow { border-color: #ffff00; box-shadow: 0 0 15px rgba(255,255,0,0.6); }
+.h4-thumb.sel-yellow::after {
+    content: 'YELLOW'; position: absolute; bottom: 0; width: 100%;
+    background: #ffff00; color: #000; font-size: 7px; text-align: center; font-weight: 900;
+    z-index: 10;
+}
+.h4-thumb.is-locked { border-color: #00ffff; box-shadow: 0 0 15px rgba(0,255,255,0.4); }
+.h4-thumb.is-locked::before {
     content: '🔒'; position: absolute; top: 2px; right: 2px; font-size: 10px; z-index: 10;
 }
 
@@ -421,29 +433,27 @@ class ComparinatorUI {
             live: null,
             history: [],
             locked: null,
-            selected: null, // User-selected history item
-            full: false,
-            params: false, // Restored state
-            sliderX: 50, // PANE 1 Slider (0-100 of Pane 1)
-            sliderX2: 50, // PANE 2 Slider (0-100 of Pane 2)
+            otherB: null,
+            selected: null,
+            historyMode: false,
+            params: true,
+            sliderX: 50,
+            sliderX2: 50,
             sliderY: 50,
             inspect: false,
-            inspect_channel: 'B', // A or B toggleable
-            inspectZoom: 1,
-            _inspectZoomTarget: 1,
+            inspect_channel: 'B',
+            inspectZoom: 1.0,
+            _inspectZoomTarget: 1.0,
             _zoomAnimId: null,
             _lastPctX: 50,
             _lastPctY: 50,
             lbZoom: 1,
             lbPair: 'A',
             blink: false,
-            history: [],   // [H4] RESTORED: Vital for sync
-            live: null,     // [H4] RESTORED
-            selected: null, // [H4] RESTORED
-            locked: null,   // [H4] RESTORED: Context-lock history item
             inspect_set: [],
             reticle_shape: 'circle',
-            parameters: { A: [], B: [] }
+            parameters: { A: [], B: [] },
+            selYellow: null
         };
 
         // --- PERSISTENT STYLE ATTACHMENT ---
@@ -577,9 +587,10 @@ class ComparinatorUI {
             liveA: this.createImageLayer(10),
             histA: this.createImageLayer(15),
             liveB: this.createImageLayer(20),
-            histB: this.createImageLayer(25)
+            histB: this.createImageLayer(25),
+            histC: this.createImageLayer(30)
         };
-        this._lastUrls = { liveA: "", histA: "", liveB: "", histB: "" };
+        this._lastUrls = { liveA: "", histA: "", liveB: "", histB: "", histC: "" };
         Object.values(this.layers).forEach(img => this.stage.appendChild(img));
 
         // Sliders
@@ -597,8 +608,9 @@ class ComparinatorUI {
         this.labels = {
             liveA: this.createLabel("LIVE A", "5px", "5px"),
             liveB: this.createLabel("LIVE B", "5px", "auto", "5px"),
-            histA: this.createLabel("HIST A", "auto", "5px", "auto", "5px"),
-            histB: this.createLabel("HIST B", "auto", "auto", "5px", "5px")
+            histA: this.createLabel("YELLOW", "auto", "5px", "auto", "5px"),
+            histB: this.createLabel("RED", "auto", "auto", "5px", "5px"),
+            histC: this.createLabel("GREEN", "50%", "auto", "auto", "5px")
         };
         Object.values(this.labels).forEach(l => this.stage.appendChild(l));
 
@@ -629,27 +641,16 @@ class ComparinatorUI {
 
         this.toggles = {
             inspect: this.createToggle("INSPECT", (v) => this.setInspect(v), "inspect"),
-            full: this.createToggle("FULL VIEW", (v) => this.setFull(v), "full"),
+            history: this.createToggle("HISTORIES", (v) => this.setHistoryMode(v), "history"),
             params: this.createToggle("PARAMETERS", (v) => this.setDrawer(v), "params"),
             save: this.createToggle("SAVE FUNCTIONS", (v) => this.setSave(v), "save")
         };
 
-        // Channel Switch for Inspect Mode
-        this.chanToggle = document.createElement("div");
-        this.chanToggle.className = "h4-channel-toggle";
-        this.chanA = document.createElement("div"); this.chanA.className = "h4-channel-btn"; this.chanA.textContent = "A";
-        const slash = document.createElement("div"); slash.className = "h4-channel-slash"; slash.textContent = "/";
-        this.chanB = document.createElement("div"); this.chanB.className = "h4-channel-btn active"; this.chanB.textContent = "B";
-
-        this.chanA.onclick = () => this.setInspectChannel('A');
-        this.chanB.onclick = () => this.setInspectChannel('B');
-
-        this.chanToggle.appendChild(this.chanA);
-        this.chanToggle.appendChild(slash);
-        this.chanToggle.appendChild(this.chanB);
-
-        // Explicit Order with Channel Toggle adjacent to Inspect
+        // Explicit Order for Bottom Bar
         this.bar.appendChild(this.toggles.inspect);
+        this.bar.appendChild(this.toggles.history);
+        this.bar.appendChild(this.toggles.params);
+        this.bar.appendChild(this.toggles.save);
 
         // HUD: Shape Buttons (Only visible in Inspect)
         this.hudWrap = document.createElement("div");
@@ -700,12 +701,36 @@ class ComparinatorUI {
         };
         this.zoomControls.appendChild(this.inspectSlider);
 
-        this.bar.appendChild(this.zoomControls);
+        // CHANNEL TOGGLE (A / B)
+        this.chanToggle = document.createElement("div");
+        this.chanToggle.className = "h4-channel-toggle";
+        const btnA = document.createElement("div");
+        btnA.className = "h4-channel-btn"; btnA.textContent = "CHAN_A";
+        const slash = document.createElement("div");
+        slash.className = "h4-channel-slash"; slash.textContent = "/";
+        const btnB = document.createElement("div");
+        btnB.className = "h4-channel-btn active"; btnB.textContent = "CHAN_B";
 
+        btnA.onclick = () => {
+            this.state.inspect_channel = 'A';
+            btnA.classList.add("active");
+            btnB.classList.remove("active");
+            this.updateDisplay();
+        };
+        btnB.onclick = () => {
+            this.state.inspect_channel = 'B';
+            btnB.classList.add("active");
+            btnA.classList.remove("active");
+            this.updateDisplay();
+        };
+
+        this.chanToggle.appendChild(btnA);
+        this.chanToggle.appendChild(slash);
+        this.chanToggle.appendChild(btnB);
+
+        this.bar.appendChild(this.hudWrap);
+        this.bar.appendChild(this.zoomControls);
         this.bar.appendChild(this.chanToggle);
-        this.bar.appendChild(this.toggles.full);
-        this.bar.appendChild(this.toggles.params);
-        this.bar.appendChild(this.toggles.save);
 
         // MOUSE WHEEL ZOOM (Stage Level) — smooth animated zoom
         this.stage.addEventListener("wheel", (e) => {
@@ -820,6 +845,7 @@ class ComparinatorUI {
                 this.updateDisplay();
             }
         };
+        this.strip.style.display = "none";
         this.frame.appendChild(this.strip);
 
         /**
@@ -842,6 +868,7 @@ class ComparinatorUI {
 
         this.renderSaveDrawer();
     }
+
 
     initLightbox() {
         this.lb = document.createElement("div");
@@ -1039,34 +1066,25 @@ class ComparinatorUI {
     }
 
     bindEvents() {
+        // [H4] Sync with server-side vault updates
         api.addEventListener("h4.comparinator.update", (e) => {
             if (String(e.detail.node_id) === String(this.node.id)) this.updatePayload(e.detail);
         });
-        // Primary interaction
-        this.frame.onmousedown = (e) => {
-            if (e.button !== 0) return;
-            // No longer locking dragging to mouse down for sliders
-        };
-        this.frame.addEventListener("mousemove", (e) => this.handleMouseMove(e));
-        this.frame.addEventListener("mouseleave", () => {
-            // Optional: reset sliders to center or keep? keeping for now.
-        });
 
-        // Lightbox element
-        this.initLightbox();
-        // [H4] Unified Window Listeners managed by _setupExecutionListener and onRemoved
+        // STAGE INTERACTION: Sliders & Reticle
+        this.stage.addEventListener("mousemove", (e) => this.handleMouseMove(e));
+
+        // MOUSE DOWN: Start manipulation (standard Comfy pattern)
+        this.stage.onmousedown = (e) => {
+            if (e.button !== 0) return;
+            this.handleMouseMove(e);
+        };
     }
 
     handleKey(e) {
-        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-
-        // UNIVERSAL BLINK (Spacebar Hold)
-        if (e.code === 'Space') {
-            e.preventDefault();
-            e.stopPropagation();
+        if (!this.node) return;
+        if (e.key === "b" || e.key === "B") {
             const isDown = (e.type === 'keydown');
-
-            // Prevent spamming state update if holding key
             if (this.state.blink !== isDown) {
                 this.state.blink = isDown;
                 this.updateDisplay();
@@ -1074,138 +1092,104 @@ class ComparinatorUI {
         }
     }
 
-    handleMouseMove(e) {
-        const scale = app.canvas.ds.scale || 1;
-        const rect = this.stage.getBoundingClientRect();
-
-        // Calculate raw relative coordinates in viewport space
-        const vX = e.clientX - rect.left;
-        const vY = e.clientY - rect.top;
-
-        // Convert to CSS pixels (relative to the stage's unscaled coordinate system)
-        const x = vX / scale;
-        const y = vY / scale;
-
-        // Use client dimensions for logical bounds (CSS pixels)
-        const stageW = this.stage.clientWidth;
-        const stageH = this.stage.clientHeight;
-
-        // --- MODE 1: INSPECTINATOR (Sniper View) ---
-        if (this.state.inspect) {
-
-            // IF LOCKED: Ignore mouse, use locked coordinates
-            let targetX = x;
-            let targetY = y;
-
-            if (this.state.reticleLocked) {
-                targetX = this.state.lockedX * stageW; // lockedX is 0-1
-                targetY = this.state.lockedY * stageH; // lockedY is 0-1
-
-                // FORCE RETICLE POSITION (Just in case resize happened)
-                this.reticle.style.left = `${Math.min(stageW / 2, Math.max(0, targetX))}px`;
-                this.reticle.style.top = `${Math.min(stageH, Math.max(0, targetY))}px`;
+    triggerFlicker() {
+        if (!this.el?.root) return;
+        const root = this.el.root;
+        root.style.filter = "brightness(1.5) contrast(1.2) hue-rotate(10deg)";
+        root.style.opacity = "0.7";
+        setTimeout(() => {
+            if (root) {
+                root.style.filter = "none";
+                root.style.opacity = "1";
             }
+        }, 80);
+    }
 
-            // Navigator is LEFT PANE (0-50% width)
+
+    handleMouseMove(e) {
+        if (!this.node) return;
+        const rect = this.stage.getBoundingClientRect();
+        const canvasScale = app.canvas?.ds?.scale || 1;
+        const stageW = rect.width / canvasScale;
+        const stageH = rect.height / canvasScale;
+
+        // Stage-relative unscaled coordinates
+        const x = (e.clientX - rect.left) / canvasScale;
+        const y = (e.clientY - rect.top) / canvasScale;
+
+        if (this.state.inspect) {
             const paneW = stageW / 2;
+            let rx = x;
+            let ry = y;
 
-            // 1. Reticle Logic (Clamped to Left Pane)
-            let rx = targetX;
-            if (rx > paneW) rx = paneW;
-            if (rx < 0) rx = 0;
-
-            let ry = targetY;
-            if (ry > stageH) ry = stageH;
-            if (ry < 0) ry = 0;
-
-            // Only update DOM if NOT locked (already set above if locked)
-            if (!this.state.reticleLocked) {
+            // Target Pane 1 (Navigator)
+            if (this.state.sliderLocked) {
+                rx = parseFloat(this.reticle.style.left) || paneW / 2;
+                ry = parseFloat(this.reticle.style.top) || stageH / 2;
+            } else {
+                rx = Math.max(0, Math.min(paneW, x));
+                ry = Math.max(0, Math.min(stageH, y));
                 this.reticle.style.left = `${rx}px`;
                 this.reticle.style.top = `${ry}px`;
             }
 
-            // 2. Calculate Relative Coordinates (0-100%) for Transform Origin
-            const pctX = (rx / paneW) * 100;
-            const pctY = (ry / stageH) * 100;
-
-            // STORE in state so the zoom animation loop can use it
-            // without needing a mouse event
-            this.state._lastPctX = pctX;
-            this.state._lastPctY = pctY;
-
-            // 3. Direct Update of Magnifier (Pane 2) for zero latency
-            if (this.layers.liveB.style.display !== 'none') {
-                this.layers.liveB.style.transformOrigin = `${pctX}% ${pctY}%`;
-                // Ensure zoom is applied every frame (handles both scroll and drag)
-                const z = this.state.inspectZoom || 1;
-                this.layers.liveB.style.transform = `scale(${z})`;
-                // Sync zoom HUD label inside the reticle
-                this.reticleZoomLabel.textContent = z < 10 ? `${z.toFixed(1)}x` : `${Math.round(z)}x`;
-                // Sync slider thumb to current zoom level
-                if (this.inspectSlider) this.inspectSlider.value = String(z);
-            }
+            this.updateReticle();
             return;
         }
 
         if (this.state.sliderLocked) return;
 
-        // --- MODE 2: FULL VIEW ---
-        if (this.state.full) {
-            const isFourWay = !!this.state.locked;
+        // --- MODE: HISTORIES (Dual Pane Sliders) ---
+        if (this.state.historyMode) {
+            const halfW = stageW / 2;
+            if (x <= halfW) {
+                const val = (x / halfW) * 100;
+                this.state.sliderX = Math.max(0, Math.min(100, val));
+            } else {
+                const relativeX = x - halfW;
+                const valX = (relativeX / halfW) * 100;
+                this.state.sliderX2 = Math.max(0, Math.min(100, valX));
 
-            // Horizontal X (Left/Right) - Controls A vs B mix
-            const pctX = Math.max(0, Math.min(100, (x / stageW) * 100));
-            this.state.sliderX = pctX;
-            this.sliderX.style.left = `${pctX}%`;
-
-            if (isFourWay) {
-                // Vertical Y (Top/Bottom) - Controls Live vs Locked mix
-                const pctY = Math.max(0, Math.min(100, (y / stageH) * 100));
-                this.state.sliderY = pctY;
-                this.sliderY.style.top = `${pctY}%`;
-                // Ensure Width is full
-                this.sliderY.style.width = "100%";
+                // Vert Slider for Pane 2
+                const valY = (y / stageH) * 100;
+                this.state.sliderY = Math.max(0, Math.min(100, valY));
             }
-
             this.updateDisplay();
             return;
         }
 
-        // --- MODE 3: DEFAULT (Split Panes) ---
-        const halfW = stageW / 2;
-        if (x <= halfW) {
-            const val = (x / halfW) * 100;
-            this.state.sliderX = Math.max(0, Math.min(100, val));
-            this.sliderX.style.left = `${this.state.sliderX / 2}%`;
-        } else {
-            const relativeX = x - halfW;
-            const val = (relativeX / halfW) * 100;
-            this.state.sliderX2 = Math.max(0, Math.min(100, val));
-            this.sliderX2.style.left = `${50 + (this.state.sliderX2 / 2)}%`;
-        }
+        // --- MODE: DEFAULT (One Pane Slider - Full Width) ---
+        const val = (x / stageW) * 100;
+        this.state.sliderX = Math.max(0, Math.min(100, val));
         this.updateDisplay();
     }
 
     updateReticle() {
         if (!this.state.inspect) return;
 
-        // Safety guard: layers may not be initialized during early slider events
+        // Safety guard
         const lB = this.layers?.liveB;
-        if (!lB || lB.style.display === 'none') return;
+        if (!lB) return;
         const z = this.state.inspectZoom || 1;
 
         // Reticle's CSS left/top is the source of truth for position
         const rect = this.stage.getBoundingClientRect();
-        const paneW = rect.width / 2;
+        const canvasScale = app.canvas?.ds?.scale || 1;
+        const paneW = (rect.width / canvasScale) / 2;
+        const paneH = rect.height / canvasScale;
 
         let rx = parseFloat(this.reticle.style.left);
         let ry = parseFloat(this.reticle.style.top);
 
         if (isNaN(rx)) rx = paneW / 2;
-        if (isNaN(ry)) ry = rect.height / 2;
+        if (isNaN(ry)) ry = paneH / 2;
 
         const pctX = (rx / paneW) * 100;
-        const pctY = (ry / rect.height) * 100;
+        const pctY = (ry / paneH) * 100;
+
+        // STORE for the animation loop
+        this.state._lastPctX = pctX;
+        this.state._lastPctY = pctY;
 
         lB.style.transformOrigin = `${pctX}% ${pctY}%`;
         lB.style.transform = `scale(${z})`;
@@ -1302,264 +1286,202 @@ class ComparinatorUI {
     }
 
     updateDisplay() {
-        // [H4] PERFORMANCE GUARD: Don't fight the zoom animation loop.
-        // During active inspection zoom, the animation frame handles layer physics.
+        if (!this.node) return;
         if (this.state.inspect && this.state._zoomAnimId) return;
 
-        if (!this.node) return;
         /**
-         * [NUCLEAR AUDIT - Phase 44]
-         * SYNC & LAYOUT REPAIR
+         * [H4 - AUDIT - Phase FINAL]
+         * V3.0 RENDER ENGINE
+         * Pane Logic:
+         * 1. One Pane (Default): liveA vs liveB @ 100% Width
+         * 2. Dual Pane (Histories/Inspect): Pane 1 (Left) vs Pane 2 (Right) @ 50/50
          */
 
-        // RESET: Hide all layers and labels by default
+        // 1. ATOMIC RESET
         Object.values(this.layers).forEach(l => {
             l.style.display = "none";
             l.style.clipPath = "none";
-            // CRITICAL: Do NOT reset transform on liveB during inspect mode
-            // because the smooth zoom animation loop manages that transform.
-            // Resetting it here was the root cause of zoom not working.
-            if (!this.state.inspect) {
-                l.style.transform = "none";
-            }
             l.style.width = "100%"; l.style.height = "100%";
-            l.style.left = "0"; l.style.top = "0";
-            l.style.borderLeft = "none";
+            l.style.left = "0%"; l.style.top = "0%";
+            if (!this.state.inspect) l.style.transform = "none";
         });
         Object.values(this.labels).forEach(l => l.style.display = "none");
         this.sliderX.style.display = "none";
+        this.sliderX2.style.display = "none";
         this.sliderY.style.display = "none";
-        if (this.sliderX2) this.sliderX2.style.display = "none";
+        this.hudWrap.style.display = "none";
+        this.reticle.style.display = "none";
+        this.stage.style.cursor = "default";
+        this.grids.nav.classList.remove("active");
+        this.grids.mag.classList.remove("active");
 
-        // --- MODE 1: INSPECTINATOR (Multi-Select Queue) ---
+        // --- MODE A: INSPECTINATOR (Sniper Split) ---
         if (this.state.inspect) {
             this.stage.style.cursor = "none";
             this.hudWrap.style.display = "flex";
-            const set = this.state.inspect_set;
+            this.reticle.style.display = "block";
 
-            // 1. Grid Population
-            if (set.length === 0) {
-                this.grids.nav.classList.remove("active");
-                this.grids.mag.classList.remove("active");
-                // Optional: show a scanline placeholder?
-                return;
-            }
+            const current = this.state.selected || this.state.live;
+            if (!current) return;
+            const url = this.resolveImageUrl(current, this.state.inspect_channel.toLowerCase());
 
-            this.grids.nav.classList.add("active");
-            this.grids.mag.classList.add("active");
-            this.grids.nav.style.width = "50%";
-            this.grids.mag.style.width = "50%";
-            this.grids.mag.style.left = "50%";
+            // Master (Navigator)
+            this.layers.liveA.style.display = "block";
+            this.layers.liveA.src = url;
+            this.layers.liveA.style.width = "50%";
 
-            const updateGrid = (grid, isMag) => {
-                grid.innerHTML = "";
-                for (let i = 0; i < 4; i++) {
-                    const cell = document.createElement("div");
-                    cell.className = "h4-cell";
-                    if (set[i]) {
-                        const img = document.createElement("img");
-                        img.src = this.resolveImageUrl(set[i], this.state.inspect_channel.toLowerCase());
-                        if (isMag) {
-                            const z = this.state.inspectZoom || 1;
-                            img.style.transformOrigin = `${this.state._lastPctX}% ${this.state._lastPctY}%`;
-                            img.style.transform = `scale(${z})`;
-                        }
-                        cell.appendChild(img);
-                    }
-                    grid.appendChild(cell);
-                }
-            };
+            // Target (Magnifier)
+            this.layers.liveB.style.display = "block";
+            this.layers.liveB.src = url;
+            this.layers.liveB.style.width = "50%";
+            this.layers.liveB.style.left = "50%";
 
-            updateGrid(this.grids.nav, false);
-            updateGrid(this.grids.mag, true);
-
-            // 2. Reticle Positioning
-            const rect = this.stage.getBoundingClientRect();
-            const paneW = rect.width / 2;
-            let rx = parseFloat(this.reticle.style.left) || paneW / 2;
-            let ry = parseFloat(this.reticle.style.top) || rect.height / 2;
-
-            const pctX = (rx / paneW) * 100;
-            const pctY = (ry / rect.height) * 100;
-            this.state._lastPctX = pctX;
-            this.state._lastPctY = pctY;
-
-            // 3. HUD READOUT
-            const z = this.state.inspectZoom || 1;
-            this.reticleZoomLabel.textContent = z < 10 ? `${z.toFixed(1)}x` : `${Math.round(z)}x`;
-
+            this.updateReticle();
             return;
         }
 
-        // --- Standard Cleanup ---
-        this.grids.nav.classList.remove("active");
-        this.grids.mag.classList.remove("active");
-        this.hudWrap.style.display = "none";
-        this.stage.style.cursor = "default";
+        // --- MODE B: HISTORIES (Comparison Split) ---
+        if (this.state.historyMode) {
+            const h = this.state.history || [];
+            const liveA = this.state.live;
+            const liveB = this.state.locked || (h[0] && h[0] !== liveA ? h[0] : h[1]);
 
-        this.stage.style.cursor = "default"; // Restore cursor otherwise
+            // STRICT GATING: Only show what the user explicitly selected in the strip
+            const g = this.state.selected;
+            const r = this.state.otherB;
+            const y = this.state.selYellow;
 
-        // --- MODE 2: FULL VIEW (Single or Quad) ---
-        if (this.state.full) {
-            const currentItem = this.state.selected || this.state.live;
-            const lockedItem = this.state.locked;
+            const x1 = this.state.sliderX;
+            const x2 = this.state.sliderX2;
+            const y1 = this.state.sliderY;
 
-            if (!currentItem) return;
-
-            // BLINK OVERRIDE: If blinking, force slider X to 0 or 100?
-            // "Blink" usually means show the other image.
-            // In layout, X controls A/B. If Blink is active, perhaps force 100% B?
-            const x = this.state.blink ? 100 : this.state.sliderX;
-
-            this.sliderX.style.display = "block";
-            this.sliderX.style.left = `${x}%`;
-
-            // 2A. STANDARD FULL VIEW (No Lock)
-            if (!lockedItem) {
-                const urlA = this.resolveImageUrl(currentItem, 'a');
-                const urlB = this.resolveImageUrl(currentItem, 'b');
-
-                // Layer A (Left Side of Slider)
+            // 1. PANE 1 (LIVE A vs B)
+            if (liveA) {
                 this.layers.liveA.style.display = "block";
-                this.layers.liveA.src = urlA;
-                this.layers.liveA.style.clipPath = `inset(0 ${100 - x}% 0 0)`;
+                this.layers.liveA.src = this.resolveImageUrl(liveA, 'b');
+                this.layers.liveA.style.width = "50%";
+                this.layers.liveA.style.clipPath = `inset(0% ${100 - x1}% 0% 0%)`;
 
-                // Layer B (Right Side of Slider)
                 this.layers.liveB.style.display = "block";
-                this.layers.liveB.src = urlB;
-                this.layers.liveB.style.clipPath = `inset(0 0 0 ${x}%)`;
+                this.layers.liveB.src = this.resolveImageUrl(liveB, 'b');
+                this.layers.liveB.style.width = "50%";
+                this.layers.liveB.style.clipPath = `inset(0% 0% 0% ${x1}%)`;
 
+                this.sliderX.style.display = "block";
+                this.sliderX.style.left = `${x1 / 2}%`;
+                this.labels.liveA.style.display = "block";
+                this.labels.liveB.style.display = "block";
+                this.labels.liveA.style.left = "5px";
+                this.labels.liveB.style.right = "calc(50% + 5px)";
+            }
 
-            } else {
-                // 2B. QUAD VIEW (4-WAY)
-                // Use sliderY (Yellow) to split Live (Top) vs Locked (Bottom)
-                const y = this.state.sliderY || 50;
-                this.sliderY.style.display = "block";
-                this.sliderY.style.top = `${y}%`;
+            // 2. PANE 2 (ADAPTIVE FORENSIC SPLIT)
+            if (g && !r && !y) {
+                // PHASE 1: SINGLE GREEN (Fill Pane 2)
+                this.layers.histC.style.display = "block";
+                this.layers.histC.src = this.resolveImageUrl(g, 'b');
+                this.layers.histC.style.width = "50%";
+                this.layers.histC.style.left = "50%";
+                this.layers.histC.style.zIndex = 30;
+                this.layers.histC.style.clipPath = "none";
 
-                // --- TOP HALF: CURRENT ITEM ---
-                const urlA = this.resolveImageUrl(currentItem, 'a');
-                const urlB = this.resolveImageUrl(currentItem, 'b');
+                this.labels.histC.style.display = "block";
+                this.labels.histC.style.left = "calc(50% + 5px)";
+                this.labels.histC.style.top = "5px";
+            } else if (g && r && !y) {
+                // PHASE 2: GREEN (TOP) vs RED (BOTTOM) - VERTICAL SPLIT
+                this.layers.histC.style.display = "block";
+                this.layers.histC.src = this.resolveImageUrl(g, 'b');
+                this.layers.histC.style.width = "50%";
+                this.layers.histC.style.left = "50%";
+                this.layers.histC.style.zIndex = 30;
+                this.layers.histC.style.clipPath = `inset(0% 0% ${100 - y1}% 0%)`;
 
-                // Top-Left (A)
-                this.layers.liveA.style.display = "block";
-                this.layers.liveA.src = urlA;
-                // Clip: Right by X slider, Bottom by Y slider
-                this.layers.liveA.style.clipPath = `inset(0 ${100 - x}% ${100 - y}% 0)`;
-
-                // Top-Right (B)
-                this.layers.liveB.style.display = "block";
-                this.layers.liveB.src = urlB;
-                // Clip: Left by X slider, Bottom by Y slider
-                this.layers.liveB.style.clipPath = `inset(0 0 ${100 - y}% ${x}%)`;
-
-                // --- BOTTOM HALF: LOCKED ITEM ---
-                const lockA = this.resolveImageUrl(lockedItem, 'a');
-                const lockB = this.resolveImageUrl(lockedItem, 'b');
-
-                // Bottom-Left (Lock A) - Using histA layer
-                this.layers.histA.style.display = "block";
-                this.layers.histA.src = lockA;
-                this.layers.histA.style.left = "0"; // Reset from Split Mode center
-                this.layers.histA.style.width = "100%"; // Reset from Split Mode width
-                this.layers.histA.style.borderLeft = "none";
-                this.layers.histA.style.clipPath = `inset(${y}% ${100 - x}% 0 0)`;
-                this.layers.histA.style.zIndex = "25"; // Ensure visibility
-
-                // Bottom-Right (Lock B) - Using histB layer
                 this.layers.histB.style.display = "block";
-                this.layers.histB.src = lockB;
-                this.layers.histB.style.left = "0"; // Reset from Split Mode center
-                this.layers.histB.style.width = "100%"; // Reset from Split Mode width
-                this.layers.histB.style.borderLeft = "none";
-                this.layers.histB.style.clipPath = `inset(${y}% 0 0 ${x}%)`;
-                this.layers.histB.style.zIndex = "25"; // Ensure visibility
+                this.layers.histB.src = this.resolveImageUrl(r, 'b');
+                this.layers.histB.style.width = "50%";
+                this.layers.histB.style.left = "50%";
+                this.layers.histB.style.zIndex = 25;
+                this.layers.histB.style.clipPath = `inset(${y1}% 0% 0% 0%)`;
 
+                this.sliderY.style.display = "block";
+                this.sliderY.style.left = "50%";
+                this.sliderY.style.width = "50%";
+                this.sliderY.style.top = `${y1}%`;
 
+                this.labels.histC.style.display = "block";
+                this.labels.histC.style.left = "calc(50% + 5px)";
+                this.labels.histC.style.top = "5px";
+                this.labels.histB.style.display = "block";
+                this.labels.histB.style.left = "calc(50% + 5px)";
+                this.labels.histB.style.bottom = "5px";
+            } else if (g || r || y) {
+                // PHASE 3: THE HOLY TRINITY (3-WAY SPLIT)
+                if (y) {
+                    this.layers.histA.style.display = "block";
+                    this.layers.histA.src = this.resolveImageUrl(y, 'b');
+                    this.layers.histA.style.width = "50%";
+                    this.layers.histA.style.left = "50%";
+                    this.layers.histA.style.zIndex = 15;
+                    this.layers.histA.style.clipPath = "none";
+                    this.labels.histA.style.display = "block";
+                    this.labels.histA.style.left = "calc(50% + 5px)";
+                    this.labels.histA.style.bottom = "5px";
+                }
+                if (r) {
+                    this.layers.histB.style.display = "block";
+                    this.layers.histB.src = this.resolveImageUrl(r, 'b');
+                    this.layers.histB.style.width = "50%";
+                    this.layers.histB.style.left = "50%";
+                    this.layers.histB.style.zIndex = 25;
+                    this.layers.histB.style.clipPath = `inset(0% 0% 0% ${x2}%)`;
+                    this.labels.histB.style.display = "block";
+                    this.labels.histB.style.right = "5px";
+                    this.labels.histB.style.bottom = "5px";
+                }
+                if (g) {
+                    this.layers.histC.style.display = "block";
+                    this.layers.histC.src = this.resolveImageUrl(g, 'b');
+                    this.layers.histC.style.width = "50%";
+                    this.layers.histC.style.left = "50%";
+                    this.layers.histC.style.zIndex = 30;
+                    this.layers.histC.style.clipPath = `inset(0% 0% ${100 - y1}% 0%)`;
+                    this.labels.histC.style.display = "block";
+                    this.labels.histC.style.left = "calc(50% + 5px)";
+                    this.labels.histC.style.top = "5px";
+                }
+                this.sliderX2.style.display = "block";
+                this.sliderX2.style.left = `${50 + (x2 / 2)}%`;
+                this.sliderY.style.display = "block";
+                this.sliderY.style.left = "50%";
+                this.sliderY.style.width = "50%";
+                this.sliderY.style.top = `${y1}%`;
             }
             return;
         }
 
-        // --- MODE 3: DEFAULT (Dual Panes / 4-Way Shift) ---
-        const h = this.state.history || [];
-        const liveIdx = 0;
+        // --- MODE C: DEFAULT (Clean Single-Pane Comparison - FULL WIDTH) ---
+        const main = this.state.selected || this.state.live || (this.state.history && this.state.history[0]);
+        if (!main) return;
+        const ref = this.state.locked || this.state.selected;
+        const x = this.state.blink ? 100 : this.state.sliderX;
 
-        // PANE 1: [Locked or Live] vs [Prior to Locked or Prior to Live]
-        const pane1Center = this.state.locked || h[liveIdx] || this.state.live;
-        let pane1Prior = h[liveIdx + 1];
-        if (this.state.locked) {
-            const lIdx = h.findIndex(i => String(i.timestamp) === String(this.state.locked.timestamp));
-            if (lIdx !== -1) pane1Prior = h[lIdx + 1];
-        }
+        // Pane 1 Master (Full width)
+        this.layers.liveA.style.display = "block";
+        this.layers.liveA.src = this.resolveImageUrl(main, 'a');
+        this.layers.liveA.style.clipPath = `inset(0% ${100 - x}% 0% 0%)`;
 
-        // PANE 2: [Selected or Hist-2] vs [Prior to Selected or Hist-3]
-        const pane2Center = this.state.selected || h[liveIdx + 2];
-        let pane2Prior = h[liveIdx + 3];
-        if (this.state.selected) {
-            const sIdx = h.findIndex(i => String(i.timestamp) === String(this.state.selected.timestamp));
-            if (sIdx !== -1) pane2Prior = h[sIdx + 1];
-        }
+        this.layers.liveB.style.display = "block";
+        this.layers.liveB.src = ref ? this.resolveImageUrl(ref, 'b') : this.resolveImageUrl(main, 'b');
+        this.layers.liveB.style.clipPath = `inset(0% 0% 0% ${x}%)`;
 
-        // BLINK: Show Channel B (Prior/Selected Prior)
-        let x1 = this.state.blink ? 100 : this.state.sliderX;
-        let x2 = this.state.blink ? 100 : (this.state.sliderX2 || 50);
-
-        // --- RENDER PANE 1 (LEFTHALF) ---
         this.sliderX.style.display = "block";
-        this.sliderX.style.left = `${x1 / 2}%`;
+        this.sliderX.style.left = `${x}%`;
 
-        if (pane1Center) {
-            const lA = this.layers.liveA;
-            lA.style.display = "block";
-            lA.src = this.resolveImageUrl(pane1Center, 'b'); // Legacy: use B as default
-            lA.style.width = "50%"; lA.style.left = "0";
-            lA.style.clipPath = `inset(0 ${100 - x1}% 0 0)`;
-        }
-        if (pane1Prior) {
-            const lB = this.layers.liveB;
-            lB.style.display = "block";
-            lB.src = this.resolveImageUrl(pane1Prior, 'b');
-            lB.style.width = "50%"; lB.style.left = "0";
-            lB.style.clipPath = `inset(0 0 0 ${x1}%)`;
-        }
-
-        // --- RENDER PANE 2 (RIGHTHALF) ---
-        if (this.sliderX2) {
-            this.sliderX2.style.display = "block";
-            this.sliderX2.style.left = `${50 + (x2 / 2)}%`;
-        }
-
-        if (pane2Center) {
-            const hA = this.layers.histA;
-            hA.style.display = "block";
-            hA.src = this.resolveImageUrl(pane2Center, 'b');
-            hA.style.width = "50%"; hA.style.left = "50%";
-            hA.style.clipPath = `inset(0 ${100 - x2}% 0 0)`;
-
-            this.labels.histA.style.display = "block";
-            this.labels.histA.style.left = "50%";
-            this.labels.histA.style.marginLeft = "5px";
-            this.labels.histA.style.right = "auto";
-        }
-        if (pane2Prior) {
-            const hB = this.layers.histB;
-            hB.style.display = "block";
-            hB.src = this.resolveImageUrl(pane2Prior, 'b');
-            hB.style.width = "50%"; hB.style.left = "50%";
-            hB.style.clipPath = `inset(0 0 0 ${x2}%)`;
-
-            this.labels.histB.style.display = "block";
-            this.labels.histB.style.right = "0";
-            this.labels.histB.style.marginRight = "5px";
-            this.labels.histB.style.left = "auto";
-        }
-
-        // Re-enable labels at top
         this.labels.liveA.style.display = "block";
         this.labels.liveB.style.display = "block";
         this.labels.liveA.style.left = "5px";
-        this.labels.liveB.style.right = "50%";
-        this.labels.liveB.style.marginRight = "5px";
+        this.labels.liveB.style.right = "5px";
     }
 
     renderStrip(forceFull = false) {
@@ -1567,7 +1489,7 @@ class ComparinatorUI {
 
         const historyItems = this.state.history || [];
 
-        // 1. Structural Check: Only wipe if length changed or explicitly forced
+        // 1. Structural Check
         const currentCount = this.strip.querySelectorAll('.h4-thumb').length;
         if (forceFull || currentCount !== historyItems.length) {
             this.strip.innerHTML = "";
@@ -1579,47 +1501,87 @@ class ComparinatorUI {
             historyItems.forEach((item, i) => {
                 const t = document.createElement("div");
                 t.className = "h4-thumb";
-                t.dataset.ts = item.timestamp; // Identification for selective updates
+                t.dataset.ts = item.timestamp;
 
-                // SIDE A (Left)
                 const sideA = document.createElement("div");
                 sideA.className = "h4-thumb-side h4-thumb-a";
-                // USE THUMBNAIL (TRUE)
                 sideA.style.backgroundImage = `url("${this.resolveImageUrl(item, 'a', true)}")`;
 
-                // SIDE B (Right)
                 const sideB = document.createElement("div");
                 sideB.className = "h4-thumb-side h4-thumb-b";
-                // USE THUMBNAIL (TRUE)
                 sideB.style.backgroundImage = `url("${this.resolveImageUrl(item, 'b', true)}")`;
 
                 t.appendChild(sideA);
                 t.appendChild(sideB);
 
-                // Allow dragging full resolution from the strip
                 t.draggable = true;
                 t.ondragstart = (e) => {
                     const url = this.resolveImageUrl(item, 'b', false);
                     e.dataTransfer.setData("text/plain", url);
-                    e.dataTransfer.setData("h4/item", JSON.stringify(item));
                 };
 
                 this.strip.appendChild(t);
+
+                // --- INTERACTION ENGINE: TRI-STATE SELECTION ---
+                t.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (e.shiftKey) {
+                        // SHIFT+LEFT CLICK: Toggle PANE 1 LOCK (Static Image B)
+                        const isLocked = this.state.locked && String(this.state.locked.timestamp) === String(item.timestamp);
+                        this.state.locked = isLocked ? null : item;
+                    } else {
+                        // LEFT CLICK CYCLE: GREEN -> RED -> YELLOW -> OFF
+                        const isG = (this.state.selected && String(this.state.selected.timestamp) === String(item.timestamp));
+                        const isR = (this.state.otherB && String(this.state.otherB.timestamp) === String(item.timestamp));
+                        const isY = (this.state.selYellow && String(this.state.selYellow.timestamp) === String(item.timestamp));
+
+                        if (!isG && !isR && !isY) {
+                            this.state.selected = item; // Click 1: Green
+                        } else if (isG) {
+                            this.state.selected = null;
+                            this.state.otherB = item;   // Click 2: Red
+                        } else if (isR) {
+                            this.state.otherB = null;
+                            this.state.selYellow = item; // Click 3: Yellow
+                        } else {
+                            this.state.selYellow = null; // Click 4: OFF
+                        }
+                    }
+                    this.renderStrip(true); // Force full highlight refresh
+                    this.updateDisplay();
+                };
+
+                t.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    // Global Clear Selections
+                    this.state.selected = null;
+                    this.state.otherB = null;
+                    this.state.selYellow = null;
+                    this.state.locked = null;
+                    this.renderStrip(true);
+                    this.updateDisplay();
+                    return false;
+                };
             });
         }
 
-        // 2. Selective Highlight Update
+        // 2. TRI-STATE HIGHLIGHTS
         const thumbs = this.strip.querySelectorAll('.h4-thumb');
-        thumbs.forEach((t, i) => {
+        thumbs.forEach((t) => {
             const ts = String(t.dataset.ts);
-            const item = historyItems[i];
 
-            const isActive = (this.state.selected && String(this.state.selected.timestamp) === ts) ||
-                (!this.state.selected && i === 0);
-            const isLocked = (this.state.locked && String(this.state.locked.timestamp) === ts);
+            const isG = (this.state.selected && String(this.state.selected.timestamp) === ts);
+            const isR = (this.state.otherB && String(this.state.otherB.timestamp) === ts);
+            const isY = (this.state.selYellow && String(this.state.selYellow.timestamp) === ts);
+            const isL = (this.state.locked && String(this.state.locked.timestamp) === ts);
 
-            t.classList.toggle("active", !!isActive);
-            t.classList.toggle("locked-ref", !!isLocked);
+            t.classList.toggle("sel-green", !!isG);
+            t.classList.toggle("sel-red", !!isR);
+            t.classList.toggle("sel-yellow", !!isY);
+            t.classList.toggle("is-locked", !!isL);
         });
     }
 
@@ -2059,67 +2021,53 @@ class ComparinatorUI {
 
         if (v) {
             // Mutual Exclusivity
-            if (this.state.full) {
-                this.state.full = false;
-                this.toggles.full.classList.remove("active");
+            if (this.state.historyMode) {
+                this.state.historyMode = false;
+                this.toggles.history.classList.remove("active");
             }
-            this.reticle.classList.add("active");
-            this.stage.style.cursor = "none"; // Only hide cursor on the stage, not the toggles bar
+            this.reticle.style.display = "block";
+            this.stage.style.cursor = "none";
             this.frame.classList.add("inspecting-mode");
             this.chanToggle.classList.add("visible");
             this.glitchTitle("the inspectinator");
 
-            // Shrink toggle labels to fit the zoom slider in the bar
+            // Shrink labels
             this._glitchText(this.toggles.save, "SAVE");
-            this._glitchText(this.toggles.full, "FULL");
+            this._glitchText(this.toggles.history, "HIST");
             this._glitchText(this.toggles.params, "PARAMS");
 
             // Show Zoom Controls
             if (this.zoomControls) this.zoomControls.style.display = "flex";
 
-            // Reset Zoom State on Enter
+            // Reset Zoom
             this.state.inspectZoom = 1.0;
             this.state._inspectZoomTarget = 1.0;
-            this.state.inspect_set = []; // [H4] Blank selection on entry
             if (this.inspectSlider) this.inspectSlider.value = "1";
             this.state.reticleLocked = false;
-            if (this.reticle) {
-                this.reticle.style.borderColor = "#00ff55";
-                this.reticle.style.boxShadow = "0 0 15px rgba(0, 255, 85, 0.2)";
-            }
-
         } else {
-            this.reticle.classList.remove("active");
-            this.stage.style.cursor = "default"; // Restore cursor on stage
+            this.reticle.style.display = "none";
+            this.stage.style.cursor = "default";
             this.frame.classList.remove("inspecting-mode");
             this.chanToggle.classList.remove("visible");
             this.glitchTitle("The Comparinator");
 
-            // Restore full toggle labels
+            // Restore labels
             this._glitchText(this.toggles.save, "SAVE FUNCTIONS");
-            this._glitchText(this.toggles.full, "FULL VIEW");
+            this._glitchText(this.toggles.history, "HISTORIES");
             this._glitchText(this.toggles.params, "PARAMETERS");
 
-            // Hide Zoom Controls
             if (this.zoomControls) this.zoomControls.style.display = "none";
         }
         this.updateDisplay();
     }
 
-    setInspectChannel(chan) {
-        this.state.inspect_channel = chan;
-        this.chanA.classList.toggle("active", chan === 'A');
-        this.chanB.classList.toggle("active", chan === 'B');
-        this.updateDisplay();
-    }
+    setHistoryMode(v) {
+        this.state.historyMode = v;
+        if (this.strip) this.strip.style.display = v ? "flex" : "none";
 
-    setFull(v) {
-        this.state.full = v;
         if (v) {
-            // Mutual Exclusivity: exit inspect mode cleanly
-            // (restores labels, hides zoom slider, etc.)
             if (this.state.inspect) this.setInspect(false);
-            this.glitchTitle("The...Full...View....inator...? -_-'' ... I dunno man");
+            this.glitchTitle("The Histories");
         } else {
             this.glitchTitle("The Comparinator");
         }

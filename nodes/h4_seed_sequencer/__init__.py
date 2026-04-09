@@ -7,3 +7,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_SeedSequencer": "h4 - Seed Sequencer",
 }
+
+# [H4] Standalone Modularity
+WEB_DIRECTORY = "./web"

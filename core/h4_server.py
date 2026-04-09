@@ -59,7 +59,8 @@ def create_thumbnail(path, filename):
     abs_path = os.path.abspath(path)
     path_hash = hashlib.sha256(abs_path.encode('utf-8')).hexdigest()[:16]
     
-    thumb_name = f"thumb_{path_hash}_{filename}.webp"
+    clean_filename = os.path.basename(filename)
+    thumb_name = f"thumb_{path_hash}_{clean_filename}.webp"
     thumb_path = os.path.join(THUMB_DIR, thumb_name)
     
     # Cache Hit (Speed optimization)

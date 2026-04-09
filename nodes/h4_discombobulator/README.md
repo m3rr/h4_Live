@@ -22,3 +22,15 @@ You place this node somewhere deep in a massive, nested workflow and forget abou
   1. Add the `H4_Discombobulator` to your canvas.
   2. You do not need to wire any inputs or outputs.
   3. Queue a prompt. Watch the status text at the top of the ComfyUI window begin to artifact.
+
+## Big Brother UI Utilities
+The `h4_discombobulator` package is the vehicle for the **h4 Big Brother** frontend bundle. In addition to glitching your text, it provides several system-level utilities:
+
+### KICK THE GRID (>_<)!!
+This button in the top toolbar is an **Emergency Canvas Defibrillator**. It serializes and reloads your graph in-memory to fix frozen UI elements and disconnected-looking wires.
+
+**Limitations:**
+- **Custom Noodle Systems:** If you are using a third-party noodle/wire system (e.g., circuit board wires or geometric paths), the "Kick" will restore the underlying logic but may **NOT** fix the visual rendering glitches of those custom noodles. In these cases, a full browser refresh is required to reset the third-party rendering layer.
+
+---
+*Generated for the h4_Live Workspace Audit.*

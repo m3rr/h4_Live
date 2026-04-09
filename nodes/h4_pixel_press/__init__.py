@@ -7,3 +7,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_PixelPress": "h4 - Pixel Press",
 }
+
+# [H4] Standalone Modularity
+WEB_DIRECTORY = "./web"

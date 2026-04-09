@@ -7,3 +7,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "H4_ModelMerger": "h4 - Model Merger",
 }
+
+# [H4] Standalone Modularity
+WEB_DIRECTORY = "./web"

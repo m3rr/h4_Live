@@ -88,3 +88,6 @@ __all__ = [
     "NODE_DISPLAY_NAME_MAPPINGS",
     "is_sfw_enabled",
 ]
+
+# [H4] Standalone Modularity
+WEB_DIRECTORY = "./web"
