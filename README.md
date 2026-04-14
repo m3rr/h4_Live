@@ -789,32 +789,40 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 ---
 
-### H4_SmartSave (The Hoarder's Delight)
-**What it is:** A dual-mode image handler that acts as both your "Preview Image" node and your "Save Image" node, but better. It previews, it saves, it hoards metadata like a digital dragon, and it gives you a film-strip of your recent conquests.
+### H4_SmartSave (The Vault)
+**Version:** v24.14.38 (**+ULTRA Edition**)
 
-**The "Save Mode" Switch:**
-- **PREVIEW ONLY (Default/OFF):** In this mode, it acts like a standard Preview Image node. Images go to your `/temp` folder. They exist for the session, they bring you joy for a moment, and then they vanish into the void when you restart. Great for "is this prompt garbage?" checks.
-- **SAVE TO DISK (ON):** Flipping this switch commits the image to your `/output` folder forever (or until you delete it). Use this when you actually make something worth keeping.
+**What it is:** The most advanced image archiving and forensic workstation currently available for ComfyUI. It's not just a file saver; it's a sentient metadata vault that has evolved through years of development from a simple filmstrip to the interaction authority it is today.
 
-**Inputs (The Knobs):**
-- **images**: The image pipe. Obviously.
-- **filename_prefix**: The name template. Default is `h4_`. It supports standard ComfyUI formatting like `%date:yyyy-MM-dd%`. If you don't know how file naming works, I can't save you.
-- **custom_metadata**: The fun part. A raw JSON text field where you can inject *anything* you want into the specific PNG chunks.
-  - Want to tag yourself as the author? Done.
-  - Want to add a "mood: grumpy" tag? Done.
-  - Want to paste your grocery list? Weird flex, but done.
-  - **Default Template**: comes pre-loaded with fields for Author, Model, Details, and a cheesy inspirational quote because we all need motivation.
+**The +ULTRA Edition Standard (v24.14.38):**
+The v24.14.38 update represents the pinnacle of "Grid-Mesh Sovereign" design. We've mastered the war against "Ghost Widgets" and implemented a multi-tiered diagnostic HUD that allows for surgical precision in parameter tracking. This version is the definitive **+ULTRA Edition**.
 
-**The Film Strip UI (The fancy part):**
-- **The Strip**: A horizontal scrolling list of your last 50 generated images. It's persistant-ish.
-- **Parameters Drawer**: Click a thumbnail -> Toggle the **PARAMS** switch (it won't open unless you ask nicely). A panel slides out showing *exactly* what settings created that image. It crawls the graph to find the Seed, CFG, Steps, and Prompts. No more "what seed was that?" guessing games.
-- **Lightbox**: Double-click any thumbnail to see it full-screen.
-  - **Zoom**: Mouse wheel or the slider at the bottom. Zooms up to 500% so you can inspect every single pixel of that waifu's eye glistening.
-  - **Pan**: Drag to move around.
+- **Nested Drawer HUD**: A dual-tier interaction model. The **[P]** (Parameters) drawer now spawns a secondary **Tier-2 Insight** drawer. Clicking any node in the parameter list slides out a high-fidelity detail HUD containing the full widget state and internal IDs of that specific node.
+- **Recursive Parameter Crawler**: I've removed the need for visible telemetry input pins. The node now autonomously crawls your workflow graph backwards recursively from its own position to find every Sampler, Model, CLIP, and VAE. It populates the diagnostic list with zero-wire efficiency.
+- **Viewport Sovereignty**: Aggressive DOM synchronization ensures that the UI elements (drawers/inputs) are only rendered when the node is actively in the viewport and at an interactive zoom level (>0.35). This eliminates coordinate artifacts and "ghost" inputs permanently.
+- **Kinetic Rescale**: The node is fully resizable with a hard-clamped minimum footprint (750x500), ensuring the premium HUD elements always have the breathing room required for tactical data display.
+- **Shadow Banishment Protocol**: Native ComfyUI widgets are kept alive in the backend for prompt validation but are physically banished to -9999px in the DOM, granting the H4 Sovereign HUD absolute authority over the node's visual real estate.
+- **LOD Guard (Visibility Floor)**: To solve the "Zoom Implosion" issue where the UI would drift or collapse during extreme canvas manipulation, we've implemented a hard visibility floor. When you zoom out beyond 0.35x, the node collapses into a high-visibility "H4" tactical icon. When you're zoomed in, the drawers are held in a strict `display: none` state unless actively summoned, preventing DOM artifacts from bleeding into the canvas pixels.
+- **Sovereign Interaction Authority**: The HUD buttons ([H], [P], [M]) are now locked into the interaction map with absolute priority. Even if the node is "busy" or rendering, your clicks on these tactical anchors will always fire first.
+
+**HUD Controls (Tactical anchors):**
+- **[H] History Button**: Located at the tactical home (bottom-left). Click to summon the high-performance filmstrip. This is the soul of the node, giving you immediate access to your generation journey.
+- **[P] Parameters Drawer**: The brain of the node. Displays the "Workflow DNA" gathered by the intelligence engine. No more guessing what settings made that one perfect image from three hours ago.
+- **[M] Metadata Drawer**: The controller. This is where you overwrite the Author, Model Name, and Comments, and where you inject **Universal JSON** into the PNG headers. It's your manual override for the automated systems.
+
+**The Vault Methodology & Legacy Features:**
+- **Save Mode vs. Preview Mode**: The tactical LED in the HUD centers you. Green = Saving to disk (Permanent). Yellow = Preview only (Temporary). This bi-modal system keeps your drive from filling up with garbage while ensuring the gold is protected.
+- **FIFO Pruning**: We still keep your folders clean. I track the last **25 images** (optimized from the legacy 50) per prefix subfolder and prune the rest automatically. This "Digital Janitor" logic is an h4 staple.
+- **Universal JSON Injection**: In the [M] drawer, you'll find a yellow-bordered text area. Any valid JSON you put here is burned permanently into the PNG chunks. This is perfect for custom tracking, versioning, or passing data to secondary tools.
+- **The Film Strip & Lightbox**: A horizontal scrolling list of your last generations. Double-click any thumbnail or the main preview to enter the Lightbox. Supports full keyboard navigation (Arrows), pan, and high-fidelity zoom up to 500% so you can inspect every single pixel of your render.
 
 **Why use it:**
 - Because standard SaveImage nodes are boring and don't tell you the history.
 - Because you want to audit your past self's decisions without opening the PNG Info tab every 5 seconds.
+- Because you value **interaction authority** and a clean, "Ghost-Free" workspace.
+- Because it's a clean node pack. If you ship it, keep it tidy.
+
+---
 
 ---
 

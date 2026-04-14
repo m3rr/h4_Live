@@ -63,11 +63,18 @@ def create_thumbnail(path, filename):
     thumb_name = f"thumb_{path_hash}_{clean_filename}.webp"
     thumb_path = os.path.join(THUMB_DIR, thumb_name)
     
-    # Cache Hit (Speed optimization)
+    # Cache Hit Check
     if os.path.exists(thumb_path):
-        # Optional: check mtime to invalidate stale cache?
-        # For performance, we trust the hash if the file hasn't changed.
-        return thumb_path
+        # [H4] THERMAL VALIDATION: Check if source is newer than cache
+        try:
+            # If explicit bypass is requested, ignore cache
+            if "nocache=true" in filename:
+                pass 
+            elif os.path.getmtime(path) <= os.path.getmtime(thumb_path):
+                return thumb_path
+        except:
+            pass
+        # If we reach here, we regenerate.
         
     try:
         # Load and process image efficiently

@@ -31,7 +31,7 @@ class H4_SessionManager:
         self._initialized = True
         
         # Path logic: Use temp dir or extension dir?
-        # User requested "extensions/h4_live/h4_session.json" effectively.
+        # Displays User requested "extensions/h4_live/h4_session.json" effectively.
         # But writing to extension dir is cleaner for persistence across crashes.
         self.session_file = os.path.join(os.path.dirname(__file__), "h4_session.json")
         

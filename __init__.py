@@ -39,7 +39,7 @@ WEB_DIRECTORY = "./js"
 PROTECTED_JS = [
     "h4_BigBrother.js", "h4_Dashboard.js", "h4_Sidebar.js", "assets", 
     "h4_generation.js", "h4_ParameterTracer.js", "h4_LoreManager.js",
-    "h4_Comparinator.js" # Performance/Stability Protection
+    "h4_Comparinator.js", "h4_Switcheroo.js", "h4_SmartSave.js" # Performance/Stability Protection
 ]
 
 def harvest_js_assets(nodes_dir, root_js_dir):

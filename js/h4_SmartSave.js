@@ -1,971 +1,520 @@
-import { app } from "/scripts/app.js";
-import { api } from "/scripts/api.js";
+import { app } from "../../scripts/app.js";
+import { api } from "../../scripts/api.js";
 
-// ------------------------------------------------------------------------------
-// H4 SmartSave UI - Film Strip, Lightbox & Parameter Drawer
-// ------------------------------------------------------------------------------
+/*
+    h4 - SmartSave (Unified Interaction Kernel v24.14.38)
+    ---------------------------------------------------
+    - NESTED DRAWER SYSTEM: Parameters drawer (P) now spawns a secondary "Node Detail" drawer.
+    - DYNAMIC PORTAL LINKING: Clicking a node in the P-list slides out a dedicated detail HUD.
+    - PARAMETER CRAWLER: Recursive graph traversal with deep inspection support.
+    - VIEWPORT SOVEREIGNTY: Aggressive DOM cleanup for off-screen/zoomed-out nodes.
+    - KINETIC RESCALE: Node is resizable (Min: 750x500).
+    - SHADOW BANISHMENT: Widget DOM elements relocated to -9999px.
+    - LOCKED PINEAPPLE STATE.
+*/
 
-const STYLE = `
-.h4-smart-root {
-    width: 100%;
-    background: transparent;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    position: relative;
-    overflow: visible;
-}
+const COLORS = {
+    bg: "#151515", accent: "#00f2ff", text: "#fff",
+    dim: "#666", border: "#252525", danger: "#ff3333",
+    btn_bg: "rgba(28, 28, 28, 0.8)",
+    cyan_glow: "rgba(0, 242, 255, 0.4)",
+    save: "#00ff00", preview: "#ffd700"
+};
 
-/* --- BOTTOM BAR (Comparinator Style) --- */
-.h4-smart-bar {
-    height: 32px;
-    min-height: 32px;
-    background: rgba(0,0,0,0.2);
-    display: flex;
-    align-items: center;
-    padding: 0 10px;
-    gap: 16px;
-    border-top: 1px solid rgba(0, 170, 68, 0.2);
-}
+const MIN_SIZE = [750, 500];
 
-/* --- TOGGLE BUTTON (Comparinator Style) --- */
-.h4-toggle-wrap {
-    display: flex; align-items: center; gap: 8px; cursor: pointer;
-    transition: 0.3s;
-}
-.h4-toggle-wrap:hover .h4-toggle-label { color: #fff; text-shadow: 0 0 8px #fff; }
+const getGrid = (node) => {
+    const w = Math.max(MIN_SIZE[0], node.size[0]);
+    const h = Math.max(MIN_SIZE[1], node.size[1]);
+    const cx = w / 2;
+    const HUD_Y = 70;
 
-.h4-toggle-pill {
-    width: 32px; height: 14px;
-    background: #111;
-    border-radius: 2px;
-    position: relative;
-    border: 1px solid #333;
-    overflow: hidden;
-}
-.h4-toggle-knob {
-    width: 50%; height: 100%;
-    background: #222;
-    position: absolute;
-    top: 0; left: 0;
-    transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-}
-.h4-toggle-wrap.active .h4-toggle-knob { 
-    left: 50%; background: #006622; 
-    box-shadow: inset 0 0 10px rgba(255,255,255,0.5); 
-}
-.h4-toggle-wrap.active .h4-toggle-pill { border-color: #006622; box-shadow: 0 0 10px rgba(0,102,34,0.3); }
+    return {
+        w, h,
+        pts: {
+            prefix_box: { x: cx - 335, y: HUD_Y - 12, w: 160, h: 24 },
+            toggle_box: { x: cx - 165, y: HUD_Y - 10, w: 50, h: 20 },
+            label_text: { x: cx - 100, y: HUD_Y },
+            path_box: { x: cx + 110, y: HUD_Y - 12, w: 160, h: 24 },
 
-.h4-toggle-label { 
-    font-size: 10px; color: #555; font-weight: 800;
-    letter-spacing: 1px; transition: 0.3s;
-}
-.h4-toggle-wrap.active .h4-toggle-label { color: #eee; text-shadow: 0 0 8px rgba(0,102,34,0.5); }
+            btn_p: { x: w - 70, y: 150, w: 45, h: 45 },
+            btn_m: { x: 25, y: 150, w: 45, h: 45 },
+            btn_h: { x: 25, y: h - 70, w: 45, h: 45 },
 
+            btn_prev: { x: 80, y: 0, w: 35, h: 70 },
+            btn_next: { x: w - 120, y: 0, w: 35, h: 70 },
 
-/* --- HISTORY DRAWER --- */
-.h4-smart-history-drawer {
-    background: #050505;
-    border-bottom: 2px solid rgba(0, 102, 34, 0.3);
-    overflow: hidden;
-    /* No CSS transition - height is controlled directly by JS animation */
-}
-.h4-smart-history-drawer.open {
-    border-bottom-color: #006622;
-}
-
-/* --- FILMSTRIP --- */
-.h4-smart-strip {
-    height: 110px;
-    display: flex;
-    overflow-x: auto;
-    padding: 10px;
-    gap: 10px;
-    box-sizing: border-box;
-}
-
-.h4-smart-thumb {
-    height: 100%; aspect-ratio: 1;
-    background: #111;
-    border: 1px solid #333;
-    position: relative;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: transform 0.2s, border-color 0.2s;
-    background-size: cover;
-    background-position: center;
-    border-radius: 2px;
-}
-.h4-smart-thumb:hover { transform: scale(1.05); }
-
-.h4-smart-thumb.type-output { border-color: #00aa44; border-width: 2px; }
-.h4-smart-thumb.type-temp { border-color: #cccc00; border-width: 2px; }
-.h4-smart-thumb.type-missing { border-color: #aa0000; border-width: 2px; }
-
-.h4-smart-thumb.type-output.active { border-color: #00ff55; box-shadow: 0 0 10px rgba(0,255,85,0.6); }
-.h4-smart-thumb.type-temp.active { border-color: #ffff00; box-shadow: 0 0 10px rgba(255,255,0,0.6); }
-.h4-smart-thumb.type-missing.active { border-color: #ff0000; box-shadow: 0 0 10px rgba(255,0,0,0.8); }
-
-/* --- PARAM PANEL (Fixed position, right side of node) --- */
-.h4-smart-drawer {
-    position: fixed;
-    z-index: 99998;
-    width: 320px;
-    background: rgba(10, 10, 10, 0.95);
-    border: 1px solid rgba(0, 102, 34, 0.4);
-    border-left: 3px solid #006622;
-    padding: 15px;
-    color: #ddd;
-    font-family: 'Segoe UI', 'Roboto', monospace;
-    font-size: 11px;
-    max-height: 500px;
-    overflow-y: auto;
-    display: none;
-    border-radius: 0 6px 6px 0;
-    box-shadow: 5px 5px 20px rgba(0,0,0,0.6);
-    backdrop-filter: blur(8px);
-    pointer-events: auto;
-}
-.h4-smart-drawer.open { display: block; }
-
-.h4-smart-param-block { margin-bottom: 15px; border-bottom: 1px dashed #222; padding-bottom: 10px; }
-.h4-smart-param-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
-.h4-smart-label { color: #666; text-transform: uppercase; font-size: 9px; letter-spacing: 1px; }
-.h4-smart-val { color: #00ff55; font-family: monospace; text-align: right; }
-.h4-smart-prompt { 
-    background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; 
-    color: #ccc; font-size: 10px; line-height: 1.4; margin-top: 5px; white-space: pre-wrap;
-}
-
-/* --- LIGHTBOX --- */
-.h4-smart-lightbox {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.95); z-index: 99999;
-    display: none; flex-direction: column; align-items: center; justify-content: center;
-}
-.h4-smart-lightbox.open { display: flex; }
-.h4-smart-lb-img {
-    max-width: 95vw; max-height: 95vh;
-    object-fit: contain;
-    box-shadow: 0 0 50px rgba(0,0,0,0.8);
-    transition: transform 0.1s;
-    transform-origin: center;
-}
-.h4-smart-lb-close {
-    position: absolute; top: 30px; right: 30px; color: #555; font-size: 30px; cursor: pointer;
-}
-.h4-smart-lb-close:hover { color: #fff; }
-
-.h4-smart-lb-nav {
-    position: absolute; top: 50%; width: 60px; height: 60px;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(0,0,0,0.3); color: #888; font-size: 40px; cursor: pointer;
-    border-radius: 50%; transform: translateY(-50%); transition: 0.2s;
-    user-select: none;
-}
-.h4-smart-lb-nav:hover { background: rgba(0, 102, 34, 0.4); color: #fff; scale: 1.1; }
-.h4-smart-lb-prev { left: 40px; }
-.h4-smart-lb-next { right: 40px; }
-
-.h4-smart-lb-footer {
-    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-    color: #555; font-size: 10px; font-family: monospace; letter-spacing: 2px;
-}
-`;
-
-// Height constants for state-driven computeSize
-const BAR_HEIGHT = 38;     // Toggle bar (32px) + 6px visual buffer to prevent clipping
-const DRAWER_HEIGHT = 130; // Film strip drawer when open
-const META_HEIGHT = 90;    // Custom metadata textarea when visible
+            preview_area: { x: 15, y: 120, w: w - 100, h: h - 180 },
+            drawer_p: { x: w + 15, y: 80, w: 340, h: h - 100 },
+            drawer_m: { x: -355, y: 80, w: 340, h: h - 100 },
+            drawer_detail: { x: w + 15 + 348, y: 80, w: 340, h: h - 100 }
+        }
+    };
+};
 
 class SmartSaveUI {
     constructor(node) {
-        this.node = node;
-        this.history = [];
-        this.selected = null;
-        this.liveParams = null;
-        this.lbIndex = -1;
-
-        // [User Request] Default to OPEN history strip
-        this.historyOpen = true;
-        this.metaOpen = false;
-        this.paramsOpen = false;
-
-        // Tracks the CURRENT widget height for computeSize, updated during animations
-        // Default starts with drawer OPEN height now
-        this._currentWidgetHeight = BAR_HEIGHT + DRAWER_HEIGHT;
-
-        // CSS Injection (once per page)
-        let style = document.getElementById("h4-smart-save-style");
-        if (!style) {
-            style = document.createElement("style");
-            style.id = "h4-smart-save-style";
-            style.textContent = STYLE;
-            document.head.appendChild(style);
-        }
-
-        this.initDOM();
-
-        // [H4] Initial Fetch
-        setTimeout(() => this.fetchHistory(), 1000);
-
-        // [H4] Polling (60s silent) - Reduced frequency to save resources
-        this.pollInterval = setInterval(() => this.fetchHistory(true), 60000);
+        this.node = node; this.history = []; this.active_tab = "NONE";
+        this.thumb_imgs = {}; this.selected_idx = -1;
+        this.footer_anim = 0; this.params_anim = 0; this.meta_anim = 0; this.detail_anim = 0;
+        this.scroll_idx = 0; this.hover_id = null; this.active_click_id = null;
+        this.last_click_time = 0; this.last_click_idx = -1;
+        this.is_lightbox = false;
+        this.last_crawl_time = 0;
+        this.selected_node_id = null;
+        this.fetchHistory();
     }
-
-    cleanup() {
-        if (this.drawer && this.drawer.parentNode) {
-            this.drawer.parentNode.removeChild(this.drawer);
-        }
-        if (this.lb && this.lb.parentNode) {
-            this.lb.parentNode.removeChild(this.lb);
-        }
-        // [H4] ZOMBIE KILLER
-        if (this.pollInterval) clearInterval(this.pollInterval);
-    }
-
-    onRemoved() {
-        this.cleanup();
-    }
-
-    /**
-     * Returns the CURRENT height the DOM widget needs.
-     * This is updated progressively during animations so ComfyUI
-     * allocates the correct container size (preventing clipping).
-     */
-    getDesiredHeight() {
-        return this._currentWidgetHeight;
-    }
-
-    // -------------------------------------------------------------------------
-    // DOM CONSTRUCTION
-    // -------------------------------------------------------------------------
-    initDOM() {
-        this.root = document.createElement("div");
-        this.root.className = "h4-smart-root";
-
-        // 1. History Drawer Container (starts at OPEN height now)
-        this.histDrawer = document.createElement("div");
-        this.histDrawer.className = "h4-smart-history-drawer open"; // Add open class
-        this.histDrawer.style.height = `${DRAWER_HEIGHT}px`; // Set explicit height
-
-        // Film Strip inside Drawer
-        this.strip = document.createElement("div");
-        this.strip.className = "h4-smart-strip";
-        this.strip.innerHTML = "<div style='color:#444; font-size:10px; padding:10px;'>LOADING HISTORY...</div>";
-        this.histDrawer.appendChild(this.strip);
-        this.root.appendChild(this.histDrawer);
-
-        // 2. Control Bar with TWO toggles
-        const bar = document.createElement("div");
-        bar.className = "h4-smart-bar";
-
-        // Toggle 1: IMAGE HISTORY (Default Active)
-        const histToggle = this._createToggle("IMAGE HISTORY", (active) => {
-            this.historyOpen = active;
-            this.histDrawer.classList.toggle("open", active);
-            // Animate the drawer height from 0 -> DRAWER_HEIGHT or vice versa
-            this._animateDrawer(active);
-        });
-
-        // Set toggle to active state initially
-        histToggle.classList.add("active");
-        histToggle.isActive = true; // Helper for internal state if needed
-
-
-        // Toggle 2: CUSTOM META
-        const metaToggle = this._createToggle("CUSTOM META", (active) => {
-            this.metaOpen = active;
-            this._toggleMetaWidget(active);
-        });
-
-        // Toggle 3: PARAMS (opens a right-side floating panel)
-        const paramsToggle = this._createToggle("PARAMS", (active) => {
-            this.paramsOpen = active;
-            this.drawer.classList.toggle("open", active);
-            if (active) this.updateDrawerPosition();
-        });
-        this._paramsToggleEl = paramsToggle;
-
-        // NEW: Manual Refresh Button
-        const refreshBtn = document.createElement("div");
-        refreshBtn.className = "h4-smart-toggle"; // Reuse toggle style base
-        refreshBtn.style.padding = "2px 8px";
-        refreshBtn.style.minWidth = "24px";
-        refreshBtn.style.textAlign = "center";
-        refreshBtn.textContent = "↻"; // Unicode Refresh Icon
-        refreshBtn.title = "Push Me to rescan for images";
-        refreshBtn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // Visual feedback
-            const old = refreshBtn.textContent;
-            refreshBtn.textContent = "...";
-            this.fetchHistory(false, true).then(() => {
-                refreshBtn.textContent = old;
-            });
-        };
-
-        bar.appendChild(histToggle);
-        bar.appendChild(metaToggle);
-        bar.appendChild(paramsToggle);
-        bar.appendChild(refreshBtn);
-        this.root.appendChild(bar);
-
-        // 3. Param Panel
-        this.drawer = document.createElement("div");
-        this.drawer.className = "h4-smart-drawer";
-        document.body.appendChild(this.drawer);
-
-        // 4. Lightbox (Fullscreen image viewer)
-        this.lb = document.createElement("div");
-        this.lb.className = "h4-smart-lightbox";
-        this.lb.onclick = () => {
-            this.lb.classList.remove("open");
-            // [H4] Force VRAM Flush
-            this.lbImg.src = "";
-            this.lbImg.removeAttribute("src"); // Hint for GC
-        };
-
-        this.lbImg = document.createElement("img");
-        this.lbImg.className = "h4-smart-lb-img";
-        this.lb.appendChild(this.lbImg);
-
-        // Navigation Buttons
-        this.lbPrev = document.createElement("div");
-        this.lbPrev.className = "h4-smart-lb-nav h4-smart-lb-prev";
-        this.lbPrev.innerHTML = "&#10094;";
-        this.lbPrev.onclick = (e) => { e.stopPropagation(); this.navigateLightbox(-1); };
-        this.lb.appendChild(this.lbPrev);
-
-        this.lbNext = document.createElement("div");
-        this.lbNext.className = "h4-smart-lb-nav h4-smart-lb-next";
-        this.lbNext.innerHTML = "&#10095;";
-        this.lbNext.onclick = (e) => { e.stopPropagation(); this.navigateLightbox(1); };
-        this.lb.appendChild(this.lbNext);
-
-        this.lbFooter = document.createElement("div");
-        this.lbFooter.className = "h4-smart-lb-footer";
-        this.lb.appendChild(this.lbFooter);
-
-        const close = document.createElement("div");
-        close.className = "h4-smart-lb-close";
-        close.innerHTML = "&times;";
-        this.lb.appendChild(close);
-
-        document.body.appendChild(this.lb);
-
-        // Keyboard support
-        window.addEventListener("keydown", (e) => {
-            if (!this.lb.classList.contains("open")) return;
-            if (e.key === "ArrowLeft") this.navigateLightbox(-1);
-            if (e.key === "ArrowRight") this.navigateLightbox(1);
-            if (e.key === "Escape") this.lb.classList.remove("open");
-        });
-    }
-
-    /**
-     * Updates the fixed-position parameter panel to sit to the RIGHT of the node.
-     * Converts node graph coordinates to screen coordinates using the canvas transform.
-     */
-    updateDrawerPosition() {
-        if (!this.drawer || !this.drawer.classList.contains("open")) return;
-        if (!app.canvas || !app.canvas.ds) return;
-
-        // Get the node's position and size in graph space
-        const nodeX = this.node.pos[0];
-        const nodeY = this.node.pos[1];
-        const nodeW = this.node.size[0];
-
-        // Convert graph coords to screen coords using the canvas DataStore transform
-        const scale = app.canvas.ds.scale;
-        const offsetX = app.canvas.ds.offset[0];
-        const offsetY = app.canvas.ds.offset[1];
-
-        // The canvas element may have its own offset from the page
-        const canvasRect = app.canvas.canvas.getBoundingClientRect();
-
-        // Right edge of node in screen space
-        const screenRight = (nodeX + nodeW + offsetX) * scale + canvasRect.left;
-        const screenTop = (nodeY + offsetY) * scale + canvasRect.top;
-
-        // Position the drawer panel to the right, with a small gap
-        this.drawer.style.left = `${screenRight + 8}px`;
-        this.drawer.style.top = `${screenTop}px`;
-    }
-
-    // -------------------------------------------------------------------------
-    // HELPERS
-    // -------------------------------------------------------------------------
-    _createToggle(label, onToggle) {
-        const wrap = document.createElement("div");
-        wrap.className = "h4-toggle-wrap";
-        wrap.innerHTML = `
-            <div class="h4-toggle-pill"><div class="h4-toggle-knob"></div></div>
-            <div class="h4-toggle-label">${label}</div>
-        `;
-        let active = false;
-
-        wrap.onclick = () => {
-            const isCurrentlyActive = wrap.classList.contains("active");
-            active = !isCurrentlyActive; // Toggle
-
-            wrap.classList.toggle("active", active);
-            onToggle(active);
-        };
-        return wrap;
-    }
-
-    _animateDrawer(opening) {
-        const startDrawerH = opening ? 0 : DRAWER_HEIGHT;
-        const targetDrawerH = opening ? DRAWER_HEIGHT : 0;
-        const startTime = performance.now();
-        const duration = 400;
-
-        const animate = (time) => {
-            const progress = Math.min((time - startTime) / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 4);
-
-            const currentDrawerH = startDrawerH + (targetDrawerH - startDrawerH) * eased;
-            this.histDrawer.style.height = `${currentDrawerH}px`;
-
-            this._currentWidgetHeight = BAR_HEIGHT + currentDrawerH;
-
-            const sz = this.node.computeSize();
-            this.node.setSize([this.node.size[0], sz[1]]);
-            app.graph.setDirtyCanvas(true, true);
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                this.histDrawer.style.height = `${targetDrawerH}px`;
-                this._currentWidgetHeight = BAR_HEIGHT + targetDrawerH;
-                const finalSz = this.node.computeSize();
-                this.node.setSize([this.node.size[0], finalSz[1]]);
-            }
-        };
-        requestAnimationFrame(animate);
-    }
-
-    _toggleMetaWidget(show) {
-        if (!this.node.widgets) return;
-        const w = this.node.widgets.find(w => w.name === "custom_metadata");
-        if (!w) return;
-
-        const startNodeH = this.node.size[1];
-
-        if (show) {
-            w.type = "customtext";
-            w.computeSize = () => [this.node.size[0], META_HEIGHT];
-            w.hidden = false;
-            this.node.setSize([this.node.size[0], startNodeH + META_HEIGHT]);
-        } else {
-            w.type = "converted-widget";
-            w.computeSize = () => [0, -4];
-            w.hidden = true;
-            this.node.setSize([this.node.size[0], startNodeH - META_HEIGHT]);
-        }
-        app.graph.setDirtyCanvas(true, true);
-    }
-
-    // -------------------------------------------------------------------------
-    // DATA FETCHING
-    // -------------------------------------------------------------------------
-    async fetchHistory(silent = false, forceRender = false) {
+    async fetchHistory() {
         try {
             const res = await api.fetchApi("/h4/smart_save/history");
-            if (res.ok) {
-                let data = await res.json();
+            if (res.ok) { this.history = await res.json(); this.node.setDirtyCanvas(true); }
+        } catch (e) { }
+    }
 
-                // [User Request] Allow both output and temp items.
-                // data = data.filter(item => item.type === "output");
+    crawlWorkflow() {
+        const now = Date.now();
+        if (now - this.last_crawl_time < 500) return;
+        this.last_crawl_time = now;
 
-                const currentSig = this.history[0]?.timestamp;
-                const newSig = data[0]?.timestamp;
+        const params = [];
+        const visited = new Set();
+        const queue = [this.node];
 
-                if (forceRender || currentSig !== newSig || this.history.length !== data.length) {
-                    if (!this._lastLogTime) this._lastLogTime = 0;
-                    if (!silent && (Date.now() - this._lastLogTime > 600000)) {
-                        console.log(`[SmartSave] Updating history strip. New: ${data.length}, Old: ${this.history.length}`);
-                        this._lastLogTime = Date.now();
+        while (queue.length > 0) {
+            const node = queue.shift();
+            if (!node || visited.has(node.id)) continue;
+            visited.add(node.id);
+
+            if (node.widgets && node.id !== this.node.id) {
+                const node_params = [];
+                node.widgets.forEach(w => {
+                    if (w.name && !w.name.startsWith("_") && w.type !== "button" && w.type !== "converted-widget") {
+                        let val = w.value;
+                        if (typeof val === "number") val = Number.isInteger(val) ? val : val.toFixed(3);
+                        node_params.push({ name: w.name, val: val });
                     }
-                    this.history = data.slice(0, 50);
-                    this.renderStrip();
-                }
-            } else {
-                console.error("[SmartSave] History fetch failed:", res.status, res.statusText);
-            }
-        } catch (e) {
-            console.error("[SmartSave] History fetch error:", e);
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // FILM STRIP RENDERING
-    // -------------------------------------------------------------------------
-    renderStrip() {
-        this.strip.innerHTML = "";
-        if (this.history.length === 0) {
-            this.strip.style.display = "flex";
-            this.strip.style.flexDirection = "column";
-            this.strip.style.alignItems = "center";
-            this.strip.style.justifyContent = "center";
-
-            this.strip.innerHTML = `
-                <div style='color:#666; font-size:11px; margin-bottom: 5px;'>NO HISTORY FOUND</div>
-                <button id="h4-smart-refresh-btn" style='
-                    background: #333; color: #ccc; border: 1px solid #444; 
-                    padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 10px;
-                '>REFRESH</button>
-            `;
-
-            const btn = this.strip.querySelector("#h4-smart-refresh-btn");
-            if (btn) btn.onclick = (e) => {
-                e.stopPropagation();
-                btn.textContent = "SCANNING...";
-                this.fetchHistory();
-            };
-            return;
-        }
-
-        // Reset styles for grid mode
-        this.strip.style.display = "flex";
-        this.strip.style.flexDirection = "row";
-        this.strip.style.alignItems = "flex-start";
-        this.strip.style.justifyContent = "flex-start";
-
-        this.history.forEach((item) => {
-            const thumb = document.createElement("div");
-            thumb.className = "h4-smart-thumb";
-            if (this.selected && this.selected.filename === item.filename) thumb.classList.add("active");
-
-            // Image URL via ComfyUI's view API
-            // Image URL via ComfyUI's view API (or H4 Thumbnail API)
-            // const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
-
-            // THUMBNAIL OPTIMIZATION
-            const thumbUrl = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
-            const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
-
-            thumb.style.backgroundImage = `url("${thumbUrl}")`;
-
-            // Assign class based on type initially
-            let thumbClass = item.type === "output" ? "type-output" : "type-temp";
-            thumb.classList.add(thumbClass);
-
-            // Check if source image actually exists
-            fetch(fullUrl, { method: "HEAD" }).then(res => {
-                if (!res.ok) {
-                    thumb.classList.remove("type-output", "type-temp");
-                    thumb.classList.add("type-missing");
-                }
-            }).catch(e => {
-                thumb.classList.remove("type-output", "type-temp");
-                thumb.classList.add("type-missing");
-            });
-
-            // Single click: select, auto-open params panel, view in node, and show parameters
-            thumb.onclick = async () => {
-                this.selected = item;
-
-                // [User Request] Preview the history item directly in the node pane
-                if (this.node) {
-                    const previewImg = new Image();
-                    previewImg.onload = () => {
-                        this.node.imgs = [previewImg];
-                        app.graph.setDirtyCanvas(true, true);
-                    };
-                    // fullUrl is already defined above via api.apiURL
-                    previewImg.src = fullUrl;
-                    this.node.imageIndex = 0;
-                }
-
-                this.renderStrip();
-
-                // [H4] Lazy Loading Metadata Fetch
-                if (!item.prompt && !item.user_meta) {
-                    const thumbOverlay = document.createElement("div");
-                    thumbOverlay.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,102,34,0.4); display:flex; align-items:center; justify-content:center; color:#fff; font-size:8px;";
-                    thumbOverlay.textContent = "LOADING...";
-                    thumb.appendChild(thumbOverlay);
-
-                    try {
-                        const mRes = await api.fetchApi(`/h4/metadata?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
-                        if (mRes.ok) {
-                            const mData = await mRes.json();
-                            item.prompt = mData.prompt;
-                            item.workflow = mData.workflow;
-                            item.user_meta = mData.user_meta;
-                        }
-                    } catch (e) {
-                        console.error("[SmartSave] Metadata fetch failed", e);
-                    } finally {
-                        if (thumbOverlay.parentNode) thumbOverlay.parentNode.removeChild(thumbOverlay);
-                    }
-                }
-
-                this.renderDrawer(item);
-            };
-
-            // Double click: open lightbox (Navigable)
-            thumb.ondblclick = () => {
-                const idx = this.history.indexOf(item);
-                this.showLightbox(idx);
-            };
-            this.strip.appendChild(thumb);
-        });
-    }
-
-    // -------------------------------------------------------------------------
-    // PARAMETER DISPLAY
-    // -------------------------------------------------------------------------
-
-    /** Crawl live graph for params on execution */
-    async crawlLive() {
-        const selfParams = this.crawlUpstreamVariables(this.node);
-        this.liveParams = selfParams;
-        if (!this.selected) {
-            this.renderDrawer(null, true);
-        }
-    }
-
-    /** Render the parameter drawer with either live or historical data */
-    renderDrawer(item, isLive = false) {
-        this.drawer.innerHTML = "";
-
-        // Only update position if open
-        if (this.paramsOpen) this.updateDrawerPosition();
-
-        const header = document.createElement("div");
-        header.style.cssText = "color:#00ff55; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #333; padding-bottom:5px; display:flex; justify-content:space-between;";
-        header.innerHTML = `<span>${isLive ? "LIVE PARAMETERS (ACTIVE)" : "HISTORY PARAMETERS"}</span><span style='color:#444; font-size:8px;'>v7.6.5</span>`;
-        this.drawer.appendChild(header);
-
-        if (!isLive) console.log("[SmartSave] Rendering History Drawer for item:", item);
-
-        let data = {};
-
-        if (isLive && this.liveParams) {
-            data = this.liveParams;
-        } else if (item) {
-            if (item.prompt) {
-                data = this.parsePromptJSON(item.prompt);
-            }
-            if (item.user_meta?.prompt) data.prompt_pos = item.user_meta.prompt;
-            if (item.user_meta) {
-                Object.assign(data, item.user_meta);
-            }
-        }
-
-        if (Object.keys(data).length === 0) {
-            this.drawer.innerHTML += "<div style='color:#444; font-style:italic;'>No parameter data available.</div>";
-            return;
-        }
-
-        const addRow = (label, val, skipIfNull = true) => {
-            if (skipIfNull && (val === undefined || val === null || val === "")) return;
-            const r = document.createElement("div");
-            r.className = "h4-smart-param-row";
-            r.innerHTML = `<span class="h4-smart-label">${label}</span><span class="h4-smart-val">${val ?? "None"}</span>`;
-            this.drawer.appendChild(r);
-        };
-
-        const addBlock = (label, text) => {
-            if (!text) return;
-            const l = document.createElement("div");
-            l.className = "h4-smart-label";
-            l.style.marginTop = "8px";
-            l.textContent = label;
-            const b = document.createElement("div");
-            b.className = "h4-smart-prompt";
-            b.textContent = text;
-            this.drawer.appendChild(l);
-            this.drawer.appendChild(b);
-        };
-
-        // ENFORCED ORDER PER USER REQUEST
-        addRow("SEED", data.seed);
-        addRow("CKPT", data.ckpt_name);
-
-        // LORAS
-        if (data.loras && data.loras.length) {
-            data.loras.forEach((lora, idx) => {
-                addRow(`LORA ${idx + 1}`, lora.name);
-                addRow(`LORA ${idx + 1} STR`, lora.strength);
-            });
-        }
-
-        addRow("CLIP", data.clip_name);
-        addRow("VAE", data.vae_name);
-        addRow("CLIPSKIP", data.clip_skip);
-        addRow("SCHEDULER", data.scheduler);
-        addRow("SAMPLER", data.sampler_name);
-        addRow("STEPS", data.steps);
-        addRow("CFG", data.cfg);
-        addRow("DENOISE", data.denoise);
-
-        addBlock("POSITIVE PROMPT", data.positive || data.prompt_pos);
-        addBlock("NEGATIVE PROMPT", data.negative || data.prompt_neg);
-
-        // EXTRA / UNSORTED DATA
-        const handled = ["seed", "ckpt_name", "loras", "clip_name", "vae_name", "clip_skip", "scheduler", "sampler_name", "steps", "cfg", "denoise", "positive", "negative", "prompt_pos", "prompt_neg"];
-        Object.entries(data).forEach(([k, v]) => {
-            if (!handled.includes(k) && typeof v !== "object") {
-                addRow(k.toUpperCase(), v);
-            }
-        });
-    }
-
-    // -------------------------------------------------------------------------
-    // GRAPH CRAWLING (Live Parameter Extraction)
-    // -------------------------------------------------------------------------
-    crawlUpstreamVariables(node, visited = new Set(), results = {}) {
-        if (!node || visited.has(node.id)) return results;
-        visited.add(node.id);
-
-        const type = node.comfyClass || node.type || "";
-
-        // Collect widgets from current node
-        if (node.widgets) {
-            for (const w of node.widgets) {
-                const n = w.name.toLowerCase();
-                const v = w.value;
-                if (v === undefined || v === null) continue;
-
-                if (n === "seed") results.seed = v;
-                if (n === "steps") results.steps = v;
-                if (n === "cfg") results.cfg = v;
-                if (n === "sampler_name") results.sampler_name = v;
-                if (n === "scheduler") results.scheduler = v;
-                if (n === "denoise") results.denoise = v;
-                if (n === "ckpt_name") results.ckpt_name = v;
-                if (n === "vae_name") results.vae_name = v;
-                if (n === "clip_name") results.clip_name = v;
-                if (n === "stop_at_clip_layer") results.clip_skip = v;
-
-                // Lora Capture
-                if (type.includes("LoraLoader")) {
-                    if (!results.loras) results.loras = [];
-                    const lName = node.widgets.find(lw => lw.name === "lora_name")?.value;
-                    const lStr = node.widgets.find(lw => lw.name.includes("strength"))?.value;
-                    if (lName) {
-                        // Check if already captured to avoid duplicates in complex graphs
-                        if (!results.loras.find(l => l.name === lName)) {
-                            results.loras.push({ name: lName, strength: lStr || 1.0 });
-                        }
-                    }
+                });
+                if (node_params.length > 0) {
+                    params.push({ title: node.title || node.type || "Untitled Node", id: node.id, items: node_params });
                 }
             }
-        }
-
-        if (node.inputs) {
-            for (const inp of node.inputs) {
-                if (inp.link) {
-                    const link = app.graph.links[inp.link];
-                    if (link) {
-                        const upstream = app.graph.getNodeById(link.origin_id);
-                        if (!upstream) continue;
-
-                        if (type.toLowerCase().includes("ksampler")) {
-                            if (inp.name === "positive") this.extractPrompt(upstream, "positive", results);
-                            if (inp.name === "negative") this.extractPrompt(upstream, "negative", results);
-                        }
-                        this.crawlUpstreamVariables(upstream, visited, results);
-                    }
-                }
-            }
-        }
-        return results;
-    }
-
-    extractPrompt(node, type, results) {
-        if (!node) return;
-        const w = node.widgets?.find(w => w.name === "text" || w.name === "string");
-        if (w) {
-            results[type] = w.value;
-        } else {
             if (node.inputs) {
-                for (const i of node.inputs) {
-                    if (i.link) {
-                        const l = app.graph.links[i.link];
-                        if (l) this.extractPrompt(app.graph.getNodeById(l.origin_id), type, results);
+                node.inputs.forEach(input => {
+                    if (input.link != null) {
+                        const link = app.graph.links[input.link];
+                        if (link) {
+                            const originNode = app.graph.getNodeById(link.origin_id);
+                            if (originNode) queue.push(originNode);
+                        }
                     }
-                }
+                });
             }
         }
-    }
 
-    // -------------------------------------------------------------------------
-    // PNG METADATA PARSER (History)
-    // -------------------------------------------------------------------------
-    parsePromptJSON(promptInfo) {
-        const res = { loras: [] };
-        if (!promptInfo) return res;
+        const drawer = this.node.__h4_core_drawer;
+        if (!drawer) return;
 
-        for (const [id, node] of Object.entries(promptInfo)) {
-            const inputs = node.inputs;
-            const type = node.class_type;
-            if (!inputs) continue;
-
-            const t = type.toLowerCase();
-
-            if (t.includes("ksampler")) {
-                if (inputs.seed !== undefined) res.seed = inputs.seed;
-                if (inputs.steps !== undefined) res.steps = inputs.steps;
-                if (inputs.cfg !== undefined) res.cfg = inputs.cfg;
-                if (inputs.sampler_name) res.sampler_name = inputs.sampler_name;
-                if (inputs.scheduler) res.scheduler = inputs.scheduler;
-                if (inputs.denoise !== undefined) res.denoise = inputs.denoise;
-
-                if (inputs.positive && Array.isArray(inputs.positive)) {
-                    res.positive = this.findTextInJson(promptInfo, inputs.positive[0]);
-                }
-                if (inputs.negative && Array.isArray(inputs.negative)) {
-                    res.negative = this.findTextInJson(promptInfo, inputs.negative[0]);
-                }
-            }
-            if (t.includes("checkpointloader")) {
-                if (inputs.ckpt_name) res.ckpt_name = inputs.ckpt_name;
-            }
-            if (t.includes("vaeloader")) {
-                if (inputs.vae_name) res.vae_name = inputs.vae_name;
-            }
-            if (t.includes("cliploader")) {
-                if (inputs.clip_name) res.clip_name = inputs.clip_name;
-            }
-            if (t.includes("clipsetlastlayer") || t.includes("clipskip")) {
-                if (inputs.stop_at_clip_layer !== undefined) res.clip_skip = inputs.stop_at_clip_layer;
-            }
-            if (t.includes("loraloader")) {
-                if (inputs.lora_name) {
-                    const lStr = inputs.strength_model || inputs.strength || 1.0;
-                    res.loras.push({ name: inputs.lora_name, strength: lStr });
-                }
-            }
+        let html = `<div style="color:#00f2ff; margin:20px; font-weight:900; border-bottom:1px solid #333; padding-bottom:10px; pointer-events:none;">h4 // PARAMETERS</div>`;
+        if (params.length === 0) html += `<div style="color:#444; margin:40px 20px; font-family:monospace; font-style:italic;">No upstream parameters found.</div>`;
+        else {
+            params.forEach(p => {
+                html += `
+                    <div class="h4-param-card" data-node-id="${p.id}" style="margin:0 15px 15px 15px; background:rgba(20,20,20,0.5); border:1px solid #222; border-radius:4px; overflow:hidden; cursor:pointer; transition:border-color 0.2s;">
+                        <div style="background:#222; color:#aaa; font-size:10px; padding:4px 8px; font-family:monospace; border-bottom:1px solid #333; pointer-events:none;">${p.title} <span style="color:#555;float:right;">ID:${p.id}</span></div>
+                        <div style="padding:8px; pointer-events:none;">
+                            ${p.items.slice(0, 3).map(it => `
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-family:monospace; font-size:11px;">
+                                    <span style="color:#444;">${it.name}</span>
+                                    <span style="color:#00f2ff; text-align:right; max-width:60%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${it.val}</span>
+                                </div>
+                            `).join("")}
+                            ${p.items.length > 3 ? `<div style="color:#333; font-size:9px; text-align:center;">+ ${p.items.length - 3} MORE</div>` : ""}
+                        </div>
+                    </div>
+                `;
+            });
         }
-        console.log("[SmartSave] Parsed Metadata Results:", res);
-        return res;
+        drawer.innerHTML = html;
+        drawer.querySelectorAll(".h4-param-card").forEach(card => {
+            card.onmouseenter = () => card.style.borderColor = COLORS.accent;
+            card.onmouseleave = () => card.style.borderColor = "#222";
+            card.onclick = () => {
+                const id = card.getAttribute("data-node-id");
+                this.selected_node_id = parseInt(id);
+                this.showNodeDetails(this.selected_node_id);
+                this.node.setDirtyCanvas(true);
+            };
+        });
     }
 
-    findTextInJson(fullJson, id) {
-        const node = fullJson[id];
-        if (!node) return null;
-        if (node.inputs && (node.inputs.text || node.inputs.string)) return node.inputs.text || node.inputs.string;
-        return null;
-    }
+    showNodeDetails(nodeId) {
+        const node = app.graph.getNodeById(nodeId);
+        const detailDrawer = this.node.__h4_detail_drawer;
+        if (!node || !detailDrawer) return;
 
-    // -------------------------------------------------------------------------
-    // LIGHTBOX NAVIGATION
-    // -------------------------------------------------------------------------
-    showLightbox(index) {
-        if (index < 0 || index >= this.history.length) return;
-        this.lbIndex = index;
-        const item = this.history[index];
-        const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
-
-        this.lbImg.src = fullUrl;
-        this.lbFooter.textContent = `IMAGE ${index + 1} OF ${this.history.length} | ${item.filename}`;
-        this.lb.classList.add("open");
-
-        // Visibility of nav buttons
-        this.lbPrev.style.display = index <= 0 ? "none" : "flex";
-        this.lbNext.style.display = index >= this.history.length - 1 ? "none" : "flex";
-    }
-
-    navigateLightbox(dir) {
-        let nextIdx = this.lbIndex + dir;
-        if (nextIdx >= 0 && nextIdx < this.history.length) {
-            this.showLightbox(nextIdx);
+        let html = `<div style="color:#00f2ff; margin:20px; font-weight:900; border-bottom:1px solid #333; padding-bottom:10px; pointer-events:none;">h4 // DETAIL // ${node.id}</div>`;
+        html += `<div style="padding:0 20px 20px 20px;">
+                    <div style="color:#aaa; font-size:14px; margin-bottom:20px; font-family:monospace;">${node.title || node.type}</div>`;
+        if (node.widgets) {
+            node.widgets.forEach(w => {
+                if (w.name && !w.name.startsWith("_") && w.type !== "button") {
+                    html += `
+                        <div style="margin-bottom:15px; border-left:2px solid #333; padding-left:10px;">
+                            <div style="font-size:9px; color:#555; margin-bottom:4px; text-transform:uppercase;">${w.name}</div>
+                            <div style="color:#00f2ff; font-family:monospace; font-size:12px; word-break:break-all;">${w.value}</div>
+                        </div>
+                    `;
+                }
+            });
         }
+        html += `</div>`;
+        detailDrawer.innerHTML = html;
     }
 }
 
-// =============================================================================
-// EXTENSION REGISTRATION
-// =============================================================================
+const banishElement = (el) => {
+    if (!el) return;
+    el.style.position = "fixed"; el.style.top = "-9999px"; el.style.left = "-9999px";
+    el.style.width = "0"; el.style.height = "0"; el.style.opacity = "0";
+    el.style.pointerEvents = "none"; el.style.overflow = "hidden"; el.style.zIndex = "-1";
+    if (el.parentNode) el.remove();
+};
 
-// [User Request] Medium Sized Square on Summon
-const DEFAULT_SIZE = [500, 280];
+const cloakWidget = (w) => {
+    w.hidden = true; w.draw = () => { }; w.computeSize = () => [0, -4];
+    banishElement(w.inputEl); banishElement(w.textareaEl); if (w.element) banishElement(w.element);
+};
 
 app.registerExtension({
-    name: "h4.SmartSave",
-    async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        if (nodeData.name === "H4_SmartSave") {
-            const onNodeCreated = nodeType.prototype.onNodeCreated;
-            nodeType.prototype.onNodeCreated = function () {
-                if (onNodeCreated) onNodeCreated.apply(this, arguments);
+    name: "h4.SmartSave.Core",
+    async beforeRegisterNodeDef(nodeType, nodeData) {
+        if (nodeData.name !== "H4_SmartSave") return;
 
-                // Instantiate UI and attach as DOM widget
-                const ui = new SmartSaveUI(this);
-                this.smartUI = ui;
-                const widget = this.addDOMWidget("h4_smart_ui", "custom", ui.root, { serialize: false });
+        ["onNodeCreated", "onRemoved", "onMouseDown", "onDrawForeground", "onMouseMove", "onMouseUp", "onResize"].forEach(m => delete nodeType.prototype[m]);
 
-                setTimeout(() => {
-                    this.setSize(DEFAULT_SIZE);
-                }, 50);
+        nodeType.prototype.onNodeCreated = function () {
+            this.size = [750, 500]; this.resizable = true;
+            this.h4_ui = new SmartSaveUI(this);
 
-                const hideWidgets = () => {
-                    if (!this.widgets) return;
-                    this.widgets.forEach(w => {
-                        if (w.name === "custom_metadata" && !ui.metaOpen) {
-                            w.type = "converted-widget";
-                            w.computeSize = () => [0, -4];
-                            w.hidden = true;
-                        }
-                    });
-
-                    const idx = this.widgets.findIndex(w => w.name === "h4_smart_ui");
-                    if (idx >= 0 && idx < this.widgets.length - 1) {
-                        const [uiWidget] = this.widgets.splice(idx, 1);
-                        this.widgets.push(uiWidget);
-                    }
-                };
-                hideWidgets();
-                setTimeout(hideWidgets, 100);
-                setTimeout(hideWidgets, 500);
-
-                setTimeout(() => {
-                    hideWidgets();
-                    const sz = this.computeSize();
-                    this.setSize([this.size[0], sz[1]]);
-                    app.graph.setDirtyCanvas(true, true);
-                }, 600);
-
-                widget.computeSize = (w) => {
-                    return [w, ui.getDesiredHeight()];
-                };
-
-                const onDrawForeground = this.onDrawForeground;
-                this.onDrawForeground = function (ctx) {
-                    hideWidgets();
-                    ui.updateDrawerPosition();
-                    if (onDrawForeground) onDrawForeground.apply(this, arguments);
-                };
-
-                const onExecuted = this.onExecuted;
-                this.onExecuted = function (output) {
-                    // [H4] Atomic Execution Sync
-                    // 1. Clear selection to focus on new results
-                    ui.selected = null;
-
-                    // 2. Call parent logic (this updates the internal Comfy node preview)
-                    if (onExecuted) onExecuted.apply(this, arguments);
-
-                    // 3. UI Housekeeping
-                    hideWidgets();
-                    ui.crawlLive();
-
-                    // 4. History Sync - we wait slightly for file system flush
-                    // Using a more aggressive fetch for immediate results
-                    setTimeout(() => ui.fetchHistory(false, true), 1000);
-                };
-
-                const onRemoved = this.onRemoved;
-                this.onRemoved = function () {
-                    if (onRemoved) onRemoved.apply(this, arguments);
-                    ui.cleanup();
-                };
+            const initEl = (tag, cls) => {
+                const el = document.createElement(tag); el.className = cls;
+                el.style.position = "fixed"; el.style.zIndex = "10";
+                el.style.display = "none";
+                el.style.background = "rgba(10,10,10,0.98)"; el.style.border = "1px solid #333";
+                el.style.color = "#00f2ff"; el.style.padding = "4px 8px"; el.style.fontFamily = "monospace"; el.style.fontSize = "12px";
+                return el;
             };
-        }
+            this.__h4_core_prefix = initEl("input", "h4-grid-prefix");
+            this.__h4_core_path = initEl("input", "h4-grid-path");
+            this.__h4_core_drawer = initEl("div", "h4-grid-drawer");
+            this.__h4_core_drawer.style.overflowY = "auto";
+            this.__h4_detail_drawer = initEl("div", "h4-grid-detail");
+            this.__h4_detail_drawer.style.overflowY = "auto";
+            this.__h4_meta_drawer = initEl("div", "h4-grid-meta");
+            this.__h4_meta_drawer.style.padding = "20px";
+            this.__h4_meta_drawer.style.overflowY = "auto";
+            this.__h4_meta_drawer.style.overflowX = "hidden";
+            this.__h4_meta_drawer.style.boxSizing = "border-box";
+            this.__h4_meta_drawer.innerHTML = `
+                <div style="color:#00f2ff; margin-bottom:15px; font-weight:900; border-bottom:1px solid #333; padding-bottom:5px; pointer-events:none;">h4 // METADATA</div>
+                <div style="font-size:9px; color:#555; margin-bottom:4px; pointer-events:none;">AUTHOR</div>
+                <input class="h4-meta-author" style="width:100% !important; background:#111; border:1px solid #333; color:#fff; font-family:monospace; margin-bottom:15px; padding:5px; box-sizing:border-box;"/>
+                <div style="font-size:9px; color:#555; margin-bottom:4px; pointer-events:none;">NOTES / RAW JSON</div>
+                <textarea class="h4-meta-raw" style="width:100% !important; height:180px; background:#111; border:1px solid #333; color:#aaa; font-family:monospace; font-size:10px; padding:5px; resize:none; box-sizing:border-box;"></textarea>
+            `;
+
+            this.__h4_lightbox = document.createElement("div");
+            Object.assign(this.__h4_lightbox.style, {
+                position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
+                background: "rgba(0,0,0,0.95)", zIndex: "9999", display: "none",
+                flexDirection: "column", alignItems: "center", justifyContent: "center",
+                backdropFilter: "blur(40px)"
+            });
+            this.__h4_lightbox.innerHTML = `
+                <div style="position:absolute; top:20px; right:20px; color:#fff; font-size:30px; cursor:pointer;" class="btn-close">×</div>
+                <div style="position:absolute; left:40px; color:#00f2ff; font-size:50px; cursor:pointer;" class="btn-prev">‹</div>
+                <div style="position:absolute; right:40px; color:#00f2ff; font-size:50px; cursor:pointer;" class="btn-next">›</div>
+                <img style="max-width:90%; max-height:90%; border:1px solid #333; box-shadow:0 0 50px rgba(0,242,255,0.2)"/>
+                <div style="color:#555; font-family:monospace; margin-top:20px;" class="info">FILE_INF</div>
+            `;
+            this.__h4_lightbox.onclick = (e) => {
+                const ui = this.h4_ui;
+                if (e.target.classList.contains("btn-close")) { this.__h4_lightbox.style.display = "none"; ui.is_lightbox = false; }
+                else if (e.target.classList.contains("btn-prev")) { ui.selected_idx = Math.max(0, ui.selected_idx - 1); this.__h4_update_lightbox(); }
+                else if (e.target.classList.contains("btn-next")) { ui.selected_idx = Math.min(ui.history.length - 1, ui.selected_idx + 1); this.__h4_update_lightbox(); }
+            };
+            this.__h4_update_lightbox = () => {
+                const item = this.h4_ui.history[this.h4_ui.selected_idx] || { filename: "UNKNOWN" };
+                const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}&full=true`);
+                this.__h4_lightbox.querySelector("img").src = url;
+                this.__h4_lightbox.querySelector(".info").innerText = `${item.filename} // ${item.type.toUpperCase()}`;
+            };
+            document.body.appendChild(this.__h4_lightbox);
+
+            const bindWidgets = () => {
+                if (!this.widgets || this.widgets.length === 0) return false;
+                this.widgets.forEach(w => {
+                    const name = w.name;
+                    if (name === "filename_prefix") {
+                        this.__h4_core_prefix.value = w.value || "h4_";
+                        this.__h4_core_prefix.oninput = () => w.value = this.__h4_core_prefix.value;
+                    }
+                    else if (name === "output_path") {
+                        this.__h4_core_path.value = w.value || "";
+                        this.__h4_core_path.oninput = () => w.value = this.__h4_core_path.value;
+                    }
+                    else if (name === "save_mode") { this.h4_save_mode_ref = w; }
+                    else if (name === "custom_json") {
+                        try {
+                            const data = JSON.parse(w.value || "{}");
+                            const input = this.__h4_meta_drawer.querySelector(".h4-meta-author");
+                            const raw = this.__h4_meta_drawer.querySelector(".h4-meta-raw");
+                            if (input && !input.matches(":focus")) input.value = data.author || "";
+                            if (raw && !raw.matches(":focus")) raw.value = JSON.stringify(data, null, 2);
+                            const update = () => {
+                                try {
+                                    let current;
+                                    if (document.activeElement === raw) current = JSON.parse(raw.value);
+                                    else { current = JSON.parse(w.value || "{}"); current.author = input.value; }
+                                    w.value = JSON.stringify(current);
+                                } catch (e) { }
+                            };
+                            input.oninput = update; raw.oninput = update;
+                        } catch (e) { }
+                    }
+                    cloakWidget(w);
+                });
+                return true;
+            };
+
+            this.drawWidgets = function () { };
+            bindWidgets();
+            setTimeout(() => bindWidgets(), 100); setTimeout(() => bindWidgets(), 500); setTimeout(() => bindWidgets(), 1500);
+            api.addEventListener("executed", (e) => { if (e.detail.node === this.id.toString()) this.h4_ui.fetchHistory(); });
+        };
+
+        nodeType.prototype.resizable = true;
+
+        nodeType.prototype.onResize = function (size) {
+            if (size[0] < MIN_SIZE[0]) size[0] = MIN_SIZE[0];
+            if (size[1] < MIN_SIZE[1]) size[1] = MIN_SIZE[1];
+        };
+
+        nodeType.prototype.onRemoved = function () {
+            [this.__h4_core_prefix, this.__h4_core_path, this.__h4_core_drawer, this.__h4_detail_drawer, this.__h4_meta_drawer, this.__h4_lightbox].forEach(el => {
+                if (el && el.parentNode) el.remove();
+            });
+        };
+
+        nodeType.prototype.onMouseDown = function (e, pos) {
+            const mesh = getGrid(this); const pts = mesh.pts;
+            const px = pos[0]; const py = pos[1];
+            const checkHit = (id) => {
+                const p = pts["btn_" + id] || pts[id + "_box"];
+                if (id === "p" || id === "m" || id === "h") {
+                    const pb = pts["btn_" + id];
+                    return px >= pb.x - 25 && px <= pb.x + pb.w + 25 && py >= pb.y - 25 && py <= pb.y + pb.h + 25;
+                }
+                if (id === "preview_area") return px >= pts.preview_area.x && px <= pts.preview_area.x + pts.preview_area.w && py >= pts.preview_area.y && py <= pts.preview_area.y + pts.preview_area.h;
+                if (!p) return false; return px >= p.x && px <= p.x + p.w && py >= p.y && py <= p.y + p.h;
+            };
+
+            if (checkHit("p")) {
+                this.h4_ui.active_click_id = "p";
+                this.h4_ui.active_tab = this.h4_ui.active_tab === "PARAMETERS" ? "NONE" : "PARAMETERS";
+                if (this.h4_ui.active_tab === "PARAMETERS") this.h4_ui.crawlWorkflow();
+                else this.h4_ui.selected_node_id = null;
+                this.setDirtyCanvas(true); return true;
+            }
+            if (checkHit("m")) { this.h4_ui.active_click_id = "m"; this.h4_ui.active_tab = this.h4_ui.active_tab === "METADATA" ? "NONE" : "METADATA"; this.setDirtyCanvas(true); return true; }
+            if (checkHit("h")) { this.h4_ui.active_click_id = "h"; this.h4_ui.active_tab = this.h4_ui.active_tab === "HISTORY" ? "NONE" : "HISTORY"; this.setDirtyCanvas(true); return true; }
+            if (checkHit("toggle")) { this.h4_ui.active_click_id = "toggle"; if (this.h4_save_mode_ref) this.h4_save_mode_ref.value = !(this.h4_save_mode_ref.value); this.setDirtyCanvas(true); return true; }
+            if (checkHit("preview_area")) {
+                const now = Date.now();
+                if (now - this.h4_ui.last_click_time < 350) { this.h4_ui.is_lightbox = true; this.__h4_lightbox.style.display = "flex"; this.__h4_update_lightbox(); }
+                this.h4_ui.last_click_time = now; return true;
+            }
+            if (this.h4_ui.active_tab === "HISTORY") {
+                const btn_fy = mesh.h - (110 * this.h4_ui.footer_anim) + 20;
+                const checkArrow = (id) => {
+                    const p = pts["btn_" + id];
+                    return px >= p.x && px <= p.x + p.w && py >= btn_fy && py <= btn_fy + p.h;
+                };
+                if (checkArrow("prev")) { this.h4_ui.scroll_idx = Math.max(0, this.h4_ui.scroll_idx - 1); this.setDirtyCanvas(true); return true; }
+                if (checkArrow("next")) { this.h4_ui.scroll_idx = Math.min(Math.max(0, this.h4_ui.history.length - 5), this.h4_ui.scroll_idx + 1); this.setDirtyCanvas(true); return true; }
+                if (py > mesh.h - (110 * this.h4_ui.footer_anim)) {
+                    const idx = Math.floor((px - 120) / 105) + this.h4_ui.scroll_idx;
+                    if (idx >= 0 && idx < this.h4_ui.history.length) {
+                        const now = Date.now();
+                        if (now - this.h4_ui.last_click_time < 350 && this.h4_ui.last_click_idx === idx) {
+                            this.h4_ui.selected_idx = idx; this.h4_ui.is_lightbox = true;
+                            this.__h4_lightbox.style.display = "flex"; this.__h4_update_lightbox();
+                        }
+                        this.h4_ui.last_click_time = now; this.h4_ui.last_click_idx = idx;
+                        this.h4_ui.selected_idx = idx; this.setDirtyCanvas(true); return true;
+                    }
+                }
+            }
+            if (px > 0 && px < this.size[0] && py > 0 && py < this.size[1]) return true;
+        };
+
+        nodeType.prototype.onMouseMove = function (e, pos) {
+            const mesh = getGrid(this); const pts = mesh.pts;
+            const px = pos[0]; const py = pos[1];
+            const checkHit = (id) => {
+                const p = pts["btn_" + id] || pts[id + "_box"];
+                if (id === "p" || id === "m" || id === "h") {
+                    const pb = pts["btn_" + id];
+                    return px >= pb.x - 25 && px <= pb.x + pb.w + 25 && py >= pb.y - 25 && py <= pb.y + pb.h + 25;
+                }
+                if (!p) return false; return px >= p.x && px <= p.x + p.w && py >= p.y && py <= p.y + p.h;
+            };
+            let h_id = null;
+            if (checkHit("p")) h_id = "p"; else if (checkHit("m")) h_id = "m"; else if (checkHit("h")) h_id = "h"; else if (checkHit("toggle")) h_id = "toggle";
+            else if (this.h4_ui.active_tab === "HISTORY") {
+                const btn_fy = mesh.h - (110 * this.h4_ui.footer_anim) + 20;
+                const checkArrow = (id) => {
+                    const p = pts["btn_" + id];
+                    return px >= p.x && px <= p.x + p.w && py >= btn_fy && py <= btn_fy + p.h;
+                };
+                if (checkArrow("prev")) h_id = "prev"; else if (checkArrow("next")) h_id = "next";
+            }
+            if (h_id !== this.h4_ui.hover_id) { this.h4_ui.hover_id = h_id; this.setDirtyCanvas(true); }
+        };
+
+        nodeType.prototype.onMouseUp = function () { this.h4_ui.active_click_id = null; this.setDirtyCanvas(true); };
+
+        nodeType.prototype.onDrawForeground = function (ctx) {
+            try {
+                this.resizable = true;
+                const mesh = getGrid(this); const pts = mesh.pts;
+                const scale = app.canvas.ds.scale; const ds = app.canvas.ds;
+                const active = this.h4_ui.active_tab; const isSaving = this.h4_save_mode_ref?.value || false;
+
+                if (this.widgets) this.widgets.forEach(cloakWidget);
+
+                const syncGrid = (el, pt, visible) => {
+                    if (!el) return;
+                    if (!visible || scale < 0.35) { if (el.parentNode) el.remove(); return; }
+                    const rb = app.canvas.canvas.getBoundingClientRect();
+                    const screenX = (this.pos[0] + pt.x + ds.offset[0]) * scale + rb.left;
+                    const screenY = (this.pos[1] + pt.y + ds.offset[1]) * scale + rb.top;
+                    const inView = screenX > -1000 && screenX < window.innerWidth + 1000 && screenY > 50 && screenY < window.innerHeight + 1000;
+                    if (!inView) { if (el.parentNode) el.remove(); return; }
+                    if (!el.parentNode) document.body.appendChild(el);
+                    el.style.left = screenX + "px"; el.style.top = screenY + "px";
+                    if (el.classList.contains("h4-grid-drawer") || el.classList.contains("h4-grid-meta") || el.classList.contains("h4-grid-detail")) {
+                        el.style.width = pt.w + "px"; el.style.height = pt.h + "px";
+                        el.style.transform = `scale(${scale})`; el.style.transformOrigin = "top left";
+                    } else {
+                        el.style.width = (pt.w * scale) + "px"; el.style.height = (pt.h * scale) + "px";
+                        el.style.transform = "none";
+                    }
+                    el.style.display = "block";
+                };
+
+                if (scale < 0.35) {
+                    [this.__h4_core_prefix, this.__h4_core_path, this.__h4_core_drawer, this.__h4_detail_drawer, this.__h4_meta_drawer].forEach(el => { if (el && el.parentNode) el.remove(); });
+                    ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, mesh.w, mesh.h);
+                    ctx.fillStyle = COLORS.accent; ctx.font = "900 120px monospace"; ctx.textAlign = "center";
+                    ctx.textBaseline = "middle"; ctx.fillText("H4", mesh.w / 2, mesh.h / 2);
+                    ctx.font = "20px monospace"; ctx.fillText("SMARTSAVE", mesh.w / 2, mesh.h / 2 + 80);
+                    return;
+                }
+
+                syncGrid(this.__h4_core_prefix, pts.prefix_box, true);
+                syncGrid(this.__h4_core_path, pts.path_box, true);
+
+                this.h4_ui.params_anim += ((active === "PARAMETERS" ? 1 : 0) - this.h4_ui.params_anim) * 0.15;
+                this.h4_ui.meta_anim += ((active === "METADATA" ? 1 : 0) - this.h4_ui.meta_anim) * 0.15;
+                this.h4_ui.footer_anim += ((active === "HISTORY" ? 1 : 0) - this.h4_ui.footer_anim) * 0.15;
+                this.h4_ui.detail_anim += (((active === "PARAMETERS" && this.h4_ui.selected_node_id) ? 1 : 0) - this.h4_ui.detail_anim) * 0.15;
+
+                if (this.h4_ui.params_anim > 0.01) {
+                    const slide_pts = { ...pts.drawer_p };
+                    slide_pts.x = mesh.w + slide_pts.w * (1 - this.h4_ui.params_anim) + 15;
+                    syncGrid(this.__h4_core_drawer, slide_pts, true);
+                    this.__h4_core_drawer.style.opacity = this.h4_ui.params_anim;
+                } else if (this.__h4_core_drawer.parentNode) this.__h4_core_drawer.remove();
+
+                if (this.h4_ui.detail_anim > 0.01) {
+                    const slide_pts = { ...pts.drawer_detail };
+                    slide_pts.x = (mesh.w + 15 + 348) + (slide_pts.w * (1 - this.h4_ui.detail_anim));
+                    syncGrid(this.__h4_detail_drawer, slide_pts, true);
+                    this.__h4_detail_drawer.style.opacity = this.h4_ui.detail_anim;
+                } else if (this.__h4_detail_drawer.parentNode) this.__h4_detail_drawer.remove();
+
+                if (this.h4_ui.meta_anim > 0.01) {
+                    const slide_pts = { ...pts.drawer_m };
+                    slide_pts.x = -(slide_pts.w + 15) * this.h4_ui.meta_anim;
+                    syncGrid(this.__h4_meta_drawer, slide_pts, true);
+                    this.__h4_meta_drawer.style.opacity = this.h4_ui.meta_anim;
+                } else if (this.__h4_meta_drawer.parentNode) this.__h4_meta_drawer.remove();
+
+                if (Math.abs(this.h4_ui.footer_anim - (active === "HISTORY" ? 1 : 0)) > 0.01 || this.h4_ui.params_anim > 0.01 || this.h4_ui.meta_anim > 0.01 || this.h4_ui.detail_anim > 0.01) this.setDirtyCanvas(true);
+
+                ctx.save(); ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, mesh.w, mesh.h);
+                this.__h4_cached_imgs = this.imgs; this.imgs = null;
+                const activeImg = (this.h4_ui.selected_idx >= 0 && this.h4_ui.active_tab === "HISTORY") ? null : this.__h4_cached_imgs?.[0];
+                if (activeImg) {
+                    const img = activeImg; const gr = Math.min(pts.preview_area.w / img.width, pts.preview_area.h / img.height);
+                    ctx.drawImage(img, pts.preview_area.x + (pts.preview_area.w - img.width * gr) / 2, pts.preview_area.y + (pts.preview_area.h - img.height * gr) / 2, img.width * gr, img.height * gr);
+                } else if (this.h4_ui.selected_idx >= 0) {
+                    const item = this.h4_ui.history[this.h4_ui.selected_idx];
+                    const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}&full=true`);
+                    if (this.h4_ui.thumb_imgs[url]) {
+                        const img = this.h4_ui.thumb_imgs[url]; const gr = Math.min(pts.preview_area.w / img.width, pts.preview_area.h / img.height);
+                        ctx.drawImage(img, pts.preview_area.x + (pts.preview_area.w - img.width * gr) / 2, pts.preview_area.y + (pts.preview_area.h - img.height * gr) / 2, img.width * gr, img.height * gr);
+                    } else { const img = new Image(); img.onload = () => { this.h4_ui.thumb_imgs[url] = img; this.setDirtyCanvas(true); }; img.src = url; }
+                }
+                ctx.save(); ctx.translate(pts.toggle_box.x, pts.toggle_box.y);
+                ctx.shadowColor = isSaving ? COLORS.save : COLORS.cyan_glow; ctx.shadowBlur = isSaving ? 10 : 5;
+                ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 50, 20); ctx.strokeStyle = isSaving ? COLORS.save : COLORS.cyan_glow; ctx.strokeRect(0, 0, 50, 20);
+                ctx.fillStyle = isSaving ? COLORS.save : "#252525"; ctx.fillRect(isSaving ? 25 : 0, 0, 25, 20);
+                ctx.restore(); ctx.shadowBlur = 0;
+                ctx.font = "900 13px monospace"; ctx.textAlign = "left";
+                ctx.fillStyle = COLORS.dim; ctx.fillText("<--- h4 // ", pts.label_text.x, pts.label_text.y + 5);
+                let lx = pts.label_text.x + ctx.measureText("<--- h4 // ").width;
+                ctx.fillStyle = isSaving ? COLORS.save : COLORS.dim; ctx.fillText("Save", lx, pts.label_text.y + 5); lx += 45;
+                ctx.fillStyle = COLORS.dim; ctx.fillText("|", lx, pts.label_text.y + 5); lx += 15;
+                ctx.fillStyle = !isSaving ? COLORS.preview : COLORS.dim; ctx.fillText("Preview", lx, pts.label_text.y + 5); lx += 65;
+                ctx.fillStyle = isSaving ? COLORS.save : COLORS.preview; ctx.beginPath(); ctx.arc(lx, pts.label_text.y, 5, 0, Math.PI * 2); ctx.fill();
+                const drawHoloBtn = (r, label, id, tab_active = false) => {
+                    const hover = this.h4_ui.hover_id === id;
+                    const active = this.h4_ui.active_click_id === id;
+                    const ox = active ? 2 : 0, oy = active ? 2 : 0;
+                    ctx.save(); if (active || tab_active) { ctx.shadowColor = COLORS.accent; ctx.shadowBlur = 10; }
+                    ctx.fillStyle = active ? "#111" : COLORS.btn_bg; ctx.beginPath(); ctx.roundRect(r.x + ox, r.y + oy, r.w, r.h, 4); ctx.fill();
+                    ctx.strokeStyle = (hover || tab_active || active) ? COLORS.accent : COLORS.cyan_glow; ctx.lineWidth = (tab_active || active) ? 2 : 1; ctx.stroke(); ctx.restore();
+                    ctx.fillStyle = (hover || tab_active || active) ? COLORS.accent : COLORS.dim; ctx.font = "bold 18px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                    ctx.fillText(label, r.x + r.w / 2 + ox, r.y + r.h / 2 + oy);
+                };
+                drawHoloBtn(pts.btn_p, "P", "p", active === "PARAMETERS");
+                drawHoloBtn(pts.btn_m, "M", "m", active === "METADATA");
+                drawHoloBtn(pts.btn_h, "H", "h", active === "HISTORY");
+                if (this.h4_ui.footer_anim > 0.01) {
+                    const drawerH = 110 * this.h4_ui.footer_anim; const fy = mesh.h - drawerH;
+                    ctx.save(); ctx.fillStyle = COLORS.bg; ctx.fillRect(80, fy, mesh.w - 160, drawerH); ctx.strokeStyle = COLORS.border; ctx.strokeRect(80, fy, mesh.w - 160, drawerH);
+                    if (this.h4_ui.footer_anim > 0.8) {
+                        const btn_prev = { ...pts.btn_prev, y: fy + 20 };
+                        const btn_next = { ...pts.btn_next, y: fy + 20 };
+                        drawHoloBtn(btn_prev, "<", "prev"); drawHoloBtn(btn_next, ">", "next");
+                        ctx.save(); ctx.beginPath(); ctx.rect(120, fy, mesh.w - 240, drawerH); ctx.clip();
+                        const pad = 4; const ts = 101 - pad;
+                        this.h4_ui.history.slice(this.h4_ui.scroll_idx, this.h4_ui.scroll_idx + 10).forEach((item, i) => {
+                            const tx = 120 + (i * (ts + 10));
+                            const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${item.type}`);
+                            if (this.h4_ui.thumb_imgs[url]) {
+                                const img = this.h4_ui.thumb_imgs[url]; const gr = Math.min(ts / img.width, ts / img.height);
+                                ctx.drawImage(img, tx + (ts - img.width * gr) / 2, fy + pad + (ts - img.height * gr) / 2, img.width * gr, img.height * gr);
+                            } else { const img = new Image(); img.onload = () => { this.h4_ui.thumb_imgs[url] = img; this.setDirtyCanvas(true); }; img.src = url; }
+                            const is_sel = this.h4_ui.selected_idx === (i + this.h4_ui.scroll_idx);
+                            ctx.strokeStyle = is_sel ? COLORS.accent : (item.type === "output" ? COLORS.save : COLORS.preview);
+                            ctx.lineWidth = is_sel ? 3 : 1; ctx.strokeRect(tx, fy + pad, ts, ts);
+                        }); ctx.restore();
+                    } ctx.restore();
+                } ctx.restore();
+            } catch (err) { console.error("H4_Grid_Sovereign Failure:", err); }
+        };
     }
 });

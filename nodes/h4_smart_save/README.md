@@ -1,6 +1,18 @@
-# h4_smart_save / H4_SmartSave (The Hoarder's Delight)
+# h4_smart_save / H4_SmartSave (The Vault)
+**Current Standard:** v24.14.38 (+ULTRA Edition)
 
 ## What it is
+A sentient image archiving and forensic workstation that acts as your unified "Preview Image" and "Save Image" pipeline. It doesn't just save pixels; it hoards the DNA of your generation process. It features an autonomous **Recursive Parameter Crawler** that extracts parameters from the entire upstream workflow, a **Nested Drawer HUD** for tiered tactical control, and a high-fidelity **Lightbox** for deep pixel inspection.
+
+### **The +ULTRA Edition (v24.14.38) Upgrade:**
+This version represents the endgame of ComfyUI UI hardening. We've implemented a series of "Sovereign" protocols to ensure the HUD remains absolute and ghost-free.
+- **Recursive Crawler Engine**: Zero-wire telemetry. The node recursively crawls every link in your graph backwards to find prompts, models, seeds, and configurations.
+- **Nested Tier-2 Insights**: Clicking a node in the Parameters [P] drawer now slides out a secondary diagnostic HUD for that specific node.
+- **Kinetic Rescaling**: The node is fully resizable (Min: 750x500) to allow for customized workspace layouts.
+- **Viewport Sovereignty**: Aggressive real-time DOM synchronization kills "ghost" inputs stuck in the top-left or other coordinate artifacts when zoomed out or off-screen.
+- **Shadow Banishment Protocol**: Native widgets are kept for backend validation but are permanently cloaked and relocated to -9999px in the DOM.
+
+## Legacy History (Hoarder's Delight)
 A dual-mode image handler acting seamlessly as your unified "Preview Image" and "Save Image" pipeline. It features persistent metadata hoarding capabilities, injects graph history into PNG chunks automatically, and integrates a visual thumbnail filmstrip of 50 previous creations complete with embedded generation extraction tracking (seed, models, steps, configs) and lightbox image inspection.
 
 ## Expanded Description

@@ -191,56 +191,94 @@
         ]
     },
     "H4_SmartSave": {
-        "title": "H4 SmartSave (The Brain)",
-        "description": "Saving images shouldn't be dumb. The default saver just dumps files. This one? This one has an IQ of 200. It embeds every single piece of metadata—prompt, seed, model hash, workflow graph—directly into the PNG chunks. But it also gives you a UI to *inspect* that data before you save. Plus, you can add custom user notes that get burned into the metadata too. Never forget *why* you used that specific LorA again.",
-        "usage": "Replace the standard 'Save Image' node. Toggle 'Save to Disk' to actually write files, otherwise it just previews.",
+        "title": "H4 SmartSave v24.14.38 (+Ultra Edition)",
+        "description": "Saving images shouldn't be dumb. The default saver just dumps files. This one? This one has an IQ of 400 now. We started at v7.0 with a basic filmstrip and a dream, but in the **+ULTRA Edition** era, it has evolved into a sentient metadata vault. It embeds every single piece of metadata—prompt, seed, model hash, workflow graph—directly into the PNG chunks without you having to lift a finger. It features a recursive **Workflow Intelligence Engine** that crawls your entire graph to find exactly how each pixel was born. But it also gives you a multi-tiered HUD to *inspect* that data before you save. Plus, you can add custom user notes and raw JSON that get burned into the metadata too. This node is the final word in image archiving and interaction authority. Never forget *why* you used that specific LorA again, and never suffer from 'Ghost Widgets' ever again.",
+        "usage": "Replace the standard 'Save Image' node. Use the HUD controls ([H], [P], [M]) to navigate your vault, check parameters, or mess with metadata. Toggle 'Save to Disk' to actually write files, otherwise it just previews. Pro tip: The [P] button now supports Tier-2 Detail inspection—click a node in the list to slide out its full settings. Double-click the preview or thumbnails to jump into the Lightbox.",
         "inputs": {
             "images": {
                 "type": "IMAGE",
-                "description": "The pixel data to save.",
+                "description": "The pixel data to save. The actual art. The soul of your workflow.",
                 "example": "-"
             },
             "filename_prefix": {
                 "type": "STRING",
-                "description": "The naming pattern. Supports date formatting like `%date:yyyy-MM-dd%`. Keep it organized, folks.",
+                "description": "The naming pattern. Supports date formatting like `%date:yyyy-MM-dd%`. Keep it organized, folks. Use slashes to create subfolders like `waifus/v1` to keep your output directory from looking like a digital landfill.",
                 "example": "MyProject/Run001"
             },
             "save_mode": {
                 "type": "BOOLEAN",
-                "description": "The Master Switch. \n **💾 SAVE TO DISK**: Writes the image to your output folder (Permanent). \n **👁️ PREVIEW ONLY**: Just shows a preview in the UI (Temporary). Use this during prompt-crafting to save your hard drive.",
+                "description": "The Master Switch. \n **💾 SAVE TO DISK**: Writes the image to your output folder (Permanent). \n **👁️ PREVIEW ONLY**: Just shows a preview in the UI (Temporary). Use this during prompt-crafting to save your hard drive. The LED on the HUD will glow Green for Save and Yellow for Preview. It's like a traffic light for your creativity.",
                 "example": "False (Preview)"
             },
-            "custom_metadata": {
+            "output_path": {
                 "type": "STRING",
-                "description": "Inject your own data here. Must be JSON format. I'll embed this forever in the image header. Perfect for tracking experiment versions or author credits.",
-                "example": "{\"version\": \"2.4\", \"mood\": \"dark\"}"
+                "description": "Absolute path override. If you want your images saved in a specific drive or a top-secret folder, paste the full path here. I'll handle the subfolders and prefixes from there.",
+                "example": "D:/AI_Render_Vault"
+            },
+            "author": {
+                "type": "STRING",
+                "description": "The name of the artist (or you). Saved in the PNG 'Author' tag. Claim your throne.",
+                "example": "h4"
+            },
+            "model_name": {
+                "type": "STRING",
+                "description": "The name of the model that generated the image. Essential for tracking merges or specific checkpoints in the years to come.",
+                "example": "Juggernaut XL v9"
+            },
+            "comments": {
+                "type": "STRING",
+                "description": "Personal notes for the image. 'This one had great lighting but weird hands'. These are saved in the PNG chunks. It's like a diary for your AI experiments.",
+                "example": "Testing lighting at night"
+            },
+            "custom_json": {
+                "type": "STRING",
+                "description": "Inject raw, weaponized JSON here. Must be valid JSON. I'll embed this directly in the image header. Use it for tracking custom parameters, experiment IDs, or just to hide secret messages for future archaeologists.",
+                "example": "{\"experiment\": \"A1\", \"temp\": 0.8}"
             }
         },
         "features": [
             {
+                "name": "Recursive Intelligence Engine (v24.14.38)",
+                "description": "The absolute brain. It automatically hunts down every node in your workflow by crawling backwards recursively from the SmartSave node. It populates the [P] Parameter drawer with zero-wire efficiency. It's like a forensics team for your pixels."
+            },
+            {
+                "name": "Nested Tier-2 Detail Drawers",
+                "description": "Deep-dive diagnostic HUD. Clicking any node card in the Parameters list slides out a secondary drawer containing the full widget state, internal values, and unique IDs for that node. Multi-tiered tactical inspection."
+            },
+            {
+                "name": "Viewport Sovereign DOM Sync",
+                "description": "We chose violence against ghost widgets. This system aggressivey synchronizes DOM visibility with the canvas viewport and zoom levels. Elements are surgically purged from the document body if the node is off-screen or zoomed out too far, ensuring a 100% ghost-free interactive surface."
+            },
+            {
+                "name": "Kinetic Rescale Protocol",
+                "description": "The node is fully resizable at both prototype and instance levels, with a hard-clamped minimum of 750x500. It adapts its HUD layout in real-time to match the creative footprint of your workflow."
+            },
+            {
+                "name": "Shadow Banishment",
+                "description": "Native ComfyUI widgets are kept alive in the 'Shadow' array for perfect prompt validation but are physically relocated to -9999px. This grants the h4 Sovereign HUD absolute control over the visual real estate without breaking node logic."
+            },
+            {
+                "name": "Tactical HUD Controls",
+                "description": "The sleek [H], [P], and [M] buttons give you instant access to the Vault. \n - **[H] History**: Toggles the scrolling filmstrip. \n - **[P] Parameters**: Opens the Intelligence drawer. \n - **[M] Metadata**: Opens the override drawer. \n They have priority access to your clicks, even when the canvas is lagging."
+            },
+            {
                 "name": "FIFO Disk Pruning",
-                "description": "I've got your back. I implement a **First-In-First-Out (FIFO)** pruning logic. I keep the last **50 images** per prefix folder and automatically delete the oldest ones beyond that. Your output folder will never become a multi-terabyte graveyard of failed experiments again."
+                "description": "I've still got your back. I implement a **First-In-First-Out (FIFO)** pruning logic. I keep the last **25 images** per prefix folder and automatically delete the oldest ones. Your output folder stays clean."
             },
             {
-                "name": "History Filmstrip",
-                "description": "The UI features a scrolling 'Filmstrip' of your last 15 generations. Hover over any thumbnail to see its metadata, or click to expand. It works for both Temp previews and Permanent saves."
+                "name": "History Filmstrip (Refined)",
+                "description": "The UI features a high-performance horizontal 'Filmstrip' of your last generations. Use the tactical nav buttons to scroll through months of work in seconds."
             },
             {
-                "name": "Metadata Drawer",
-                "description": "A slide-up drawer that shows you the exact Prompt, Seed, and Settings used for the image. You can even type in your own 'Notes' field which I then burn into the PNG."
-            },
-            {
-                "name": "Console Logging",
-                "description": "It logs the exact file path to the console. Useful if you're scripting or just lost where you saved stuff."
-            },
-            {
-                "name": "Stealth Mode",
-                "description": "It doesn't bloat the UI with unnecessary previews if you don't want them. Pure utility."
+                "name": "Lightbox Traveler",
+                "description": "Double-click any thumbnail or the main preview to enter the Lightbox. Supports full keyboard navigation (Arrows) and high-fidelity zoom up to 500%."
             }
         ],
         "tips": [
             "Organization is key: Use slashes in your prefix (e.g. `Character_Tests/V1_HighCFG`) to automatically create subfolders.",
-            "The JSON field is powerful: You can use it to store and later read structured data back from your images programmatically."
+            "The JSON field is powerful: You can use it to store and later read structured data back from your images programmatically.",
+            "If the UI feels 'ghostly', do a hard refresh (Ctrl+F5). The Sovereignty protocols need a fresh JS boot to liquidate the phantoms.",
+            "The [H] history button is now at the bottom left for better ergonomics- it's your 'Home' for history."
         ]
     },
     "H4_TrafficCop": {

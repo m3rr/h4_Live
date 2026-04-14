@@ -1,8 +1,6 @@
 # FILE: custom_nodes/comfyui_h4_live/h4_visual_tokenizer.py
 # ------------------------------------------------------------------------------
 # H4 Visual Tokenizer - The "Mind of the Model"
-# Rule 1: No Placeholders
-# Rule 11: Mandatory Logging
 # ------------------------------------------------------------------------------
 import torch
 import comfy.sd1_clip
