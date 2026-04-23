@@ -1,31 +1,39 @@
 # h4_display_any / H4_DisplayAny (The Universal Monitor)
 
 ## What it is
-A debug node that accepts *anything* (Images, Latents, Tensors, Strings, Lists) and displays it directly on the canvas without choking.
+A simple "Show Me Everything" node. It accepts any kind of wire (images, text, latents, models) and tries its best to show you what's inside. It's the ultimate "What's in this wire?" tool.
 
 ## Expanded Description
-Native ComfyUI is incredibly strict about data types when it comes to visual inspection. If you want to see an image, you wire a `PreviewImage` node. If you want to read a text string from a prompt generator, you wire a `ShowText` node. If you try to wire a Latent into a Text node, the connection simply snaps back.
+Normally, ComfyUI is very picky. If you want to see an image, you *must* use an image node. If you try to plug a latent into a text node, it'll just snap back.
 
-The `H4_DisplayAny` node is omnivorous. It utilizes the wildcard `*` input type to accept any incoming connection. During execution, it uses Python reflection and type checking to figure out what you just handed it. 
+**Display Any** is different. It's like a universal adapter. 
+- You can plug **anything** into it.
+- **Images**: It shows you the picture.
+- **Strings**: It shows you the text.
+- **Latents**: It shows you the math shape (e.g., `128 x 128`).
+- **Models**: It tells you the name of the model.
 
-If it's an Image tensor `[B, H, W, 3]`, it renders it visually. If it's a Latent dictionary, it displays the key structural data (`samples: [B, 4, H, W]`). If it's pure text, it prints the string. It adapts. It overcomes.
+It's essentially a "sniffer" that lets you peek into a wire without having to figure out which specific node you need for that data type.
 
-## Inputs and Outputs
-- **Input (`any`)**: Wire literally anything here.
-- **Output (`any`)**: A passthrough port that outputs exactly what came in, unchanged, allowing you to insert this node into the middle of a live wire without breaking the flow.
+## Options
+- **any_in**: Plug literally anything into this. 
+- **any_out**: A "passthrough" wire. You can drop this node into the middle of an existing wire and it won't break anything—it just lets you "watch" the data as it passes through.
 
 ## Use Case Scenarios
-**Scenario 1: Inspecting Mask Tensors**
-You are trying to combine three different segmentation masks and they keep turning pure black when generated. Instead of wiring up three different VAE Decoders and three Preview Images just to see what the raw data looks like, you drop `H4_DisplayAny` directly into the mask wire path. It parses the binary `[B, H, W]` mask tensor and displays it.
+**Scenario 1: Checking a Mask**
+If you're doing complex masking and aren't sure if your mask is actually covering the face, drop this into the mask wire. It'll show you a black-and-white picture of the mask instantly.
 
-**Scenario 2: The Quick Text Check**
-You are using a complex wildcard prompting script that generates randomized paragraphs, and the KSampler is ignoring your inputs. You wire the string directly into `H4_DisplayAny`. It instantly prints the exact string structure the prompt generator emitted, and you realize it passed a list instead of a string.
+**Scenario 2: Prompt Check**
+If you're using a random prompt generator, wire it through this node. It'll show you exactly what text it's sending to the sampler so you can see if it's acting up.
 
-## Examples
-- **Inline Sniffing**:
-  1. Have a connection from your KSampler to a VAE Decode node.
-  2. Delete the wire.
-  3. Place an `H4_DisplayAny` node between them.
-  4. Wire the KSampler's output Latent into the DisplayAny input.
-  5. Wire the DisplayAny output to the VAE Decode.
-  6. The node will act as a transparent monitor, logging the Latent shape directly on the canvas without disrupting the generation.
+## Quick Start
+1. Place an `H4_DisplayAny` node.
+2. Cut an existing wire and plug both ends into this node.
+3. Look at the text and thumbnails on the node itself to see your data.
+
+---
+
+## Dev Corner (Jargon & Logic)
+- **Wildcard Receptor**: Uses the `*` type to satisfy the frontend connector validation.
+- **Reflection**: Uses Python's `type()` and `dir()` to figure out how to render the incoming object in real-time.
+- **No-Mutation Passthrough**: It returns the exact same object it received, so there's no memory cost for using it.

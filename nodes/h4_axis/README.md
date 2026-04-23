@@ -1,25 +1,37 @@
-# h4_axis / H4_AxisDriver (The Sidekick)
+# h4_axis / H4_AxisDriver (The Grid Assistant)
 
 ## What it is
-A helper node for the Gridinator. It allows you to build complex axis configurations (Preset lists) and feed them into the Gridinator as a JSON blob.
+A simple helper node for the Grid Maker (`H4_Gridinator`). It lets you build lists of settings (like a list of CFG values or a list of samplers) and save them as a "Preset" so you don't have to type them in every time you want to make a grid.
 
 ## Expanded Description
-Typically, managing multiple axes for an X/Y/Z grid in ComfyUI requires a convoluted web of lists and string concatenations. The `H4_AxisDriver` solves this by acting as a dedicated configuration manager for the `H4_Gridinator`. It translates your custom lists, prompt variations, and numerical sweeps into a standardized JSON payload that the Gridinator can ingest natively.
+If you make a lot of comparison grids, you probably find yourself typing the same things over and over (like `7, 8, 9` for CFG or `euler, euler_a, dpmpp_2m` for samplers). 
 
-You likely won't touch this manually unless you are creating a "Preset Bank" of grids, such as a "Standard Render Test" that you reuse across multiple workflows.
+The **Axis Driver** act like a "Memory Bank" for your grids. 
+- You type your lists into its text boxes.
+- You wire it to the Gridinator.
+- It "drives" the grid for you, telling it exactly which settings to test.
+
+It's handy for creating a "Standard Test" workflow that you can reuse every time you download a new model to see how it handles your favorite settings.
+
+## Options
+- **Axis X / Y Text**: Type your values here, separated by commas.
+- **Axis Mode**: Tell the node what these numbers represent (e.g., Steps, CFG, or Denoise).
 
 ## Use Case Scenarios
-**Scenario 1: The Model Evaluation Suite**
-You want to evaluate 5 newly downloaded checkpoints against your standard prompts at 3 different CFG levels. 
-Instead of typing this out every time, you connect an `H4_AxisDriver` pre-configured with your favorite test prompts and CFG steps (e.g., 4.0, 5.5, 7.0), saving it in your template workflow. When testing a model, you just wire the driver to the Gridinator and hit queue.
+**Scenario 1: Testing a new Model**
+If you just got a new model and want to see how it looks at different Steps, you can just plug in your "Standard Steps" Axis Driver. It'll automatically tell the Gridinator to test `20, 30, and 40` steps so you can see the results instantly.
 
-**Scenario 2: Sampler vs. Scheduler Shootout**
-You want to explore which combination of Sampler and Scheduler produces the best realism. You use the AxisDriver to define Axis X as a list of Samplers (`euler_a, dpmpp_sde, uni_pc`) and Axis Y as a list of Schedulers (`normal, karras, exponential`). The Driver formats these axes safely, ensuring the Gridinator iterates through every possible combination perfectly.
+**Scenario 2: Sampler Shootout**
+If you want to find the best sampler for a new LoRA, use the Axis Driver to list out your top 5 samplers. It formats everything correctly so the Gridinator doesn't get confused by typos.
 
-## Examples
-- **Basic Usage Profile**:
-  1. Add `H4_AxisDriver` to the canvas.
-  2. In the text box for Axis X, input `10, 20, 30` (for testing steps).
-  3. In the text box for Axis Y, input `3.0, 5.0, 7.0` (for testing CFG).
-  4. Connect the output of the Driver into the `Axis_Input` of the `H4_Gridinator`.
-  5. The Gridinator will now generate a 3x3 grid (9 images total) covering the matrix.
+## Quick Start
+1. Add `H4_AxisDriver`.
+2. Type in your test values (like `10, 20, 30`).
+3. Connect the output to the `H4_Gridinator`.
+4. Hit Queue.
+
+---
+
+## Dev Corner (Jargon & Logic)
+- **JSON Serialization**: It converts your comma-separated lists into a structured JSON blob that the Gridinator can parse safely.
+- **Type Casting**: It identifies if you typed numbers or strings and ensures the data is passed to the backend in the correct format.

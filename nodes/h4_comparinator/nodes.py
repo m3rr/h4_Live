@@ -300,6 +300,8 @@ class H4_Comparinator:
             "filename_a": temp_a_name,
             "filename_b": temp_b_name,
             "timestamp": timestamp,
+            "type": "temp",
+            "subfolder": "",
             "extra_pnginfo": extra_pnginfo,
             "prompt": prompt,
             "metadata_text": metadata_text,
@@ -307,10 +309,14 @@ class H4_Comparinator:
         }
         
         H4_Comparinator.RUNTIME_CACHE[node_id].appendleft(history_entry)
+        
+        # Invalidate vault cache before broadcast
+        ComparinatorVault.invalidate_cache()
                 
         ui_payload = {
             "node_id": node_id,
             "current": history_entry,
+            "history": ComparinatorVault.get_all_history()[:25]
         }
         
         try:
@@ -318,7 +324,7 @@ class H4_Comparinator:
         except:
             pass
         
-        return (image_a, image_b)
+        return (image_a, final_b)
 
     def _save_image(self, tensor, filename_prefix, directory, format="WEBP", png_info=None):
         if len(tensor.shape) > 3 and tensor.shape[0] > 1:
@@ -355,13 +361,15 @@ try:
         filename = request.query.get("filename")
         if not filename: return web.Response(status=404)
         
-        # Security: Prevent traversal
-        if ".." in filename or filename.startswith("/") or "\\" in filename:
-             return web.Response(status=403)
+        # Security: Resolve absolute paths to prevent traversal
+        safe_root = os.path.abspath(ComparinatorVault.ROOT_DIR)
+        target_path = os.path.abspath(os.path.join(safe_root, filename))
+        
+        if not target_path.startswith(safe_root):
+             return web.Response(status=403, text="Access Denied")
              
-        path = os.path.join(ComparinatorVault.ROOT_DIR, filename)
-        if os.path.exists(path):
-            return web.FileResponse(path)
+        if os.path.exists(target_path):
+            return web.FileResponse(target_path)
         return web.Response(status=404)
 
     @PromptServer.instance.routes.post("/h4/comparinator/save_now")

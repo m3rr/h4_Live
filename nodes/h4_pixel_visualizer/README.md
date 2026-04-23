@@ -1,32 +1,36 @@
-# h4_pixel_visualizer / H4_PixelVisualizer (Diff Inspector)
+# h4_pixel_visualizer / H4_PixelVisualizer (The Diff Checker)
 
 ## What it is
-A pixel-level difference analyzer that shows exactly what changed between two images by computing the tensor difference and rendering a visual heatmap.
+A handy tool to see exactly what changed between two images. It subtracts one image from the other and shows you a "heatmap" of the differences. It's great for seeing if an upscale or a filter actually did anything to your pixels.
 
 ## Expanded Description
-When debugging image processing pipelines, evaluating subtle changes—like a slight increase in denoise, a minimal color grade, or testing if an upscale pass actually did anything—can be nearly impossible by eye. `H4_PixelVisualizer` solves this mathematically. 
+Sometimes it's hard to tell if a setting actually changed anything. You squint at the screen trying to see if that extra 0.1 on the "Sharpness" slider helped. 
 
-It takes an original image (Image A) and a processed image (Image B), computes `torch.abs(A - B)`, and amplifies the microscopic variances into a glowing heatmap. If an upscale node literally did nothing, the heatmap will be completely black. If it altered sub-pixel edge boundaries, the edges will glow.
+The **Pixel Visualizer** shows you the math.
+1. It takes Image A and Image B.
+2. it subtracts them.
+3. If they are exactly the same, you get a black screen.
+4. If they are different, it shows a "glow" where the pixels shifted. 
 
-## Inputs and Outputs
-- **Inputs:** `image_a` (Original), `image_b` (Processed/Test).
-- **Settings:** `heatmap_scale`. Default is 5.0. Raising this to 50.0 amplifies invisible changes (e.g., fractional noise shifting) into blinding visible light.
-- **Outputs:**
-  1. `Heatmap`: The visual mapping of differences.
-  2. `Side-by-Side`: A spliced frame showing Image A right next to Image B.
-  3. `Image A`: Passthrough signal.
-  4. `Image B`: Passthrough signal.
+You can use the **Heatmap Scale** to "boost" the glow. This is helpful if the changes are tiny (like subtle noise) and you want to see if the "details" were actually improved or just blurred away.
+
+## Options
+- **heatmap_scale**: Boost the intensity of the "glow" so you can see microscopic changes. 
 
 ## Use Case Scenarios
-**Scenario 1: Face Swap Quality Control**
-You are trying to determine how badly a Face Swap node degraded the background. You plug the original image and the swapped image into the Visualizer. The glowing heatmap clearly shows the swap isolated cleanly around the jaw, but also reveals a subtle glow across the entire image background—meaning the swap node performed a global lossy resave and degraded the entire picture quality unintentionally.
+**Scenario 1: Testing "Lossless" claim**
+If a node claims it's "lossless" but you suspect it's blurring things, plug the original and the output into this. If the heatmap isn't pure black, you know something changed.
 
-**Scenario 2: Sampler Drift Testing**
-You generate an image with an Euler sampler and the exact same seed with an Euler_Ancestral sampler. They look functionally identical. You run them through the diff inspector with a `heatmap_scale` of 30.0. The Inspector isolates and highlights exactly where the ancestral noise injection mutated the structural lines of the background.
+**Scenario 2: Checking Edge Detail**
+When upscaling, you want to see if you're actually adding detail to the edges of things like hair or eyes. The heatmap will show a sharp glow around the lines if the upscaler is working correctly.
 
-## Examples
-- **Basic Inspection Setup**:
-  1. Run an Image through `H4_PixelPress` (SSAA & HDR).
-  2. Pipe the original unedited image into `image_a` of the Visualizer.
-  3. Pipe the HDR-processed image into `image_b`.
-  4. Preview the resulting Heatmap output to see exactly which shadow zones the Tonemapper impacted.
+## Quick Start
+1. Add `H4_PixelVisualizer`.
+2. Connect your original image to `image_a` and your edited image to `image_b`.
+3. Check the `Heatmap` output to see the "ghost" of the changes.
+
+---
+
+## Dev Corner (Jargon & Logic)
+- **Absolute Difference**: Uses `torch.abs(a - b)` so that regardless of whether a pixel got brighter or darker, we see it as a "change".
+- **LAB Tonemapping**: It can optionally use CIELAB math to ensure color shifts are tracked accurately even in dark areas.

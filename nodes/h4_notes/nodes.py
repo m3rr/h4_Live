@@ -12,17 +12,17 @@ class H4_NoteInjector:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "image": ("IMAGE",),
-                "title_text": ("STRING", {"multiline": False, "default": "My Title"}),
-                "bar_height": ("INT", {"default": 100, "min": 0, "max": 1000}),
-                "position": (["top", "bottom"],),
-                "font_size_title": ("INT", {"default": 60, "min": 10, "max": 500}),
-                "font_size_sub": ("INT", {"default": 30, "min": 10, "max": 500}),
-                "text_color": ("STRING", {"default": "#FFFFFF"}),
-                "bar_color": ("STRING", {"default": "#000000"}),
+                "image": ("IMAGE", {"tooltip": "The image you want to slap a title bar onto. Any image tensor works."}),
+                "title_text": ("STRING", {"multiline": False, "default": "My Title", "tooltip": "The big text. Your headline, your label, your creative statement. Goes front and center on the bar."}),
+                "bar_height": ("INT", {"default": 100, "min": 0, "max": 1000, "tooltip": "How tall the colored bar is in pixels. 100 is standard cinematic. 0 means no bar (but why are you here then?). Go big for dramatic letterbox vibes."}),
+                "position": (["top", "bottom"], {"tooltip": "Where the bar lives. Top = opening title. Bottom = closing credits / subtitle bar."}),
+                "font_size_title": ("INT", {"default": 60, "min": 10, "max": 500, "tooltip": "Font size for the main title text in pixels. 60 is comfortably readable. Crank it up for poster-style headers."}),
+                "font_size_sub": ("INT", {"default": 30, "min": 10, "max": 500, "tooltip": "Font size for the subtitle text. Smaller than the title so it doesn't steal the spotlight."}),
+                "text_color": ("STRING", {"default": "#FFFFFF", "tooltip": "Hex color code for your text. #FFFFFF is white (classic on dark bars). #FF0000 for red if you're feeling dramatic."}),
+                "bar_color": ("STRING", {"default": "#000000", "tooltip": "Hex color code for the bar background. #000000 is pure black (cinematic). Try #1a1a2e for a dark navy vibe."}),
             },
             "optional": {
-                "subtitle_text": ("STRING", {"multiline": True, "default": ""}),
+                "subtitle_text": ("STRING", {"multiline": True, "default": "", "tooltip": "Optional second line of text displayed below the title. Great for descriptions, dates, or model names. Leave empty to skip."}),
             }
         }
 

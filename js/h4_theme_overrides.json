@@ -1,0 +1,5 @@
+{
+    "_comment": "H4 Theme Override File — Edit these values to customise node colours.",
+    "_instructions": "Each key is a comfyClass name (e.g. H4_Mutate). Values override the default H4 palette.",
+    "_available_keys": "offBlack, titleBg, accent, textPrimary, textDim, badgeBg, badgeGlow"
+}

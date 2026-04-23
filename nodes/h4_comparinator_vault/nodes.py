@@ -265,25 +265,34 @@ class ComparinatorVault:
             
             cls._VAULT_MTIME = sync_token
 
+            json_files = []
             for entry in os.scandir(cls.ROOT_DIR):
                 if entry.is_dir():
                     for subentry in os.scandir(entry.path):
                         if subentry.is_file() and subentry.name.endswith(".json"):
                             try:
-                                with open(subentry.path, "r", encoding="utf-8") as jf:
-                                    data = json.load(jf)
-                                    data["source"] = "vault"
-                                    folder_name = entry.name
-                                    
-                                    def make_path(fname):
-                                        if not fname: return None
-                                        return f"{folder_name}/{fname}"
-                                        
-                                    data["relative_path_a"] = make_path(data.get("filename_a"))
-                                    data["relative_path_b"] = make_path(data.get("filename_b"))
-                                    history.append(data)
-                            except:
-                                pass
+                                json_files.append((subentry.path, subentry.stat().st_mtime, entry.name))
+                            except: pass
+
+            # Optimize parsing by only loading top 25 newest
+            json_files.sort(key=lambda x: x[1], reverse=True)
+            top_jsons = json_files[:25]
+
+            for path, _, folder_name in top_jsons:
+                try:
+                    with open(path, "r", encoding="utf-8") as jf:
+                        data = json.load(jf)
+                        data["source"] = "vault"
+                        
+                        def make_path(fname):
+                            if not fname: return None
+                            return f"{folder_name}/{fname}"
+                            
+                        data["relative_path_a"] = make_path(data.get("filename_a"))
+                        data["relative_path_b"] = make_path(data.get("filename_b"))
+                        history.append(data)
+                except:
+                    pass
             cls._VAULT_MTIME = sync_token
         
         # 2. Temp Recovery Logic

@@ -119,6 +119,16 @@ class H4_DoubleSampler:
         
         _log(f"Engaging H4_DoubleSampler | Seed: {seed} | Chaos: {chaos_mode}")
 
+        # 0. CONDITIONING TYPE-GUARD
+        def validate_cond(c, name):
+            if isinstance(c, str):
+                raise ValueError(f"[H4_DoubleSampler] 🔥 TYPE COLLISION: '{name}' input received a STRING, but requires CONDITIONING. Re-encode your prompt before sampling.")
+            if not isinstance(c, list) or len(c) == 0:
+                raise ValueError(f"[H4_DoubleSampler] 🔥 DATA FAULT: '{name}' input is empty or malformed.")
+
+        validate_cond(positive, "positive")
+        validate_cond(negative, "negative")
+
         # 1. Standard Prompt Processing
         final_pos = positive
         final_neg = negative

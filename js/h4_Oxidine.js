@@ -24,7 +24,10 @@ function enforceSilence(node) {
     node.flags = node.flags || {};
     node.flags.no_titlebar = true;
     node.flags.no_labels = true;
-    node.flags.no_background = true;
+
+    // Dynamically set based on shape to allow 'Comfy' mode background while keeping others transparent
+    const shape = node.properties?.shape || "Blob";
+    node.flags.no_background = (shape !== "Comfy");
     node.bgcolor = "#00000000";
     node.color = "#00000000";
     node.boxcolor = "#00000000";

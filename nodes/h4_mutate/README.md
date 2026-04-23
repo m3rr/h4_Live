@@ -1,36 +1,40 @@
-# h4_mutate / H4_Mutate (The Frankenstein Machine)
+# h4_mutate / H4_Mutate (The Image Darkroom)
 
 ## What it is
-Look, generating an image is only half the battle. Once the pixels hit the canvas, you usually stare at it and think: "Hmm, could be punchier." 
-Instead of exporting it to Photoshop, firing up Lightroom, or chaining 15 different image processing nodes together, you use `H4_Mutate`. It is a monolithic, dynamically toggleable post-processing powerhouse. It's basically a whole darkroom stuffed into a single ComfyUI node.
+A "Swiss Army Knife" for fixing and styling your images. It's one big node that holds a bunch of smaller tools like Color Grading, Film Grain, Sharpening, and Vignette. It's basically a mini-Photoshop that works right inside your workflow.
 
 ## Expanded Description
-The `H4_Mutate` engine gives you 7 distinct sections of image manipulation: **Color Grade**, **Sharpness**, **Upscale**, **Style Transfer**, **Film & Grain**, **Vignette**, and **Effects**. 
-The best part? It's completely modular. The node starts as a clean pass-through. You only turn ON the sections you need, and only those controls will expand. 
+Straight-out-of-the-box AI images can sometimes look a bit "flat" or "digital." 
 
-Because we know that applying Sharpness *before* Upscaling is a completely different vibe than Upscaling *before* Sharpness, it features a **Pipeline Order** routing system. You can rearrange the internal mathematical order of operations on the fly, or set it to 'custom' and dictate the exact priority of each module.
+The **Mutate** node helps you give them some character:
+- **Color Grade**: Adjust the brightness, contrast, and tints.
+- **Sharpness**: Make blurry images look "crunchy" and high-res.
+- **Film Grain**: Add that "old movie" or "film" texture to your shots.
+- **Vignette**: Darken the corners to pull the focus to the center.
+- **Effects**: Add fun stuff like Bloom (glowy lights) or Chromatic Aberration (3D glasses look).
 
-It's essentially mutating your image’s DNA. Just don't push it too far, or you might cause a stack overflow... get it? Because it's a node stack? Okay, I'll see myself out.
+It's modular—you only turn on the sections you want to use, and the node'll stay small and clean until you need them.
 
-## Key Features
-- **Toggleable Architecture:** UI stays perfectly clean until you flip a switch.
-- **7-Stage Pipeline:** Color (Hue/Sat/Brightness/Gamma/Tint), Film (Emulations like Portra/Ektar/Velvia + Grain), Vignette, Sharpness, Effects (Bloom, Chromatic Aberration, Posterize), Upscale (Lanczos, Bicubic, etc.), and Style Transfer (Neural blending like AdaIN, WCT, etc.).
-- **Dynamic Routing:** Change the execution order globally to dramatically alter the outcome.
-- **Mask Compositing:** Connect a mask. Only the masked area mutates, leaving the rest of the image pristine. Need to apply color-grade to just the background? Use an inverse mask.
-- **Batch Processing:** Survives batch sizes smoothly, executing frame by frame and cleaning memory relentlessly.
+## Options
+- **Section Toggles**: Click the checkbox next to "Color" or "Grain" to see the sliders.
+- **pipeline_order**: You can choose if you want to Sharpen *before* you change the color or *after*. It makes a difference!
+- **mask (Optional)**: If you connect a mask, the changes will only happen inside the area you painted. 
 
 ## Use Case Scenarios
-**Scenario 1: The Cinematic Polish**
-You generated a raw masterpiece, but it feels a bit "digital". You route it through `H4_Mutate`. You flip on **Color**, drop the Gamma to 0.9 for mood. You flip on **Film**, select 'CineStill 800T', and add 0.2 Color Grain. You flip on **Vignette** for focus pulling. Boom, instant cinematic masterpiece right inside ComfyUI. No external software needed.
+**Scenario 1: Adding a "Cinematic" Look**
+Turn on **Color**, drop the Gamma a little for mood, and turn on **Film**. Pick `CineStill 800T` and add a tiny bit of grain. Your generation will go from a "render" to a "movie frame" instantly.
 
-**Scenario 2: The Neural Style Mashup**
-You want your generation to look like an oil painting. Flip on **Style**. Feed 3 different Monet paintings into the `style_image` slots. Engage 'Weighted' blend mode. Watch as the node mathematically rips the texture and color from the paintings and forcefully grafts it onto your generation.
+**Scenario 2: Fixing a soft upscale**
+If you upscale an image and it looks a bit waxy, turn on **Sharpness** and slide it up. It'll pull the detail back from the edges of things like hair and clothing.
 
-## Examples
-- **Basic Integration**:
-  1. Add `H4_Mutate` right before your final `Save Image` or `H4_SmartSave` node.
-  2. Connect your generated `IMAGE` output to it.
-  3. Turn on the modules you want to play with.
-  4. Tinker with sliders until it looks amazing.
+## Quick Start
+1. Place a `H4_Mutate` node right before you save your image.
+2. Check the box for whichever section you want to use.
+3. Fiddle with the sliders until you like what you see.
 
-Slap my ass and call me grandma!
+---
+
+## Dev Corner (Jargon & Logic)
+- **Modular UI**: The node uses a dynamic Javascript frontend to hide or show widgets based on the toggle states.
+- **Internal Pipeline**: Each effect is applied in sequence in a single Python execution block to avoid unnecessary data copies.
+- **WCT2 Style Transfer**: (Advanced) The style module align the color and texture statistics between two images without needing a separate model.

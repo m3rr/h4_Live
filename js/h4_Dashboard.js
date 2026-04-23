@@ -110,6 +110,9 @@ export const h4_Dashboard = {
         wireColorError: "#FF0000",
         gridColor: "rgba(255, 200, 0, 0.15)",
 
+        // Aesthetic Layer
+        sovereignCoreEnabled: true,  // H4 Node Aesthetic Theme — ON by default, users can disable to use their own colours
+
         // Offsets (Ported Logic)
         offsetX: 0,
         offsetY: 0,
@@ -294,107 +297,12 @@ export const h4_Dashboard = {
         const row = document.createElement("div");
         row.className = "h4-set-row";
         row.title = tooltip || "";
-        row.innerHTML = `
-            <div class="h4-set-label">${label}</div>
-            <div class="h4-set-ctrl" style="display:flex; align-items:center; gap:10px;">
-                <input type="range" min="${min}" max="${max}" step="${step}" value="${this.config[key] || 0}">
-                <span style="font-family:monospace; color:#00ff55; width:30px; text-align:right;">${this.config[key] || 0}</span>
-            </div>
-        `;
-        const input = row.querySelector("input");
-        const valDisp = row.querySelector("span");
-        input.oninput = (e) => {
-            valDisp.textContent = e.target.value;
-            this.setConfig(key, parseFloat(e.target.value));
-        };
-        container.appendChild(row);
-    },
-
-    addColor(container, key, label, tooltip) {
-        const row = document.createElement("div");
-        row.className = "h4-set-row";
-        row.title = tooltip || "";
-        row.innerHTML = `
-            <div class="h4-set-label">${label}</div>
-            <div class="h4-set-ctrl">
-                <input type="color" value="${this.config[key] || '#00FF00'}" style="border:none; background:none; cursor:pointer;">
-            </div>
-        `;
-        const input = row.querySelector("input");
-        input.oninput = (e) => this.setConfig(key, e.target.value);
-        container.appendChild(row);
-    },
-
-    // --- RENDERERS ---
-
-    renderDebug(container) {
-        container.innerHTML = "";
-        const h1 = document.createElement("div"); h1.className = "h4-set-group"; h1.textContent = "DEBUG PROTOCOLS";
-        container.appendChild(h1);
-        this.addBool(container, "debugMode", "Nuclear Debug Mode", "Enables verbose logging (Nuclear Protocol).");
-        this.addBool(container, "monitorEnabled", "System Monitor", "Enables the passive surveillance loop.");
-        this.addBool(container, "showErrorPopup", "Error Popups", "Show Red Screen of Death on errors.");
-    },
-
-    renderQoL(container) {
-        container.innerHTML = "";
-        const h1 = document.createElement("div"); h1.className = "h4-set-group"; h1.textContent = "QUALITY OF LIFE";
-        container.appendChild(h1);
-        this.addBool(container, "enabled", "Enable h4_Live", "Master Switch for all H4 extensions.");
-        this.addBool(container, "showGrid", "Show Grid Overlay", "Renders the cyberpunk background grid.");
-        this.addBool(container, "showWires", "Show Data Wires", "Visualizes data flow between nodes.");
-    },
-
-    renderWires(container) {
-        container.innerHTML = "";
-        const h0 = document.createElement("div"); h0.className = "h4-set-group"; h0.textContent = "WIRE ADJUSTMENTS";
-        container.appendChild(h0);
-
-        // Offsets
-        const h1 = document.createElement("div"); h1.className = "h4-set-group"; h1.textContent = "OFFSETS";
-        container.appendChild(h1);
-        this.addSlider(container, "offsetX", "Global Offset X", -100, 100, 1, "Shift grid X");
-        this.addSlider(container, "offsetY", "Global Offset Y", -100, 100, 1, "Shift grid Y");
-        this.addSlider(container, "wireOffsetY", "Wire Offset Y", -50, 50, 1, "Shift wires Y");
-        this.addSlider(container, "wireSpacing", "Wire Spacing", 0.1, 5.0, 0.1, "Spread between wires");
-
-        // Colors
-        const h2 = document.createElement("div"); h2.className = "h4-set-group"; h2.textContent = "COLORS";
-        container.appendChild(h2);
-        this.addColor(container, "wireColorSelect", "Selected Wire Color");
-        this.addColor(container, "wireColorError", "Error Wire Color");
-        this.addColor(container, "gridColor", "Grid Color");
-
-        // Style
-        const h3 = document.createElement("div"); h3.className = "h4-set-group"; h3.textContent = "STYLE";
-        container.appendChild(h3);
-
-        const row = document.createElement("div");
-        row.className = "h4-set-row";
-        row.innerHTML = `
-                <div class="h4-set-label">Wire Style</div>
-                <div class="h4-set-ctrl">
-                    <select style="background:#222; color:#fff; border:1px solid #444; padding:5px;">
-                        <option value="Circuit" ${this.config.wireStyle === "Circuit" ? "selected" : ""}>Circuit</option>
-                        <option value="Linear" ${this.config.wireStyle === "Linear" ? "selected" : ""}>Linear</option>
-                        <option value="Bezier" ${this.config.wireStyle === "Bezier" ? "selected" : ""}>Bezier</option>
-                    </select>
-                </div>
-            `;
-        row.querySelector("select").onchange = (e) => this.setConfig("wireStyle", e.target.value);
-        container.appendChild(row);
-    },
-
-    addSlider(container, key, label, min, max, step, tooltip) {
-        const row = document.createElement("div");
-        row.className = "h4-set-row";
-        row.title = tooltip || "";
         // Simple slider UI
         row.innerHTML = `
             <div class="h4-set-label">${label}</div>
             <div class="h4-set-ctrl" style="display:flex; align-items:center; gap:10px;">
                 <input type="range" min="${min}" max="${max}" step="${step}" value="${this.config[key] || 0}">
-                <span style="font-family:monospace; color:#00ff55; width:30px; text-align:right;">${this.config[key] || 0}</span>
+                <span style="font-family:monospace; color:#00f2ff; width:30px; text-align:right;">${this.config[key] || 0}</span>
             </div>
         `;
         const input = row.querySelector("input");
@@ -435,6 +343,7 @@ export const h4_Dashboard = {
         this.addBool(container, "enabled", "Enable h4_Live", "Master Switch for all H4 extensions.");
         this.addBool(container, "showGrid", "Show Grid Overlay", "Renders the cyberpunk background grid.");
         this.addBool(container, "showWires", "Show Data Wires", "Visualizes data flow between nodes.");
+        this.addBool(container, "sovereignCoreEnabled", "H4 Node Theme", "Applies the H4 Off-Black/Cyan aesthetic to all H4 nodes. Disable to use your own colours. Hardcoded nodes (SmartSave, ForgeMask, etc.) are not affected.");
     },
 
     renderWires(container) {
@@ -484,15 +393,15 @@ export const h4_Dashboard = {
                 .h4-toggle input { opacity: 0; width: 0; height: 0; }
                 .h4-slider {
                     position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-                    background-color: #333; transition: .4s; border-radius: 20px;
-                    border: 1px solid #555;
+                    background-color: #1a1a1a; transition: .4s; border-radius: 20px;
+                    border: 1px solid #333;
                 }
                 .h4-slider:before {
                     position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 2px;
-                    background-color: #888; transition: .4s; border-radius: 50%;
+                    background-color: #555; transition: .4s; border-radius: 50%;
                 }
-                input:checked + .h4-slider { background-color: rgba(0,255,85,0.2); border-color: #00ff55; }
-                input:checked + .h4-slider:before { transform: translateX(20px); background-color: #00ff55; box-shadow: 0 0 5px #00ff55; }
+                input:checked + .h4-slider { background-color: rgba(0,242,255,0.15); border-color: #00f2ff; }
+                input:checked + .h4-slider:before { transform: translateX(20px); background-color: #00f2ff; box-shadow: 0 0 5px #00f2ff; }
             `;
             document.head.appendChild(style);
         }
@@ -506,7 +415,7 @@ export const h4_Dashboard = {
         searchRow.style.cssText = "margin-bottom: 20px; display: flex; gap: 10px;";
         searchRow.innerHTML = `
             <input type="text" placeholder="SEARCH PROTOCOLS..." style="
-                flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; color: #00ff55;
+                flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #333; color: #00f2ff;
                 padding: 10px; font-family: monospace; font-size: 16px; outline: none;
             ">
         `;
@@ -620,9 +529,9 @@ export const h4_Dashboard = {
         const t = document.createElement("div");
         t.style.cssText = `
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #00ff55; color: #000; padding: 10px 20px;
+            background: #00f2ff; color: #000; padding: 10px 20px;
             font-family: monospace; font-weight: bold; z-index: 20000;
-            border-radius: 4px; box-shadow: 0 0 10px #00ff55;
+            border-radius: 4px; box-shadow: 0 0 10px #00f2ff;
         `;
         t.textContent = msg;
         document.body.appendChild(t);
@@ -642,7 +551,7 @@ export const h4_Dashboard = {
         const p = this.previewEl;
         p.style.display = "block";
         p.innerHTML = `
-            <div style="color: #00ff55; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 5px;">
+            <div style="color: #00f2ff; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 5px;">
                 ${nodeData.def.title}
             </div>
             <div style="font-size: 11px; color: #aaa;">
@@ -762,16 +671,16 @@ export const h4_Dashboard = {
                     transform: translateY(0);
                 }
                 .h4-node-card:hover {
-                    background: rgba(0,255,85,0.05);
-                    border-color: #00ff55;
+                    background: rgba(0,242,255,0.05);
+                    border-color: #00f2ff;
                     /* LIFT EFFECT ON HOVER */
                     transform: translateY(-4px);
-                    box-shadow: 0 10px 20px rgba(0,0,0,0.6), 0 0 10px rgba(0,255,85,0.1);
+                    box-shadow: 0 10px 20px rgba(0,0,0,0.6), 0 0 10px rgba(0,242,255,0.1);
                 }
                 /* ASCII Icons */
                 .h4-node-icon { 
                     font-size: 24px; margin-bottom: 10px; opacity: 0.8; 
-                    font-family: monospace; color: #00ff55; text-shadow: 0 0 5px rgba(0,255,85,0.5);
+                    font-family: monospace; color: #00f2ff; text-shadow: 0 0 5px rgba(0,242,255,0.5);
                 }
                 .h4-node-title { font-weight: bold; color: #eee; margin-bottom: 5px; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; }
                 .h4-node-type { font-size: 0.6em; color: #666; font-family: monospace; margin-bottom: 15px; }
@@ -783,8 +692,8 @@ export const h4_Dashboard = {
                     cursor: pointer; transition: all 0.2s; width: 100%;
                 }
                 .h4-btn-summon:hover {
-                    background: #00ff55; color: #000; border-color: #00ff55;
-                    box-shadow: 0 0 10px #00ff55; font-weight: bold;
+                    background: #00f2ff; color: #000; border-color: #00f2ff;
+                    box-shadow: 0 0 10px #00f2ff; font-weight: bold;
                 }
 
                 /* Toast */
@@ -794,7 +703,7 @@ export const h4_Dashboard = {
                 #h4-hover-preview {
                     position: fixed; z-index: 11000;
                     background: rgba(10,10,10,0.95);
-                    border: 1px solid #00ff55;
+                    border: 1px solid #00f2ff;
                     box-shadow: 0 0 20px rgba(0,0,0,0.8);
                     padding: 10px;
                     width: 250px;
@@ -834,7 +743,7 @@ export const h4_Dashboard = {
                 }
                 .h4-doc-close:hover { color: #fff; border-color: #fff; }
                 
-                .h4-doc-content h1 { color: #00ff55; margin-top: 0; font-family: monospace; letter-spacing: -1px; }
+                .h4-doc-content h1 { color: #00f2ff; margin-top: 0; font-family: monospace; letter-spacing: -1px; }
                 .h4-doc-meta { font-family: monospace; color: #444; font-size: 12px; }
                 .h4-doc-body { line-height: 1.6; color: #ccc; }
                 .h4-doc-body h3 { color: #fff; border-bottom: 1px solid #222; display: inline-block; margin-bottom: 10px; font-size: 14px; font-family: monospace; }
@@ -986,23 +895,23 @@ export const h4_Dashboard = {
     },
 
     renderHome(container) {
-        // Robust dynamic path matching Sidebar
-        const iconUrl = "data:image/png;base64,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"; // NUCLEAR OPTION: INLINED BASE64
+        // Dynamic path to the H4 logo PNG in the assets folder
+        const logoUrl = new URL("./assets/h4_logo.png", import.meta.url).href;
 
         container.innerHTML = `
             <div style="
                 display: flex; flex-direction: column; align-items: center; justify-content: center;
-                height: 100%; color: #00ff55;
+                height: 100%; color: #00f2ff;
             ">
-                <img src="${iconUrl}" 
-                    onerror="this.style.display='none'; document.getElementById('h4-icon-fallback').style.display='block'; console.warn('H4 Icon Image Failed:', this.src);"
+                <img src="${logoUrl}" 
+                    onerror="this.style.display='none'; document.getElementById('h4-icon-fallback').style.display='block'; console.warn('H4 Logo PNG Failed:', this.src);"
                     style="
-                    width: 128px; height: 128px; object-fit: contain; margin-bottom: 20px;
-                    filter: drop-shadow(0 0 20px rgba(0,255,85,0.4));
+                    width: 180px; height: 180px; object-fit: contain; margin-bottom: 20px;
+                    filter: drop-shadow(0 0 25px rgba(0,242,255,0.35));
                     opacity: 0; animation: fadeIn 1s forwards;
                 ">
                 <!-- Fallback ASCII -->
-                <div id="h4-icon-fallback" style="display:none; font-family:monospace; font-size:64px; margin-bottom:20px; color:#00ff55; text-shadow: 0 0 20px rgba(0,255,85,0.6);">
+                <div id="h4-icon-fallback" style="display:none; font-family:monospace; font-size:64px; margin-bottom:20px; color:#00f2ff; text-shadow: 0 0 20px rgba(0,242,255,0.6);">
                     { h4 }
                 </div>
 
@@ -1031,7 +940,7 @@ export const h4_Dashboard = {
         const p = this.previewEl;
         p.style.display = "block";
         p.innerHTML = `
-            <div style="color: #00ff55; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 5px;">
+            <div style="color: #00f2ff; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 5px;">
                 ${title}
             </div>
             <div style="font-size: 11px; color: #aaa; margin-bottom: 10px; max-height: 100px; overflow: hidden; text-overflow: ellipsis;">
@@ -1089,7 +998,7 @@ export const h4_Dashboard = {
 
                         // Box
                         ctx.fillStyle = "#222";
-                        ctx.strokeStyle = "#00ff55";
+                        ctx.strokeStyle = "#00f2ff";
                         ctx.lineWidth = 2;
                         ctx.beginPath();
                         ctx.roundRect(0, 0, node.size[0], node.size[1], 5);
@@ -1194,7 +1103,7 @@ export const h4_Dashboard = {
             if (lore && lore.inputs && lore.inputs[k]) {
                 extra = ` - <span style="color:#888;">${lore.inputs[k].description}</span>`;
             }
-            return `<li><strong style="color:#00ff55;">${k}</strong>${extra}</li>`;
+            return `<li><strong style="color:#00f2ff;">${k}</strong>${extra}</li>`;
         }).join('') : "<li>None</li>")}
                     </ul>
                     
@@ -1216,7 +1125,7 @@ export const h4_Dashboard = {
             </div>
             
             <style>
-                .h4-doc-box { background: rgba(255,255,255,0.05); padding: 15px; border-left: 2px solid #00ff55; border-radius: 0 4px 4px 0; }
+                .h4-doc-box { background: rgba(255,255,255,0.05); padding: 15px; border-left: 2px solid #00f2ff; border-radius: 0 4px 4px 0; }
                 .h4-doc-list { list-style: none; padding-left: 0; }
                 .h4-doc-list li { margin-bottom: 8px; padding-left: 15px; border-left: 1px solid #333; }
             </style>
@@ -1277,13 +1186,13 @@ export const h4_Dashboard = {
             
             .h4-dash-content {
                 width: 900px; height: 600px;
-                background: linear-gradient(135deg, rgba(20,20,20,0.95), rgba(10,10,10,0.98));
-                border: 1px solid #333;
-                box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 100px rgba(0,0,0,0.5);
+                background: linear-gradient(135deg, rgba(12,12,12,0.98), rgba(8,8,8,0.99));
+                border: 1px solid rgba(0,242,255,0.15);
+                box-shadow: 0 0 30px rgba(0,0,0,0.9), 0 0 2px rgba(0,242,255,0.1);
                 display: flex; flex-direction: column;
                 font-family: 'Segoe UI', sans-serif;
                 color: #ddd;
-                border-radius: 4px;
+                border-radius: 6px;
                 overflow: hidden;
                 position: relative;
             }
@@ -1291,18 +1200,18 @@ export const h4_Dashboard = {
             /* Glitch border effect could go here */
             
             .h4-dash-header {
-                height: 40px; background: #050505; border-bottom: 1px solid #222;
+                height: 40px; background: #0c0c0c; border-bottom: 1px solid rgba(0,242,255,0.08);
                 display: flex; justify-content: space-between; align-items: center;
                 padding: 0 15px;
             }
-            .h4-dash-title { font-family: monospace; color: #666; font-weight: bold; letter-spacing: 2px; }
+            .h4-dash-title { font-family: monospace; color: #00f2ff; font-weight: bold; letter-spacing: 2px; opacity: 0.6; }
             .h4-dash-close { cursor: pointer; color: #888; font-weight: bold; transition: color 0.2s; }
             .h4-dash-close:hover { color: #fff; }
             
             .h4-dash-body { flex: 1; display: flex; overflow: hidden; }
             
             .h4-dash-sidebar {
-                width: 150px; background: #080808; border-right: 1px solid #222;
+                width: 150px; background: #0c0c0c; border-right: 1px solid rgba(0,242,255,0.06);
                 display: flex; flex-direction: column; padding-top: 20px;
             }
             .h4-tab-btn {
@@ -1312,16 +1221,30 @@ export const h4_Dashboard = {
             }
             .h4-tab-btn:hover { color: #aaa; background: rgba(255,255,255,0.05); }
             .h4-tab-btn.active { 
-                color: #fff; border-left: 3px solid #00ff55; background: rgba(0,255,85,0.05);
-                text-shadow: 0 0 8px rgba(0,255,85,0.6);
+                color: #fff; border-left: 3px solid #00f2ff; background: rgba(0,242,255,0.05);
+                text-shadow: 0 0 8px rgba(0,242,255,0.6);
                 font-size: 18px;
             }
             
             .h4-dash-main { flex: 1; padding: 20px; overflow-y: auto; position: relative; }
             
+            /* Panel Titles (rendered by renderDebug, renderQoL, renderWires) */
+            .h4-panel-title {
+                color: #00f2ff; font-family: monospace; font-weight: 900; letter-spacing: 3px;
+                font-size: 16px; margin: 0 0 15px 0; padding-bottom: 8px;
+                border-bottom: 1px solid rgba(0,242,255,0.15);
+                text-shadow: 0 0 6px rgba(0,242,255,0.3);
+            }
+
+            /* Sidebar Section Headers */
+            .h4-dash-header-small {
+                color: #444; font-family: monospace; font-size: 10px; font-weight: bold;
+                letter-spacing: 2px; padding: 5px 20px; text-transform: uppercase;
+            }
+
             /* Setting Rows */
             .h4-set-group { 
-                color: #00ff55; font-weight: bold; margin-top: 20px; margin-bottom: 10px; 
+                color: #00f2ff; font-weight: bold; margin-top: 20px; margin-bottom: 10px; 
                 border-bottom: 1px solid #333; padding-bottom: 5px; font-family: monospace;
             }
             .h4-set-row {

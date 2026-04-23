@@ -1,43 +1,38 @@
-# 👁️ H4 Forge Mask (The Surgical Suite)
+# h4_forge_mask / H4_ForgeMask (The Mask Painter)
 
-## Overview
-The **H4_ForgeMask** is a professional-grade interactive masking tool for ComfyUI, designed to replicate the refined "Surgical" experience of the Forge UI/Automatic1111 inpainting tabs. It moves away from binary masking logic toward a "Layered Constraint System" where you can sculpt gradients and influence filters directly onto your source imagery.
+## What it is
+A simple tool for painting and drawing masks directly on your image. Instead of going into Photoshop or using the clunky built-in mask editor, you can just paint, lasso, or erase your selection right on the node itself.
 
----
+## Expanded Description
+If you want to change just one part of an image (like changing a character's shirt or fixing a weird hand), you need a **Mask**. 
 
-## Features
+The **ForgeMask** node puts the drawing tools right on your canvas. 
+- **Brush**: Paint exactly where you want to change something.
+- **Eraser**: Rub out parts of the mask you don't want.
+- **Lasso**: Draw a quick circle around an object to select it all at once.
+- **Blur**: Soften the edges so your new "edit" blends in perfectly with the rest of the image.
 
-### 🛠️ The Tactical Toolset
-*   **Polygon Lasso**: Plot precise geometric vertices. Double-click to close and seal the path.
-*   **Multi-Shape Brushes**:
-    *   **Shapes**: Circle, Square, Rectangle, Triangle, Diamond, Oval.
-    *   **Dynamic Resizing**: Use the **Mouse Wheel** to scale your brush size in real-time.
-    *   **Hardness Control**: Adjust the feathering for soft-blending (The "Defibrillator" Effect).
-*   **Eraser**: Clean transitions between masked and unmasked zones.
+## Options
+- **mask_blur**: Make the edges fuzzy so the edit looks natural.
+- **mask_expansion**: Make your painted area slightly bigger or smaller automatically.
+- **invert_mask**: Swap between "change the inside" and "change the outside".
 
-### 🎨 The Off-Black Studio (UI)
-*   **Pane 1 (Canvas)**: High-resolution drawing space.
-*   **Pane 2 (Controls)**: Tool selectors and sliders centered on a sleek H4 Off-Black theme.
-*   **Dual Tracking Filmstrip**: Swap between the raw input and the "Inpaint Red" overlay.
-*   **Hover Inspection**: Hover over the canvas to see the mask active over your image.
+## Use Case Scenarios
+**Scenario 1: Fixing hands**
+If a generation has 6 fingers, you can paint a mask over the hand, hit **SEND MASK**, and run a new sampler pass with a "perfect hand" prompt. 
 
-### 🧠 Modern AI Logic
-*   **Resolution Agnostic**: Masks are automatically scaled to match the source image dimensions on execution.
-*   **Base64 Serialization**: Masks are stored within the node's state, surviving page refreshes and workflow sharing.
-*   **Soft Inpaint Ready**: Built-in Gaussian Blur and influence strength sliders to ensure seamless blending transitions.
+**Scenario 2: Changing clothes**
+If you love an image but hate the colors of the shirt, use the **Lasso** to quickly select the shirt. Send the mask, and use a prompt for a "red leather jacket" to swap the clothes in seconds.
 
----
-
-## Usage
-1. Connect an **IMAGE** to the `image` input.
-2. Select your tool (Brush or Lasso).
-3. Paint/Outline your desired area.
-4. Click **"EYE OF THE TIGER"** to apply and trigger the workflow.
-5. Plug the **MASK** output into your Sampler or Inpainting node.
-
-**Note**: To close a Polygon Lasso, double-click anywhere on the canvas.
+## Quick Start
+1. Add `H4_ForgeMask`.
+2. Connect the image you want to edit.
+3. Pick the Brush or Lasso tool and draw on the image.
+4. Click **SEND MASK** to update the output wire.
 
 ---
 
-*"Restart the heart of the pixels without killing the body of the image."*
-**Be Your Best - h4 (b'.')b**
+## Dev Corner (Jargon & Logic)
+- **HTML5 Canvas**: The frontend uses a full canvas overlay to handle the drawing logic.
+- **Base64 Transfers**: Your painted mask is turned into a text string and sent to the server where it's turned back into a black-and-white mask tensor.
+- **Gaussian Blur**: We apply a mathematical blur to the edges of the mask to prevent "hard lines" during inpainting.

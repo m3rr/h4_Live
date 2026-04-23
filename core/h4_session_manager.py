@@ -108,9 +108,11 @@ class H4_SessionManager:
         }
 
         # [NEW] Return Structure: Root keys for compatibility + A/B sub-objects
+        # 'nodes' will store the granular, node-keyed forensic metrics for restoration
         meta = {
             "image_id": str(unique_id) if unique_id else None,
-            "A": None, # Will be populated if found
+            "nodes": {}, 
+            "A": None, 
             "B": None
         }
         
@@ -140,21 +142,33 @@ class H4_SessionManager:
             node = get_node(start_nid)
             ctype = node.get("class_type", "")
             
-            # [DEBUG TRACE]
-            # print(f"[Metadata Debug] Visiting Node {start_nid} ({ctype})")
-            
             found = []
             
             # Check match
             for t in target_types:
-                if t in ctype:
+                if t == "*" or t in ctype:
                     found.append((start_nid, node))
 
             # Stop if we hit a boundary
             if stop_types:
                 for t in stop_types:
-                    if t in ctype and start_nid != unique_id:
+                    if t in ctype and str(start_nid) != str(unique_id):
                          return found 
+
+            # [H4] Forensic Node Indexing: Track every node we touch for potential restoration
+            if str(start_nid) not in meta["nodes"] and str(start_nid) != str(unique_id):
+                node_inputs = node.get("inputs", {})
+                # Extract only primitive values (not links) for forensics
+                clean_values = {}
+                for k, v in node_inputs.items():
+                    if not isinstance(v, list):
+                        clean_values[k] = v
+                
+                meta["nodes"][str(start_nid)] = {
+                    "title": node.get("_meta", {}).get("title") or ctype or "Unknown Node",
+                    "class": ctype,
+                    "values": clean_values
+                }
 
             # [NEW] Smart Switch Logic
             inputs = node.get("inputs", {})
@@ -167,7 +181,6 @@ class H4_SessionManager:
                     if switch_val is not None and not isinstance(switch_val, list):
                         target_input = "on_true" if switch_val else "on_false"
                         if target_input in inputs:
-                            # print(f"[Metadata Debug] Switch '{ctype}' is {switch_val} -> Tracing '{target_input}' only.")
                             inputs_to_trace = [(target_input, inputs[target_input])]
 
                     # Index Switch
@@ -176,27 +189,23 @@ class H4_SessionManager:
                         target_input = f"input{select_val}"
                          # Some nodes use 0-based, some 1-based. Check both.
                         if target_input in inputs:
-                            # print(f"[Metadata Debug] Switch '{ctype}' index {select_val} -> Tracing '{target_input}' only.")
                             inputs_to_trace = [(target_input, inputs[target_input])]
                         elif str(select_val) == "0" and "input1" in inputs: # Maybe 1-based?
                              pass 
                         elif f"input{int(select_val)+1}" in inputs:
                             target_input = f"input{int(select_val)+1}"
-                            # print(f"[Metadata Debug] Switch '{ctype}' index {select_val} -> Tracing '{target_input}' (adjusted) only.")
                             inputs_to_trace = [(target_input, inputs[target_input])]
 
                 except Exception as e:
-                    pass # print(f"[Metadata Debug] Switch logic error: {e}")
+                    pass
 
             # Trace inputs
             for k, v in inputs_to_trace:
                 if exclude_inputs and k in exclude_inputs:
-                     # print(f"[Metadata Debug] Skipping excluded input: {k}")
                      continue
 
                 if isinstance(v, list):
                     # Link [id, slot]
-                    # print(f"  -> Tracing input {k} to {v[0]}")
                     found.extend(find_upstream_nodes(str(v[0]), target_types, stop_types, visited, exclude_inputs))
             
             return found
@@ -245,8 +254,6 @@ class H4_SessionManager:
                     ctype = node.get("class_type", "")
                     inputs = node.get("inputs", {})
 
-                    print(f"[Metadata Debug] Tracing Model Node: {start_id} ({ctype})")
-
                     current_loras = []
                     
                     def extract_node_loras(inputs):
@@ -270,7 +277,6 @@ class H4_SessionManager:
                          if not name: name = inputs.get("model")
                          
                          if isinstance(name, str): 
-                             print(f"[Metadata Debug] FOUND Checkpoint: {name}")
                              current_loras.extend(extract_node_loras(inputs))
                              return name, current_loras, start_id
 
@@ -313,7 +319,6 @@ class H4_SessionManager:
                     return "unknown"
 
                 def trace_clip_chain(start_id, visited=None):
-                    """Traces CLIP to find Skip."""
                     if not start_id: return None
                     if visited is None: visited = set()
                     if start_id in visited: return None
@@ -328,17 +333,14 @@ class H4_SessionManager:
                         val = inputs.get("clip_skip")
                         if val: return val
 
-                    # Trace upstream
                     link_candidates = ["clip", "conditioning"] + PIPE_KEYS
                     for key in link_candidates:
                          if key in inputs:
                              res = trace_clip_chain(get_input_link(start_id, key), visited)
                              if res: return res
-
                     return None
                     
                 def extract_text_chain(start_id, visited=None):
-                    """Recursively finds text prompt from conditioning/text inputs."""
                     if not start_id: return ""
                     if visited is None: visited = set()
                     if start_id in visited: return ""
@@ -348,94 +350,55 @@ class H4_SessionManager:
                     ctype = node.get("class_type", "")
                     inputs = node.get("inputs", {})
                     
-                    # 1. Direct Text Found?
                     txt = inputs.get("text") or inputs.get("string") or inputs.get("text_g") or inputs.get("text_l")
                     if isinstance(txt, str) and len(txt) > 0: return txt
                     
-                    # 2. Recurse
-                    # Prefer 'text' input links (primitive nodes)
-                    # Then 'conditioning', 'positive', 'negative', 'clip'
-                    # Then pipes
-                    # Added conditioning_1/2 for combiners
                     link_candidates = ["text", "string", "conversation", "conditioning", "positive", "negative", "conditioning_1", "conditioning_2", "clip"] + PIPE_KEYS
-                    
                     for key in link_candidates:
                         if key in inputs:
                             res = extract_text_chain(get_input_link(start_id, key), visited)
                             if res: return res
-                            
                     return ""
 
                 # ── EXECUTION ──
-                
-                # Checkpoints & LoRAs
                 model_source = get_input_link(target_id, "model")
-                ckpt, loras, loader_id = trace_model_chain(model_source) # Get loader_id
+                ckpt, loras, loader_id = trace_model_chain(model_source)
                 m["ckpt_name"] = ckpt
                 m["loras"] = loras
-
-                # VAE (Trace or Fallback to Loader)
                 vae_source = get_input_link(target_id, "vae")
                 m["vae_name"] = trace_vae_chain(vae_source)
                 
-                # If VAE is unknown, try to get it from the Checkpoint Loader we found!
                 if m["vae_name"] == "unknown" and loader_id:
                      loader_node = get_node(loader_id)
-                     # Check if it has a vae_name input
                      lname = loader_node.get("inputs", {}).get("vae_name")
-                     if lname:
-                         m["vae_name"] = lname
-                     # Note: If lname matches "Baked / None", it's good.
-                     elif "CheckpointLoader" in loader_node.get("class_type", ""):
-                         m["vae_name"] = "Baked VAE"
+                     if lname: m["vae_name"] = lname
+                     elif "CheckpointLoader" in loader_node.get("class_type", ""): m["vae_name"] = "Baked VAE"
 
-                # CLIP SKIP
                 pos_source = get_input_link(target_id, "positive")
                 m["clip_skip"] = trace_clip_chain(pos_source)
-                
-                # PROMPTS
-                # Trace positive/negative recursing upstream
                 m["positive"] = extract_text_chain(pos_source)
-                
                 neg_source = get_input_link(target_id, "negative")
                 m["negative"] = extract_text_chain(neg_source)
                 
-                print(f"[Metadata Debug] Extracted: CKPT={ckpt} | LORAS={len(loras)} | VAE={m['vae_name']} | SKIP={m['clip_skip']}")
-                
-                
-                # 4. Dimensions (Width/Height)
-                # Trace 'latent_image' input on Sampler to find EmptyLatentImage
                 latent_source = get_input_link(target_id, "latent_image")
                 if latent_source:
                     latents = find_upstream_nodes(latent_source, ["EmptyLatentImage", "LatentUpscale", "ImageScale"])
                     if latents:
                         l_id, l_node = latents[0]
-                        # EmptyLatentImage has width/height inputs
                         w = l_node.get("inputs", {}).get("width")
                         h = l_node.get("inputs", {}).get("height")
-                        
                         if w and h:
                             m["width"] = w
                             m["height"] = h
-                            # Use helper if available
-                            try:
-                                m["aspect_ratio"] = H4_SessionManager.calculate_aspect_ratio(w, h)
-                            except:
-                                m["aspect_ratio"] = f"{w}:{h}"
+                            try: m["aspect_ratio"] = H4_SessionManager.calculate_aspect_ratio(w, h)
+                            except: m["aspect_ratio"] = f"{w}:{h}"
 
-            # Fallback for LoadImage (Static Source)
             if not m["seed"]:
-                # Check if source node is LoadImage
-                # We need source_node object
                 src = get_node(source_node_id)
                 ctype = src.get("class_type", "")
-                
                 if "LoadImage" in ctype or "Loader" in ctype:
-                    # Try to get filename
-                    widgets = src.get("inputs", {}) # API inputs
-                    # In API, LoadImage 'image' is in inputs
+                    widgets = src.get("inputs", {})
                     fname = widgets.get("image")
-                    
                     if fname and isinstance(fname, str):
                         try:
                             image_path = folder_paths.get_annotated_filepath(fname)
@@ -443,73 +406,46 @@ class H4_SessionManager:
                                 with Image.open(image_path) as img:
                                     info = img.info or {}
                                     params = info.get("parameters", "")
-                                    
                                     if params:
-                                        # 1. Extract Prompts (Simpler Approach)
-                                        # Split by "Negative prompt:"
                                         parts = params.split("Negative prompt:")
-                                        if len(parts) > 0:
-                                            m["positive"] = parts[0].strip()
-                                        if len(parts) > 1:
-                                            # Negative is parts[1] until "Steps:"
-                                            neg_part = parts[1].split("Steps:")[0]
-                                            m["negative"] = neg_part.strip()
-                                            
-                                        # 2. Extract Key-Values
-                                        # "Steps: 20, Sampler: ..., CFG scale: ..., Seed: ..."
-                                        # Regex for numbers
-                                        
+                                        if len(parts) > 0: m["positive"] = parts[0].strip()
+                                        if len(parts) > 1: m["negative"] = parts[1].split("Steps:")[0].strip()
                                         def extract_val(key, cast=str):
-                                            # Matches "Key: Value," or "Key: Value" (end of string)
-                                            # Example: "Steps: 20,"
                                             r = re.search(f"{key}: ([^,]+)", params)
                                             if r:
-                                                try:
-                                                    return cast(r.group(1))
+                                                try: return cast(r.group(1))
                                                 except: return None
                                             return None
-
                                         m["seed"] = extract_val("Seed", int) or extract_val("seed", int)
                                         m["steps"] = extract_val("Steps", int)
                                         m["cfg"] = extract_val("CFG scale", float)
                                         m["sampler_name"] = extract_val("Sampler")
                                         m["scheduler"] = extract_val("Scheduler")
-                                        m["model"] = extract_val("Model") # Model hash usually?
-                                        
-                                        # Dimensions from Size: 512x768
                                         size_match = re.search(r"Size: (\d+)x(\d+)", params)
                                         if size_match:
                                             m["width"] = int(size_match.group(1))
                                             m["height"] = int(size_match.group(2))
-                                            try:
-                                                m["aspect_ratio"] = H4_SessionManager.calculate_aspect_ratio(m["width"], m["height"])
+                                            try: m["aspect_ratio"] = H4_SessionManager.calculate_aspect_ratio(m["width"], m["height"])
                                             except: pass
-                        except Exception as e:
-                            print(f"[H4_SessionManager] Failed to read metadata from file {fname}: {e}")
-
+                        except Exception as e: print(f"[H4_SessionManager] Static DNA Error: {e}")
             return m
 
         # --- Execution ---
+        if unique_id:
+            find_upstream_nodes(str(unique_id), ["*"])
 
-        # 1. Find Source IDs
-        source_a = get_input_link(unique_id, "image_a")
-        source_b = get_input_link(unique_id, "image_b")
+        source_main = get_input_link(unique_id, "images")
+        source_a = get_input_link(unique_id, "image_a") or source_main
+        source_b = get_input_link(unique_id, "image_b") or source_main
         
-        # 2. Extract
         meta["A"] = extract_single_source_meta(source_a)
         meta["B"] = extract_single_source_meta(source_b)
         
-        # 3. Flatten B into root for backward compatibility?
-        # The user seems to want separate tabs.
-        # But `h4_comparinator.py` manual save might rely on root keys?
-        # Let's populate root keys from B (default Result) just in case.
         if meta["B"]:
             for k, v in meta["B"].items():
                 if k not in meta: meta[k] = v
 
         return meta
-
-
 
     @staticmethod
     def calculate_aspect_ratio(w, h):

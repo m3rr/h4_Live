@@ -1,26 +1,35 @@
-# h4_smart_debug / H4_SmartConsole (X-Ray)
+# h4_smart_debug / H4_SmartConsole (The Inspector)
 
 ## What it is
-An inline debugger and telemetry analyzer for ComfyUI. A node that looks *inside* any connected data block and prints a human-readable diagnostic report directly to the visual canvas and terminal execution log.
+A handy little terminal node if you need to see exactly what's flowing through your wires. Think of it like a digital multimeter for your data—you plug it in, and it tells you everything from simple text outputs to the math behind your images and tensors.
 
 ## Expanded Description
-When building experimental pipelines, you frequently encounter `TypeError` or `KeyError` crashes completely lacking coherent tracebacks. 
+Debugging in ComfyUI is usually a lot of guessing. You wonder why an image is pitch black or why a prompt isn't swapping words correctly. 
 
-The `H4_SmartConsole` acts as an analytical multi-tool. Utilizing Python reflection API bindings, it deconstructs arbitrary memory variables (Images, Latents, Tensor blocks, Class instances, Text primitives, Dictionaries) passed through it. 
+The **Smart Console** gives you a "live" readout right on the node. You don't have to look at your terminal window; you can see it right there on the canvas. 
+- **Normal Mode**: Gives you the basics (type, shape, etc.).
+- **+ULTRA Mode**: Gives you the "Nuclear" view. It digs deep into the object to show you every hidden setting and mathematical statistic. Use this when something is seriously broken.
 
-### Diagnostic Modes
-- **Normal (Default):** Prints high-level type structures. Example: "Tensor Dimension Shape [1, 512, 512, 3]", "String: 'Hello World'". Excellent for verifying that scaling matrices operated on an image cleanly.
-- **+ULTRA Mode (Nuclear Inspection):** Deconstructs the underlying software matrix entirely. Prints extensive, massive lists detailing hidden memory attributes, internal callable methods, statistical `min()`/`max()` intensity limits for rendering tensors, computational mean averages, and underlying Python hex memory addresses.
+## Options
+- **mode**: Toggle between Normal and +ULTRA intensity.
+- **label**: Give it a name so you know which debugger you're looking at in your logs.
+- **anything_in**: Plug anything into this. It doesn't care if it's an image, a string, or a model.
 
 ## Use Case Scenarios
-**Scenario 1: Debugging VAE Explodes**
-You run a workflow and the result is a massive featureless pitch-black box instead of an image. You insert the `H4_SmartConsole` between the `KSampler` output latent and the `VAEDecode` input. You activate `+ULTRA Mode`. The console telemetry physically measures the array bytes and flags a calculated `NaN` (Not a Number) block value exceeding the upper floating-point variance boundary, diagnosing a structural mathematical failure in the Sampler process instead of a problem with the VAE.
+**Scenario 1: Hunting for "Exploding" Samplers**
+If your images are coming out as static or pitch black, you can plug your latent into this. If the console says the value is "NaN" (Not a Number), you know your sampler settings are pushy too hard.
 
-**Scenario 2: Reverse-Engineering Third Party Addons**
-You've downloaded a custom UI node from GitHub but have no idea what variable type it's outputting to crash your KSampler. You pipe it into the Smart Console, run it once, and see it's attempting to incorrectly pass an arbitrary Object integer wrapper globally instead of formatted float `CONDITIONING`. You now know exactly how to write a bridge converter.
+**Scenario 2: Checking your Prompts**
+If you're using something like `H4_Switcheroo` and want to make sure the words actually changed before you hit the sampler, just wire the text through this console. It'll show you the final prompt in real-time.
 
-## Examples
-- **Basic Structural Check**:
-  1. Have an output string from a Text Processor node that feeds into your `Positive Prompt` KSampler.
-  2. Wire the string into an `H4_SmartConsole`.
-  3. The `SmartConsole` will accurately echo exactly what characters are executing natively to verify whether random wildcards properly translated.
+## Quick Start
+1. Drop `H4_SmartConsole` between two nodes.
+2. Wire your data into `anything_in`.
+3. Read the text box on the node.
+
+---
+
+## Dev Corner (Jargon & Logic)
+- **Object Introspection**: Uses `dir()` and `vars()` to map the object's structure.
+- **Tensor Forensics**: Uses `torch.min/max/mean` to detect mathematical errors like NaNs or Infs.
+- **Canvas Rendering**: Uses custom Javascript to draw the log directly on the node's foreground for better visibility.

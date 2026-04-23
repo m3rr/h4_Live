@@ -335,6 +335,7 @@ def register_routes():
         filename = request.query.get("filename")
         subfolder = request.query.get("subfolder", "")
         folder_type = request.query.get("type", "output")
+        full_res = request.query.get("full", "false").lower() == "true"
         
         if not filename: return web.Response(status=404)
         
@@ -366,6 +367,10 @@ def register_routes():
              
         if not source_path or not os.path.exists(source_path):
             return web.Response(status=404)
+            
+        # 1. SERVE FULL RESOLUTION
+        if full_res:
+            return web.FileResponse(source_path)
             
         # Generate/Fetch Thumbnail
         thumb_path = create_thumbnail(source_path, filename)

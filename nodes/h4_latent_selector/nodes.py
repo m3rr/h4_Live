@@ -10,7 +10,7 @@ class H4_LatentSelector:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "base_model": (["SD1.5", "SDXL", "Flux", "Wan/Z-Image", "Start From Custom"], {"default": "SDXL"}),
+                "base_model": (["SD1.5", "SDXL", "Flux", "Wan/Z-Image", "Start From Custom"], {"default": "SDXL", "tooltip": "Which model architecture are you using? This determines the optimal pixel area. SD1.5 uses 512px base, SDXL uses 1024px, Wan uses 720p. Pick 'Start From Custom' to ignore presets and use your own width/height."}),
                 "aspect_ratio": ([
                     "1:1 (Square)", 
                     "16:9 (Cinema Landscape)", "9:16 (Story Portrait)", 
@@ -19,13 +19,12 @@ class H4_LatentSelector:
                     "21:9 (Ultrawide)", "9:21 (Ultrawide Portrait)", 
                     "1:2 (Tall)", "2:1 (Wide)",
                     "Custom Dimensions"
-                ], {"default": "1:1 (Square)"}),
-                "batch_size": ("INT", {"default": 1, "min": 1, "max": 64}),
+                ], {"default": "1:1 (Square)", "tooltip": "The shape of your canvas. 1:1 = perfect square (great for avatars). 16:9 = widescreen cinema. 9:16 = phone wallpaper / story format. Pick 'Custom Dimensions' to manually set width and height below."}),
+                "batch_size": ("INT", {"default": 1, "min": 1, "max": 64, "tooltip": "How many identical empty latents to generate in one batch. Set to 1 for single images. Crank it up if you have the VRAM and want to generate multiple variations in parallel."}),
             },
             "optional": {
-                # Custom Inputs (Optional widgets/inputs)
-                "custom_width": ("INT", {"default": 1024, "min": 64, "max": 16384, "step": 8}),
-                "custom_height": ("INT", {"default": 1024, "min": 64, "max": 16384, "step": 8}),
+                "custom_width": ("INT", {"default": 1024, "min": 64, "max": 16384, "step": 8, "tooltip": "Manual width override (only used when 'Start From Custom' or 'Custom Dimensions' is selected). Values get snapped to the nearest multiple of 16 for hardware compatibility."}),
+                "custom_height": ("INT", {"default": 1024, "min": 64, "max": 16384, "step": 8, "tooltip": "Manual height override (only used when 'Start From Custom' or 'Custom Dimensions' is selected). Values get snapped to the nearest multiple of 16 for hardware compatibility."}),
             }
         }
 

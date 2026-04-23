@@ -1,37 +1,37 @@
-# h4_latent_selector / H4_LatentSelector (The Canvas)
+# h4_latent_selector / H4_LatentSelector (The Resolution Picker)
 
 ## What it is
-A resolution calculator, aspect ratio manager, and empty latent generator rolled into one. Stop memorizing pixel dimensions.
+A simple tool for picking the right image size for your models. Instead of typing in numbers like `1024x1024` or `1216x832`, you just pick an aspect ratio (like 16:9 or 3:2) and the model you're using (like SDXL or Flux), and it handles the math for you.
 
 ## Expanded Description
-Aspect ratios are incredibly frustrating in latent space because models (like Stable Diffusion 1.5, SDXL, Wan2.1, or Flux) are trained on radically different base pixel dimensions. Calculating `1024 * (16/9)` in your head, tweaking the numbers so they are cleanly divisible by 8 or 16, and manually creating an Empty Latent Image node is tedious and prone to mathematical errors that cause generation artifacts or blurriness.
+Picking the wrong size for your image can lead to "double heads" or weird, blurry results. Different models (like SD1.5, SDXL, and Flux) have "sweet spots" where they work best.
 
-The `H4_LatentSelector` completely automates this. You select your base architecture and your desired aspect ratio, and it calculates the perfect mathematical area, snaps to the required module boundaries, and outputs everything you need to begin generating.
+The **Latent Selector** makes this easy. 
+- You pick your **Model Type** (so the node knows the pixel "budget").
+- You pick your **Aspect Ratio** (16:9 for movies, 9:16 for TikTok, 3:2 for photos).
+- The node calculates the exact width and height that will make the AI happy while staying as close to your chosen shape as possible. 
 
-## Parameters and Outputs
-- **Architecture List**: SD1.5 (512x), SDXL (1024x), Wan (720x), Flux (1024x variable), etc.
-- **Preset Ratios**: 
-  - `16:9` (Cinematic)
-  - `9:16` (Story/Phone)
-  - `1:1` (Square)
-  - `4:3` (Standard)
-  - `3:4` (Portrait)
-  - `21:9` (Ultrawide)
-- **Batch Size**: Crank it up to generate multiple empty latents in a single stack if you have the VRAM.
-- **Outputs**:
-  - `LATENT` (The empty tensor format ready for the KSampler's noise injection).
-  - `width` (int)
-  - `height` (int)
-  - `IMAGE` (An empty tensor image for logic referencing or pixel-space nodes).
+No more calculator math needed!
+
+## Options
+- **base_model**: Tell the node if you're using SD1.5, SDXL, or Flux.
+- **aspect_ratio**: Pick your shape (Square, Cinematic, Story, etc.).
+- **batch_size**: How many images you want to make at once.
 
 ## Use Case Scenarios
-**Scenario 1: Cross-Model Prompts**
-You are trying to test a prompt designed for SDXL, but you want to see if Juggernaut SD1.5 can handle it. If you feed standard 1024x1024 latents into SD1.5, the model hallucinates horrifying multi-headed creatures because it wasn't trained on that resolution area. You swap the `H4_LatentSelector` architecture dropdown from `SDXL` to `SD1.5`. The node instantly recalculates the pixel area, halving the dimensions but maintaining your precise aspect ratio limit. You run the prompt perfectly.
+**Scenario 1: Making a Cinematic Wallpaper**
+If you want to make a wide desktop wallpaper, just set the mode to **SDXL** and the aspect ratio to **21:9 Ultrawide**. The node will give you a perfect sized latent for that shape.
 
-## Examples
-- **Basic Usage**:
-  1. Drop the `H4_LatentSelector` onto your canvas.
-  2. Select `SDXL` and `16:9`.
-  3. The node automatically calculates the ideal coordinates (e.g., `1344 x 768`).
-  4. Wire the `LATENT` output into your KSampler.
-  5. If you are using a node that physically requires INT sizes (like an image crop or upscale tool), you can wire the `width` and `height` integer outputs directly into that node's inputs.
+**Scenario 2: Avoiding "Double Heads"**
+If you're using Flux and try to make an image that's too small, the AI can act up. This node ensures those numbers are always within the "safe zone" for the model you're using.
+
+## Quick Start
+1. Add `H4_LatentSelector`.
+2. Pick your model and shape.
+3. Plug the `LATENT` output into your KSampler's `samples` input.
+
+---
+
+## Dev Corner (Jargon & Logic)
+- **Pixel Budgeting**: It calculates the total number of pixels (~1MP for SDXL) and adjusts the width/height to keep that area consistent regardless of the shape.
+- **Modulo 16 Snapping**: It ensures the width and height are divisible by 8 or 16 so the AI math doesn't crash your computer.

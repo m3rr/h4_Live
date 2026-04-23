@@ -1,417 +1,384 @@
-
 import os
 import json
-import datetime
-import folder_paths
-from PIL import Image
-from PIL.PngImagePlugin import PngInfo
-import numpy as np
 import torch
+import numpy as np
+from PIL import Image
+import folder_paths
+import logging
+import server
+from aiohttp import web
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
+
+# --- Global Kinetic Executor for Forensic Thumbnails ---
+_h4_io_executor = ThreadPoolExecutor(max_workers=4)
+
+# --- Internal H4 Utilities ---
+def normalize_root_dir(path):
+    if not path: return ""
+    return os.path.abspath(path).replace("\\", "/")
+
+def ensure_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path, exist_ok=True)
+
+def clean_nan(obj):
+    if isinstance(obj, dict):
+        return {k: clean_nan(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_nan(x) for x in obj]
+    elif isinstance(obj, float):
+        if np.isnan(obj) or np.isinf(obj): return 0.0
+        return obj
+    return obj
 
 class H4_SmartSave:
-    """
-    H4 SmartSave - A dual-mode image handler.
-    Toggle between 'Preview Only' (Temp) and 'Save to Disk' (Output).
-    Supports injecting custom JSON metadata into the saved image.
-    """
-    
     def __init__(self):
         self.output_dir = folder_paths.get_output_directory()
         self.type = "output"
         self.prefix_append = ""
-        self.compress_level = 4
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
+        modes = [
+            "None",
+            "Clean (Author)",
+            "Lite (Author+Model)",
+            "Lite+ (+Prompt)",
+            "Full (Forensic)",
+            "Custom",
+        ]
         return {
             "required": {
-                "images": ("IMAGE", ),
+                "images": ("IMAGE",),
+            },
+            "optional": {
                 "filename_prefix": ("STRING", {"default": "h4_", "multiline": False}),
                 "save_mode": ("BOOLEAN", {"default": False, "label_on": "SAVE TO DISK", "label_off": "PREVIEW ONLY"}),
                 "output_path": ("STRING", {"default": "", "multiline": False}),
+                "metadata_mode": (modes, {"default": "Lite (Author+Model)"}),
+                "json_mode": (modes, {"default": "Full (Forensic)"}),
                 "author": ("STRING", {"default": "h4"}),
+                "comments": ("STRING", {"default": "h4 - [ Approved ] - (b'.')b", "multiline": True}),
+                "custom_json": ("STRING", {"default": "", "multiline": True}),
                 "model_name": ("STRING", {"default": "Awesome Model of Awesomeness"}),
-                "comments": ("STRING", {"default": "You're only at your best, when you've been through the worst\n(b'.')b - Be Your best - h4", "multiline": True}),
-                "custom_json": ("STRING", {"default": "", "multiline": True})
             },
-            "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
+            "hidden": {
+                "prompt": "PROMPT",
+                "extra_pnginfo": "EXTRA_PNGINFO",
+                "unique_id": "UNIQUE_ID"
+            },
         }
 
-    RETURN_TYPES = ("IMAGE", )
+    RETURN_TYPES = ("IMAGE",)
     FUNCTION = "smart_save"
     CATEGORY = "h4/IO"
     OUTPUT_NODE = True
 
-    def smart_save(self, images, filename_prefix, save_mode, output_path="", author="h4", model_name="", comments="", custom_json="", prompt=None, extra_pnginfo=None):
+    def _resolve_output(self, filename_prefix, save_mode, output_path):
         if save_mode:
-            # Handle Path Overrides
             if output_path and os.path.isabs(output_path):
                 full_output_dir = output_path
                 subfolder = ""
+                filename = os.path.basename(os.path.normpath(filename_prefix)) or "h4_SmartSave"
             else:
-                root_dir = folder_paths.get_output_directory()
-                if isinstance(root_dir, list): root_dir = root_dir[0]
-                
-                # Combine user output_path with prefix subfolder
+                root_dir = normalize_root_dir(folder_paths.get_output_directory())
                 norm_prefix = os.path.normpath(filename_prefix)
                 prefix_sub = os.path.dirname(norm_prefix)
-                filename_base = os.path.basename(norm_prefix)
-                
+                filename_base = os.path.basename(norm_prefix) or "h4_SmartSave"
                 final_sub = os.path.join(output_path, prefix_sub) if output_path else prefix_sub
                 full_output_dir = os.path.join(root_dir, final_sub)
-                subfolder = final_sub
+                subfolder = final_sub.replace("\\", "/")
                 filename = filename_base
-        else:
-             root_dir = folder_paths.get_temp_directory()
-             filename = "h4_preview"
-             subfolder = ""
-             full_output_dir = root_dir
-
-        if not os.path.exists(full_output_dir):
-            os.makedirs(full_output_dir, exist_ok=True)
             
-        results = list()
-        
-        # Metadata Prep
-        # WORKFLOW INTELLIGENCE: Trace back to find generation DNA
-        telemetry_data = []
-        if prompt is not None:
-            try:
-                # Find the KSampler or similar node that produced the images
-                # We look for nodes that take 'model', 'positive', 'negative' and have 'steps', 'cfg', etc.
-                sampler_nodes = []
-                for node_id, node_data in prompt.items():
-                    class_type = node_data.get("class_type", "")
-                    if any(x in class_type.lower() for x in ["sampler", "sampling"]):
-                        sampler_nodes.append(node_data)
-                
-                if sampler_nodes:
-                    # Sort nodes to find the most likely 'main' sampler (heuristic: largest ID or last executed)
-                    main_sampler = sampler_nodes[-1]
-                    s_type = main_sampler.get("class_type", "Unknown Sampler")
-                    s_inputs = main_sampler.get("inputs", {})
-                    
-                    telemetry_data.append(f"SAMPLER: {s_type}")
-                    telemetry_data.append(f"STEPS: {s_inputs.get('steps', '?')}")
-                    telemetry_data.append(f"CFG: {s_inputs.get('cfg', '?')}")
-                    telemetry_data.append(f"SAMPLER_NAME: {s_inputs.get('sampler_name', '?')}")
-                    telemetry_data.append(f"SCHEDULER: {s_inputs.get('scheduler', '?')}")
-                    telemetry_data.append(f"SEED: {s_inputs.get('seed', '?')}")
+            ensure_dir(full_output_dir)
+            return full_output_dir, subfolder, filename
+        else:
+            subfolder = "h4_previews"
+            full_output_dir = os.path.join(folder_paths.get_temp_directory(), subfolder)
+            ensure_dir(full_output_dir)
+            import random
+            rand_id = random.randint(1000, 9999)
+            file = f"h4_preview_{rand_id}.png"
+            json_file = file.replace(".png", ".json")
+            return full_output_dir, subfolder, file
 
-                    # Trace Positive/Negative prompts
-                    def get_text_from_link(link_data):
-                        if isinstance(link_data, list) and len(link_data) > 0:
-                            source_node_id = str(link_data[0])
-                            source_node = prompt.get(source_node_id)
-                            if source_node:
-                                inputs = source_node.get("inputs", {})
-                                return inputs.get("text", inputs.get("string", ""))
-                        return ""
+    def smart_save(
+        self,
+        images,
+        filename_prefix="h4_",
+        save_mode=False,
+        metadata_mode="None",
+        json_mode="None",
+        output_path="",
+        author="h4",
+        model_name="Awesome Model of Awesomeness",
+        comments="h4 - [ Approved ] - (b'.')b",
+        custom_json="",
+        prompt=None,
+        extra_pnginfo=None,
+        unique_id=None
+    ):
+        from core.h4_session_manager import H4_SessionManager
 
-                    pos_text = get_text_from_link(s_inputs.get("positive"))
-                    neg_text = get_text_from_link(s_inputs.get("negative"))
-                    if pos_text: telemetry_data.append(f"\nPOSITIVE PROMPT:\n{pos_text}")
-                    if neg_text: telemetry_data.append(f"\nNEGATIVE PROMPT:\n{neg_text}")
+        if images is None or len(images) == 0:
+            print("\n[H4_SmartSave] \ud83c\udfaf ABORT: No images detected on input. Verify your output link.")
+            return {"ui": {"images": []}, "result": (None,)}
 
-                # Find Model
-                for node_id, node_data in prompt.items():
-                    class_type = node_data.get("class_type", "")
-                    if "checkpointloader" in class_type.lower():
-                        telemetry_data.append(f"\nMODEL: {node_data.get('inputs', {}).get('ckpt_name', 'Unknown')}")
-                        break
+        full_output_dir, subfolder, filename = self._resolve_output(filename_prefix, save_mode, output_path)
 
-            except Exception as e:
-                telemetry_data.append(f"Workflow Intelligence Error: {e}")
+        forensics_map = {}
+        telemetry = {}
 
-        telemetry_str = "\n".join(telemetry_data) if telemetry_data else "NO WORKFLOW DNA DETECTED"
+        try:
+            fs_manager = H4_SessionManager()
+            extracted = fs_manager.extract_metadata(prompt, unique_id) or {}
+            forensics_map = extracted.get("nodes", {}) or {}
+            telemetry = extracted.get("A") or {}
+        except Exception as e:
+            print(f"[H4_SmartSave] Forensic Extraction Critical Fault: {e}")
 
-        # Sidecar and Metadata updates
-        sidecar_data = {
-            "Author": author,
-            "Model": model_name,
-            "Comments": comments,
-            "h4_timestamp": datetime.datetime.now().isoformat(),
-            "telemetry": telemetry_str
-        }
+        sidecar_data = self._build_sidecar(
+            json_mode=json_mode,
+            metadata_mode=metadata_mode,
+            author=author,
+            model_name=model_name,
+            comments=comments,
+            custom_json=custom_json,
+            forensics_map=forensics_map,
+            telemetry=telemetry,
+            prompt=prompt,
+            extra_pnginfo=extra_pnginfo
+        )
 
-        # Merge custom JSON if valid
-        if custom_json.strip():
-            try:
-                custom_data = json.loads(custom_json)
-                if isinstance(custom_data, dict):
-                    sidecar_data.update(custom_data)
-            except Exception as e:
-                logging.warning(f"h4_SmartSave: Failed to parse custom_json: {e}")
-
-        metadata = PngInfo()
-        metadata.add_text("Author", author)
-        metadata.add_text("Model", model_name)
-        metadata.add_text("Comments", comments)
-
-        if prompt is not None:
-            metadata.add_text("prompt", json.dumps(prompt))
-            sidecar_data["prompt"] = prompt
-        if extra_pnginfo is not None:
-            for x in extra_pnginfo:
-                metadata.add_text(x, json.dumps(extra_pnginfo[x]))
-                sidecar_data[x] = extra_pnginfo[x]
-        
-        for image in images:
-            i = 255. * image.cpu().float().numpy()
-            img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
+        results = []
+        for i, tensor in enumerate(images):
+            img = Image.fromarray(np.clip(255. * tensor.cpu().numpy(), 0, 255).astype(np.uint8))
             
             if save_mode:
-                counter = 1
-                while True:
-                     file = f"{filename}_{counter:05}_.png"
-                     json_file = f"{filename}_{counter:05}_.json"
-                     if not os.path.exists(os.path.join(full_output_dir, file)):
-                         break
-                     counter += 1
-                     
-                file_path = os.path.join(full_output_dir, file)
-                json_path = os.path.join(full_output_dir, json_file)
-                
-                img.save(file_path, pnginfo=metadata, compress_level=self.compress_level)
-                with open(json_path, 'w', encoding='utf-8') as f:
-                    json.dump(sidecar_data, f, indent=2, ensure_ascii=False)
-                
-                results.append({
-                    "filename": file,
-                    "subfolder": subfolder,
-                    "type": "output"
-                })
+                file_name = f"{filename}_{i+1:04}.png"
+                json_name = f"{filename}_{i+1:04}.json"
             else:
-                import random
-                rand_id = random.randint(0, 1000000)
-                file = f"h4_preview_{rand_id}.png"
-                file_path = os.path.join(full_output_dir, file)
-                img.save(file_path, pnginfo=metadata, compress_level=1)
-                
-                results.append({
-                    "filename": file,
-                    "subfolder": "",
-                    "type": "temp"
-                })
+                file_name = filename
+                json_name = filename.replace(".png", ".json")
 
-        if save_mode:
-             self._prune_files(full_output_dir, filename_prefix, limit=25)
+            save_path = os.path.join(full_output_dir, file_name)
+            json_path = os.path.join(full_output_dir, json_name)
+
+            img.save(save_path, pnginfo=None, compress_level=1)
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(clean_nan(sidecar_data), f, indent=2, ensure_ascii=False)
+            
+            results.append({
+                "filename": file_name,
+                "subfolder": subfolder,
+                "type": "output" if save_mode else "temp",
+                "sidecar": sidecar_data
+            })
 
         return {"ui": {"images": results}, "result": (images,)}
 
-        return {"ui": {"images": results}, "result": (images,)}
-    
-    def _prune_files(self, folder, prefix, limit=25):
-        try:
-            # Safely identify candidates
-            # We match strict prefix
-            candidates = []
-            
-            # Subfolder handling in prefix
-            norm_prefix = os.path.normpath(prefix)
-            base_filename = os.path.basename(norm_prefix) # e.g. "h4_" from "sub/h4_"
-            
-            # Since full_output_dir already includes the subfolder,
-            # we just look for files starting with base_filename
-            
-            for f in os.listdir(folder):
-                if f.startswith(base_filename) and f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
-                    full = os.path.join(folder, f)
-                    try:
-                        candidates.append((full, os.path.getmtime(full)))
-                    except: pass
-            
-            # Sort Newest First
-            candidates.sort(key=lambda x: x[1], reverse=True)
-            
-            if len(candidates) > limit:
-                to_delete = candidates[limit:]
-                print(f"[H4_SmartSave] Pruning {len(to_delete)} old files (Limit: {limit})")
-                for path, _ in to_delete:
-                    try:
-                        os.remove(path)
-                    except Exception as e:
-                        print(f"[H4_SmartSave] Error pruning {path}: {e}")
-                        
-        except Exception as e:
-            print(f"[H4_SmartSave] Pruning Failed: {e}")
+    def _build_sidecar(self, json_mode, metadata_mode, author, model_name, comments, custom_json, forensics_map, telemetry, prompt, extra_pnginfo):
+        sidecar_data = {
+            "h4_identity": {
+                "author": author,
+                "model_assigned": model_name,
+                "comments": comments,
+                "timestamp": server.PromptServer.instance.last_node_id if hasattr(server.PromptServer.instance, 'last_node_id') else 0
+            }
+        }
+        
+        if json_mode != "None":
+            if json_mode == "Custom" and custom_json:
+                try:
+                    sidecar_data["custom_dna"] = json.loads(custom_json)
+                except:
+                    sidecar_data["custom_dna_error"] = "Invalid JSON structure."
+            elif json_mode == "Full (Forensic)":
+                sidecar_data["h4_forensics"] = forensics_map or {}
+        
+        return sidecar_data
 
-# --- API FOR HISTORY ---
+# --- API ROUTES ---
 try:
     from server import PromptServer
-    from aiohttp import web
 
     @PromptServer.instance.routes.get("/h4/smart_save/history")
     async def get_smart_save_history(request):
-        """
-        Scans output folder for images, returning the 50 most recent.
-        Format: JSON list of { filename, subfolder, type, timestamp, metadata }
-        """
-        # print(f"[H4_SmartSave] History scan requested...")
-        history = []
         try:
-            output_dir = folder_paths.get_output_directory()
-            temp_dir = folder_paths.get_temp_directory()
+            history = []
+            
+            # --- Forensic Scan: Output ---
+            out_root = folder_paths.get_output_directory()
+            print(f"[H4_SmartSave] Auditing Output Manifest: {out_root}")
+            for root, dirs, files in os.walk(out_root):
+                for f in files:
+                    if f.endswith(".json") and ("h4" in f.lower()):
+                        json_path = os.path.join(root, f)
+                        try:
+                            with open(json_path, "r", encoding="utf-8") as jf:
+                                data = json.load(jf)
+                                # Be permissive with identity checks
+                                img_file = f.replace(".json", ".png")
+                                if os.path.exists(os.path.join(root, img_file)):
+                                    sub = os.path.relpath(root, out_root)
+                                    if sub == ".": sub = ""
+                                    history.append({
+                                        "filename": img_file,
+                                        "subfolder": sub.replace("\\", "/"),
+                                        "type": "output",
+                                        "timestamp": os.path.getmtime(json_path),
+                                        "sidecar": data
+                                    })
+                        except: continue
 
-            # Supported Extensions
-            exts = ('.png', '.jpg', '.jpeg', '.webp')
-            
-            # Scan both output and temp directories
-            # Preview-mode images go to temp, Save-mode images go to output
-            scan_targets = []
-            if output_dir:
-                if isinstance(output_dir, list):
-                     for d in output_dir:
-                         if os.path.exists(d): scan_targets.append((d, "output"))
-                elif os.path.exists(output_dir):
-                    scan_targets.append((output_dir, "output"))
-            if temp_dir and os.path.exists(temp_dir):
-                scan_targets.append((temp_dir, "temp"))
-            
-            if not scan_targets:
-                return web.json_response([])
-            
-            files_found = []
-            
-            files_found = []
-            
-            # [H4] High-Performance Scan Optimization
-            # Instead of a deep walk, we do a targeted breadth scan of base_dir and its immediate subfolders.
-            for base_dir, dir_type in scan_targets:
-                try:
-                    # 1. Scan root files first
-                    with os.scandir(base_dir) as it:
-                        for entry in it:
-                            if entry.is_file() and entry.name.lower().endswith(exts):
-                                if "thumb_" in entry.name.lower(): continue
-                                try:
-                                    files_found.append((entry.path, entry.stat().st_mtime, base_dir, dir_type))
-                                except OSError: pass
-                            
-                            # 2. Scan immediate subfolders (one level deep is usually enough for prefix/subfolders)
-                            elif entry.is_dir() and not entry.name.startswith("."):
-                                try:
-                                    with os.scandir(entry.path) as sub_it:
-                                        for sub_entry in sub_it:
-                                            if sub_entry.is_file() and sub_entry.name.lower().endswith(exts):
-                                                if "thumb_" in sub_entry.name.lower(): continue
-                                                try:
-                                                    files_found.append((sub_entry.path, sub_entry.stat().st_mtime, base_dir, dir_type))
-                                                except OSError: pass
-                                except Exception: pass
-                                
-                    # Safety Break: If we found thousands of files, we stop there to prevent API hanging.
-                    if len(files_found) > 1000:
-                         break
-                except Exception as e:
-                    print(f"[H4_SmartSave] Scan error for {base_dir}: {e}")
+            # --- Forensic Scan: Temp ---
+            temp_root = folder_paths.get_temp_directory()
+            prev_dir = os.path.join(temp_root, "h4_previews")
+            print(f"[H4_SmartSave] Auditing Preview Manifest: {prev_dir}")
+            if os.path.exists(prev_dir):
+                for f in os.listdir(prev_dir):
+                    if f.endswith(".png") or f.endswith(".json"):
+                        # Accept either PNG or JSON for previews to ensure visibility
+                        base_name = os.path.splitext(f)[0]
+                        img_file = base_name + ".png"
+                        json_file = base_name + ".json"
+                        
+                        full_img = os.path.join(prev_dir, img_file)
+                        if os.path.exists(full_img):
+                            # Check if already added
+                            if not any(x["filename"] == img_file and x["type"] == "temp" for x in history):
+                                history.append({
+                                    "filename": img_file,
+                                    "subfolder": "h4_previews",
+                                    "type": "temp",
+                                    "timestamp": os.path.getmtime(full_img),
+                                    "sidecar": {} # Will be fetched via sidecar API if needed
+                                })
 
-            # [H4] NUCLEAR DIAGNOSTICS: Logging newest discovery
-            files_found.sort(key=lambda x: (x[1], x[0]), reverse=True)
-            top_limited = files_found[:25]
-            
-            if top_limited:
-                print(f"[H4_SmartSave] 🎯 NEWEST FILE IN SCAN: {os.path.basename(top_limited[0][0])} | MTIME: {top_limited[0][1]}")
-            
-            seen_filenames = set()
-            for path, mtime, base_dir, dir_type in top_limited:
-                try:
-                    rel_path = os.path.relpath(path, base_dir)
-                    subfolder = os.path.dirname(rel_path)
-                    filename = os.path.basename(rel_path)
-                    subfolder = subfolder.replace("\\", "/")
-                    
-                    # De-duplication: If we see the same filename (e.g. Temp vs Output), keep newest
-                    if filename in seen_filenames: continue
-                    seen_filenames.add(filename)
-                    
-                    history.append({
-                        "filename": filename,
-                        "subfolder": subfolder,
-                        "type": dir_type,
-                        "timestamp": int(mtime * 1000)
-                    })
-                except Exception as e:
-                    print(f"[H4_SmartSave] Error processing {path}: {e}")
-                    continue
-            
-            # [H4] Sanitize NaN/Inf values which break JS JSON.parse
-            import math
-            def clean_nan(obj):
-                if isinstance(obj, (float, int)):
-                    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
-                        return None
-                elif isinstance(obj, dict):
-                    return {k: clean_nan(v) for k, v in obj.items()}
-                elif isinstance(obj, list):
-                    return [clean_nan(v) for v in obj]
-                return obj
+            # Deduplicate and Sort
+            history.sort(key=lambda x: x["timestamp"], reverse=True)
+            rendered = history[:50]
+            print(f"[H4_SmartSave] Forensic Audit Complete: {len(rendered)} assets identified.")
+            return web.json_response(clean_nan(rendered))
 
-            history = clean_nan(history)
-            return web.json_response(history)
-            
         except Exception as e:
-            print(f"[H4_SmartSave] History API Error: {e}")
+            print(f"[H4_SmartSave] History Registry Fault: {e}")
             return web.json_response({"error": str(e)}, status=500)
+
+    @PromptServer.instance.routes.get("/h4/smart_save/sidecar")
+    async def get_smart_save_sidecar(request):
+        try:
+            filename = request.query.get("filename")
+            subfolder = request.query.get("subfolder", "")
+            dir_type = request.query.get("type", "output")
+
+            if not filename:
+                return web.Response(status=400)
+
+            root_dir = folder_paths.get_temp_directory() if dir_type == "temp" else folder_paths.get_output_directory()
+            root_dir = normalize_root_dir(root_dir)
+
+            base_name = os.path.splitext(filename)[0]
+            json_filename = base_name + ".json"
+            json_path = os.path.join(root_dir, subfolder, json_filename)
+
+            if not os.path.exists(json_path):
+                return web.json_response({"error": "Sidecar not found"}, status=404)
+
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            return web.json_response(clean_nan(data))
+
+        except Exception as e:
+            print(f"[H4_SmartSave] Sidecar API Error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    @PromptServer.instance.routes.post("/h4/smart_save/cache_swap")
+    async def post_smart_save_cache_swap(request):
+        try:
+            body = await request.json()
+            node_id = str(body.get("node_id"))
+            values = body.get("values")
+            if not node_id: return web.Response(status=400)
+            temp_dir = folder_paths.get_temp_directory()
+            cache_path = os.path.join(temp_dir, "h4_smart_save_swap_undo.json")
+            cache = {}
+            if os.path.exists(cache_path):
+                try:
+                    with open(cache_path, "r", encoding="utf-8") as f: cache = json.load(f)
+                except Exception: cache = {}
+            cache[node_id] = values
+            with open(cache_path, "w", encoding="utf-8") as f: json.dump(clean_nan(cache), f, ensure_ascii=False)
+            return web.json_response({"status": "success"})
+        except Exception as e: return web.json_response({"error": str(e)}, status=500)
+
+    @PromptServer.instance.routes.get("/h4/smart_save/cache_swap")
+    async def get_smart_save_cache_swap(request):
+        try:
+            node_id = request.query.get("node_id")
+            if not node_id: return web.Response(status=400)
+            temp_dir = folder_paths.get_temp_directory()
+            cache_path = os.path.join(temp_dir, "h4_smart_save_swap_undo.json")
+            if not os.path.exists(cache_path): return web.json_response({"error": "Cache empty"}, status=404)
+            with open(cache_path, "r", encoding="utf-8") as f: cache = json.load(f)
+            node_data = cache.get(str(node_id))
+            if node_data is None: return web.json_response({"error": "Node not in cache"}, status=404)
+            return web.json_response({"values": clean_nan(node_data)})
+        except Exception as e: return web.json_response({"error": str(e)}, status=500)
 
     @PromptServer.instance.routes.get("/h4/thumbnail")
     async def get_smart_save_thumbnail(request):
-        """
-        Serves an image from the vault. 
-        If 'full=true' is passed, serves the original high-resolution file.
-        Otherwise, serves a resized thumbnail for the history rail.
-        """
         try:
             filename = request.query.get("filename")
             subfolder = request.query.get("subfolder", "")
             dir_type = request.query.get("type", "output")
             full_res = request.query.get("full", "false").lower() == "true"
+
+            if not filename: return web.Response(status=400)
             
-            if not filename:
-                return web.Response(status=400)
-            
-            # Resolve root
+            # --- Robust Path Resolution ---
             if dir_type == "temp":
                 root_dir = folder_paths.get_temp_directory()
             else:
                 root_dir = folder_paths.get_output_directory()
-                if isinstance(root_dir, list): root_dir = root_dir[0]
             
-            # Final Path
-            img_path = os.path.join(root_dir, subfolder, filename)
+            img_path = os.path.normpath(os.path.join(root_dir, subfolder, filename))
+            
             if not os.path.exists(img_path):
-                return web.Response(status=404)
+                # Critical Fallback: Try checking the other root just in case of mis-labeling
+                alt_root = folder_paths.get_output_directory() if dir_type == "temp" else folder_paths.get_temp_directory()
+                img_path = os.path.normpath(os.path.join(alt_root, subfolder, filename))
+                if not os.path.exists(img_path): return web.Response(status=404)
+
+            if full_res: return web.FileResponse(img_path)
+
+            # --- Cache Management ---
+            cache_dir = os.path.normpath(os.path.join(folder_paths.get_temp_directory(), "h4_thumbs_v3"))
+            if not os.path.exists(cache_dir): os.makedirs(cache_dir, exist_ok=True)
             
-            # 1. SERVE FULL RESOLUTION
-            if full_res:
-                return web.FileResponse(img_path)
-            
-            # 2. SERVE OPTIMIZED THUMBNAIL
-            # Check for existing h4_thumb_ prefix to avoid re-generating
-            cache_dir = os.path.join(folder_paths.get_temp_directory(), "h4_thumbs")
-            os.makedirs(cache_dir, exist_ok=True)
-            
-            thumb_name = f"h4_thumb_{filename}"
+            # Sanitized Cache Name
+            safe_sub = subfolder.replace("\\", "_").replace("/", "_")
+            thumb_name = f"h4_t3_{dir_type}_{safe_sub}_{filename}.jpg"
             thumb_path = os.path.join(cache_dir, thumb_name)
-            
-            if os.path.exists(thumb_path):
+
+            # --- Manifest Retrieval ---
+            if os.path.exists(thumb_path) and os.path.getmtime(thumb_path) >= os.path.getmtime(img_path):
                 return web.FileResponse(thumb_path)
-            
-            # Generate Thumb JIT
+
+            # --- Synchronous Forensic Manifestation (Stabilization Mode) ---
             with Image.open(img_path) as img:
-                # Square Crop for history rail
-                side = min(img.width, img.height)
-                left = (img.width - side) / 2
-                top = (img.height - side) / 2
-                img = img.crop((left, top, left + side, top + side))
-                
-                img.thumbnail((256, 256))
-                img.save(thumb_path, "PNG", compress_level=1)
-            
+                # Convert to RGB for JPEG compatibility (RGBA fix)
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                img.thumbnail((160, 160), Image.LANCZOS)
+                img.save(thumb_path, "JPEG", quality=90, optimize=True)
+
             return web.FileResponse(thumb_path)
             
         except Exception as e:
-            print(f"[H4_SmartSave] Thumbnail API Error: {e}")
+            print(f"[H4_SmartSave] Kinetic Audit Failure: {e}")
             return web.Response(status=500)
 
 except Exception as e:

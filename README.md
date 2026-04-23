@@ -3,9 +3,9 @@ A stateful, loop-friendly utility belt for ComfyUI, built to make workflows feel
 
 https://discord.gg/hDCHn4aJe5
 
-And a final note, This node pack , is not meant for comfyui Desktop edition. As CDE (I'm coining that abbreviation now... it's mine Comfy Desktop Edition... I invted it , you saw it here first. 
+And a final note, This node pack , is not meant for comfyui Desktop edition. As CDE (I'm coining that abbreviation now... it's mine Comfy Desktop Edition... I invted it , you saw it here first.)
 
-Anyway - because I use a lot of javascript to hijack the Queue, and canvas, and make heavy changes to the nodes them selves. Their appearance and structure. SOOOO That being said, if you're running CDE , these nodes will function but will not have the flair, nor will it have half the QoL changes. 
+Anyway - because I use a lot of javascript to hijack the Queue, and canvas, and make heavy changes to the nodes them selves. As well as their appearance and structure. SOOOO That being said, if you're running CDE , these nodes will function but will not have the flair, nor will it have half the QoL changes. 
 
 So Be Aware, - This is your only Warning. 
 It Will not be 100% "Fleshed out" if running CDE. 
@@ -233,30 +233,36 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 - [H4_SeedSequencer (Chaos Controller)](#h4_seedsequencer-chaos-controller)
 
 ### Gridinator and testing suite
-- [H4_Gridinator (IT’S OVER 9000!)](#h4_gridinator-its-over-9000)
+- [H4_Gridinator (The Grid Maker)](#h4_gridinator-the-grid-maker)
 - [H4_AxisDriver (Grid Tools)](#h4_axisdriver-grid-tools)
 - [H4_Comparinator (A/B Test)](#h4_comparinator-ab-test)
 
 ### Data processing and batch tools
 - [H4_DataStream (Batch Loader)](#h4_datastream-batch-loader)
-- [H4_PixelPress (SSAA/HDR)](#h4_pixelpress-ssaahdr)
+- [H4_PixelPress (The Sharpener)](#h4_pixelpress-the-sharpener)
 - [H4_Mutate (The Finisher)](#h4_mutate-the-finisher)
 - [H4_PixelVisualizer (Diff Inspector)](#h4_pixelvisualizer-diff-inspector)
-- [H4_Varianator (Latent Riffler)](#h4_varianator-latent-riffler)
+- [H4_Varianator (The Remix Node)](#h4_varianator-the-remix-node)
+- [H4_Switcheroo (Universal Swap)](#h4_switcheroo-universal-swap)
 - [H4_VisualTokenizer (Weights)](#h4_visualtokenizer-weights)
-- [H4_DoubleSampler (Dual-Core Engine)](#h4_doublesampler-dual-core-engine)
+- [H4_DoubleSampler (The Two-Pass Engine)](#h4_doublesampler-the-two-pass-engine)
 
 ### Face manipulation suite (h4_faceforge/)
-- [H4_FaceForge (AIO Face Swap Engine)](#h4_faceforge-aio-face-swap-engine)
-- [H4_IdentityEngine (Persona Engine)](#h4_identityengine-persona-engine)
-- [H4_FaceDetailer (Pore Restorer)](#h4_facedetailer-pore-restorer)
+- [H4_FaceForge (The Face Swapper)](#h4_faceforge-the-face-swapper)
+- [H4_IdentityEngine (The Persona Engine)](#h4_identityengine-the-persona-engine)
+- [H4_FaceDetailer (The Texture Fixer)](#h4_facedetailer-the-texture-fixer)
 - [H4_BuildFaceModel](#h4_buildfacemodel)
 - [H4_LoadFaceModel](#h4_loadfacemodel)
 - [H4_SaveFaceModel](#h4_savefacemodel)
 
 ### Loaders and file operations
 - [H4_UniversalLoader (Skeleton Key)](#h4_universalloader-skeleton-key)
+- [H4_CompleteLoader (All-In-One)](#h4_completeloader-all-in-one)
+- [H4_MultiImgUpload (The Gallery)](#h4_multiimgupload-the-gallery)
 - [H4_SmartSave (Preview/Save)](#h4_smartsave-previewsave)
+
+### Masking and inpainting
+- [H4_ForgeMask (Surgical Suite)](#h4_forgemask-surgical-suite)
 
 ### Display and debugging
 - [H4_SmartConsole (X-Ray)](#h4_smartconsole-x-ray)
@@ -304,7 +310,7 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 ---
 
-### H4_DoubleSampler (The Dual-Core Engine)
+### H4_DoubleSampler (The Two-Pass Engine)
 **What it is:** The monster truck of samplers. It handles two-stage generation (Primary + Refiner), prompt transformation, and CFG sliding all in one node.
 
 **How to use it:**
@@ -468,7 +474,7 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 ## Gridinator and testing suite
 
-### H4_Gridinator (IT’S OVER 9000!)
+### H4_Gridinator (The Grid Maker)
 **What it is:** A monolithic node that renders entire X/Y/Z grids in one go.
 **Why:** Because wiring up 50 KSamplers to make a 10x10 grid is insane.
 **The Feature List:**
@@ -581,7 +587,7 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 ---
 
 
-### H4_Varianator (Latent Riffler)
+### H4_Varianator (The Remix Node)
 **What it is:** A jazz musician in node form. It takes a latent image and "riffs" on it to create variations.
 **The Problem:** You have a generation you like, but the eyes are weird or you want to see if it looks better with slightly different noise.
 **The Solution:** Feed it to the Varianator.
@@ -601,9 +607,29 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 ---
 
+### H4_Switcheroo (The Universal Swap)
+**What it is:** The last find-and-replace node you'll ever need. Drop this into your workflow and swap out any word, phrase, or token in your prompt without touching the original text node.
+
+**How to use it:**
+- Wire your raw **STRING** prompt (the gray wire, NOT the orange CONDITIONING wire) into the `subject` input.
+- Set `swap_count` to however many find/replace pairs you need (up to 10).
+- Type your target words into `find_1`, `find_2`, etc.
+- Type your replacements into `replace_1`, `replace_2`, etc.
+- Optionally connect a `CLIP` model if you want Switcheroo to re-encode the modified text back into CONDITIONING.
+
+**Features:**
+- **Visual Terminal HUD:** See the exact modified prompt right on the node.
+- **Case Sensitive toggle:** Match exactly or match any case.
+- **Wiring Fault Interceptor:** Detects if you accidentally wired CONDITIONING and warns you.
+- **Auto CLIP re-encode:** Wire a CLIP and get CONDITIONING directly — skip the extra CLIPTextEncode node.
+
+**Example:** Prompt is `solo, 1girl, standing, sunset`. Find `1girl`, Replace `1boy` → Output: `solo, 1boy, standing, sunset`.
+
+---
+
 ## Image enhancement and visuals
 
-### H4_PixelPress (The God of Crispness)
+### H4_PixelPress (The Sharpener)
 **What it is:** A True Supersampling (SSAA) node.
 **How it works:**
 1. **Upscale:** It blows your image up (2x, 3x, or 4x) using a model or Lanczos.
@@ -712,7 +738,7 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 ## Face manipulation suite (h4_faceforge/)
 
-### H4_FaceForge (The Plastic Surgeon)
+### H4_FaceForge (The Face Swapper)
 **What it is:** A robust, all-in-one face swap engine that doesn't look like a 2005 video game.
 **The Pipeline:**
 1.  **Swap:** Uses InsightFace to map the source face onto the target.
@@ -723,14 +749,14 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 **Pro Tip:** If your face looks like a potato, turn *up* the formatting, but turn *down* the restoration strength.
 
-### H4_IdentityEngine (The Soul Extractor)
+### H4_IdentityEngine (The Persona Engine)
 **What it is:** It extracts the "essence" of a face (embeddings) and saves it for later.
 **Why:**
 - Stop re-analyzing the same 5 photos of Elon Musk every time you run a generation.
 - Build a "Consistent Character" bank.
 - Mix face embeddings (50% Dad, 50% Mom) using **H4_BuildFaceModel**.
 
-### H4_FaceDetailer (The Dermatologist)
+### H4_FaceDetailer (The Texture Fixer)
 **What it is:** A texture hallucinator.
 **Why:** Face swaps are smooth. Real skin has pores. This node adds the pores back.
 **How:** It runs a second pass (img2img) on just the face area with a low denoise (0.2-0.3) to adding texture noise.
@@ -747,6 +773,32 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 - **GGUF:** Yes, it auto-detects GGUF format and bridges to `ComfyUI-GGUF` internally.
 - **Wan/Z-Image:** It has specific heuristics to detect Wan2.1 and Z-Image models and load them correctly (handling the weird 2560 vs 4096 dim mismatch).
 **Why use it:** because wiring up 4 different loader nodes for testing is for chumps.
+
+### H4_CompleteLoader (All-In-One)
+**What it is:** The Universal Loader on steroids. Everything the standard loader does, plus built-in image upload slots.
+
+**Features:**
+- Loads checkpoints, UNETs, CLIPs, VAEs, and LoRAs.
+- **Plus** up to 4 image upload slots with individual IMAGE outputs.
+- Inherits all UniversalLoader intelligence (GGUF detection, Wan/Z-Image heuristics).
+
+**When to use it:** When you need models AND reference images in one node instead of cluttering your canvas with separate loaders.
+
+---
+
+### H4_MultiImgUpload (The Gallery)
+**What it is:** A pure image batch loader with up to 10 dynamic upload slots.
+
+**How to use it:**
+- Upload images. New slots appear as you fill them.
+- Each slot produces a paired IMAGE and MASK output.
+
+**When to use it:**
+- Style transfer workflows needing multiple reference images.
+- Batch processing with different input files.
+- Any time you need more than 4 images without model-loading overhead.
+
+---
 
 ### H4_NodeTranslator (The Babel Fish)
 **What it is:** A frontend-only node that translates the UI.
@@ -780,6 +832,26 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 **What it is:** It crashes ComfyUI on purpose.
 **Why:** To test if your error handling / "Death Modal" is working.
 **Modes:** Minor, Warning, Critical.
+
+### H4_ForgeMask (The Surgical Suite)
+**What it is:** A premium interactive masking tool built directly into your ComfyUI node. Paint, erase, and lasso your masks without leaving the canvas.
+
+**How to use it:**
+- Connect an IMAGE to the node.
+- Select a tool from the left rail: **Brush (B)**, **Eraser (E)**, **Lasso (L)**, or **Shape (S)**.
+- Adjust brush size with the vertical slider.
+- Paint directly on the image. White = areas that WILL be changed.
+- Click **SEND MASK** to package your mask and auto-queue.
+
+**Settings:**
+- `mask_blur`: Edge softness (4-8 recommended for natural blending).
+- `mask_strength`: Opacity of the mask (1.0 = full strength).
+- `mask_expansion`: Grow/shrink the mask after painting.
+- `invert_mask`: Flip the selection (protect painted areas instead).
+
+**Why use it:** Because Alt-Tabbing to Photoshop to make a mask is a workflow killer. This does it inline, in real-time, with zero friction.
+
+---
 
 ### H4_Discombobulator (The Glitch)
 **What it is:** A UI scrambler.
@@ -1183,6 +1255,26 @@ h4_Live addresses this by:
 **H4_Oxidine**
 - **Sovereign Proxy Routing:** Operates as a stateless multiplexer traversing the Node Graph. It implements Python's `__getattr__`, `__getitem__`, and sequence protocols natively to override standard dictionary representations. Bypasses list-flattening bugs by avoiding standard subclasses, thereby forcing `comfy.execution` to treat it as an autonomous payload until explicitly unpacked or directly queried by downstream modules (e.g., KSampler calling `proxy.patch_model`).
 - *Note: For a biblical-level architectural deep-dive into the Sentient Conduit, please refer to the dedicated `OXIDINE-BREAKDOWN.md` file located in the root directory.*
+
+**H4_Switcheroo**
+- **String Mutation Pipeline:** Implements a multi-slot find/replace engine operating on raw text. Each active slot performs a `str.replace()` (case-insensitive via `re.sub(flags=re.IGNORECASE)`) in slot order, allowing cascading transformations across up to 10 simultaneous pairs.
+- **Recursive CONDITIONING Crawler:** When the `subject` input receives a `list[list[Tensor, dict]]` structure instead of a string, the node recursively traverses the nested conditioning structure probing for embedded text keys (`area`, `pooled_output`, etc.) and logs diagnostic warnings when no replaceable strings are found.
+- **Wiring Fault Interceptor:** Pre-execution guard that detects `torch.Tensor` inputs and prevents CLIP tokenization of mathematical data. Emits a visual error through the HUD terminal and aborts the encoding phase to prevent downstream sampler corruption.
+- **Optional CLIP Re-encode:** When a CLIP model is connected, the modified string is passed through `nodes.CLIPTextEncode` to produce ready-to-use CONDITIONING output, eliminating the need for a separate encode node in the graph.
+
+**H4_ForgeMask**
+- **Interactive Canvas Protocol:** Hosts a full HTML5 Canvas element within the node's DOM footprint. Implements `mousedown/mousemove/mouseup` event delegation for brush painting, erasing, and polygon lasso selection. The mask layer is composited as a semi-transparent overlay using `globalCompositeOperation='source-over'` at alpha 0.45.
+- **Serialization Pipeline:** The painted mask is captured via `canvas.toDataURL('image/png')`, encoded to Base64, and injected into the `mask_data` hidden widget. The backend deserializes this via `PIL.Image.open(BytesIO(base64.b64decode()))` and converts to a normalized `torch.Tensor` for ComfyUI's mask pipeline.
+- **Post-Processing Stack:** Applies sequential mask operations: Gaussian blur via `torchvision.transforms.GaussianBlur` (kernel derived from `mask_blur`), morphological expansion via `F.max_pool2d` (driven by `mask_expansion`), strength multiplication, and optional inversion via `1.0 - mask`.
+- **Auto-Queue Injection:** The `SEND MASK` button invokes `app.queuePrompt()` directly from the frontend, bypassing the standard queue button workflow.
+
+**H4_CompleteLoader**
+- **Composite Architecture:** Extends `H4_UniversalLoader` with additional `IMAGE` upload widgets (`image_1` through `image_4`). Each widget uses `node_helpers.uploadFile()` to handle ComfyUI's input directory resolution. Image slots use the shared `_load_image()` helper for `PIL.Image.open()` → EXIF rotation → RGBA separation → `torch.Tensor` conversion.
+- **Output Multiplexing:** Returns a 7+ element tuple combining MODEL, CLIP, VAE from the base loader pipeline with individual IMAGE tensors from the upload slots. Missing images return `None` and are handled by downstream `optional` input declarations.
+
+**H4_MultiImgUpload**
+- **Dynamic Slot Architecture:** Declares 10 optional `IMAGE` upload widgets at registration time. The JS frontend dynamically shows/hides slots based on connection state, keeping the node footprint compact until slots are needed.
+- **Paired Output Mapping:** Each of the 10 slots produces two outputs (IMAGE + MASK) via tuple unpacking of `_load_image()`. Mask is extracted from the alpha channel of RGBA images; RGB images produce a solid white (1.0) mask tensor.
 
 **H4_DebugErrorGenerator**
 - **Controlled Chaos:** A dedicated structural testing node explicitly designed to raise raw exceptions (`ValueError`, `RuntimeError`, `TypeError`) into the ComfyUI execution stack. Vital for testing custom popup UI interceptors and the JS notification listener (h4_BigBrother).

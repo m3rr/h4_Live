@@ -1,36 +1,28 @@
-# h4_discombobulator / H4_Discombobulator (The Glitch)
+# h4_discombobulator / H4_Discombobulator (The Interface Glitch)
 
 ## What it is
-A UI scrambler. Purpose largely redacted from the main readable console output.
+A "just for fun" node that messes with your UI. It's essentially an easter egg that turns your status bar and buttons into "glitchy" text, binary, or leetspeak. It doesn't affect your images or your logic—it's just a visual prank.
 
 ## Expanded Description
-"Because I was bored and wanted to see if I could make the interface look like the Matrix."
+"Because I was bored and wanted to see if I could make the interface look like a cyberpunk terminal."
 
-The `H4_Discombobulator` is an easter egg, a stealth node operating entirely as a frontend DOM-mutator. It intercepts ComfyUI system notifications, status bars, and UI elements, translating them into leetspeak, binary drops, or glitch-text formatting. 
+The **Discombobulator** is a "stealth" node. It doesn't do anything in the backend (it has zero effect on your Samplers or LoRAs). Instead, it injects some Javascript that "scrambles" the text you see on your screen.
 
-It does **not** alter your workflow graph. It does **not** touch your images, latents, prompts, or weights. It executes purely as a no-operation (noop) backend stub, returning `float("NaN")` to ensure it never triggers an unwanted functional evaluation within the DAG.
+It's a great way to show off how the H4 toolkit can "hijack" part of the ComfyUI interface without actually breaking anything.
 
-## Why it exists
-It showcases the capability of the `h4_Live` module system to intercept and rewrite core ComfyUI frontend web components on the fly (via Javascript injection), without relying exclusively on backend python overrides.
+### The Emergency Button (KICK THE GRID)
+The most useful part of this package is actually a button it adds to your top toolbar: **KICK THE GRID (>_<)!!**. 
+- If your nodes get stuck, your wires look "frozen," or you can't click on anything, click this button.
+- It refreshes your graph "in place" while keeping your unsaved prompts and seeds. It's a lifesaver when the UI starts acting up.
 
-## Use Case Scenarios
-**Scenario 1: Pranking yourself or your friends**
-You place this node somewhere deep in a massive, nested workflow and forget about it. When you click queue, the familiar "Executing..." status bar instead reads "10110001_Executing" and drops glitch characters randomly. You question your sanity. You remember the Discombobulator.
-
-## Examples
-- **Activation**:
-  1. Add the `H4_Discombobulator` to your canvas.
-  2. You do not need to wire any inputs or outputs.
-  3. Queue a prompt. Watch the status text at the top of the ComfyUI window begin to artifact.
-
-## Big Brother UI Utilities
-The `h4_discombobulator` package is the vehicle for the **h4 Big Brother** frontend bundle. In addition to glitching your text, it provides several system-level utilities:
-
-### KICK THE GRID (>_<)!!
-This button in the top toolbar is an **Emergency Canvas Defibrillator**. It serializes and reloads your graph in-memory to fix frozen UI elements and disconnected-looking wires.
-
-**Limitations:**
-- **Custom Noodle Systems:** If you are using a third-party noodle/wire system (e.g., circuit board wires or geometric paths), the "Kick" will restore the underlying logic but may **NOT** fix the visual rendering glitches of those custom noodles. In these cases, a full browser refresh is required to reset the third-party rendering layer.
+## Quick Start
+1. Drop the `H4_Discombobulator` anywhere on your screen.
+2. You don't need to wire it to anything.
+3. Your status bar (at the top or bottom) will start showing "glitch" text when you run your workflow.
 
 ---
-*Generated for the h4_Live Workspace Audit.*
+
+## Dev Corner (Jargon & Logic)
+- **DOM Injection**: Uses Javascript to find the status bar elements and replace their `.textContent` with a randomized character array.
+- **Leetspeak Transformer**: A simple character-map swap engine (`A` -> `4`, etc.).
+- **Backend No-Op**: The Python code is a dummy stub—it tells ComfyUI "I'm always finished and nothing changed" so it never slows down your workflow.

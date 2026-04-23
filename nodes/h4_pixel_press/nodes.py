@@ -52,6 +52,8 @@ class H4_PixelPress:
             "required": {
                 "image": ("IMAGE",),
                 "supersample_scale": (["2x", "3x", "4x"], {"default": "2x"}),
+                "upscale_by": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 8.0, "step": 0.05, "tooltip": "Final output multiplier."}),
+                "upscale_method": (["lanczos", "nearest-exact", "bilinear", "area", "bicubic"], {"default": "lanczos"}),
                 "sharpness": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "enable_hdr": ("BOOLEAN", {"default": False}),
                 "tiled_processing": ("BOOLEAN", {"default": True}),
@@ -203,11 +205,21 @@ class H4_PixelPress:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-    def execute(self, image, supersample_scale, sharpness, enable_hdr, tiled_processing, hdr_intensity, shadow_intensity, highlight_intensity, gamma_intensity, contrast, enhance_color, upscale_model=None, tile_size=512):
+    def execute(self, image, supersample_scale, upscale_by, upscale_method, sharpness, enable_hdr, tiled_processing, hdr_intensity, shadow_intensity, highlight_intensity, gamma_intensity, contrast, enhance_color, upscale_model=None, tile_size=512):
         
         # Parse Scale
         scale_map = {"2x": 2, "3x": 3, "4x": 4}
         scale = scale_map.get(supersample_scale, 2)
+        
+        # Parse Upscale Method
+        resampling_map = {
+            "lanczos": Image.Resampling.LANCZOS,
+            "nearest-exact": Image.Resampling.NEAREST,
+            "bilinear": Image.Resampling.BILINEAR,
+            "area": Image.Resampling.BOX,
+            "bicubic": Image.Resampling.BICUBIC
+        }
+        resample_filter = resampling_map.get(upscale_method, Image.Resampling.LANCZOS)
         
         results = []
         batch_size = image.shape[0]
@@ -307,8 +319,10 @@ class H4_PixelPress:
                     percent = int(sharpness * 100) 
                     current_img = current_img.filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=3))
                 
-                # 5. Downscale (Phase 4)
-                final_img = current_img.resize((orig_w, orig_h), Image.Resampling.LANCZOS)
+                # 5. Downscale/Upscale (Phase 4)
+                final_w = int(orig_w * upscale_by)
+                final_h = int(orig_h * upscale_by)
+                final_img = current_img.resize((final_w, final_h), resample_filter)
                 
                 final_np = np.array(final_img).astype(np.float32) / 255.0
                 results.append(torch.from_numpy(final_np))

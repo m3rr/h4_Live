@@ -50,7 +50,8 @@ const STYLE = `
     flex-direction: column;
     pointer-events: auto;
     border-radius: 2px;
-    overflow: hidden;
+    /* [H4] Overflow visible to allow drawers to slide OUT of the node boundaries */
+    overflow: visible;
     font-family: 'Segoe UI', 'Roboto', monospace;
     position: relative;
 }
@@ -244,63 +245,73 @@ const STYLE = `
 }
 .h4-thumb-a { border-right: 1px solid rgba(0,255,85,0.2); }
 
-/* --- EXTERNAL DRAWER (Slide Right) --- */
+/* --- EXTERNAL PARAMETERS DRAWER (Slide Right) --- */
 .h4-drawer {
     position: absolute;
     top: 0; bottom: 0; left: 100%;
-    width: 400px;
-    background: #0a0a0a;
-    border: 1px solid rgba(0, 102, 34, 0.2);
-    border-left: 2px solid #006622;
+    width: 440px;
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 102, 34, 0.3);
+    border-left: 2px solid #00ff44;
     transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.4s ease;
     z-index: 2000;
     visibility: hidden;
     pointer-events: auto;
-    box-shadow: 20px 0 50px rgba(0,0,0,0.9);
+    box-shadow: 20px 0 60px rgba(0,0,0,0.9);
     transform: scaleX(0);
     transform-origin: left;
     opacity: 0;
 }
 .h4-drawer.open { visibility: visible; transform: scaleX(1); opacity: 1; }
-.h4-drawer-content { padding: 25px; color: #ddd; font-size: 11px; overflow-y: auto; height: 100%; }
+.h4-drawer-content { padding: 30px; color: #ddd; font-size: 11px; overflow-y: auto; height: 100%; }
 
 .h4-param-block {
-    background: transparent;
-    border: 1px solid rgba(0, 170, 68, 0.1);
-    margin-bottom: 20px;
+    background: rgba(20, 20, 20, 0.4);
+    border: 1px solid rgba(0, 255, 68, 0.1);
+    margin-bottom: 25px;
     position: relative;
+    border-radius: 4px;
 }
 .h4-param-header {
-    background: transparent;
-    padding: 10px 15px;
+    background: rgba(0, 255, 68, 0.05);
+    padding: 12px 15px;
     font-weight: 900;
     cursor: pointer;
-    border-bottom: 1px solid rgba(0, 102, 34, 0.1);
-    color: #006622;
+    border-bottom: 1px solid rgba(0, 255, 68, 0.1);
+    color: #00ff44;
     text-transform: uppercase;
     letter-spacing: 2px;
 }
 .h4-param-list { padding: 15px; }
-.h4-param-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #111; }
-.h4-param-key { color: #555; }
-.h4-param-val { color: #fff; font-family: monospace; }
+.h4-param-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1a1a1a; }
+.h4-param-key { color: #888; }
+.h4-param-val { color: #fff; font-family: 'JetBrains Mono', 'Courier New', monospace; }
 .h4-param-prompt { 
-    background: rgba(0,0,0,0.5); border: 1px solid rgba(0, 170, 68, 0.1); padding: 12px; 
-    white-space: pre-wrap; margin-top: 8px; font-size: 10px; color: #00ff44;
+    background: rgba(0,0,0,0.6); border: 1px solid rgba(0, 255, 68, 0.15); padding: 15px; 
+    white-space: pre-wrap; margin-top: 10px; font-size: 10px; color: #00ff88;
+    line-height: 1.4;
 }
 
-/* --- SAVE DRAWER (Hacker Console) --- */
+/* --- OVERLAY SAVE DRAWER (Hacker Console) --- */
 .h4-save-drawer {
-    height: 0;
-    background: #0a0a0a;
-    border-top: 2px solid rgba(0, 102, 34, 0.2);
+    position: absolute;
+    top: 100%; /* Slide OUT of the bottom */
+    left: 0; width: 100%;
+    height: 0; /* Dynamic height for smoothness */
+    background: rgba(12, 12, 12, 0.96);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(0, 242, 255, 0.3);
+    border-top: none;
     overflow: hidden;
-    transition: height 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-    position: relative;
-    transform: translateY(100%); /* Start below */
-    transition: height 0.4s cubic-bezier(0.19, 1, 0.22, 1), transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    display: flex;
+    flex-direction: column;
+    z-index: 1500;
+    transition: height 0.45s cubic-bezier(0.19, 1, 0.22, 1);
+    pointer-events: auto;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
 }
-.h4-save-drawer.open { height: 320px; border-top-color: #006622; transform: translateY(0); }
+.h4-save-drawer.open { height: 260px; border-color: #00f2ff; }
 .h4-save-drawer::before {
     content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0.3) 1px, rgba(0,0,0,0) 2px);
@@ -359,21 +370,15 @@ const STYLE = `
 .h4-save-btn { animation: h4-flicker 5s infinite; }
 
 /* --- RETICLE (Sniper Scope) --- */
-.h4-reticle.shape-circle { border-radius: 50%; }
-.h4-reticle.shape-square { border-radius: 4px; }
-.h4-reticle.shape-triangle { 
-    border: none; background: rgba(0,255,85,0.1); 
-    clip-path: polygon(50% 0%, 0% 100%, 100% 100%); 
-}
-.h4-reticle.shape-rectangle { border-radius: 4px; width: 100px; height: 68px; }
+.h4-reticle { display: none; position: absolute; width: 60px; height: 60px; pointer-events: none; z-index: 600; transform: translate(-50%, -50%); }
+.h4-reticle svg { width: 100%; height: 100%; filter: drop-shadow(0 0 5px rgba(0,242,255,0.8)); transition: filter 0.2s; }
+.h4-reticle.locked svg { filter: drop-shadow(0 0 5px rgba(255,0,0,0.8)); }
+.h4-reticle-hud { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00f2ff; font-family: monospace; font-weight: 900; display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 110px; width: 140px; text-shadow: 0 0 5px #00f2ff; pointer-events: none; }
+.h4-reticle-zoom { font-size: 14px; position: absolute; top: -20px; letter-spacing: 2px;}
+.h4-reticle-coords { font-size: 10px; opacity: 0.9; position: absolute; bottom: -20px; letter-spacing: 1px;}
 
 /* --- HUD BUTTONS --- */
-.h4-hud-btn {
-    width: 18px; height: 18px; border: 1px solid #333; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; font-size: 8px; color: #555;
-    transition: 0.2s;
-}
-.h4-hud-btn.active { border-color: #00ff55; color: #00ff55; box-shadow: 0 0 8px rgba(0,255,85,0.4); }
+.h4-hud-btn { display: none; }
 
 /* LIGHTBOX */
 .h4-lightbox {
@@ -588,7 +593,8 @@ class ComparinatorUI {
             histA: this.createImageLayer(15),
             liveB: this.createImageLayer(20),
             histB: this.createImageLayer(25),
-            histC: this.createImageLayer(30)
+            histC: this.createImageLayer(30),
+            histD: this.createImageLayer(35)
         };
         this._lastUrls = { liveA: "", histA: "", liveB: "", histB: "", histC: "" };
         Object.values(this.layers).forEach(img => this.stage.appendChild(img));
@@ -610,18 +616,41 @@ class ComparinatorUI {
             liveB: this.createLabel("LIVE B", "5px", "auto", "5px"),
             histA: this.createLabel("YELLOW", "auto", "5px", "auto", "5px"),
             histB: this.createLabel("RED", "auto", "auto", "5px", "5px"),
-            histC: this.createLabel("GREEN", "50%", "auto", "auto", "5px")
+            histC: this.createLabel("GREEN", "auto", "50%", "auto", "5px"),
+            histD: this.createLabel("LOCKED", "auto", "auto", "5px", "5px")
         };
+        this.labels.histD.style.textShadow = "0 0 5px #00f2ff"; // Cyan glow for locked image
+        this.labels.histC.style.transform = "translateX(-50%)"; // Inspectinator Centering
+        this.labels.histC.style.transition = "all 0.3s ease";  // Smooth docking for grid mode
         Object.values(this.labels).forEach(l => this.stage.appendChild(l));
+
+        // [H4] Pre-Init Forensic Wrappers (Stable DOM approach)
+        this.pane1Wrap = document.createElement("div");
+        this.pane2Wrap = document.createElement("div");
+        this.pane1Wrap.style.cssText = "position:absolute; top:0; left:0; width:50%; height:100%; overflow:hidden; display:none; z-index:45;";
+        this.pane2Wrap.style.cssText = "position:absolute; top:0; left:50%; width:50%; height:100%; overflow:hidden; display:none; z-index:45; border-left:1px solid rgba(0,242,255,0.2);";
+        this.stage.appendChild(this.pane1Wrap);
+        this.stage.appendChild(this.pane2Wrap);
 
         // Interaction Reticle (Sniper Scope)
         this.reticle = document.createElement("div");
-        this.reticle.className = "h4-reticle active shape-circle";
-        // Zoom level HUD label inside the reticle (sniper scope readout)
-        this.reticleZoomLabel = document.createElement("span");
-        this.reticleZoomLabel.className = "h4-reticle-zoom";
-        this.reticleZoomLabel.textContent = "1.0x";
-        this.reticle.appendChild(this.reticleZoomLabel);
+        this.reticle.className = "h4-reticle";
+        this.reticle.innerHTML = `
+            <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="48" fill="none" stroke="#00f2ff" stroke-width="1" stroke-dasharray="2 4" />
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#00f2ff" stroke-width="0.5" />
+                <line x1="50" y1="0" x2="50" y2="35" stroke="#00f2ff" stroke-width="1.5" />
+                <line x1="50" y1="65" x2="50" y2="100" stroke="#00f2ff" stroke-width="1.5" />
+                <line x1="0" y1="50" x2="35" y2="50" stroke="#00f2ff" stroke-width="1.5" />
+                <line x1="65" y1="50" x2="100" y2="50" stroke="#00f2ff" stroke-width="1.5" />
+                <circle cx="50" cy="50" r="3" fill="#00f2ff" />
+            </svg>
+            <div class="h4-reticle-hud">
+                <span class="h4-reticle-zoom">1.0x</span>
+            </div>
+        `;
+        this.reticleZoomLabel = this.reticle.querySelector(".h4-reticle-zoom");
+        this.reticleCoordsLabel = this.reticle.querySelector(".h4-reticle-coords");
         this.stage.appendChild(this.reticle);
 
         // --- GRID STORAGE (For Multi-Inspectinator) ---
@@ -767,11 +796,9 @@ class ComparinatorUI {
                         const rect = this.stage.getBoundingClientRect();
                         this.state.lockedX = (e.clientX - rect.left) / rect.width;
                         this.state.lockedY = (e.clientY - rect.top) / rect.height;
-                        this.reticle.style.borderColor = "#ff0000";
-                        this.reticle.style.boxShadow = "0 0 15px rgba(255, 0, 0, 0.5)";
+                        this.reticle.classList.add("locked");
                     } else {
-                        this.reticle.style.borderColor = "#00ff55";
-                        this.reticle.style.boxShadow = "0 0 15px rgba(0, 255, 85, 0.2)";
+                        this.reticle.classList.remove("locked");
                     }
                 } else {
                     // SLIDER LOCK (Split/Full Mode)
@@ -867,6 +894,7 @@ class ComparinatorUI {
         this.el.root.appendChild(this.drawer);
 
         this.renderSaveDrawer();
+        this.initLightbox();
     }
 
 
@@ -1047,10 +1075,10 @@ class ComparinatorUI {
         if (!fn) return "";
 
         if (item.source === "vault" || item.vault_folder) {
-            const rel = (channel === 'a') ? (item.relative_path_a || item.relative_path_b) : item.relative_path_b;
-            if (thumb) {
-                return api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(rel)}&subfolder=comparinator`);
-            }
+            let rel = (channel === 'a') ? (item.relative_path_a || item.relative_path_b) : item.relative_path_b;
+            if (!rel) return "";
+            rel = rel.replace(/\\/g, '/');
+            // Vault images are already small/optimized WebP files. Load them directly to prevent 404s on the thumbnail API.
             return `/h4/comparinator/image?filename=${encodeURIComponent(rel)}`;
         }
 
@@ -1062,7 +1090,7 @@ class ComparinatorUI {
             return api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(fn)}&subfolder=${encodeURIComponent(sub)}&type=${type}`);
         }
 
-        return `/view?filename=${fn}&type=${type}&t=${t}`;
+        return `/view?filename=${encodeURIComponent(fn)}&type=${type}&subfolder=${encodeURIComponent(sub)}&t=${t}`;
     }
 
     bindEvents() {
@@ -1123,17 +1151,23 @@ class ComparinatorUI {
             let ry = y;
 
             // Target Pane 1 (Navigator)
-            if (this.state.sliderLocked) {
+            if (this.state.reticleLocked) {
                 rx = parseFloat(this.reticle.style.left) || paneW / 2;
                 ry = parseFloat(this.reticle.style.top) || stageH / 2;
+                this.updateReticle();
             } else {
                 rx = Math.max(0, Math.min(paneW, x));
                 ry = Math.max(0, Math.min(stageH, y));
-                this.reticle.style.left = `${rx}px`;
-                this.reticle.style.top = `${ry}px`;
+                if (!this.state._reticleAnimId) {
+                    this.state._reticleAnimId = requestAnimationFrame(() => {
+                        this.reticle.style.left = `${rx}px`;
+                        this.reticle.style.top = `${ry}px`;
+                        this.updateReticle();
+                        this.state._reticleAnimId = null;
+                    });
+                }
             }
 
-            this.updateReticle();
             return;
         }
 
@@ -1187,15 +1221,54 @@ class ComparinatorUI {
         const pctX = (rx / paneW) * 100;
         const pctY = (ry / paneH) * 100;
 
-        // STORE for the animation loop
-        this.state._lastPctX = pctX;
-        this.state._lastPctY = pctY;
+        // --- SMART COORDINATES & CENTERING MAGNIFIER ---
+        // 1. Calculate Pane Dimensions
+        const cx = paneW / 2;
+        const cy = paneH / 2;
 
-        lB.style.transformOrigin = `${pctX}% ${pctY}%`;
-        lB.style.transform = `scale(${z})`;
+        let coordStr = `REL: ${Math.round(pctX)}% ${Math.round(pctY)}%`;
 
-        // Sync zoom HUD label inside the reticle
-        this.reticleZoomLabel.textContent = z < 10 ? `${z.toFixed(1)}x` : `${Math.round(z)}x`;
+        if (lB.naturalWidth && lB.naturalHeight) {
+            const nw = lB.naturalWidth;
+            const nh = lB.naturalHeight;
+            const aspect = nw / nh;
+            const stageAspect = paneW / paneH;
+
+            let dw, dh, ox = 0, oy = 0;
+            if (aspect > stageAspect) {
+                dw = paneW;
+                dh = paneW / aspect;
+                oy = (paneH - dh) / 2;
+            } else {
+                dh = paneH;
+                dw = paneH * aspect;
+                ox = (paneW - dw) / 2;
+            }
+
+            // Image-Space Mapping
+            const imgX = Math.max(0, Math.min(nw, (rx - ox) / dw * nw));
+            const imgY = Math.max(0, Math.min(nh, (ry - oy) / dh * nh));
+            coordStr = `PX [ ${Math.round(imgX)}, ${Math.round(imgY)} ]`;
+        }
+
+        // 2. INVARIANT ZOOM TRANSFORM (Forensic Stability Lock)
+        // [H4] We use a centering weight to prevent the image from 'sliding' around at 
+        // 1x zoom (which feels slippery). As z increases, we smoothly ramp up to 
+        // full reticle targeting.
+        const stabilityWeight = Math.min(1, Math.max(0, (z - 1) * 2)); // Full lock reached by 1.5x
+        const tx = (cx / z - rx) * stabilityWeight;
+        const ty = (cy / z - ry) * stabilityWeight;
+
+        lB.style.width = "100%";
+        lB.style.height = "100%";
+        lB.style.left = "0";
+        lB.style.top = "0";
+        lB.style.transformOrigin = "0 0";
+        lB.style.transform = `scale(${z}) translate(${tx}px, ${ty}px)`;
+
+        // 3. Sync HUD
+        if (this.reticleZoomLabel) this.reticleZoomLabel.textContent = (z < 10) ? `${z.toFixed(1)}x` : `${Math.round(z)}x`;
+        if (this.inspectSlider) this.inspectSlider.value = String(z);
     }
 
     /**
@@ -1247,35 +1320,21 @@ class ComparinatorUI {
      * even when the mouse isn't moving.
      */
     _applyZoomDirect(z) {
-        // 1. Legacy Layer Support (Fallback)
-        const lB = this.layers?.liveB;
-        if (lB) {
-            lB.style.transformOrigin = `${this.state._lastPctX}% ${this.state._lastPctY}%`;
-            lB.style.transform = `scale(${z})`;
-        }
+        // [H4] Unified Zoom Logic: Delegate to the high-precision matrix transform kernel
+        this.updateReticle();
 
-        // 2. Multi-Grid Support (New Inspectinator)
-        const magImgs = this.grids.mag.querySelectorAll("img");
-        magImgs.forEach(img => {
-            img.style.transformOrigin = `${this.state._lastPctX}% ${this.state._lastPctY}%`;
-            img.style.transform = `scale(${z})`;
-        });
-
-        // 3. HUD Sync
-        if (this.reticleZoomLabel) {
-            this.reticleZoomLabel.textContent = z < 10 ? `${z.toFixed(1)}x` : `${Math.round(z)}x`;
-        }
+        // Sync HUD Slider
         if (this.inspectSlider) this.inspectSlider.value = String(z);
     }
 
     updatePayload(data) {
         if (data.current) {
-            // PANE SHIFT: Push existing live to history if it's different/new
-            if (this.state.live && String(this.state.live.timestamp) !== String(data.current.timestamp)) {
-                // If no manual selection, Pane 2 defaults to the previous 'live'
-                if (!this.state.locked) this.state.selected = this.state.live;
-            }
+            // [H4] New Generation: Revert to Live Monitoring
             this.state.live = data.current;
+            this.state.selected = null;
+            this.state.otherB = null;
+            this.state.selYellow = null;
+
             this.crawlParameters();
         }
         if (data.history) {
@@ -1287,7 +1346,6 @@ class ComparinatorUI {
 
     updateDisplay() {
         if (!this.node) return;
-        if (this.state.inspect && this.state._zoomAnimId) return;
 
         /**
          * [H4 - AUDIT - Phase FINAL]
@@ -1315,29 +1373,47 @@ class ComparinatorUI {
         this.grids.nav.classList.remove("active");
         this.grids.mag.classList.remove("active");
 
-        // --- MODE A: INSPECTINATOR (Sniper Split) ---
         if (this.state.inspect) {
             this.stage.style.cursor = "none";
             this.hudWrap.style.display = "flex";
             this.reticle.style.display = "block";
 
-            const current = this.state.selected || this.state.live;
-            if (!current) return;
-            const url = this.resolveImageUrl(current, this.state.inspect_channel.toLowerCase());
+            const current = this.state.selected || this.state.live || (this.state.history && this.state.history[0]);
+            if (current) {
+                const url = this.resolveImageUrl(current, (this.state.inspect_channel || "A").toLowerCase());
 
-            // Master (Navigator)
-            this.layers.liveA.style.display = "block";
-            this.layers.liveA.src = url;
-            this.layers.liveA.style.width = "50%";
+                this.pane1Wrap.style.display = "block";
+                this.pane2Wrap.style.display = "block";
 
-            // Target (Magnifier)
-            this.layers.liveB.style.display = "block";
-            this.layers.liveB.src = url;
-            this.layers.liveB.style.width = "50%";
-            this.layers.liveB.style.left = "50%";
+                // Anchor images to forensic wrappers
+                if (this.layers.liveA.parentNode !== this.pane1Wrap) this.pane1Wrap.appendChild(this.layers.liveA);
+                if (this.layers.liveB.parentNode !== this.pane2Wrap) this.pane2Wrap.appendChild(this.layers.liveB);
 
-            this.updateReticle();
+                this.layers.liveA.style.display = "block";
+                this.layers.liveA.src = url;
+                this.layers.liveA.style.width = "100%";
+                this.layers.liveA.style.left = "0%";
+
+                this.layers.liveB.style.display = "block";
+                this.layers.liveB.src = url;
+
+                this.updateReticle();
+            }
             return;
+        }
+
+        // Return targets to stage if leaving Inspectinator
+        if (this.pane1Wrap && this.pane1Wrap.style.display !== "none") {
+            this.pane1Wrap.style.display = "none";
+            this.pane2Wrap.style.display = "none";
+            this.stage.appendChild(this.layers.liveA);
+            this.stage.appendChild(this.layers.liveB);
+
+            // Reset base positioning
+            this.layers.liveA.style.width = "100%";
+            this.layers.liveA.style.height = "100%";
+            this.layers.liveB.style.width = "100%";
+            this.layers.liveB.style.height = "100%";
         }
 
         // --- MODE B: HISTORIES (Comparison Split) ---
@@ -1346,19 +1422,24 @@ class ComparinatorUI {
             const liveA = this.state.live;
             const liveB = this.state.locked || (h[0] && h[0] !== liveA ? h[0] : h[1]);
 
-            // STRICT GATING: Only show what the user explicitly selected in the strip
-            const g = this.state.selected;
-            const r = this.state.otherB;
-            const y = this.state.selYellow;
+            // [H4] Lane Assignments
+            const g = this.state.selected;     // GREEN
+            const r = this.state.otherB;       // RED
+            const y = this.state.selYellow;    // YELLOW
+            const l = this.state.locked;       // BLUE (Locked)
+
+            // Default: Show prior gen in Pane 2 if no manual selection
+            const prior = (h[0] === liveA ? h[1] : h[0]) || null;
+            const activeG = g || prior;
 
             const x1 = this.state.sliderX;
             const x2 = this.state.sliderX2;
             const y1 = this.state.sliderY;
 
-            // 1. PANE 1 (LIVE A vs B)
+            // 1. PANE 1: Navigator (Live Compare)
             if (liveA) {
                 this.layers.liveA.style.display = "block";
-                this.layers.liveA.src = this.resolveImageUrl(liveA, 'b');
+                this.layers.liveA.src = this.resolveImageUrl(liveA, 'a');
                 this.layers.liveA.style.width = "50%";
                 this.layers.liveA.style.clipPath = `inset(0% ${100 - x1}% 0% 0%)`;
 
@@ -1375,98 +1456,85 @@ class ComparinatorUI {
                 this.labels.liveB.style.right = "calc(50% + 5px)";
             }
 
-            // 2. PANE 2 (ADAPTIVE FORENSIC SPLIT)
-            if (g && !r && !y) {
-                // PHASE 1: SINGLE GREEN (Fill Pane 2)
+            // 2. PANE 2: Historian (4-Way Matrix)
+            const activeCount = [activeG, r, y, l].filter(Boolean).length;
+
+            if (activeCount === 1) {
+                const target = activeG || r || y || l;
                 this.layers.histC.style.display = "block";
-                this.layers.histC.src = this.resolveImageUrl(g, 'b');
+                this.layers.histC.src = this.resolveImageUrl(target, 'b');
                 this.layers.histC.style.width = "50%";
                 this.layers.histC.style.left = "50%";
-                this.layers.histC.style.zIndex = 30;
                 this.layers.histC.style.clipPath = "none";
-
                 this.labels.histC.style.display = "block";
                 this.labels.histC.style.left = "calc(50% + 5px)";
                 this.labels.histC.style.top = "5px";
-            } else if (g && r && !y) {
-                // PHASE 2: GREEN (TOP) vs RED (BOTTOM) - VERTICAL SPLIT
-                this.layers.histC.style.display = "block";
-                this.layers.histC.src = this.resolveImageUrl(g, 'b');
-                this.layers.histC.style.width = "50%";
-                this.layers.histC.style.left = "50%";
-                this.layers.histC.style.zIndex = 30;
-                this.layers.histC.style.clipPath = `inset(0% 0% ${100 - y1}% 0%)`;
+            } else {
+                // Adaptive Tiling
+                if (activeG) {
+                    this.layers.histC.style.display = "block";
+                    this.layers.histC.src = this.resolveImageUrl(activeG, 'b');
+                    this.layers.histC.style.width = "50%";
+                    this.layers.histC.style.left = "50%";
+                    this.layers.histC.style.clipPath = (r || y || l) ? `inset(0% ${100 - x2}% ${100 - y1}% 0%)` : "none";
 
-                this.layers.histB.style.display = "block";
-                this.layers.histB.src = this.resolveImageUrl(r, 'b');
-                this.layers.histB.style.width = "50%";
-                this.layers.histB.style.left = "50%";
-                this.layers.histB.style.zIndex = 25;
-                this.layers.histB.style.clipPath = `inset(${y1}% 0% 0% 0%)`;
-
-                this.sliderY.style.display = "block";
-                this.sliderY.style.left = "50%";
-                this.sliderY.style.width = "50%";
-                this.sliderY.style.top = `${y1}%`;
-
-                this.labels.histC.style.display = "block";
-                this.labels.histC.style.left = "calc(50% + 5px)";
-                this.labels.histC.style.top = "5px";
-                this.labels.histB.style.display = "block";
-                this.labels.histB.style.left = "calc(50% + 5px)";
-                this.labels.histB.style.bottom = "5px";
-            } else if (g || r || y) {
-                // PHASE 3: THE HOLY TRINITY (3-WAY SPLIT)
-                if (y) {
-                    this.layers.histA.style.display = "block";
-                    this.layers.histA.src = this.resolveImageUrl(y, 'b');
-                    this.layers.histA.style.width = "50%";
-                    this.layers.histA.style.left = "50%";
-                    this.layers.histA.style.zIndex = 15;
-                    this.layers.histA.style.clipPath = "none";
-                    this.labels.histA.style.display = "block";
-                    this.labels.histA.style.left = "calc(50% + 5px)";
-                    this.labels.histA.style.bottom = "5px";
+                    this.labels.histC.style.display = "block";
+                    this.labels.histC.style.left = "calc(50% + 5px)";
+                    this.labels.histC.style.top = "5px";
+                    this.labels.histC.style.bottom = "auto";
+                    this.labels.histC.style.transform = "none";
                 }
                 if (r) {
                     this.layers.histB.style.display = "block";
                     this.layers.histB.src = this.resolveImageUrl(r, 'b');
                     this.layers.histB.style.width = "50%";
                     this.layers.histB.style.left = "50%";
-                    this.layers.histB.style.zIndex = 25;
-                    this.layers.histB.style.clipPath = `inset(0% 0% 0% ${x2}%)`;
+                    this.layers.histB.style.clipPath = `inset(0% 0% ${100 - y1}% ${x2}%)`;
                     this.labels.histB.style.display = "block";
                     this.labels.histB.style.right = "5px";
-                    this.labels.histB.style.bottom = "5px";
+                    this.labels.histB.style.top = "5px";
+                    this.labels.histB.style.bottom = "auto";
                 }
-                if (g) {
-                    this.layers.histC.style.display = "block";
-                    this.layers.histC.src = this.resolveImageUrl(g, 'b');
-                    this.layers.histC.style.width = "50%";
-                    this.layers.histC.style.left = "50%";
-                    this.layers.histC.style.zIndex = 30;
-                    this.layers.histC.style.clipPath = `inset(0% 0% ${100 - y1}% 0%)`;
-                    this.labels.histC.style.display = "block";
-                    this.labels.histC.style.left = "calc(50% + 5px)";
-                    this.labels.histC.style.top = "5px";
+                if (y) {
+                    this.layers.histA.style.display = "block";
+                    this.layers.histA.src = this.resolveImageUrl(y, 'b');
+                    this.layers.histA.style.width = "50%";
+                    this.layers.histA.style.left = "50%";
+                    this.layers.histA.style.clipPath = l ? `inset(${y1}% ${100 - x2}% 0% 0%)` : `inset(${y1}% 0% 0% 0%)`;
+                    this.labels.histA.style.display = "block";
+                    this.labels.histA.style.left = "calc(50% + 5px)";
+                    this.labels.histA.style.top = "auto";
+                    this.labels.histA.style.bottom = "5px";
                 }
-                this.sliderX2.style.display = "block";
-                this.sliderX2.style.left = `${50 + (x2 / 2)}%`;
-                this.sliderY.style.display = "block";
-                this.sliderY.style.left = "50%";
-                this.sliderY.style.width = "50%";
-                this.sliderY.style.top = `${y1}%`;
+                if (l) {
+                    this.layers.histD.style.display = "block";
+                    this.layers.histD.src = this.resolveImageUrl(l, 'b');
+                    this.layers.histD.style.width = "50%";
+                    this.layers.histD.style.left = "50%";
+                    this.layers.histD.style.zIndex = 25;
+                    this.layers.histD.style.clipPath = `inset(${y1}% 0% 0% ${x2}%)`;
+
+                    this.labels.histD.style.display = "block";
+                    this.labels.histD.style.right = "5px";
+                    this.labels.histD.style.top = "auto";
+                    this.labels.histD.style.bottom = "5px";
+                    this.sliderY.style.display = "block";
+                    this.sliderY.style.left = "50%";
+                    this.sliderY.style.width = "50%";
+                    this.sliderY.style.top = `${y1}%`;
+                    this.sliderX2.style.display = "block";
+                    this.sliderX2.style.left = `${50 + (x2 / 2)}%`;
+                }
             }
             return;
         }
 
-        // --- MODE C: DEFAULT (Clean Single-Pane Comparison - FULL WIDTH) ---
+        // --- MODE C: DEFAULT (Navigator Compare) ---
         const main = this.state.selected || this.state.live || (this.state.history && this.state.history[0]);
         if (!main) return;
         const ref = this.state.locked || this.state.selected;
         const x = this.state.blink ? 100 : this.state.sliderX;
 
-        // Pane 1 Master (Full width)
         this.layers.liveA.style.display = "block";
         this.layers.liveA.src = this.resolveImageUrl(main, 'a');
         this.layers.liveA.style.clipPath = `inset(0% ${100 - x}% 0% 0%)`;
@@ -1482,6 +1550,10 @@ class ComparinatorUI {
         this.labels.liveB.style.display = "block";
         this.labels.liveA.style.left = "5px";
         this.labels.liveB.style.right = "5px";
+        this.labels.liveA.style.top = "5px";
+        this.labels.liveA.style.bottom = "auto";
+        this.labels.liveB.style.top = "5px";
+        this.labels.liveB.style.bottom = "auto";
     }
 
     renderStrip(forceFull = false) {
@@ -1490,15 +1562,30 @@ class ComparinatorUI {
         const historyItems = this.state.history || [];
 
         // 1. Structural Check
-        const currentCount = this.strip.querySelectorAll('.h4-thumb').length;
-        if (forceFull || currentCount !== historyItems.length) {
-            this.strip.innerHTML = "";
-            if (historyItems.length === 0) {
-                this.strip.innerHTML = "<div style='color:#444; font-size:10px; padding:10px; font-style:italic;'>[ VAULT EMPTY / WAITING FOR GENERATION ]</div>";
-                return;
-            }
+        if (historyItems.length === 0) {
+            this.strip.innerHTML = "<div style='color:#444; font-size:10px; padding:10px; font-style:italic;'>[ VAULT EMPTY / WAITING FOR GENERATION ]</div>";
+            return;
+        }
 
-            historyItems.forEach((item, i) => {
+        // Clear empty state message if it exists
+        if (this.strip.querySelector("div[style*='italic']")) {
+            this.strip.innerHTML = "";
+        }
+
+        // Map existing elements for delta-rendering
+        const existingThumbs = Array.from(this.strip.querySelectorAll('.h4-thumb'));
+        const existingMap = new Map();
+        existingThumbs.forEach(t => existingMap.set(String(t.dataset.ts), t));
+
+        // Create new fragments needed and order them
+        const newOrder = [];
+
+        historyItems.forEach((item) => {
+            const ts = String(item.timestamp);
+            if (existingMap.has(ts)) {
+                newOrder.push(existingMap.get(ts));
+                existingMap.delete(ts);
+            } else {
                 const t = document.createElement("div");
                 t.className = "h4-thumb";
                 t.dataset.ts = item.timestamp;
@@ -1520,8 +1607,6 @@ class ComparinatorUI {
                     e.dataTransfer.setData("text/plain", url);
                 };
 
-                this.strip.appendChild(t);
-
                 // --- INTERACTION ENGINE: TRI-STATE SELECTION ---
                 t.onclick = (e) => {
                     e.preventDefault();
@@ -1532,24 +1617,29 @@ class ComparinatorUI {
                         this.state.locked = isLocked ? null : item;
                     } else {
                         // LEFT CLICK CYCLE: GREEN -> RED -> YELLOW -> OFF
+                        // [H4] Forward Cycle for initial selection, Backwards for replacement
                         const isG = (this.state.selected && String(this.state.selected.timestamp) === String(item.timestamp));
                         const isR = (this.state.otherB && String(this.state.otherB.timestamp) === String(item.timestamp));
                         const isY = (this.state.selYellow && String(this.state.selYellow.timestamp) === String(item.timestamp));
 
-                        if (!isG && !isR && !isY) {
-                            this.state.selected = item; // Click 1: Green
-                        } else if (isG) {
+                        if (isG) {
                             this.state.selected = null;
-                            this.state.otherB = item;   // Click 2: Red
+                            this.state.otherB = item;
                         } else if (isR) {
                             this.state.otherB = null;
-                            this.state.selYellow = item; // Click 3: Yellow
+                            this.state.selYellow = item;
+                        } else if (isY) {
+                            this.state.selYellow = null;
                         } else {
-                            this.state.selYellow = null; // Click 4: OFF
+                            // Set next available color
+                            if (!this.state.selected) this.state.selected = item;
+                            else if (!this.state.otherB) this.state.otherB = item;
+                            else if (!this.state.selYellow) this.state.selYellow = item;
                         }
                     }
-                    this.renderStrip(true); // Force full highlight refresh
+                    this.renderStrip(true);
                     this.updateDisplay();
+                    if (this.toggles.params?.classList.contains("active")) this.renderDrawer();
                 };
 
                 t.oncontextmenu = (e) => {
@@ -1565,8 +1655,19 @@ class ComparinatorUI {
                     this.updateDisplay();
                     return false;
                 };
-            });
-        }
+                newOrder.push(t);
+            }
+        });
+
+        // Prune DOM elements removed from history
+        existingMap.forEach(t => t.remove());
+
+        // Ensure DOM ordering without flicker
+        newOrder.forEach((node, idx) => {
+            if (this.strip.children[idx] !== node) {
+                this.strip.insertBefore(node, this.strip.children[idx]);
+            }
+        });
 
         // 2. TRI-STATE HIGHLIGHTS
         const thumbs = this.strip.querySelectorAll('.h4-thumb');
@@ -1588,7 +1689,7 @@ class ComparinatorUI {
     async fetchHistory() {
         try {
             const resp = await api.fetchApi("/h4/comparinator/history");
-            if (!resp.ok) throw new Error(`HTTP Error: ${resp.status}`);
+            if (!resp.ok) throw new Error(`HTTP Error: ${resp.status} `);
             const history = await resp.json();
 
             if (!Array.isArray(history)) return;
@@ -2022,8 +2123,7 @@ class ComparinatorUI {
         if (v) {
             // Mutual Exclusivity
             if (this.state.historyMode) {
-                this.state.historyMode = false;
-                this.toggles.history.classList.remove("active");
+                this.setHistoryMode(false);
             }
             this.reticle.style.display = "block";
             this.stage.style.cursor = "none";
@@ -2058,6 +2158,12 @@ class ComparinatorUI {
 
             if (this.zoomControls) this.zoomControls.style.display = "none";
         }
+
+        // --- DYNAMIC GEOMETRY ---
+        // Forensic mode requires extra vertical clearance for high-density HUD
+        const targetH = v ? 820 : 680;
+        this.smoothNodeResize(targetH);
+
         this.updateDisplay();
     }
 
@@ -2138,9 +2244,8 @@ class ComparinatorUI {
         const w = this.node.widgets.find(w => w.name === "save_mode");
         if (w) w.value = v;
 
-        // Node Expansion (Smooth)
-        const targetH = v ? 1140 : 680;
-        this.smoothNodeResize(targetH);
+        // [H4] Unified Layout Preservation: The node size is now sacred.
+        // The save drawer is an absolute overlay, preventing clunky expansion.
         this.node.setDirtyCanvas(true);
     }
 
@@ -2159,10 +2264,6 @@ class ComparinatorUI {
             else this.node.setSize([this.node.size[0], targetH]);
         };
         requestAnimationFrame(animate);
-    }
-
-    updateReticle(x, y) {
-        // [H4] Reticle logic is now handled inline in handleMouseMove for zero latency
     }
 
     setReticleShape(shape) {
@@ -2204,15 +2305,64 @@ app.registerExtension({
                     }
                 };
                 hider();
-                setTimeout(hider, 100);
-                setTimeout(hider, 500);
-                setTimeout(hider, 1000);
 
                 const onDrawForeground = this.onDrawForeground;
                 this.onDrawForeground = function (ctx) {
-                    hider();
+                    const canvas = app.canvas || this.graph?.canvas;
+                    const scale = (canvas && canvas.ds) ? canvas.ds.scale : (canvas?.scale || 1);
+
+                    if (scale < 0.35) {
+                        // Suppress JS UI
+                        if (ui.el.root.style.display !== "none") ui.el.root.style.display = "none";
+
+                        const w = this.size[0];
+                        const h = this.size[1];
+                        const titleH = 32;
+
+                        ctx.save();
+                        ctx.globalAlpha = 1.0;
+                        ctx.beginPath();
+                        ctx.fillStyle = "#0c0c0c";
+                        ctx.fillRect(0, -titleH, w, h + titleH);
+
+                        ctx.strokeStyle = "rgba(0, 242, 255, 0.4)";
+                        ctx.lineWidth = 4 / scale;
+                        ctx.strokeRect(0, -titleH, w, h + titleH);
+
+                        // H4 Insignia (with Glow)
+                        ctx.shadowColor = "#00f2ff";
+                        ctx.shadowBlur = 15;
+                        ctx.fillStyle = "#00f2ff";
+                        ctx.font = "900 100px Arial Black"; // Heavier font for impact
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillText("H4", w / 2, (h / 2) - 30);
+
+                        // Node Title
+                        ctx.shadowBlur = 0;
+                        ctx.font = "bold 24px monospace";
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+                        ctx.fillText("COMPARINATOR", w / 2, (h / 2) + 60);
+
+                        // Status Line
+                        ctx.font = "10px monospace";
+                        ctx.fillStyle = "rgba(0, 242, 255, 0.3)";
+                        ctx.fillText("TACTICAL LOD ENGINE ACTIVE", w / 2, h - 20);
+
+                        ctx.restore();
+                        return;
+                    } else {
+                        if (ui.el.root.style.display === "none") ui.el.root.style.display = "flex";
+                    }
+
                     if (onDrawForeground) onDrawForeground.apply(this, arguments);
                 };
+
+                const onConfigure = this.onConfigure;
+                this.onConfigure = function () {
+                    if (onConfigure) onConfigure.apply(this, arguments);
+                    hider();
+                }
 
                 const onExecuted = this.onExecuted;
                 this.onExecuted = function () {

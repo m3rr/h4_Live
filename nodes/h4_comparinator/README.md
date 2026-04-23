@@ -1,36 +1,38 @@
-# h4_comparinator / H4_Comparinator (The A/B Test God)
+# h4_comparinator / H4_Comparinator (The A/B Tester)
 
 ## What it is
-The bastard child of a lightbox, a diff viewer, and a forensic lab. It lets you compare two images with a sliding reticle, zoom in to see atomic-level defects, and crawl the graph to see exactly how you messed up your settings.
+A simple tool for comparing two images head-to-head. It puts one on top of the other and lets you drag a slider back and forth to see exactly what changed. It's perfect for checking if an upscale or a prompt change actually made your image look better.
 
 ## Expanded Description
-"Eyeballing it" is for amateurs. The `H4_Comparinator` is built for pixel peepers and prompt scientists. When you need to prove whether a specific scheduler or a 0.05 tweak in denoise actually changed the result, this node acts as your absolute source of truth.
+"Is this better, or just different?"
 
-It parses images directly in the browser using custom CSS `clipPath` transformations, allowing buttery-smooth sliding wipes between Image A (Control) and Image B (Test). It possesses a built-in History Strip that caches your last 50 runs, allowing you to seamlessly pull older generations back into the viewer to compare against your live canvas outputs.
+We've all asked that. The **Comparinator** gives you the answer.
+- **The Slider**: Drag the red line to "wipe" between the old version and the new version.
+- **Blink Mode**: Press the **Spacebar** to rapidly switch between them. This is the best way to spot small things that moved or changed.
+- **Inspectinator**: A little magnifying glass that follows your cursor and zooms in 500% so you can check things like eyes or skin texture.
+- **The Drawer**: It even "crawls" back through your wires to show you the settings (like seed and prompt) for both images side-by-side.
 
-## Parameters and Inputs
-- **image_a**: The "Control" or "Before" image.
-- **image_b**: The "Test" or "After" image.
-- **frozen_image**: An override for Image B, allowing you to lock a specific state while continuing to experiment on Image A.
-- **metadata_text**: JSON metadata injection port.
-- **save_mode**: Toggle to save the comparisons to disk or just keep them as temporary previews.
-
-## Interface Magic
-- **Compare Mode (Slider):** Drag the red line to aggressively wipe between A and B.
-- **Blink Mode (Spacebar):** Hold Spacebar to make Image B vanish. Release to bring it back. Because sometimes dragging a slider isn't fast enough.
-- **Inspectinator Mode:** Turns the right pane into a localized microscope with up to 500% zoom.
-- **Parameter Drawer:** Crawls your workflow backwards (yes, backwards) to extract KSampler, Seed, Steps, and Prompts that created the image.
+## Options
+- **image_a**: Your "Baseline" (Before).
+- **image_b**: Your "Test" (After).
+- **History Strip**: The thumbnails at the top show your past runs. You can right-click any image to "Lock" it as your permanent reference for the B-side.
 
 ## Use Case Scenarios
-**Scenario 1: Refining Face Restoration**
-You are trying to determine if setting CodeFormer's fidelity to 0.6 is better than 0.8. You generate both. You pipe them into Comparinator. Using the slider, you wipe across the eyes to see which setting preserved the original pupil shape better while still eliminating the JPEG artifacts.
+**Scenario 1: Dialing in your Denoise**
+You aren't sure if `0.3` denoise is too high for your face fix. Run it at `0.2` and then at `0.3`. Use the slider to check if `0.3` is too "waxy" compared to the original.
 
-**Scenario 2: The "Beat My Best" Session**
-You generate an image you really like. You right-click it in the Comparinator's History Strip to lock it as the Gold Reference. Now, every new generation you attempt is automatically compared against this locked image. You tweak your prompts and seeds, constantly fighting to "beat" the baseline you set.
+**Scenario 2: Sharpening Check**
+When using a sharpening filter, use the **Inspectinator** (zoom) on the eyes to make sure you're adding "clarity" and not just "noise."
 
-## Examples
-- **Basic Setup**:
-  1. Connect your original image to `image_a`.
-  2. Connect your processed/refined image to `image_b`.
-  3. The UI will render them overlaid. Drag the slider handle horizontally to reveal the before/after effect.
-  4. Hold the spacebar to rapidly strobe between the two versions.
+## Quick Start
+1. Add `H4_Comparinator`.
+2. Plug your first image into `image_a` and your second into `image_b`.
+3. Use the slider on the node to see the "Before/After" effect.
+4. Tap the spacebar to strobe the changes.
+
+---
+
+## Dev Corner (Jargon & Logic)
+- **CSS Clip-Path**: The "Slider" effect is created using a dynamic CSS crop that moves with the mouse.
+- **Asynchronous Crawling**: It retrieves the node settings for each image after the generation finishes to avoid slowing down the UI thread.
+- **Localized Zoom**: The Inspectinator uses a secondary hidden canvas to render a high-res crop of the pointer's location.

@@ -1,27 +1,35 @@
-# h4_node_translator / H4_NodeTranslator (The Babel Fish)
+# h4_node_translator / H4_NodeTranslator (WIP)
 
 ## What it is
-A real-time UI localization tool. A frontend-only node that translates the titles, inputs, and widgets of standard ComfyUI modules into your native language.
+A simple tool to help make ComfyUI easier to use if English isn't your first language. It's a visual-only layer that swaps out terms on your screen for your native tongue in real-time. 
+
+**NOTE: This is very much a Work In Progress (WIP).** Some nodes might not translate perfectly, but it covers the basics.
 
 ## Expanded Description
-ComfyUI is notoriously un-localized. This alienates massive segments of the global design community who are forced to memorize complex English technical terms (`conditioning`, `denoise`, `latent constraint`) rather than natively understanding the logic mechanisms they are interacting with.
+Most custom nodes are made in English, which can be a pain if you're trying to figure out what a "Sampler" or "Latent" is in another language. 
 
-The `H4_NodeTranslator` bridges this gap. It acts as an anchor node—essentially a transparent backend structural point—that injects custom JS routines (`h4_node_translator.js`) into the browser's DOM upon load. These scripts instantly rewrite the visual labels displayed to the user without touching the internal Python execution mechanics. Because it is strictly a UI layer interaction, the node preserves execution stability entirely and won't crash your prompt parameters by accidentally misnaming a critical tensor pathway.
+The **Node Translator** doesn't mess with the backend or your workflow logic. It just sits on your canvas and tries to rename the labels, buttons, and tooltips as they appear. It's safe to use—if you send your workflow to someone who doesn't have this node, it'll just show up in English for them like normal.
 
-## Features
-- **Supported Languages:** Spanish, Mandarin, German, etc.
-- **Non-Destructive Overlays:** It only changes what you *see*. Python error logs, backend parameter passing, and JSON serialization are still in standard functional English to retain compatibility with other custom nodes.
-- **Zero-Footprint:** Returns a structural `noop` (No Operation) backend stub when queued.
+## Options
+- **language**: Pick your language (Spanish, Mandarin, German, French, etc.).
+- **translate_titles**: Rename the nodes themselves.
+- **translate_widgets**: Rename the sliders and text boxes.
+- **translate_tooltips**: Translate the little help messages that pop up.
 
 ## Use Case Scenarios
-**Scenario 1: Educational Outreach**
-You are trying to teach a class of Spanish-speaking graphic design students the intricacies of multi-tensor diffusion graphs. Instead of spending two hours forcing them to use Google Translate on basic operations, you drop the Translation node onto the canvas and select Spanish. The entire UI repaints. `KSampler` becomes `Muestreador K`, `Steps` becomes `Pasos`. They are able to intuitively manipulate the interface based on literal comprehension rather than rote mechanical memorization.
+**Scenario 1: Learning the ropes**
+If you're new to AI art and prefer working in Spanish, this makes all the technical sliders (like CFG and Steps) way more approachable while you're still learning the jargon.
 
-**Scenario 2: Rapid Localization Control**
-You are a bilingual user. You can toggle between translations on the fly or disable the node entirely to instantly revert the canvas back to the standard English state so you can communicate bugs accurately to GitHub repositories without having to uninstall the translation package.
+**Scenario 2: Sharing with international teams**
+If you're working with people in different countries, you can all use the same workflow but see it in your own language.
 
-## Examples
-- **Basic Usage**:
-  1. Add the `H4_NodeTranslator` node anywhere on your canvas.
-  2. Select your desired target language from the node's dropdown widget.
-  3. The Javascript event fires, crawling `app.graph._nodes` and rewriting text nodes locally in your browser. (Note: Marked as WIP, localization files must be correctly updated).
+## Quick Start
+1. Drop the `H4_NodeTranslator` node anywhere on your screen.
+2. Pick your language from the list.
+3. Watch the nodes update their labels. 
+
+---
+
+## Dev Corner (Jargon & Logic)
+- **DOM Hijacking**: The Javascript frontend monitors the drawing loop and performs text-replacements before the final draw.
+- **Safety Bypass**: We explicitly ignore internal property names so we don't accidentally break the communication between the browser and the server.
