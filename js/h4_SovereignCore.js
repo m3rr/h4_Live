@@ -78,6 +78,7 @@ const SOVEREIGN_HUD_NODES = new Set([
     "H4_ComparinatorVault",
     "H4_Complete_Loader",
     "H4_Multi_ImgUpload",
+    "h4_pythonipulator_inator"
 ]);
 
 // ============================================================================
@@ -86,14 +87,12 @@ const SOVEREIGN_HUD_NODES = new Set([
 let _engineEnabled = true; // Will be hydrated from localStorage on boot
 let themeOverrides = {};
 
-// Registry of all non-sovereign nodes the engine has themed.
+// Registry of all nodes the engine has themed.
 // Each entry: { node, originalDraw, originalColor, originalBgcolor }
-// This allows clean revert when the user disables the setting.
 const _themedNodes = [];
 
 /**
  * Reads the "sovereignCoreEnabled" key from h4_Dashboard localStorage config.
- * Falls back to true (enabled) if the key doesn't exist or localStorage is inaccessible.
  */
 function readConfigFromStorage() {
     try {
@@ -104,20 +103,12 @@ function readConfigFromStorage() {
                 return parsed.sovereignCoreEnabled;
             }
         }
-    } catch (_) {
-        // localStorage unavailable or corrupted — default to enabled
-    }
+    } catch (_) { }
     return true; // Default: ON
 }
 
 /**
  * Attempts to fetch the optional override file at startup.
- * If the file doesn't exist, this silently catches and moves on.
- * Expected format:
- * {
- *   "H4_Mutate":        { "accent": "#ff00ff", "offBlack": "#111111" },
- *   "H4_TrafficRouter":  { "accent": "#ff8800" }
- * }
  */
 async function loadThemeOverrides() {
     try {
@@ -126,9 +117,7 @@ async function loadThemeOverrides() {
             themeOverrides = await resp.json();
             console.log("[H4 SovereignCore] Theme overrides loaded:", Object.keys(themeOverrides).length, "entries.");
         }
-    } catch (_) {
-        // File doesn't exist or isn't valid JSON — perfectly fine, use defaults.
-    }
+    } catch (_) { }
 }
 
 // ============================================================================
@@ -147,13 +136,13 @@ function resolvePalette(comfyClass) {
 // 6. DISPLAY NAME FORMATTER — Converts "H4_TrafficRouter" to "Traffic Router"
 // ============================================================================
 function formatBadgeName(comfyClass) {
-    // Strip the "H4_" prefix
-    let name = comfyClass.replace(/^H4_/, "");
+    // Strip the "H4_" or "h4_" prefix
+    let name = comfyClass.replace(/^[hH]4_/, "");
     // Insert spaces before capital letters (CamelCase to Spaced)
     name = name.replace(/([a-z])([A-Z])/g, "$1 $2");
     // Also split on underscores
     name = name.replace(/_/g, " ");
-    return name;
+    return name.toUpperCase();
 }
 
 // ============================================================================
@@ -164,12 +153,14 @@ function drawLODBadge(ctx, node, palette) {
     const h = node.size[1];
     const badgeName = formatBadgeName(node.comfyClass || node.type || "Node");
 
+    // Protect the canvas state
+    ctx.save();
+
     // Fill the entire node body with the Off-Black
     ctx.fillStyle = palette.badgeBg;
     ctx.fillRect(0, 0, w, h);
 
     // Outer glow ring
-    ctx.save();
     ctx.strokeStyle = palette.accent;
     ctx.lineWidth = 2;
     ctx.shadowColor = palette.badgeGlow;
@@ -177,26 +168,21 @@ function drawLODBadge(ctx, node, palette) {
     ctx.beginPath();
     ctx.roundRect(2, 2, w - 4, h - 4, 6);
     ctx.stroke();
-    ctx.restore();
 
     // "H4" — Large, dominant identifier
-    ctx.save();
     ctx.fillStyle = palette.accent;
     ctx.shadowColor = palette.accent;
     ctx.shadowBlur = 8;
-    ctx.font = "900 56px sans-serif";
+    ctx.font = "900 64px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("H4", w / 2, h / 2 - 14);
-    ctx.restore();
 
     // Node name — Smaller, below the H4 mark
-    ctx.save();
     ctx.fillStyle = palette.textPrimary;
-    ctx.font = "600 13px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(badgeName, w / 2, h / 2 + 24);
+    ctx.font = "bold 13px monospace";
+    ctx.fillText(badgeName, w / 2, h / 2 + 28);
+
     ctx.restore();
 }
 
@@ -209,63 +195,56 @@ function applyH4Aesthetic(node) {
     // Resolve the colour palette for this specific node
     const palette = resolvePalette(comfyClass);
 
-    // --- STEP 1: Check if this node has a sovereign HUD ---
+    // --- STEP 1: Identification ---
     const isSovereign = SOVEREIGN_HUD_NODES.has(comfyClass);
 
-    // Sovereign nodes always get their colours applied (they manage their own draw loops)
-    // The user toggle does NOT affect sovereign nodes — they are hardcoded.
-    if (isSovereign) {
-        node.color = palette.offBlack;
-        node.bgcolor = palette.offBlack;
-        return;
-    }
-
-    // --- STEP 2: If the engine is disabled, skip theming for non-sovereign nodes ---
-    if (!_engineEnabled) {
-        return;
-    }
-
-    // --- STEP 3: Snapshot the node's original colours before applying the theme ---
-    // These are saved to allow clean revert on toggle-off
-    const originalColor = node.color;
-    const originalBgcolor = node.bgcolor;
-
-    // Apply the H4 palette
+    // --- STEP 2: Theming ---
+    // Apply the H4 palette to the node frame
     node.color = palette.offBlack;
     node.bgcolor = palette.offBlack;
 
-    // --- STEP 4: Wrap onDrawForeground for LOD Guard on non-sovereign nodes ---
-    // Preserve the original draw function (if one was set by the node's own JS)
+    // --- STEP 3: LOD Guard Injection ---
+    // We wrap every H4 node, even sovereign ones, to ensure the badge 
+    // overlays everything at far zoom levels.
     const originalDraw = node.onDrawForeground;
 
     node.onDrawForeground = function (ctx) {
-        // Guard: if collapsed, skip all custom drawing
-        if (this.flags.collapsed) {
-            if (originalDraw) originalDraw.apply(this, arguments);
+        const ds = app.canvas.ds?.scale ?? app.canvas.ds ?? 1.0;
+
+        // LOD GUARD: Below the zoom floor, render the tactical badge
+        if (ds < LOD_ZOOM_FLOOR && !this.flags.collapsed) {
+            // If the node has a custom H4 UI (DOM elements), we must suppress them
+            if (this.h4_ui && this.h4_ui.mainEl) {
+                this.h4_ui.mainEl.style.visibility = "hidden";
+            }
+            if (this.h4_ui && this.h4_ui.canvasEl) {
+                this.h4_ui.canvasEl.style.visibility = "hidden";
+            }
+
+            drawLODBadge(ctx, this, palette);
             return;
         }
 
-        // Get the current canvas zoom scale
-        const ds = app.canvas.ds?.scale ?? app.canvas.ds ?? 1.0;
-
-        // LOD GUARD: Below the zoom floor, render the tactical badge ONLY
-        if (ds < LOD_ZOOM_FLOOR) {
-            drawLODBadge(ctx, this, palette);
-            return; // Don't render anything else at this zoom level
+        // NORMAL ZOOM: Restore H4 UI visibility if hidden
+        if (this.h4_ui && this.h4_ui.mainEl) {
+            this.h4_ui.mainEl.style.visibility = "visible";
+        }
+        if (this.h4_ui && this.h4_ui.canvasEl) {
+            this.h4_ui.canvasEl.style.visibility = "visible";
         }
 
-        // NORMAL ZOOM: Fall through to original draw (widgets, etc.)
+        // Execute original logic (Native widgets or Sovereign HUD)
         if (originalDraw) {
             originalDraw.apply(this, arguments);
         }
     };
 
-    // --- STEP 5: Register this node for potential revert ---
+    // --- STEP 4: Registration ---
     _themedNodes.push({
         node,
         originalDraw,
-        originalColor: originalColor || COMFY_DEFAULTS.color,
-        originalBgcolor: originalBgcolor || COMFY_DEFAULTS.bgcolor,
+        originalColor: COMFY_DEFAULTS.color,
+        originalBgcolor: COMFY_DEFAULTS.bgcolor,
     });
 }
 
@@ -304,7 +283,7 @@ function applyToAllExistingNodes() {
     const allNodes = app.graph._nodes || [];
     for (const node of allNodes) {
         const comfyClass = node.comfyClass || node.type || "";
-        if (comfyClass.startsWith("H4_")) {
+        if (/^[hH]4_/.test(comfyClass)) {
             applyH4Aesthetic(node);
         }
     }
@@ -354,8 +333,8 @@ app.registerExtension({
     async nodeCreated(node) {
         const comfyClass = node.comfyClass || node.type || "";
 
-        // THE GATE: Only intercept nodes that start with "H4_"
-        if (!comfyClass.startsWith("H4_")) return;
+        // THE GATE: Only intercept nodes that start with "H4_" or "h4_"
+        if (!/^[hH]4_/.test(comfyClass)) return;
 
         // Apply the full aesthetic package (respects _engineEnabled internally)
         applyH4Aesthetic(node);
