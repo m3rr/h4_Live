@@ -6,12 +6,158 @@ from PIL import Image
 import folder_paths
 import logging
 import server
+import sqlite3
+import threading
 from aiohttp import web
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
 
 # --- Global Kinetic Executor for Forensic Thumbnails ---
 _h4_io_executor = ThreadPoolExecutor(max_workers=4)
+
+class H4_ManifestCache:
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(H4_ManifestCache, cls).__new__(cls)
+                cls._instance._init_db()
+        return cls._instance
+
+    def _init_db(self):
+        try:
+            temp_dir = folder_paths.get_temp_directory()
+            if not os.path.exists(temp_dir):
+                os.makedirs(temp_dir, exist_ok=True)
+            self.db_path = os.path.abspath(os.path.join(temp_dir, "h4_smart_manifest_v1.db"))
+            # [H4] REPORT DELAYED: Moved to post-boot sequence
+            
+            conn = sqlite3.connect(self.db_path)
+            try:
+                with conn:
+                    conn.execute("""
+                        CREATE TABLE IF NOT EXISTS assets (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            filename TEXT,
+                            subfolder TEXT,
+                            type TEXT,
+                            timestamp REAL,
+                            sidecar TEXT
+                        )
+                    """)
+                    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_asset_uniq ON assets(filename, subfolder, type)")
+                    conn.execute("CREATE INDEX IF NOT EXISTS idx_asset_time ON assets(timestamp DESC)")
+            finally:
+                conn.close()
+        except Exception as e:
+            print(f"[H4_Manifest] Registry Critical Initialization Failure: {e}")
+
+    def record(self, filename, subfolder, dir_type, timestamp, sidecar):
+        conn = None
+        try:
+            # --- FIFO Cache Management: Thumbnails ---
+            cache_dir = os.path.join(folder_paths.get_temp_directory(), "h4_thumbs_v3")
+            if os.path.exists(cache_dir):
+                thumbs = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir)]
+                if len(thumbs) > 300:
+                    thumbs.sort(key=os.path.getmtime)
+                    for old_thumb in thumbs[:50]:
+                        try: os.remove(old_thumb)
+                        except: pass
+
+            conn = sqlite3.connect(self.db_path)
+            with conn:
+                conn.execute("""
+                    INSERT INTO assets (filename, subfolder, type, timestamp, sidecar) 
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(filename, subfolder, type) 
+                    DO UPDATE SET timestamp=excluded.timestamp, sidecar=excluded.sidecar
+                """, (filename, subfolder, dir_type, timestamp, json.dumps(sidecar)))
+        except Exception as e:
+            print(f"[H4_Manifest] Registry Mutation Failure: {e}")
+        finally:
+            if conn: conn.close()
+
+    def query_history(self, limit=100):
+        conn = None
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute("SELECT filename, subfolder, type, timestamp, sidecar FROM assets ORDER BY timestamp DESC LIMIT ?", (limit,))
+            results = []
+            for row in cursor:
+                results.append({
+                    "filename": row["filename"],
+                    "subfolder": row["subfolder"],
+                    "type": row["type"],
+                    "timestamp": row["timestamp"],
+                    "sidecar": json.loads(row["sidecar"]) if row["sidecar"] else {}
+                })
+            return results
+        except Exception as e:
+            print(f"[H4_Manifest] Registry Query Failure: {e}")
+            return []
+        finally:
+            if conn: conn.close()
+
+    def report_status(self):
+        print(f"[H4_Manifest] DNA Registry Active at: {self.db_path}")
+
+    def cold_boot_sync(self):
+        # --- Flat Shallow Scan Only (Performance Priority) ---
+        out_root = folder_paths.get_output_directory()
+        temp_root = folder_paths.get_temp_directory()
+        prev_dir = os.path.join(temp_root, "h4_previews")
+        
+        found = []
+        
+        # 1. Output Root & h4_* Subdirs
+        scan_paths = [out_root]
+        if os.path.exists(out_root):
+             with os.scandir(out_root) as it:
+                 for entry in it:
+                     if entry.is_dir() and entry.name.startswith("h4"):
+                         scan_paths.append(entry.path)
+        
+        for p in scan_paths:
+            if not os.path.exists(p): continue
+            with os.scandir(p) as it:
+                for entry in it:
+                    if entry.is_file() and entry.name.endswith(".json") and "h4" in entry.name.lower():
+                        img_file = entry.name.replace(".json", ".png")
+                        if os.path.exists(os.path.join(p, img_file)):
+                            sub = os.path.relpath(p, out_root) if p.startswith(out_root) else ""
+                            if sub == ".": sub = ""
+                            try:
+                                with open(entry.path, "r", encoding="utf-8") as f:
+                                    data = json.load(f)
+                                record = (img_file, sub.replace("\\", "/"), "output", os.path.getmtime(entry.path), json.dumps(data))
+                                found.append(record)
+                            except: continue
+
+        # 2. Previews
+        if os.path.exists(prev_dir):
+            with os.scandir(prev_dir) as it:
+                for entry in it:
+                    if entry.is_file() and entry.name.endswith(".png"):
+                        record = (entry.name, "h4_previews", "temp", os.path.getmtime(entry.path), "{}")
+                        found.append(record)
+
+        if found:
+            conn = None
+            try:
+                conn = sqlite3.connect(self.db_path)
+                with conn:
+                    conn.executemany("INSERT OR IGNORE INTO assets (filename, subfolder, type, timestamp, sidecar) VALUES (?, ?, ?, ?, ?)", found)
+                print(f"[H4_Manifest] Cold Boot Complete: {len(found)} assets indexed.")
+            except Exception as e:
+                print(f"[H4_Manifest] Cold Boot Sync Fault: {e}")
+            finally:
+                if conn: conn.close()
+
+_manifest = H4_ManifestCache()
 
 # --- Internal H4 Utilities ---
 def normalize_root_dir(path):
@@ -99,8 +245,7 @@ class H4_SmartSave:
             ensure_dir(full_output_dir)
             import random
             rand_id = random.randint(1000, 9999)
-            file = f"h4_preview_{rand_id}.png"
-            json_file = file.replace(".png", ".json")
+            file = f"h4_preview_{rand_id}" # Stem only
             return full_output_dir, subfolder, file
 
     def smart_save(
@@ -119,6 +264,7 @@ class H4_SmartSave:
         extra_pnginfo=None,
         unique_id=None
     ):
+        print(f"[H4_SmartSave] DEBUG: Received save_mode = {save_mode} (Type: {type(save_mode)})")
         from core.h4_session_manager import H4_SessionManager
 
         if images is None or len(images) == 0:
@@ -159,22 +305,35 @@ class H4_SmartSave:
                 file_name = f"{filename}_{i+1:04}.png"
                 json_name = f"{filename}_{i+1:04}.json"
             else:
-                file_name = filename
-                json_name = filename.replace(".png", ".json")
+                file_name = f"{filename}_{i+1:04}.png"
+                json_name = f"{filename}_{i+1:04}.json"
 
-            save_path = os.path.join(full_output_dir, file_name)
-            json_path = os.path.join(full_output_dir, json_name)
+            save_path = os.path.abspath(os.path.join(full_output_dir, file_name))
+            json_path = os.path.abspath(os.path.join(full_output_dir, json_name))
+
+            print(f"[H4_SmartSave] [IO] Target: {save_path} (Mode: {'SAVE' if save_mode else 'PREVIEW'})")
 
             img.save(save_path, pnginfo=None, compress_level=1)
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(clean_nan(sidecar_data), f, indent=2, ensure_ascii=False)
             
-            results.append({
+            save_res = {
                 "filename": file_name,
                 "subfolder": subfolder,
                 "type": "output" if save_mode else "temp",
-                "sidecar": sidecar_data
-            })
+                "sidecar": sidecar_data,
+                "timestamp": os.path.getmtime(save_path)
+            }
+            results.append(save_res)
+
+            # --- Synchronize Manifest Registry ---
+            _manifest.record(
+                filename=file_name,
+                subfolder=subfolder,
+                dir_type=save_res["type"],
+                timestamp=save_res["timestamp"],
+                sidecar=sidecar_data
+            )
 
         return {"ui": {"images": results}, "result": (images,)}
 
@@ -206,61 +365,15 @@ try:
     @PromptServer.instance.routes.get("/h4/smart_save/history")
     async def get_smart_save_history(request):
         try:
-            history = []
+            # Shift to 10 thumbnails per user request
+            history = _manifest.query_history(limit=10)
             
-            # --- Forensic Scan: Output ---
-            out_root = folder_paths.get_output_directory()
-            print(f"[H4_SmartSave] Auditing Output Manifest: {out_root}")
-            for root, dirs, files in os.walk(out_root):
-                for f in files:
-                    if f.endswith(".json") and ("h4" in f.lower()):
-                        json_path = os.path.join(root, f)
-                        try:
-                            with open(json_path, "r", encoding="utf-8") as jf:
-                                data = json.load(jf)
-                                # Be permissive with identity checks
-                                img_file = f.replace(".json", ".png")
-                                if os.path.exists(os.path.join(root, img_file)):
-                                    sub = os.path.relpath(root, out_root)
-                                    if sub == ".": sub = ""
-                                    history.append({
-                                        "filename": img_file,
-                                        "subfolder": sub.replace("\\", "/"),
-                                        "type": "output",
-                                        "timestamp": os.path.getmtime(json_path),
-                                        "sidecar": data
-                                    })
-                        except: continue
+            # --- Optional Cold Boot Migration (Only if empty) ---
+            if not history:
+                _manifest.cold_boot_sync()
+                history = _manifest.query_history(limit=10)
 
-            # --- Forensic Scan: Temp ---
-            temp_root = folder_paths.get_temp_directory()
-            prev_dir = os.path.join(temp_root, "h4_previews")
-            print(f"[H4_SmartSave] Auditing Preview Manifest: {prev_dir}")
-            if os.path.exists(prev_dir):
-                for f in os.listdir(prev_dir):
-                    if f.endswith(".png") or f.endswith(".json"):
-                        # Accept either PNG or JSON for previews to ensure visibility
-                        base_name = os.path.splitext(f)[0]
-                        img_file = base_name + ".png"
-                        json_file = base_name + ".json"
-                        
-                        full_img = os.path.join(prev_dir, img_file)
-                        if os.path.exists(full_img):
-                            # Check if already added
-                            if not any(x["filename"] == img_file and x["type"] == "temp" for x in history):
-                                history.append({
-                                    "filename": img_file,
-                                    "subfolder": "h4_previews",
-                                    "type": "temp",
-                                    "timestamp": os.path.getmtime(full_img),
-                                    "sidecar": {} # Will be fetched via sidecar API if needed
-                                })
-
-            # Deduplicate and Sort
-            history.sort(key=lambda x: x["timestamp"], reverse=True)
-            rendered = history[:50]
-            print(f"[H4_SmartSave] Forensic Audit Complete: {len(rendered)} assets identified.")
-            return web.json_response(clean_nan(rendered))
+            return web.json_response(clean_nan(history))
 
         except Exception as e:
             print(f"[H4_SmartSave] History Registry Fault: {e}")
@@ -367,14 +480,15 @@ try:
             if os.path.exists(thumb_path) and os.path.getmtime(thumb_path) >= os.path.getmtime(img_path):
                 return web.FileResponse(thumb_path)
 
-            # --- Synchronous Forensic Manifestation (Stabilization Mode) ---
-            with Image.open(img_path) as img:
-                # Convert to RGB for JPEG compatibility (RGBA fix)
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
-                img.thumbnail((160, 160), Image.LANCZOS)
-                img.save(thumb_path, "JPEG", quality=90, optimize=True)
-
+            # --- Asynchronous Forensic Manifestation ---
+            def generate_thumb():
+                with Image.open(img_path) as img:
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    img.thumbnail((160, 160), Image.LANCZOS)
+                    img.save(thumb_path, "JPEG", quality=90, optimize=True)
+            
+            await asyncio.get_event_loop().run_in_executor(_h4_io_executor, generate_thumb)
             return web.FileResponse(thumb_path)
             
         except Exception as e:

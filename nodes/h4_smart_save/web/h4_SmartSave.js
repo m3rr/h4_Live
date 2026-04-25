@@ -28,7 +28,7 @@ const COLORS = {
 
 // --- GLOBAL TOOLTIP KERNEL ---
 const h4Tooltip = document.createElement("div");
-h4Tooltip.style.cssText = `position:fixed;z-index:9999;background:rgba(5,5,5,0.98);border:1px solid ${COLORS.accent};color:${COLORS.accent};padding:10px 14px;font-size:12px;font-family:monospace;pointer-events:none;border-radius:6px;display:none;max-width:280px;box-shadow:0 0 20px rgba(0,0,0,0.8);line-height:1.5;font-weight:bold;`;
+h4Tooltip.style.cssText = `position:fixed;z-index:11000;background:rgba(5,5,5,0.98);border:1px solid ${COLORS.accent};color:${COLORS.accent};padding:10px 14px;font-size:12px;font-family:monospace;pointer-events:none;border-radius:6px;display:none;max-width:280px;box-shadow:0 0 20px rgba(0,0,0,0.8);line-height:1.5;font-weight:bold;`;
 document.body.appendChild(h4Tooltip);
 
 let tipDelay = null;
@@ -40,7 +40,16 @@ function showTip(text, e) {
     currentTipText = text;
     const x = e.clientX; const y = e.clientY;
     tipDelay = setTimeout(() => {
-        h4Tooltip.innerHTML = text.replace("//", "<br/><span style='color:#666;font-size:10px;font-style:italic;'>") + (text.includes("//") ? "</span>" : "");
+        let content = text.replace("//", "<br/><span style='color:#666;font-size:10px;font-style:italic;'>") + (text.includes("//") ? "</span>" : "");
+        if (e.altKey) {
+            const t = e.target;
+            content = `<div style="color:#ff3333;font-weight:bold;margin-bottom:5px;">[ GHOST_RADAR ]</div>` +
+                `TAG: &lt;${t.tagName.toLowerCase()}&gt;<br/>` +
+                `CLASS: ${t.className || "none"}<br/>` +
+                `ID: ${t.id || "none"}<br/>` +
+                `POINTER: ${window.getComputedStyle(t).pointerEvents}`;
+        }
+        h4Tooltip.innerHTML = content;
         h4Tooltip.style.display = "block";
         h4Tooltip.style.left = (x + 18) + "px"; h4Tooltip.style.top = (y + 18) + "px";
     }, 850);
@@ -56,10 +65,57 @@ document.addEventListener("mouseover", (e) => {
     const target = e.target.closest("[data-h4-tip]");
     if (target) showTip(target.getAttribute("data-h4-tip"), e);
 });
-document.addEventListener("mousemove", (e) => updateTipPos(e));
+document.addEventListener("mousemove", (e) => {
+    updateTipPos(e);
+    if (e.altKey) showTip("DRAG_IDENTIFYING", e);
+});
 document.addEventListener("mouseout", (e) => {
     const target = e.target.closest("[data-h4-tip]");
     if (target) hideTip();
+});
+
+// --- FORENSIC AESTHETIC HARDENING ---
+const styleId = "h4-hud-global-styles";
+if (!document.getElementById(styleId)) {
+    const s = document.createElement("style");
+    s.id = styleId;
+    s.innerHTML = `
+        .h4-hud-el { user-select: none !important; -webkit-user-drag: none !important; -webkit-touch-callout: none; }
+        .h4-hud-el img { -webkit-user-drag: none !important; pointer-events: none !important; }
+        .h4-hud-el input, .h4-hud-el textarea { user-select: text !important; -webkit-user-drag: auto !important; }
+    `;
+    document.head.appendChild(s);
+}
+
+// --- NUCLEAR CLICK INVESTIGATOR ---
+// This tool reports exactly what element receives a click, revealing invisible capture layers.
+window.addEventListener("mousedown", (e) => {
+    const target = e.target;
+    const style = window.getComputedStyle(target);
+    if (!target) return;
+    const isH4 = (target.className && typeof target.className === "string" && target.className.includes("h4"));
+    if (isH4) {
+        console.log(`[h4] [NUCLEAR_INVESTIGATOR] DOM HIT: <${target.tagName.toLowerCase()}> class:"${target.className}" zIndex:${style.zIndex} pointer-events:${style.pointerEvents}`);
+    } else if (e.altKey) {
+        console.log(`[h4] [NUCLEAR_INVESTIGATOR] CANVAS/EXTERNAL HIT:`, target, "zIndex:", style.zIndex, "pointer-events:", style.pointerEvents);
+    }
+}, true);
+
+// --- FORENSIC VISIBILITY DEBUGGER ---
+window.addEventListener("keydown", (e) => {
+    if (e.shiftKey && e.altKey) {
+        document.querySelectorAll(".h4-hud-el").forEach(el => {
+            el.style.outline = "2px solid red"; el.style.background = "rgba(255,0,0,0.1)"; el.style.pointerEvents = "auto";
+        });
+    }
+});
+window.addEventListener("keyup", (e) => {
+    if (!e.shiftKey || !e.altKey) {
+        document.querySelectorAll(".h4-hud-el").forEach(el => {
+            el.style.outline = "none"; el.style.background = (el.className.includes("lightbox") ? "rgba(0,0,0,0.95)" : COLORS.panel);
+            // Restore correct pointer events will be handled by next syncDOM loop
+        });
+    }
 });
 
 const MIN_SIZE = [750, 500];
@@ -68,7 +124,7 @@ const DRAWER_W = 340;
 const DRAWER_GAP = 15;
 const DETAIL_GAP = 8;
 const ANIM_SPEED = 0.22;
-const HISTORY_LIMIT_VISIBLE = 8;
+const HISTORY_LIMIT_VISIBLE = 5;
 const BTN_SIZE = 34;
 const SCRUB_BTN_W = 28;
 
@@ -126,13 +182,48 @@ class SmartSaveUI {
         this.show_lightbox = false; this.swapped_ids = new Set();
         this._historyInflight = false; this._sidecarInflight = false;
         this._lastHistorySignature = ""; this._lastSidecarSignature = "";
+        this.pollTimer = null;
         this.fetchHistory(false);
+
+        // --- KINETIC TICKER: Decouple from canvas redraw for persistent HUD responsiveness ---
+        const tick = () => {
+            if (!this.node.graph) return;
+            this.syncDOM();
+            requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
     }
 
     scheduleDraw() { if (this._redrawTimer) return; this._redrawTimer = setTimeout(() => { this._redrawTimer = null; this.node.setDirtyCanvas(true, true); }, 1); }
     markParamsDirty() { this._dirty_params = true; this.scheduleDraw(); }
     markViewerDirty() { this._dirty_viewer = true; this.scheduleDraw(); }
-    setHistoryOpen(open) { this.show_history = !!open; if (this.show_history) { this.fetchHistory(false); this.updateHistoryRail(); } this.scheduleDraw(); }
+
+    // --- HISTORY RAIL LIFECYCLE: Open/close with automatic polling ---
+    setHistoryOpen(open) {
+        this.show_history = !!open;
+        if (this.show_history) {
+            this.fetchHistory(false);
+            this.startPolling();
+        } else {
+            this.stopPolling();
+        }
+        this.updateHistoryRail();
+        this.scheduleDraw();
+    }
+
+    // --- FILMSTRIP POLLING ENGINE: Runs only while the history rail is open ---
+    startPolling() {
+        if (this.pollTimer) return;
+        this.pollTimer = setInterval(() => {
+            if (!this.show_history) return this.stopPolling();
+            this.fetchHistory(false);
+        }, 3000); // Poll every 3 seconds while the rail is visible
+    }
+
+    stopPolling() {
+        if (this.pollTimer) clearInterval(this.pollTimer);
+        this.pollTimer = null;
+    }
 
     async fetchHistory(force = false) {
         if (this._historyInflight) return; this._historyInflight = true;
@@ -420,8 +511,8 @@ class SmartSaveUI {
 
     updateHistoryRail() {
         const rail = this.node.__h4_history_rail; if (!rail || !this.show_history) return;
-        let html = `<div style="height:100%;display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:0;background:${COLORS.panel};border-radius:6px;overflow:hidden;"><div class="h4-hist-nav" data-dir="-1" title="Scroll Left" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;">‹</div><div style="display:flex;gap:12px;overflow:hidden;justify-content:flex-start;padding:10px 15px;">`;
-        const visibleItems = this.history.slice(this.scroll_idx, this.scroll_idx + 8);
+        let html = `<div style="height:100%;display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:0;background:${COLORS.panel};border-radius:6px;overflow:hidden;pointer-events:none;"><div class="h4-hist-nav" data-dir="-1" title="Scroll Left" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">‹</div><div style="display:flex;gap:12px;overflow:hidden;justify-content:flex-start;padding:10px 15px;pointer-events:none;">`;
+        const visibleItems = this.history.slice(this.scroll_idx, this.scroll_idx + HISTORY_LIMIT_VISIBLE);
         visibleItems.forEach((item, i) => {
             const idx = i + this.scroll_idx; const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}`);
             const isSel = idx === this.selected_idx;
@@ -430,14 +521,52 @@ class SmartSaveUI {
             const glow = (isSel && isTemp) ? `box-shadow: 0 0 12px ${COLORS.forensic}88;` : "";
             const hTip = `${safeText(item.filename)}: Click once to see the settings, or double-click to blow it up in the high-res Lightbox.`;
 
-            html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${idx}" data-h4-tip="${hTip.replace(/"/g, "&quot;")}" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;"><img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:2px;" /><div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.7);color:#888;font-size:9px;padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safeText(item.filename)}</div></div>`;
+            html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${idx}" data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;pointer-events:auto;"><img src="${url}" draggable="false" style="width:100%;height:100%;object-fit:cover;border-radius:2px;pointer-events:none;" /><div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.7);color:#888;font-size:9px;padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;">${safeText(item.filename)}</div></div>`;
         });
-        html += `</div><div class="h4-hist-nav" data-dir="1" title="Scroll Right" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;">›</div></div><style> .h4-hist-nav:hover { background:rgba(0,242,255,0.08) !important; color:#fff !important; text-shadow:0 0 10px ${COLORS.accent}; } </style>`;
+        html += `</div><div class="h4-hist-nav" data-dir="1" title="Scroll Right" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">›</div></div><style> .h4-hist-nav:hover { background:rgba(0,242,255,0.08) !important; color:#fff !important; text-shadow:0 0 10px ${COLORS.accent}; } </style>`;
         rail.innerHTML = html;
-        rail.querySelectorAll(".h4-hist-nav").forEach(b => { b.onclick = (e) => { e.stopPropagation(); this.scroll_idx = Math.max(0, Math.min(Math.max(0, this.history.length - 8), this.scroll_idx + (parseInt(b.getAttribute("data-dir")) * 4))); this.updateHistoryRail(); }; });
+        rail.querySelectorAll(".h4-hist-nav").forEach(b => {
+            b.addEventListener("mousedown", (e) => {
+                e.stopPropagation();
+                const dir = parseInt(b.getAttribute("data-dir"));
+                const oldIdx = this.scroll_idx;
+                const maxScroll = Math.max(0, this.history.length - HISTORY_LIMIT_VISIBLE);
+                this.scroll_idx = Math.max(0, Math.min(maxScroll, this.scroll_idx + (dir * 4)));
+                console.log(`[h4] [NAV_FIRE] Dir:${dir} | Scroll:${oldIdx}->${this.scroll_idx} | ChildCount:${this.history.length}`);
+                this.updateHistoryRail();
+            }, true);
+        });
         rail.querySelectorAll(".h4-hist-item").forEach(b => {
-            b.onclick = (e) => { e.stopPropagation(); this.selected_idx = parseInt(b.getAttribute("data-idx")); this.fetchSidecar(this.selected_idx); this.updateHistoryRail(); this.scheduleDraw(); };
-            b.ondblclick = (e) => { e.stopPropagation(); this.selected_idx = parseInt(b.getAttribute("data-idx")); this.show_lightbox = true; this.updateLightbox(); this.scheduleDraw(); };
+            const itemIdx = parseInt(b.getAttribute("data-idx"));
+            b.addEventListener("mousedown", (e) => {
+                e.stopPropagation();
+                console.log(`[h4] [NAV_FIRE] Item Clicked: ${itemIdx}`);
+                this.selected_idx = itemIdx;
+                this.fetchSidecar(this.selected_idx);
+                // --- OPTIMIZED SELECTION: Update classes without destroying the DOM to preserve DBLCLICK chain ---
+                rail.querySelectorAll(".h4-hist-item").forEach(itemEl => {
+                    const idx = parseInt(itemEl.getAttribute("data-idx"));
+                    const isSel = idx === this.selected_idx;
+                    itemEl.classList.toggle("active", isSel);
+                    itemEl.style.borderColor = isSel ? (this.history[idx]?.type === "temp" ? COLORS.forensic : COLORS.accent) : "#333";
+                    itemEl.style.boxShadow = (isSel && this.history[idx]?.type === "temp") ? `0 0 12px ${COLORS.forensic}88` : "none";
+                });
+                this.scheduleDraw();
+            }, true);
+            b.addEventListener("dblclick", (e) => {
+                e.stopPropagation(); e.preventDefault();
+                console.log(`[h4] [NAV_FIRE] Item Double-Clicked: ${itemIdx}`);
+                this.selected_idx = itemIdx;
+                this.show_lightbox = true;
+                this.updateLightbox();
+                this.scheduleDraw();
+            }, true);
+            // --- FULL-RES PRELOAD: Cache the high-res image on hover so the lightbox opens instantly ---
+            b.addEventListener("mouseenter", () => {
+                const hItem = this.history[itemIdx]; if (!hItem) return;
+                const fullUrl = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(hItem.filename)}&subfolder=${encodeURIComponent(hItem.subfolder)}&type=${encodeURIComponent(hItem.type)}&full=true`);
+                if (!this.full_imgs[fullUrl]) { const preload = new Image(); preload.src = fullUrl; this.full_imgs[fullUrl] = preload; }
+            });
         });
     }
 
@@ -570,7 +699,14 @@ class SmartSaveUI {
         const lb = this.node.__h4_lightbox; if (!lb || !this.show_lightbox) return;
         const curIdx = Math.max(0, this.selected_idx); const item = this.history[curIdx]; if (!item) return;
         const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}&full=true`);
-        lb.innerHTML = `<div class="h4-lb-bg" style="position:absolute;inset:0;background:rgba(0,0,0,0.92);cursor:zoom-out;"></div><div class="h4-lb-nav h4-lb-prev" title="Previous Image" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);font-size:60px;color:${COLORS.accent};cursor:pointer;z-index:10;user-select:none;">‹</div><div class="h4-lb-nav h4-lb-next" title="Next Image" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:60px;color:${COLORS.accent};cursor:pointer;z-index:10;user-select:none;">›</div><div style="position:absolute;inset:40px 100px;display:flex;align-items:center;justify-content:center;pointer-events:none;"><img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 0 40px rgba(0,0,0,0.8);border:1px solid #333;" /></div><div class="h4-lb-close" title="Close Lightbox" style="position:absolute;top:20px;right:30px;font-size:40px;color:#666;cursor:pointer;z-index:20;">×</div><div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#aaa;font-size:12px;background:rgba(0,0,0,0.6);padding:8px 20px;border-radius:20px;border:1px solid #333;">${safeText(item.filename)} • ${curIdx + 1} / ${this.history.length}</div><style>.h4-lb-nav:hover { color:#fff !important; text-shadow:0 0 15px ${COLORS.accent}; } .h4-lb-close:hover { color:${COLORS.danger} !important; }</style>`;
+        lb.innerHTML = `<div class="h4-lb-bg" style="position:absolute;inset:0;background:rgba(0,0,0,0.92);cursor:zoom-out;"></div><div class="h4-lb-nav h4-lb-prev" title="Previous Image" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);font-size:60px;color:${COLORS.accent};cursor:pointer;z-index:10;user-select:none;">‹</div><div class="h4-lb-nav h4-lb-next" title="Next Image" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:60px;color:${COLORS.accent};cursor:pointer;z-index:10;user-select:none;">›</div><div style="position:absolute;inset:40px 100px;display:flex;align-items:center;justify-content:center;pointer-events:none;"><div class="h4-lb-spinner" style="position:absolute;color:${COLORS.accent};font-size:14px;font-family:monospace;opacity:0.6;">LOADING...</div><img class="h4-lb-img" src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 0 40px rgba(0,0,0,0.8);border:1px solid #333;opacity:0;transition:opacity 0.3s ease;" /></div><div class="h4-lb-close" title="Close Lightbox" style="position:absolute;top:20px;right:30px;font-size:40px;color:#666;cursor:pointer;z-index:20;">×</div><div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#aaa;font-size:12px;background:rgba(0,0,0,0.6);padding:8px 20px;border-radius:20px;border:1px solid #333;">${safeText(item.filename)} • ${curIdx + 1} / ${this.history.length}</div><style>.h4-lb-nav:hover { color:#fff !important; text-shadow:0 0 15px ${COLORS.accent}; } .h4-lb-close:hover { color:${COLORS.danger} !important; }</style>`;
+        // --- LIGHTBOX LOADING STATE: Fade in when image arrives, show spinner until then ---
+        const lbImg = lb.querySelector(".h4-lb-img");
+        const lbSpinner = lb.querySelector(".h4-lb-spinner");
+        if (lbImg) {
+            lbImg.onload = () => { lbImg.style.opacity = "1"; if (lbSpinner) lbSpinner.style.display = "none"; };
+            lbImg.onerror = () => { lbImg.style.opacity = "0.4"; if (lbSpinner) lbSpinner.textContent = "⚠ IMAGE FAILED TO LOAD"; };
+        }
         lb.querySelector(".h4-lb-bg").onclick = () => { this.show_lightbox = false; this.scheduleDraw(); };
         lb.querySelector(".h4-lb-close").onclick = () => { this.show_lightbox = false; this.scheduleDraw(); };
         lb.querySelector(".h4-lb-prev").onclick = (e) => { e.stopPropagation(); this.selected_idx = Math.max(0, this.selected_idx - 1); this.fetchSidecar(this.selected_idx); this.updateLightbox(); this.scheduleDraw(); };
@@ -579,34 +715,227 @@ class SmartSaveUI {
 
     syncDOM() {
         const node = this.node; if (!node || !node.graph) { activeNodes.delete(this); return; }
-        const mesh = getGrid(node); const pts = mesh.pts; const scale = app.canvas.ds.scale; const ds = app.canvas.ds; const rect = app.canvas.canvas.getBoundingClientRect();
-        const sync = (el, pt, visible, opacity = 1) => { if (!el) return; if (!visible || scale < 0.3) { if (el.parentNode) el.remove(); return; } if (!el.parentNode) document.body.appendChild(el); const sx = node.pos[0] * scale + pt.x * scale + ds.offset[0] * scale + rect.left; const sy = node.pos[1] * scale + pt.y * scale + ds.offset[1] * scale + rect.top; el.style.transform = `translate3d(${sx}px, ${sy}px, 0) scale(${scale})`; el.style.transformOrigin = "top left"; el.style.width = `${pt.w}px`; el.style.height = `${pt.h}px`; el.style.opacity = `${opacity}`; el.style.display = "block"; };
-        sync(node.__h4_prefix, pts.prefix_box, true); sync(node.__h4_path, pts.path_box, true);
+        const mesh = getGrid(node); const pts = mesh.pts; const scale = app.canvas.ds.scale; const ds = app.canvas.ds;
 
-        if (this.params_anim > 0.005) {
-            const t = easeOutCubic(clamp01(this.params_anim));
-            sync(node.__h4_core_drawer, pts.drawer_p, true, t);
-            if (this.detail_anim > 0.005 && node.__h4_detaildrawer?.innerHTML) {
-                const t2 = easeOutCubic(clamp01(this.detail_anim));
-                sync(node.__h4_detaildrawer, pts.drawer_detail, true, t2);
-            }
-        } else if (node.__h4_core_drawer?.parentNode) {
-            node.__h4_core_drawer.remove(); node.__h4_detaildrawer.remove();
+        // --- WIDGET DOM NEUTRALIZATION: ComfyUI's DOMWidget system re-creates/re-positions widget elements ---
+        // These invisible DOM elements capture mouse events and create dead zones over and below the node.
+        // Neutralize them every frame to prevent blocking canvas interaction.
+        if (node.widgets) {
+            node.widgets.forEach(w => {
+                if (w.inputEl) { w.inputEl.style.display = "none"; w.inputEl.style.pointerEvents = "none"; w.inputEl.style.position = "fixed"; w.inputEl.style.left = "-9999px"; w.inputEl.style.width = "0"; w.inputEl.style.height = "0"; }
+                if (w.element) {
+                    w.element.style.display = "none"; w.element.style.pointerEvents = "none"; w.element.style.position = "fixed"; w.element.style.left = "-9999px"; w.element.style.width = "0"; w.element.style.height = "0";
+                    // COM-937: Enforce absolute dimensional boundaries on ComfyUI's V2 DOM layer.
+                    // This structurally prevents invisible DOM wrappers from expanding over our Side Drawers or creating 
+                    // dead zones beneath the node, while maintaining ComfyUI's native event routing for the canvas itself.
+                    const master = w.element.closest ? w.element.closest(".dom-widget.size-full") : null;
+                    if (master) {
+                        master.style.pointerEvents = "auto"; // Ensure ComfyUI still routes clicks
+                        master.style.height = `${mesh.baseH}px`;
+                        master.style.width = `${mesh.w}px`;
+                        master.style.overflow = "hidden";
+                    } else if (w.element.parentElement && w.element.parentElement.classList.contains("dom-widget")) {
+                        w.element.parentElement.style.pointerEvents = "auto";
+                        w.element.parentElement.style.height = `${mesh.baseH}px`;
+                        w.element.parentElement.style.width = `${mesh.w}px`;
+                        w.element.parentElement.style.overflow = "hidden";
+                    }
+                }
+            });
         }
-        if (!this._last_detailed_id && this.detail_anim < 0.005 && node.__h4_detaildrawer?.parentNode) node.__h4_detaildrawer.remove();
-        if (this.meta_anim > 0.005) { const t = easeOutCubic(clamp01(this.meta_anim)); sync(node.__h4_metadrawer, pts.drawer_m, true, t); } else if (node.__h4_metadrawer?.parentNode) node.__h4_metadrawer.remove();
-        if (this.custom_meta_anim > 0.005) { const t = easeOutCubic(clamp01(this.custom_meta_anim)); sync(node.__h4_customdrawer, pts.drawer_custom, true, t); } else if (node.__h4_customdrawer?.parentNode) node.__h4_customdrawer.remove();
-        if (this.footer_anim > 0.005) { const t = easeOutCubic(clamp01(this.footer_anim)); sync(node.__h4_history_rail, { ...pts.history_rail, y: mesh.baseH + 10 + (1 - t) * 40 }, true, t); } else if (node.__h4_history_rail?.parentNode) node.__h4_history_rail.remove();
-        if (this.viewer_anim > 0.005) { const t = easeOutCubic(clamp01(this.viewer_anim)); sync(node.__h4_viewerdrawer, pts.drawer_viewer, true, Math.max(0, t)); } else if (node.__h4_viewerdrawer?.parentNode) node.__h4_viewerdrawer.remove();
-        if (this.show_lightbox) { if (!node.__h4_lightbox.parentNode) document.body.appendChild(node.__h4_lightbox); node.__h4_lightbox.style.display = "block"; } else if (node.__h4_lightbox.parentNode) node.__h4_lightbox.remove();
+
+        // --- ANIMATION STATE MACHINE: Runs here so drawer visibility never depends on onDrawForeground ---
+        // This is the single source of truth for animation progression.
+        this.params_anim = lerp(this.params_anim, this.show_params ? 1 : 0, ANIM_SPEED);
+        this.meta_anim = lerp(this.meta_anim, this.show_meta ? 1 : 0, ANIM_SPEED);
+        this.custom_meta_anim = lerp(this.custom_meta_anim, (this.show_meta && this.show_custom_meta) ? 1 : 0, ANIM_SPEED);
+        this.footer_anim = lerp(this.footer_anim, this.show_history ? 1 : 0, ANIM_SPEED);
+        this.viewer_anim = lerp(this.viewer_anim, this.show_viewer ? 1 : 0, ANIM_SPEED);
+        this.detail_anim = lerp(this.detail_anim, this._last_detailed_id ? 1 : 0, ANIM_SPEED);
+        const animStillMoving = Math.abs(this.params_anim - (this.show_params ? 1 : 0)) > 0.005 || Math.abs(this.meta_anim - (this.show_meta ? 1 : 0)) > 0.005 || Math.abs(this.footer_anim - (this.show_history ? 1 : 0)) > 0.005 || Math.abs(this.viewer_anim - (this.show_viewer ? 1 : 0)) > 0.005 || Math.abs(this.detail_anim - (this._last_detailed_id ? 1 : 0)) > 0.005;
+        if (animStillMoving) this.scheduleDraw();
+
+        // --- DRAWER CONTENT POPULATION: Triggered here to stay synchronized with animation ---
+        if (this.show_params) { if (this.current_sidecar) this.updateParamsFromSidecar(this.current_sidecar); else this.crawlWorkflow(); }
+        if (this.show_viewer) this.showForensicViewer();
+
+        // --- PROJECTION KERNEL: Position a DOM element over its canvas counterpart ---
+        const project = (el, pt, isShown, animVal = 1, passthrough = false) => {
+            if (!el) return;
+            const finalOpacity = isShown ? animVal : 0;
+            // --- LIFECYCLE VIGILANCE: Hard-purge from DOM and Render-Tree when inactive ---
+            if (finalOpacity < 0.01 || !node.graph || scale < 0.2) {
+                if (el.parentNode) {
+                    el.style.display = "none";
+                    el.style.visibility = "hidden";
+                    el.style.width = "0"; el.style.height = "0";
+                    el.remove();
+                }
+                return;
+            }
+            if (!el.parentNode) { document.body.appendChild(el); }
+
+            // --- V2 DIRECT MATH PROJECTION ---
+            let screenX = 0, screenY = 0;
+            try {
+                const canvasElement = app.canvas.canvas;
+                const rect = canvasElement ? canvasElement.getBoundingClientRect() : { left: 0, top: 0 };
+                screenX = (node.pos[0] + pt.x + ds.offset[0]) * ds.scale + rect.left;
+                screenY = (node.pos[1] + pt.y + ds.offset[1]) * ds.scale + rect.top;
+            } catch (err) { }
+
+            el.style.position = "fixed"; el.style.left = "0"; el.style.top = "0"; el.style.zIndex = "10000";
+            el.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${ds.scale})`;
+            el.style.transformOrigin = "top left";
+            el.style.width = `${pt.w}px`; el.style.height = `${pt.h}px`;
+            el.style.opacity = `${finalOpacity}`; el.style.display = "block"; el.style.visibility = "visible";
+
+            // --- TACTILE SOVEREIGNTY: Interactive elements block canvas immediately upon visibility ---
+            if (passthrough) el.style.pointerEvents = "none";
+            else el.style.pointerEvents = "auto";
+        };
+
+        // --- LIGHTBOX SUPPRESSION: Hide all HUD elements when in full-screen mode ---
+        const hudVisible = !this.show_lightbox;
+
+        project(node.__h4_prefix, pts.prefix_box, hudVisible);
+        project(node.__h4_path, pts.path_box, hudVisible);
+
+        project(node.__h4_core_drawer, pts.drawer_p, this.show_params && hudVisible, this.params_anim, false);
+        project(node.__h4_detaildrawer, pts.drawer_detail, (this.show_params && this._last_detailed_id && hudVisible), this.detail_anim, false);
+        project(node.__h4_metadrawer, pts.drawer_m, this.show_meta && hudVisible, this.meta_anim, false);
+        project(node.__h4_customdrawer, pts.drawer_custom, this.show_custom_meta && hudVisible, this.custom_meta_anim, false);
+
+        const rY = mesh.baseH + 10 + (1 - easeOutCubic(clamp01(this.footer_anim))) * 40;
+        project(node.__h4_history_rail, { ...pts.history_rail, y: rY }, this.show_history && hudVisible, this.footer_anim, false);
+        project(node.__h4_viewerdrawer, pts.drawer_viewer, this.show_viewer && hudVisible, this.viewer_anim, false);
+
+        // --- LIGHTBOX CONTAINMENT: Full-screen overlay only when explicitly activated ---
+        if (this.show_lightbox) {
+            if (!this.node.__h4_lightbox.parentNode) document.body.appendChild(this.node.__h4_lightbox);
+            Object.assign(this.node.__h4_lightbox.style, { display: "block", pointerEvents: "auto", width: "100%", height: "100%", inset: "0", zIndex: "10001" });
+        } else if (this.node.__h4_lightbox?.parentNode) {
+            Object.assign(this.node.__h4_lightbox.style, { display: "none", pointerEvents: "none", width: "0", height: "0" });
+            this.node.__h4_lightbox.remove();
+        }
     }
 }
 
-function cloakWidget(w) { if (!w) return; w.type = "converted-widget"; w.label = ""; w.computeSize = () => [0, -4]; w.draw = () => { }; if (w.inputEl) w.inputEl.style.display = "none"; if (w.element) w.element.style.display = "none"; }
-function makeFloatingEl(tag, cls = "") { const el = document.createElement(tag); el.className = cls; el.style.position = "fixed"; el.style.zIndex = "100"; el.style.display = "none"; el.style.background = COLORS.panel; el.style.border = "1.5px solid #222"; el.style.color = COLORS.accent; el.style.padding = "0"; el.style.fontFamily = "monospace"; el.style.boxSizing = "border-box"; el.style.willChange = "transform, opacity"; el.style.overflowY = "auto"; el.style.overflowX = "hidden"; return el; }
+function cloakWidget(w) {
+    if (!w) return;
+    // Replace the widget's rendering pipeline to prevent ComfyUI from allocating visual space
+    w.computeSize = () => [0, -4];
+    w.draw = () => { };
+    // Aggressively exile DOM elements to prevent invisible overlays from blocking canvas interaction
+    if (w.inputEl) { w.inputEl.style.display = "none"; w.inputEl.style.pointerEvents = "none"; w.inputEl.style.position = "fixed"; w.inputEl.style.left = "-9999px"; w.inputEl.style.width = "0"; w.inputEl.style.height = "0"; }
+    if (w.element) { w.element.style.display = "none"; w.element.style.pointerEvents = "none"; w.element.style.position = "fixed"; w.element.style.left = "-9999px"; w.element.style.width = "0"; w.element.style.height = "0"; }
+}
+function makeFloatingEl(tag, cls = "") {
+    const el = document.createElement(tag);
+    el.className = cls + " h4-hud-el";
+    el.style.position = "fixed"; el.style.zIndex = "100"; el.style.display = "none";
+    el.style.background = COLORS.panel; el.style.border = "1.5px solid #222"; el.style.color = COLORS.accent; el.style.padding = "0";
+    el.style.fontFamily = "monospace"; el.style.boxSizing = "border-box";
+    el.style.overflowY = "auto"; el.style.overflowX = "hidden";
+    el.style.pointerEvents = "none"; // --- INTERCEPTION PROTECTION: PASSIVE BY DEFAULT ---
+    el.__h4_interactive = true; // Activating manual node clicks
+    el.setAttribute("draggable", "false");
 
-function kineticLoop() { activeNodes.forEach(ui => ui.syncDOM()); requestAnimationFrame(kineticLoop); }
+    // --- TACTILE SOVEREIGNTY: Native 'pointer-events: auto' handles canvas click blocking now.
+    // Removed JS stopPropagation traps to restore native DOM focus, hover, and button clicks inside the drawers.
+
+    return el;
+}
+
+function kineticLoop() {
+    try {
+        activeNodes.forEach(ui => {
+            if (ui.node && ui.node.graph) ui.syncDOM();
+            else activeNodes.delete(ui);
+        });
+    } catch (e) { console.error("[h4] Kinetic Loop Fault:", e); }
+    requestAnimationFrame(kineticLoop);
+}
 requestAnimationFrame(kineticLoop);
+
+// --- SOVEREIGN CLICK INTERCEPTOR ---
+// Canvas-drawn buttons (M, H, P, toggle, scrub arrows) cannot receive DOM events directly.
+// DOM overlay elements at z-index:9999 block the LiteGraph canvas from receiving mousedown events.
+// This window-level capture handler bypasses all DOM/canvas layering by converting screen coordinates
+// directly to node-local coordinates and performing hit-testing against the button grid.
+window.addEventListener("mousedown", (e) => {
+    if (!app.canvas) return;
+
+    // --- COORDINATE CONVERSION: Try ComfyUI's API first, fall back to manual math ---
+    let canvasX, canvasY;
+    try {
+        const coords = app.canvas.convertEventToCanvasOffset(e);
+        if (coords && coords.length >= 2) { canvasX = coords[0]; canvasY = coords[1]; }
+    } catch (ex) { /* API unavailable, fall back below */ }
+    // Fallback: manual math using ds (DrawSpace) properties
+    if (canvasX === undefined && app.canvas.ds) {
+        const rect = app.canvas.canvas.getBoundingClientRect();
+        const ds = app.canvas.ds;
+        canvasX = (e.clientX - rect.left) / ds.scale - ds.offset[0];
+        canvasY = (e.clientY - rect.top) / ds.scale - ds.offset[1];
+    }
+    if (canvasX === undefined) return; // Neither method worked
+
+    // Check each active SmartSave node for button hits
+    for (const ui of activeNodes) {
+        const node = ui.node;
+        if (!node || !node.graph) continue;
+        // Compute position relative to this node's origin
+        const px = canvasX - node.pos[0];
+        // --- ANIMATION KERNEL: Persistent lerp updates for smooth tactile transitions ---
+        ui.params_anim = lerp(ui.params_anim, ui.show_params ? 1 : 0, ANIM_SPEED);
+        ui.meta_anim = lerp(ui.meta_anim, ui.show_meta ? 1 : 0, ANIM_SPEED);
+        ui.footer_anim = lerp(ui.footer_anim, ui.show_history ? 1 : 0, ANIM_SPEED);
+        ui.detail_anim = lerp(ui.detail_anim, (ui.show_params && ui._last_detailed_id) ? 1 : 0, ANIM_SPEED);
+        ui.custom_meta_anim = lerp(ui.custom_meta_anim, ui.show_custom_meta ? 1 : 0, ANIM_SPEED);
+        ui.viewer_anim = lerp(ui.viewer_anim, ui.show_viewer ? 1 : 0, ANIM_SPEED);
+
+        const py = canvasY - node.pos[1];
+        const mesh = getGrid(node);
+        // Quick boundary check: is the click even within this node's footprint?
+        if (px < 0 || px > mesh.w || py < 0 || py > mesh.baseH) continue;
+        // Skip title bar region (let ComfyUI handle dragging)
+        if (py < 30) continue;
+
+        console.log(`[h4] [INTERCEPTOR] Hit inside node at [${Math.round(px)}, ${Math.round(py)}] | Node bounds: [${mesh.w}, ${mesh.baseH}]`);
+
+        const pts = mesh.pts;
+        const hit = r => r && px >= r.x - 4 && px <= r.x + r.w + 4 && py >= r.y - 4 && py <= r.y + r.h + 4;
+
+        let handled = false;
+        if (hit(pts.btn_p)) { ui.show_params = !ui.show_params; if (!ui.show_params) ui._last_detailed_id = null; console.log("[h4] Toggle Params:", ui.show_params); ui.markParamsDirty(); node.setDirtyCanvas(true); handled = true; }
+        else if (hit(pts.btn_m)) { ui.show_meta = !ui.show_meta; console.log("[h4] Toggle Meta:", ui.show_meta); node.setDirtyCanvas(true); handled = true; }
+        else if (hit(pts.btn_h)) { ui.setHistoryOpen(!ui.show_history); console.log("[h4] Toggle History:", ui.show_history); node.setDirtyCanvas(true); handled = true; }
+        else if (hit(pts.toggle_box)) {
+            if (node.__h4_save_mode_widget) {
+                node.__h4_save_mode_widget.value = !node.__h4_save_mode_widget.value;
+                console.log("[h4] Toggle Save Mode:", node.__h4_save_mode_widget.value);
+                if (node.__h4_save_mode_widget.callback) node.__h4_save_mode_widget.callback(node.__h4_save_mode_widget.value);
+                node.setDirtyCanvas(true, true);
+            }
+            handled = true;
+        }
+        else if (hit(pts.scrub_prev)) { ui.selected_idx = ui.selected_idx <= 0 ? 0 : ui.selected_idx - 1; ui.fetchSidecar(ui.selected_idx); handled = true; }
+        else if (hit(pts.scrub_next)) { if (ui.selected_idx === -1) ui.selected_idx = 0; else ui.selected_idx = Math.min(ui.history.length - 1, ui.selected_idx + 1); ui.fetchSidecar(ui.selected_idx); handled = true; }
+        else if (hit(pts.preview_area)) {
+            const now = Date.now();
+            if (node._last_clk && (now - node._last_clk < 300)) { ui.show_lightbox = true; ui.updateLightbox(); ui.scheduleDraw(); }
+            node._last_clk = now;
+            handled = true;
+        }
+
+        if (handled) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            return;
+        }
+    }
+}, true);
 
 app.registerExtension({
     name: "h4.SmartSave.Core.Fixed",
@@ -615,17 +944,32 @@ app.registerExtension({
         nodeType.prototype.onNodeCreated = function () {
             this.h4_ui = new SmartSaveUI(this); activeNodes.add(this.h4_ui);
             const styleId = "h4-smartsave-kinetic-styles"; if (!document.getElementById(styleId)) { const s = document.createElement("style"); s.id = styleId; s.innerHTML = `.h4gridscroll::-webkit-scrollbar { width:4px; height:4px; } .h4gridscroll::-webkit-scrollbar-track { background:transparent; } .h4gridscroll::-webkit-scrollbar-thumb { background:#333; border-radius:4px; } .h4gridscroll::-webkit-scrollbar-thumb:hover { background:#00f2ff; }`; document.head.appendChild(s); }
+            // --- ELEMENT CREATION: __h4_interactive flag controls which elements capture clicks ---
+            // Only input fields and open drawers should intercept mouse events.
+            // Buttons M/H/P/toggle/scrub are canvas-drawn and need the click to reach the canvas.
             this.__h4_prefix = makeFloatingEl("input", "h4-grid-prefix");
+            this.__h4_prefix.__h4_interactive = true; // Text input requires direct DOM interaction
             this.__h4_prefix.setAttribute("data-h4-tip", "Type your name here to save it into the image file.");
 
             this.__h4_path = makeFloatingEl("input", "h4-grid-path");
+            this.__h4_path.__h4_interactive = true; // Text input requires direct DOM interaction
             this.__h4_path.setAttribute("data-h4-tip", "Choose where on your computer you want to save your images.");
 
             this.__h4_core_drawer = makeFloatingEl("div", "h4gridscroll h4-grid-drawer");
+            this.__h4_core_drawer.__h4_interactive = true; // Contains clickable param cards
             this.__h4_detaildrawer = makeFloatingEl("div", "h4gridscroll h4-grid-details");
-            this.__h4_metadrawer = makeFloatingEl("div", "h4gridscroll h4-grid-meta"); this.__h4_customdrawer = makeFloatingEl("div", "h4gridscroll h4-grid-custom");
-            this.__h4_viewerdrawer = makeFloatingEl("div", "h4gridscroll h4-grid-viewer"); this.__h4_history_rail = makeFloatingEl("div", "h4-grid-history");
-            this.__h4_lightbox = makeFloatingEl("div", "h4-grid-lightbox"); Object.assign(this.__h4_lightbox.style, { inset: "0", width: "100%", height: "100%", zIndex: "5000", background: "rgba(0,0,0,0.95)" });
+            this.__h4_detaildrawer.__h4_interactive = true; // Contains scrollable detail view
+            this.__h4_metadrawer = makeFloatingEl("div", "h4gridscroll h4-grid-meta");
+            this.__h4_metadrawer.__h4_interactive = true; // Contains input fields and selects
+            this.__h4_customdrawer = makeFloatingEl("div", "h4gridscroll h4-grid-custom");
+            this.__h4_customdrawer.__h4_interactive = true; // Contains textarea for custom JSON
+            this.__h4_viewerdrawer = makeFloatingEl("div", "h4gridscroll h4-grid-viewer");
+            this.__h4_viewerdrawer.__h4_interactive = true; // Contains close button and scrollable content
+            this.__h4_history_rail = makeFloatingEl("div", "h4-grid-history");
+            this.__h4_history_rail.__h4_interactive = true; // Contains clickable thumbnails
+            this.__h4_lightbox = makeFloatingEl("div", "h4-grid-lightbox");
+            this.__h4_lightbox.__h4_interactive = true; // Full overlay with nav buttons
+            Object.assign(this.__h4_lightbox.style, { width: "0", height: "0", zIndex: "10001", background: "rgba(0,0,0,0.95)" });
             const bindWidgets = () => {
                 if (!this.widgets) return false;
                 this.widgets.forEach(w => {
@@ -642,6 +986,12 @@ app.registerExtension({
                     cloakWidget(w);
                 }); return true;
             };
+            nodeType.prototype.onRemoved = function () {
+                activeNodes.delete(this.h4_ui);
+                [this.__h4_prefix, this.__h4_path, this.__h4_core_drawer, this.__h4_detaildrawer, this.__h4_metadrawer, this.__h4_customdrawer, this.__h4_viewerdrawer, this.__h4_history_rail, this.__h4_lightbox].forEach(el => {
+                    if (el && el.parentNode) el.remove();
+                });
+            };
             this.__h4_metadrawer.innerHTML = `<div style="color:${COLORS.accent};margin:12px;font-weight:900;border-bottom:1.5px solid #333;padding-bottom:6px;font-size:14px;">h4 // META ENGINE</div><div style="padding:0 15px 15px 15px;"><div style="font-size:9px;color:#aaa;margin-bottom:2px;">AUTHOR</div><input class="h4-meta-author" type="text" placeholder="h4" style="width:100%;background:#111;border:1px solid #333;color:#fff;padding:6px;margin-bottom:10px;box-sizing:border-box;" /><div style="font-size:9px;color:#aaa;margin-bottom:2px;">EMBED MODE</div><select class="h4-meta-mode" style="width:100%;background:#111;border:1px solid #333;color:${COLORS.accent};padding:6px;margin-bottom:10px;"></select><div style="font-size:9px;color:#aaa;margin-bottom:2px;">JSON MODE</div><select class="h4-json-mode" style="width:100%;background:#111;border:1px solid #333;color:${COLORS.accent};padding:6px;margin-bottom:10px;"></select><div style="font-size:9px;color:#aaa;margin-bottom:2px;">COMMENTS</div><textarea class="h4-meta-comments" style="width:100%;height:52px;background:#111;border:1px solid #333;color:#eee;font-family:monospace;font-size:11px;padding:6px;margin-bottom:15px;resize:none;box-sizing:border-box;" placeholder="h4 - [ Approved ] - (b'.')b"></textarea><button class="h4-viewer-btn" title="Preview the metadata that will be embedded in your output images." style="width:100%;padding:8px;background:rgba(0,242,255,0.05);border:1px solid ${COLORS.accent};color:${COLORS.accent};cursor:pointer;font-weight:bold;border-radius:4px;font-size:11px;">🔍 PREVIEW EMBEDDED METADATA</button></div>`;
             this.__h4_customdrawer.innerHTML = `<div style="color:${COLORS.forensic};margin:12px;font-weight:900;border-bottom:1.5px solid #333;padding-bottom:6px;font-size:14px;">h4 // CUSTOM DNA</div><div style="padding:0 15px 15px 15px;"><div style="font-size:10px;color:${COLORS.forensic};margin-bottom:6px;font-style:italic;">Raw JSON Blueprint</div><textarea class="h4-meta-raw" style="width:100%;height:240px;background:#0a0a0a;border:1.5px solid ${COLORS.forensic};color:#fff;font-family:monospace;font-size:11px;padding:10px;resize:none;box-sizing:border-box;">{
   "author": "h4",
@@ -650,9 +1000,18 @@ app.registerExtension({
 }</textarea></div>`;
             const previewBtn = this.__h4_metadrawer.querySelector(".h4-viewer-btn"); if (previewBtn) previewBtn.onclick = () => { this.h4_ui.markViewerDirty(); this.h4_ui.show_viewer = !this.h4_ui.show_viewer; this.setDirtyCanvas(true); };
             bindWidgets(); setTimeout(bindWidgets, 300); setTimeout(bindWidgets, 900);
+
+            // --- EXECUTION EVENT HOOK: Immediately refresh the filmstrip when ComfyUI completes a generation ---
+            const nodeRef = this;
+            api.addEventListener("executed", (evt) => {
+                if (!nodeRef.h4_ui) return;
+                // Force a fresh fetch to pick up the new image, bypassing signature dedup
+                nodeRef.h4_ui.fetchHistory(true);
+            });
+
             return this;
         };
-        nodeType.prototype.onRemoved = function () { if (this.h4_ui) activeNodes.delete(this.h4_ui);[this.__h4_prefix, this.__h4_path, this.__h4_core_drawer, this.__h4_detaildrawer, this.__h4_metadrawer, this.__h4_customdrawer, this.__h4_viewerdrawer, this.__h4_history_rail, this.__h4_lightbox].forEach(el => el?.remove()); };
+        nodeType.prototype.onRemoved = function () { if (this.h4_ui) { this.h4_ui.stopPolling(); activeNodes.delete(this.h4_ui); } [this.__h4_prefix, this.__h4_path, this.__h4_core_drawer, this.__h4_detaildrawer, this.__h4_metadrawer, this.__h4_customdrawer, this.__h4_viewerdrawer, this.__h4_history_rail, this.__h4_lightbox].forEach(el => el?.remove()); };
         nodeType.prototype.onExecuted = function (message) {
             if (this.h4_ui) {
                 console.log("[h4] Execution Complete. Anchoring DNA to History Rail...");
@@ -662,47 +1021,62 @@ app.registerExtension({
                         this.h4_ui.history.unshift({ ...img, timestamp: Date.now() });
                     });
                     this.h4_ui.history = this.h4_ui.history.slice(0, 50);
+                    // --- SIGNATURE SYNC: Update the local signature to prevent the polling motor from overwriting this live shift ---
+                    this.h4_ui._lastHistorySignature = JSON.stringify(this.h4_ui.history.map((x) => [x.filename, x.subfolder, x.type, x.timestamp]));
                     this.h4_ui.selected_idx = 0;
                     this.h4_ui.scroll_idx = 0;
                     this.h4_ui.current_sidecar = message.images[0].sidecar || null;
                     this.h4_ui.updateHistoryRail();
                 }
                 this.h4_ui.markParamsDirty();
-                this.h4_ui.fetchHistory(true);
             }
             if (message.images) { this.__h4_live_imgs = message.images.map(i => { const img = new Image(); img.onload = () => this.setDirtyCanvas(true, true); img.src = api.apiURL(`/view?filename=${encodeURIComponent(i.filename)}&subfolder=${encodeURIComponent(i.subfolder)}&type=${encodeURIComponent(i.type)}`); return img; }); }
-            this.imgs = null; this.images = null; this.widgets = []; // --- PREVENT AUTO-WIDGET INJECTION ---
+            this.imgs = null; this.images = null; // --- PURGE AUTO-IMGS ONLY ---
             this.setDirtyCanvas(true, true);
         };
         nodeType.prototype.onResize = function (size) { if (size[0] < MIN_SIZE[0]) size[0] = MIN_SIZE[0]; if (size[1] < MIN_SIZE[1]) size[1] = MIN_SIZE[1]; return size; };
+        if (nodeType.prototype.onMouseDown && nodeType.prototype.onMouseDown.isH4) return;
         const origMouseDown = nodeType.prototype.onMouseDown;
         nodeType.prototype.onMouseDown = function (e, pos) {
             if (!this.h4_ui) return origMouseDown ? origMouseDown.apply(this, arguments) : false;
             try {
-                const mesh = getGrid(this); const pts = mesh.pts; const px = pos[0]; const py = pos[1];
+                let px = pos[0]; let py = pos[1];
+                if (px === undefined || Math.abs(px) > 10000) {
+                    const canvasPos = app.canvas.convertEventToCanvasOffset(e);
+                    px = canvasPos[0] - this.pos[0];
+                    py = canvasPos[1] - this.pos[1];
+                }
+                const mesh = getGrid(this);
+                // --- TITLE BAR SOVEREIGNTY: Allow ComfyUI to handle node dragging/title clicks ---
+                if (py < 30) return origMouseDown ? origMouseDown.apply(this, arguments) : false;
+                // --- PREVIEW AREA: Capture clicks to prevent node drag and handle double-click for lightbox ---
+                const pts = mesh.pts;
                 const hit = r => r && px >= r.x - 4 && px <= r.x + r.w + 4 && py >= r.y - 4 && py <= r.y + r.h + 4;
                 if (hit(pts.preview_area)) {
                     const now = Date.now();
-                    if (this._last_clk && (now - this._last_clk < 300)) { this.h4_ui.show_lightbox = true; this.h4_ui.updateLightbox(); this.h4_ui.scheduleDraw(); return true; }
-                    this._last_clk = now; return true; // CAPTURE: Stop drag on image click
+                    if (this._last_clk && (now - this._last_clk < 300)) { this.h4_ui.show_lightbox = true; this.h4_ui.updateLightbox(); this.h4_ui.scheduleDraw(); }
+                    this._last_clk = now;
+                    return true; // Prevent drag when clicking on the image preview
                 }
-                if (hit(pts.btn_p)) { this.h4_ui.show_params = !this.h4_ui.show_params; this.h4_ui.markParamsDirty(); return true; }
-                if (hit(pts.btn_m)) { this.h4_ui.show_meta = !this.h4_ui.show_meta; this.setDirtyCanvas(true); return true; }
-                if (hit(pts.btn_h)) { this.h4_ui.setHistoryOpen(!this.h4_ui.show_history); return true; }
-                if (hit(pts.toggle_box)) { if (this.__h4_save_mode_widget) { this.__h4_save_mode_widget.value = !this.__h4_save_mode_widget.value; this.setDirtyCanvas(true); } return true; }
-                if (hit(pts.scrub_prev)) { this.h4_ui.selected_idx = this.h4_ui.selected_idx <= 0 ? 0 : this.h4_ui.selected_idx - 1; this.h4_ui.fetchSidecar(this.h4_ui.selected_idx); return true; }
-                if (hit(pts.scrub_next)) { if (this.h4_ui.selected_idx === -1) this.h4_ui.selected_idx = 0; else this.h4_ui.selected_idx = Math.min(this.h4_ui.history.length - 1, this.h4_ui.selected_idx + 1); this.h4_ui.fetchSidecar(this.h4_ui.selected_idx); return true; }
-                // CAPTURE: Stop drag on HUD background click
-                if (px >= 0 && px <= mesh.w && py >= 0 && py <= mesh.baseH) return true;
+                // --- ALL OTHER CLICKS: Buttons are handled by the Sovereign Click Interceptor ---
+                // Allow clicks on the node body to be captured for node selection without blocking canvas ---
+                if (px >= 0 && px <= mesh.w && py >= 0 && py <= mesh.baseH) {
+                    // Allow node selection but don't block the event chain
+                    return true;
+                }
                 return origMouseDown ? origMouseDown.apply(this, arguments) : false;
             } catch (err) {
-                console.error("[h4] Interaction Fault:", err);
-                return true; // Emergency capture
+                console.error("[h4] onMouseDown Fault:", err);
+                return false; // On error, do NOT block the event — let the canvas handle it
             }
         };
+        nodeType.prototype.onMouseDown.isH4 = true;
         nodeType.prototype.onMouseMove = function (e, pos) {
             if (!this.h4_ui) return;
-            const pts = getGrid(this).pts; const px = pos[0]; const py = pos[1];
+            const pts = getGrid(this).pts;
+            const canvasPos = app.canvas.convertEventToCanvasOffset(e);
+            const px = canvasPos[0] - this.pos[0];
+            const py = canvasPos[1] - this.pos[1];
             const hit = r => r && px >= r.x - 4 && px <= r.x + r.w + 4 && py >= r.y - 4 && py <= r.y + r.h + 4;
             if (hit(pts.btn_p)) showTip("Parameters - Settings for everything in the workflow that makes the image the image", e);
             else if (hit(pts.btn_m)) showTip("Metadata - Image DNA Thumbprint. Modify, edit, view, and otherwise control the meta of your image - Your image , Your data, Your business", e);
@@ -716,23 +1090,29 @@ app.registerExtension({
             ctx.save();
             try {
                 const ui = this.h4_ui; const mesh = getGrid(this); const pts = mesh.pts;
-                ui.params_anim = lerp(ui.params_anim, ui.show_params ? 1 : 0, ANIM_SPEED); ui.meta_anim = lerp(ui.meta_anim, ui.show_meta ? 1 : 0, ANIM_SPEED);
-                ui.custom_meta_anim = lerp(ui.custom_meta_anim, ui.show_custom_meta ? 1 : 0, ANIM_SPEED); ui.footer_anim = lerp(ui.footer_anim, ui.show_history ? 1 : 0, ANIM_SPEED);
-                ui.viewer_anim = lerp(ui.viewer_anim, ui.show_viewer ? 1 : 0, ANIM_SPEED);
-                ui.detail_anim = lerp(ui.detail_anim, ui._last_detailed_id ? 1 : 0, ANIM_SPEED);
-                const animStillMoving = Math.abs(ui.params_anim - (ui.show_params ? 1 : 0)) > 0.005 || Math.abs(ui.meta_anim - (ui.show_meta ? 1 : 0)) > 0.005 || Math.abs(ui.footer_anim - (ui.show_history ? 1 : 0)) > 0.005 || Math.abs(ui.viewer_anim - (ui.show_viewer ? 1 : 0)) > 0.005 || Math.abs(ui.detail_anim - (ui._last_detailed_id ? 1 : 0)) > 0.005;
-                if (animStillMoving) ui.scheduleDraw();
-                if (ui.show_params) { if (ui.current_sidecar) ui.updateParamsFromSidecar(ui.current_sidecar); else ui.crawlWorkflow(); }
-                if (ui.show_viewer) ui.showForensicViewer();
+                // Animation state and syncDOM now live inside syncDOM() itself.
+                // onDrawForeground only handles canvas-rendered visuals.
 
-                // --- NUCLEAR BLOAT REMOVAL ---
-                this.widgets = []; this.imgs = null; this.images = null;
+                // --- NUCLEAR BLOAT REMOVAL (VISUAL ONLY) ---
+                this.imgs = null; this.images = null;
                 if (this.outputs) this.outputs.forEach(o => { o.label = ""; o.name = ""; });
 
                 ui.syncDOM();
                 this.size[0] = mesh.w; this.size[1] = mesh.h; // --- GEOMETRY ENFORCEMENT ---
                 ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, mesh.w, mesh.baseH); ctx.strokeStyle = COLORS.border; ctx.lineWidth = 1; ctx.strokeRect(0, 0, mesh.w, mesh.baseH);
-                let activeImg = null; if (ui.selected_idx >= 0 && ui.history[ui.selected_idx]) { const item = ui.history[ui.selected_idx]; const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}&full=true`); activeImg = ui.full_imgs[url]; if (!activeImg) { const img = new Image(); img.onload = () => { ui.full_imgs[url] = img; this.setDirtyCanvas(true); }; img.src = url; } } else if (this.__h4_live_imgs?.length) activeImg = this.__h4_live_imgs[0];
+                let activeImg = null;
+                if (ui.selected_idx >= 0 && ui.history[ui.selected_idx]) {
+                    const item = ui.history[ui.selected_idx];
+                    const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}&full=true`);
+                    activeImg = ui.full_imgs[url];
+                    if (!activeImg) {
+                        const img = new Image();
+                        img.onload = () => { ui.full_imgs[url] = img; this.setDirtyCanvas(true); };
+                        img.src = url;
+                    }
+                } else if (this.__h4_live_imgs?.length) {
+                    activeImg = this.__h4_live_imgs[0];
+                }
                 if (activeImg && activeImg.width > 0 && ui.viewer_anim < 0.98) {
                     const area = pts.preview_area; ctx.save(); ctx.beginPath(); ctx.rect(area.x, area.y, area.w, area.h); ctx.clip(); ctx.fillStyle = "#000"; ctx.fillRect(area.x, area.y, area.w, area.h);
                     const gr = Math.max(0.01, Math.min(area.w / activeImg.width, area.h / activeImg.height)); const dw = activeImg.width * gr; const dh = activeImg.height * gr; const dx = area.x + (area.w - dw) / 2; const dy = area.y + (area.h - dh) / 2;
@@ -774,8 +1154,10 @@ app.registerExtension({
                 drawButton(pts.btn_p, "P", ui.show_params); drawButton(pts.btn_m, "M", ui.show_meta); drawButton(pts.btn_h, "H", ui.show_history);
                 if (ui.history.length > 0) { drawButton(pts.scrub_prev, "⟨", false, COLORS.accent, true); drawButton(pts.scrub_next, "⟩", false, COLORS.accent, true); }
                 if (activeImg && activeImg.width > 0) { ctx.font = "11px monospace"; ctx.fillStyle = COLORS.accent; ctx.textAlign = "center"; ctx.fillText(`${activeImg.width} x ${activeImg.height}`, pts.lod_badge.x, pts.lod_badge.y); }
-                this.imgs = null; this.images = null; // --- SECURE TERMINAL PURGE ---
-            } catch (e) { } finally { ctx.restore(); }
+
+                // --- SECURE TERMINAL PURGE ---
+                this.imgs = null; this.images = null;
+            } catch (e) { console.error("[h4] onDrawForeground Fault:", e); } finally { ctx.restore(); }
         };
     },
 });

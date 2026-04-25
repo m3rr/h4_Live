@@ -170,6 +170,14 @@ def dynamic_discovery():
 # Run the Discovery
 dynamic_discovery()
 
+# --- POST-BOOT FORENSIC STATUS ---
+try:
+    from .nodes.h4_smart_save.nodes_save import _manifest
+    if _manifest:
+        _manifest.report_status()
+except:
+    pass
+
 # --- SERVER EXTENSION REGISTRATION ---
 # This ensures h4_server still registers its API endpoints
 try:
