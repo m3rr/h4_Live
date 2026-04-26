@@ -1,0 +1,30 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_Gridinator",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                400,
+                800
+            ],
+            "widgets_values": [
+                "juggernaut",
+                "cat",
+                "dog",
+                "Steps",
+                "20, 30, 40",
+                "CFG",
+                "7, 8, 9",
+                "None",
+                "",
+                true,
+                "Label All"
+            ]
+        }
+    ]
+}

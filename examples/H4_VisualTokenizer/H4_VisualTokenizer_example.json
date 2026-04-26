@@ -1,0 +1,20 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_VisualTokenizer",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                400,
+                300
+            ],
+            "widgets_values": [
+                "Enabled"
+            ]
+        }
+    ]
+}

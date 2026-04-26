@@ -1,0 +1,35 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_DoubleSampler",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                315,
+                750
+            ],
+            "widgets_values": [
+                true,
+                "euler",
+                "simple",
+                20,
+                7.0,
+                1.0,
+                true,
+                "dpmpp_2m",
+                "karras",
+                10,
+                0.35,
+                "Enabled",
+                false,
+                "STUTTER",
+                1.2,
+                0.45
+            ]
+        }
+    ]
+}

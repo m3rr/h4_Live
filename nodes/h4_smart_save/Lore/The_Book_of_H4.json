@@ -192,7 +192,7 @@
     },
     "H4_SmartSave": {
         "title": "H4 SmartSave (The Vault — +ULTRA Edition)",
-        "description": "Welcome to the ultimate forensic terminal. SmartSave is the definitive image archiving and interaction authority for ComfyUI. It's not just a file saver; it's a sentient metadata vault that records the exact DNA of your workflow. It features a high-performance filmstrip for historical traversal, a deep-zoom Lightbox for pixel inspection, and a multi-tiered diagnostic HUD that pulls every setting from your graph without you ever having to lift a finger (or a wire).",
+        "description": "Welcome to the ultimate forensic terminal. SmartSave is the definitive image archiving and interaction authority for ComfyUI. It's not just a file saver; it's a sentient metadata vault that records the exact DNA of your workflow. It features a high-performance filmstrip for historical traversal, a deep-zoom Lightbox for pixel inspection, and a multi-tiered diagnostic HUD that pulls every setting from your graph without you ever having to lift a finger (or a wire). \n\n **⚠️ WORK IN PROGRESS**: We are currently hardening the thumbnail preloading engine. You may experience transient 'Ghost Frames' (desynced thumbnails) during intense GPU load. The core forensic data is always preserved; this is a purely visual artifact.",
         "usage": "Drop this into your workflow to replace the standard 'Save Image'. Use the [H], [P], and [M] buttons to toggle the History Bar, the Workflow Parameter drawer, and the Metadata injection panel. It works best when you want to look at everything you've done today without drowning in PNG folders.",
         "inputs": {
             "images": {
@@ -264,6 +264,10 @@
             {
                 "name": "FIFO Digital Janitor",
                 "description": "First-In-First-Out logic. I keep the last 25 images per prefix subfolder and automatically prune the oldest files, keeping your output directory clean and your storage happy."
+            },
+            {
+                "name": "Asset Synchronization (The RX)",
+                "description": "Unified asset retrieval across Hover, Lightbox, and Canvas Background. By synchronizing every request with the preloader's unique timestamp hash, we ensure all elements hit the local browser cache, eliminating redundant backend traffic and ensuring instant tactile responsiveness."
             }
         ],
         "tips": [
@@ -275,7 +279,7 @@
     },
     "H4_Pythonipulator-inator": {
         "title": "H4 Pythonipulator-inator (The image Kernel 🐍)",
-        "description": "The ultimate image manipulation suite for h4_Live. Think of it as a professional photo editor in node form. It combines several powerful computer vision libraries like OpenCV, scikit-image, and PIL into a single, high-performance node. Whether you need to flip a canvas, add cyberpunk glitches, fix the lighting, or apply edge detection filters, the Pythonipulator-inator does it all in one pass. It also features a built-in output engine so it can act as your final save node.",
+        "description": "The ultimate image manipulation suite for h4_Live. It's a high-performance **Hybrid Kernel** that combines Pillow, OpenCV, and scikit-image into a single multi-threaded pipeline. Where standard nodes struggle with memory churn, the Kernel uses zero-copy transformations to apply complex filters (Chromatic Aberration, Glitch, Scanlines) in real-time. It's built for those who need surgical precision without the spaghetti wiring of 10 separate nodes.",
         "usage": "Connect an image and toggle the effect categories you want to use (Cyberpunk, Geometric, Color, Blur, etc.). Each category has a master 'Enabled' switch to keep things tidy. Use it to polish your results or as a creative tool to mess with your images in weird and wonderful ways.",
         "inputs": {
             "image": {

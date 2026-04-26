@@ -1,14 +1,23 @@
 # h4_Live
-A stateful, loop-friendly utility belt for ComfyUI, built to make workflows feel less like “one-shot vending machines” and more like… actual processes. Keep in mind this is a Massive project and is currently STILL IN DEVELOPMENT. So it's a WIP some nodes will act funny, and some are not fully flushed out yet - however, all nodes operate as intended, if you come across any issues , Join my server on Discord. 
+A stateful, loop-friendly utility belt for ComfyUI, built to make workflows feel less like “one-shot vending machines” and more like… actual processes. Keep in mind this is a Massive project and is currently **STILL IN DEVELOPMENT**.
 
-https://discord.gg/hDCHn4aJe5
+> [!WARNING]
+> **WIP STATUS ADVISORY**: Some nodes (especially **H4_SmartSave**) are still in a hardening phase. While the core logic is production-stable, certain visual elements like thumbnails in the History Rail may occasionally glitch or desync during heavy backend load. If this happens, a refresh or "Kicking the Grid" usually resolves it.
 
-And a final note, This node pack , is not meant for comfyui Desktop edition. As CDE (I'm coining that abbreviation now... it's mine Comfy Desktop Edition... I invted it , you saw it here first.)
+Join our community for support and updates:
+**Discord**: [https://discord.gg/hDCHn4aJe5](https://discord.gg/hDCHn4aJe5)
 
-Anyway - because I use a lot of javascript to hijack the Queue, and canvas, and make heavy changes to the nodes them selves. As well as their appearance and structure. SOOOO That being said, if you're running CDE , these nodes will function but will not have the flair, nor will it have half the QoL changes. 
+---
 
-So Be Aware, - This is your only Warning. 
-It Will not be 100% "Fleshed out" if running CDE. 
+## ⚡ TACTICAL PROGRESS REPORT (v9.5.1)
+- **H4_SmartSave**: Upgraded to **+ULTRA Specification**. Full history forensics and DOM sovereignty implemented. (WIP: Thumbnail desync glitches under monitoring).
+- **H4_Comparinator**: v3.0 logic finalized. Multi-history deep-diffing and Sniper-Scope magnification active.
+- **H4_Pythonipulator-inator**: High-performance image kernel now standard. OpenCV/scikit-image pipeline hardened.
+- **Mothership Core**: Dynamic JS harvesting and auto-cleanup active.
+
+> [!IMPORTANT]
+> **CDE COMPATIBILITY**: This node pack is optimized for the standard ComfyUI web interface. While it functions in **ComfyUI Desktop Edition (CDE)**, the tactical flair, HUD overlays, and advanced terminal visualizers may be degraded or disabled by CDE's sandboxed rendering engine. 
+ 
 ---
 
 ## Quick links
@@ -901,6 +910,10 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 - because "eyeballing it" is for amateurs.
 - because you want to audit your past self's decisions without opening the PNG Info tab.
 - because you value **interaction authority** and a clean workspace.
+
+> [!CAUTION]
+> **DEVELOPMENT NOTICE**: SmartSave history synchronization is currently under heavy optimization. You may experience transient thumbnail flickering or "Blank Frames" in the history rail during rapid multi-batch generations. The forensic metadata itself is preserved accurately; this is a purely visual desync.
+
 
 ---
 

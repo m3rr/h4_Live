@@ -1,0 +1,25 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_DataStream",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                315,
+                200
+            ],
+            "widgets_values": [
+                "input_folder",
+                0,
+                1,
+                "next",
+                true,
+                "Enabled"
+            ]
+        }
+    ]
+}

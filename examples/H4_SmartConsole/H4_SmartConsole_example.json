@@ -1,0 +1,20 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_SmartConsole",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                315,
+                200
+            ],
+            "widgets_values": [
+                true
+            ]
+        }
+    ]
+}

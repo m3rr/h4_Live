@@ -1,0 +1,39 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_Mutate",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                350,
+                750
+            ],
+            "widgets_values": [
+                true,
+                0,
+                1.0,
+                1.2,
+                1.0,
+                true,
+                0.45,
+                1,
+                true,
+                2.0,
+                "Lanczos",
+                true,
+                "Portra 400",
+                0.35,
+                true,
+                0.25,
+                0.45,
+                true,
+                0.35,
+                0.15
+            ]
+        }
+    ]
+}

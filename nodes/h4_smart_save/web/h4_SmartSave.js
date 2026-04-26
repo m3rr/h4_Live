@@ -83,6 +83,11 @@ if (!document.getElementById(styleId)) {
         .h4-hud-el { user-select: none !important; -webkit-user-drag: none !important; -webkit-touch-callout: none; }
         .h4-hud-el img { -webkit-user-drag: none !important; pointer-events: none !important; }
         .h4-hud-el input, .h4-hud-el textarea { user-select: text !important; -webkit-user-drag: auto !important; }
+        .h4gridscroll::-webkit-scrollbar { width:4px; height:4px; }
+        .h4gridscroll::-webkit-scrollbar-track { background:transparent; }
+        .h4gridscroll::-webkit-scrollbar-thumb { background:#333; border-radius:4px; }
+        .h4gridscroll::-webkit-scrollbar-thumb:hover { background:#00f2ff; }
+        .VHS_floatinghelp { pointer-events: none !important; }
     `;
     document.head.appendChild(s);
 }
@@ -142,8 +147,15 @@ function isModalOpen() {
     };
 
     const isOpen = check(".comfy-modal") ||
+        check(".comfy-dialog") ||             // <-- FIX: Catches standard ComfyUI dialogs (like logs)
+        check("dialog[open]") ||              // <-- FIX: Catches native HTML5 dialogs used in newer ComfyUI updates
+        check("#comfy-settings-dialog") ||    // <-- FIX: Catches settings ID specifically
         check(".comfy-settings-dialog") ||
         check(".p3-modal") ||
+        check(".comfy-logging-logs") ||
+        check(".comfy-menu-panel") ||
+        check("[data-floating-panel]") ||
+        check(".dialog-container") ||
         (app.ui?.settings?.visible === true);
 
     return isOpen;
@@ -156,10 +168,24 @@ function getGrid(node) {
     const hudY = 72;
     const previewArea = { x: 74, y: 110, w: baseW - 148, h: baseH - 180 };
 
-    const histLen = (node.h4_ui && node.h4_ui.history) ? node.h4_ui.history.length : 1;
-    const thumbCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(HISTORY_VISIBLE_MIN, histLen));
-    const railW = Math.max(400, 110 + (thumbCount * 122) - 12);
-    const railX = (baseW - railW) / 2;
+    // --- DYNAMIC FILMSTRIP: grows with node, caps at 10 thumbs ---
+    const THUMB_W = 110;
+    const THUMB_GAP = 12;
+    const RAIL_NAV_W = 80;   // 40px nav arrow each side
+    const RAIL_PAD = 30;     // 15px padding each side
+
+    const histLen = node.h4_ui?.history?.length ?? 0;
+    // How many full thumbs fit in the current node width?
+    const maxFitByWidth = Math.floor(
+        (baseW - RAIL_NAV_W - RAIL_PAD - THUMB_GAP) / (THUMB_W + THUMB_GAP)
+    );
+    const thumbCount = Math.min(
+        HISTORY_LIMIT_VISIBLE,          // hard cap: never more than 10
+        Math.max(1, histLen),         // never less than 1
+        Math.max(1, maxFitByWidth)    // never more than node width allows
+    );
+    const railW = RAIL_NAV_W + RAIL_PAD + thumbCount * (THUMB_W + THUMB_GAP) - THUMB_GAP;
+    const railX = baseW / 2 - railW / 2;
 
     return {
         w: baseW, h: baseH, baseH,
@@ -173,7 +199,6 @@ function getGrid(node) {
             btn_p: { x: baseW - 55, y: 150, w: BTN_SIZE, h: BTN_SIZE },
             btn_m: { x: 20, y: 150, w: BTN_SIZE, h: BTN_SIZE },
             btn_h: { x: 20, y: baseH - 55, w: BTN_SIZE, h: BTN_SIZE },
-            btn_s: { x: baseW - 55, y: baseH - 55, w: BTN_SIZE, h: BTN_SIZE },
             preview_area: previewArea,
             drawer_p: { x: baseW + DRAWER_GAP, y: 10, w: DRAWER_W, h: baseH - 20 },
             drawer_m: { x: -DRAWER_W - DRAWER_GAP, y: 10, w: DRAWER_W, h: baseH - 20 },
@@ -198,14 +223,6 @@ class SmartSaveUI {
         this._lastHistorySignature = ""; this._lastSidecarSignature = "";
         this.pollTimer = null;
         this.fetchHistory(false);
-
-        // --- KINETIC TICKER: Decouple from canvas redraw for persistent HUD responsiveness ---
-        const tick = () => {
-            if (!this.node.graph) return;
-            this.syncDOM();
-            requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
     }
 
     scheduleDraw() { if (this._redrawTimer) return; this._redrawTimer = setTimeout(() => { this._redrawTimer = null; this.node.setDirtyCanvas(true, true); }, 1); }
@@ -252,7 +269,10 @@ class SmartSaveUI {
             if (sig !== this._lastHistorySignature) {
                 this._lastHistorySignature = sig;
                 this.history = data;
-                if (this.show_history) this.updateHistoryRail();
+                if (this.show_history) {
+                    this.preloadThumbnails(); // Kicks off silent loading
+                    this.updateHistoryRail();
+                }
                 this.scheduleDraw();
             }
         } catch (e) { } finally { this._historyInflight = false; }
@@ -531,14 +551,40 @@ class SmartSaveUI {
         else items.forEach((it) => { html += `<div style="margin-bottom:8px;border-left:2px solid #333;padding-left:10px;"><div style="font-size:9px;color:#aaa;text-transform:uppercase;">${safeText(it.name)}</div><div style="color:${isHist ? COLORS.forensic : COLORS.accent};font-size:11px;word-break:break-word;">${safeText(it.value)}</div></div>`; });
         html += `</div>`; det.innerHTML = html; if (!forceRefresh) this.detail_anim = 0; this.scheduleDraw();
     }
+    preloadThumbnails() {
+        // Stay ahead of the user: preload the current visible batch + 10 items ahead
+        const start = Math.max(0, this.scroll_idx - 5);
+        const end = Math.min(this.history.length, this.scroll_idx + HISTORY_LIMIT_VISIBLE + 10);
+        const toPreload = this.history.slice(start, end);
+
+        toPreload.forEach(item => {
+            // Safe timestamp check that doesn't trigger a cache bust on missing data
+            const ts = item.timestamp ? `&t=${item.timestamp}` : "";
+            const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}${ts}`);
+
+            if (!this.thumb_imgs[url]) {
+                const img = new Image();
+                img.src = url;
+                this.thumb_imgs[url] = img; // Forces the browser to download and cache it instantly
+            }
+        });
+    }
 
     updateHistoryRail() {
         const rail = this.node.__h4_history_rail; if (!rail || !this.show_history) return;
+
+        // --- GEOMETRY SYNC: Calculate exact fit based on physical node width ---
+        const baseW = Math.max(MIN_SIZE[0], this.node.size[0]);
+        const maxFitByWidth = Math.floor((baseW - 80 - 30 - 12) / (110 + 12));
+        const visibleCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(1, maxFitByWidth));
+
         let html = `<div style="height:100%;display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:0;background:${COLORS.panel};border-radius:6px;overflow:hidden;pointer-events:none;"><div class="h4-hist-nav" data-dir="-1" title="Scroll Left" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">‹</div><div style="display:flex;gap:12px;overflow:hidden;justify-content:flex-start;padding:10px 15px;pointer-events:none;">`;
-        const visibleCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(HISTORY_VISIBLE_MIN, this.history.length));
+
         const visibleItems = this.history.slice(this.scroll_idx, this.scroll_idx + visibleCount);
         visibleItems.forEach((item, i) => {
-            const idx = i + this.scroll_idx; const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}&preview=1&channel=rgb&width=110&t=${item.timestamp || Date.now()}`);
+            const ts = item.timestamp ? `&t=${item.timestamp}` : "";
+            const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}${ts}`);
+            const idx = i + this.scroll_idx;
             const isSel = idx === this.selected_idx;
             const isTemp = item.type === "temp";
             const bCol = isSel ? (isTemp ? COLORS.forensic : COLORS.accent) : "#333";
@@ -548,19 +594,29 @@ class SmartSaveUI {
             html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${idx}" data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;pointer-events:auto;"><img src="${url}" draggable="false" style="width:100%;height:100%;object-fit:cover;border-radius:2px;pointer-events:none;" /><div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.7);color:#888;font-size:9px;padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;">${safeText(item.filename)}</div></div>`;
         });
         html += `</div><div class="h4-hist-nav" data-dir="1" title="Scroll Right" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">›</div></div><style> .h4-hist-nav:hover { background:rgba(0,242,255,0.08) !important; color:#fff !important; text-shadow:0 0 10px ${COLORS.accent}; } </style>`;
+
         rail.innerHTML = html;
+
         rail.querySelectorAll(".h4-hist-nav").forEach(b => {
             b.addEventListener("mousedown", (e) => {
                 e.stopPropagation();
                 const dir = parseInt(b.getAttribute("data-dir"));
                 const oldIdx = this.scroll_idx;
-                const visibleCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(HISTORY_VISIBLE_MIN, this.history.length));
-                const maxScroll = Math.max(0, this.history.length - visibleCount);
-                this.scroll_idx = Math.max(0, Math.min(maxScroll, this.scroll_idx + (dir * 4)));
+
+                // --- SCROLL CALCULATION: Recalculate max offset based on active width ---
+                const currentBaseW = Math.max(MIN_SIZE[0], this.node.size[0]);
+                const currentMaxFit = Math.floor((currentBaseW - 80 - 30 - 12) / (110 + 12));
+                const activeVisibleCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(1, currentMaxFit));
+
+                const maxScroll = Math.max(0, this.history.length - activeVisibleCount);
+                this.scroll_idx = Math.max(0, Math.min(maxScroll, this.scroll_idx + (dir * 3))); // Scroll 3 thumbs at a time
+
                 console.log(`[h4] [NAV_FIRE] Dir:${dir} | Scroll:${oldIdx}->${this.scroll_idx} | ChildCount:${this.history.length}`);
+                this.preloadThumbnails(); // Tell the browser to start fetching the next batch
                 this.updateHistoryRail();
             }, true);
         });
+
         rail.querySelectorAll(".h4-hist-item").forEach(b => {
             const itemIdx = parseInt(b.getAttribute("data-idx"));
             b.addEventListener("mousedown", (e) => {
@@ -568,7 +624,6 @@ class SmartSaveUI {
                 console.log(`[h4] [NAV_FIRE] Item Clicked: ${itemIdx}`);
                 this.selected_idx = itemIdx;
                 this.fetchSidecar(this.selected_idx);
-                // --- OPTIMIZED SELECTION: Update classes without destroying the DOM to preserve DBLCLICK chain ---
                 rail.querySelectorAll(".h4-hist-item").forEach(itemEl => {
                     const idx = parseInt(itemEl.getAttribute("data-idx"));
                     const isSel = idx === this.selected_idx;
@@ -580,17 +635,25 @@ class SmartSaveUI {
             }, true);
             b.addEventListener("dblclick", (e) => {
                 e.stopPropagation(); e.preventDefault();
-                console.log(`[h4] [NAV_FIRE] Item Double-Clicked: ${itemIdx}`);
                 this.selected_idx = itemIdx;
                 this.show_lightbox = true;
                 this.updateLightbox();
                 this.scheduleDraw();
             }, true);
-            // --- FULL-RES PRELOAD: Cache the high-res image on hover so the lightbox opens instantly ---
             b.addEventListener("mouseenter", () => {
                 const hItem = this.history[itemIdx]; if (!hItem) return;
-                const fullUrl = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(hItem.filename)}&subfolder=${encodeURIComponent(hItem.subfolder)}&type=${encodeURIComponent(hItem.type)}&full=true`);
-                if (!this.full_imgs[fullUrl]) { const preload = new Image(); preload.src = fullUrl; this.full_imgs[fullUrl] = preload; }
+                const ts = hItem.timestamp ? `&t=${hItem.timestamp}` : "";
+                const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(hItem.filename)}&subfolder=${encodeURIComponent(hItem.subfolder)}&type=${encodeURIComponent(hItem.type)}${ts}`);
+                if (!this.full_imgs[fullUrl]) {
+                    // Enforce a strict 3-image memory limit to prevent RAM crashes
+                    const cacheKeys = Object.keys(this.full_imgs);
+                    if (cacheKeys.length > 2) {
+                        delete this.full_imgs[cacheKeys[0]]; // Dump the oldest cache
+                    }
+                    const preload = new Image();
+                    preload.src = fullUrl;
+                    this.full_imgs[fullUrl] = preload;
+                }
             });
         });
     }
@@ -723,7 +786,8 @@ class SmartSaveUI {
     updateLightbox() {
         const lb = this.node.__h4_lightbox; if (!lb || !this.show_lightbox) return;
         const curIdx = Math.max(0, this.selected_idx); const item = this.history[curIdx]; if (!item) return;
-        const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}&full=true`);
+        const ts = item.timestamp ? `&t=${item.timestamp}` : "";
+        const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}${ts}`);
         lb.innerHTML = `<div class="h4-lb-bg" style="position:absolute;inset:0;background:rgba(0,0,0,0.92);cursor:zoom-out;"></div><div class="h4-lb-nav h4-lb-prev" title="Previous Image" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);font-size:60px;color:${COLORS.accent};cursor:pointer;z-index:10;user-select:none;">‹</div><div class="h4-lb-nav h4-lb-next" title="Next Image" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:60px;color:${COLORS.accent};cursor:pointer;z-index:10;user-select:none;">›</div><div style="position:absolute;inset:40px 100px;display:flex;align-items:center;justify-content:center;pointer-events:none;"><div class="h4-lb-spinner" style="position:absolute;color:${COLORS.accent};font-size:14px;font-family:monospace;opacity:0.6;">LOADING...</div><img class="h4-lb-img" src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 0 40px rgba(0,0,0,0.8);border:1px solid #333;opacity:0;transition:opacity 0.3s ease;" /></div><div class="h4-lb-close" title="Close Lightbox" style="position:absolute;top:20px;right:30px;font-size:40px;color:#666;cursor:pointer;z-index:20;">×</div><div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#aaa;font-size:12px;background:rgba(0,0,0,0.6);padding:8px 20px;border-radius:20px;border:1px solid #333;">${safeText(item.filename)} • ${curIdx + 1} / ${this.history.length}</div><style>.h4-lb-nav:hover { color:#fff !important; text-shadow:0 0 15px ${COLORS.accent}; } .h4-lb-close:hover { color:${COLORS.danger} !important; }</style>`;
         // --- LIGHTBOX LOADING STATE: Fade in when image arrives, show spinner until then ---
         const lbImg = lb.querySelector(".h4-lb-img");
@@ -740,6 +804,11 @@ class SmartSaveUI {
 
     syncDOM() {
         const node = this.node; if (!node || !node.graph) { activeNodes.delete(this); return; }
+
+        // --- NUCLEAR BLOAT REMOVAL ---
+        node.imgs = null;
+        node.images = null;
+
         const mesh = getGrid(node); const pts = mesh.pts; const scale = app.canvas.ds.scale; const ds = app.canvas.ds;
 
         // --- WIDGET DOM NEUTRALIZATION: ComfyUI's DOMWidget system re-creates/re-positions widget elements ---
@@ -750,6 +819,10 @@ class SmartSaveUI {
         // Walking the parent tree any further risks squashing the entire system UI.
         if (node.widgets) {
             node.widgets.forEach(w => {
+                if (!w.__h4_cloaked) {
+                    cloakWidget(w);
+                    w.__h4_cloaked = true;
+                }
                 if (w.inputEl) {
                     Object.assign(w.inputEl.style, { display: "none", pointerEvents: "none", position: "fixed", left: "-9999px", width: "0", height: "0" });
                 }
@@ -811,7 +884,7 @@ class SmartSaveUI {
                 screenY = (node.pos[1] + pt.y + ds.offset[1]) * ds.scale + rect.top;
             } catch (err) { return; }
 
-            el.style.position = "fixed"; el.style.left = "0"; el.style.top = "0"; el.style.zIndex = "999";
+            el.style.position = "fixed"; el.style.left = "0"; el.style.top = "0"; el.style.zIndex = "100";
             el.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${ds.scale})`;
             el.style.transformOrigin = "top left";
             el.style.width = `${pt.w}px`; el.style.height = `${pt.h}px`;
@@ -835,7 +908,7 @@ class SmartSaveUI {
         project(node.__h4_customdrawer, pts.drawer_custom, this.show_custom_meta && hudVisible, this.custom_meta_anim, false);
 
         const rY = mesh.baseH + 10 + (1 - easeOutCubic(clamp01(this.footer_anim))) * 40;
-        project(node.__h4_history_rail, { ...pts.history_rail, y: rY }, this.show_history && hudVisible, this.footer_anim, (this.footer_anim < 0.5));
+        project(node.__h4_history_rail, { ...pts.history_rail, y: rY }, this.show_history && hudVisible, this.footer_anim, true);
         project(node.__h4_viewerdrawer, pts.drawer_viewer, this.show_viewer && hudVisible, this.viewer_anim, (this.viewer_anim < 0.5));
 
         // --- LIGHTBOX CONTAINMENT: Full-screen overlay only when explicitly activated ---
@@ -861,7 +934,7 @@ function cloakWidget(w) {
 function makeFloatingEl(tag, cls = "") {
     const el = document.createElement(tag);
     el.className = cls + " h4-hud-el";
-    el.style.position = "fixed"; el.style.zIndex = "999"; el.style.display = "none";
+    el.style.position = "fixed"; el.style.zIndex = "100"; el.style.display = "none";
     el.style.background = COLORS.panel; el.style.border = "1.5px solid #222"; el.style.color = COLORS.accent; el.style.padding = "0";
     el.style.fontFamily = "monospace"; el.style.boxSizing = "border-box";
     el.style.overflowY = "auto"; el.style.overflowX = "hidden";
@@ -894,20 +967,6 @@ app.registerExtension({
         if (nodeDef.name !== "H4_SmartSave") return;
         nodeType.prototype.onNodeCreated = function () {
             this.h4_ui = new SmartSaveUI(this); activeNodes.add(this.h4_ui);
-            const styleId = "h4-smartsave-kinetic-styles";
-            if (!document.getElementById(styleId)) {
-                const s = document.createElement("style");
-                s.id = styleId;
-                s.innerHTML = `
-                    .h4gridscroll::-webkit-scrollbar { width:4px; height:4px; }
-                    .h4gridscroll::-webkit-scrollbar-track { background:transparent; }
-                    .h4gridscroll::-webkit-scrollbar-thumb { background:#333; border-radius:4px; }
-                    .h4gridscroll::-webkit-scrollbar-thumb:hover { background:#00f2ff; }
-                    /* VHS_floatinghelp bug: sitting at 0,0 eating clicks while trying to hide with left:-5000px on position:static */
-                    .VHS_floatinghelp { pointer-events: none !important; }
-                `;
-                document.head.appendChild(s);
-            }
             // --- ELEMENT CREATION: __h4_interactive flag controls which elements capture clicks ---
             // Only input fields and open drawers should intercept mouse events.
             // Buttons M/H/P/toggle/scrub are canvas-drawn and need the click to reach the canvas.
@@ -966,12 +1025,15 @@ app.registerExtension({
             const previewBtn = this.__h4_metadrawer.querySelector(".h4-viewer-btn"); if (previewBtn) previewBtn.onclick = () => { this.h4_ui.markViewerDirty(); this.h4_ui.show_viewer = !this.h4_ui.show_viewer; this.setDirtyCanvas(true); };
             bindWidgets(); setTimeout(bindWidgets, 300); setTimeout(bindWidgets, 900);
 
-            // --- EXECUTION EVENT HOOK: Immediately refresh the filmstrip when ComfyUI completes a generation ---
+            // --- EXECUTION EVENT HOOK: Buffer the fetch to prevent race conditions ---
             const nodeRef = this;
             api.addEventListener("executed", (evt) => {
                 if (!nodeRef.h4_ui) return;
-                // Force a fresh fetch to pick up the new image, bypassing signature dedup
-                nodeRef.h4_ui.fetchHistory(true);
+                // 1500ms delay ensures backend has flushed file to disk before syncing,
+                // preventing stale data from overwriting our optimistic UI injection.
+                setTimeout(() => {
+                    if (nodeRef.h4_ui) nodeRef.h4_ui.fetchHistory(true);
+                }, 1500);
             });
 
             return this;
@@ -992,9 +1054,11 @@ app.registerExtension({
                             this.h4_ui.history.unshift({ ...img, timestamp: Date.now() });
                         }
                     });
+
                     this.h4_ui.history = this.h4_ui.history.slice(0, 50);
-                    // --- SIGNATURE SYNC ---
-                    this.h4_ui._lastHistorySignature = null; // nuke the dedup so fetchHistory ALWAYS repaints
+
+                    // --- PROTECTED SYNC ---
+                    // Do NOT null the signature here. Let the delayed global fetch handle data validation.
                     this.h4_ui.selected_idx = 0;
                     this.h4_ui.scroll_idx = 0;
                     this.h4_ui.current_sidecar = allImages[0].sidecar || null;
@@ -1006,11 +1070,11 @@ app.registerExtension({
                         img.src = api.apiURL(`/view?filename=${encodeURIComponent(i.filename)}&type=${i.type}&subfolder=${encodeURIComponent(i.subfolder)}&t=${Date.now()}`);
                         return img;
                     });
-                    this.images = null; this.imgs = null; // Triggers DOM reconciliation via syncDOM loop
+                    this.images = null; this.imgs = null;
 
-                    if (this.h4_ui.show_history) { this.h4_ui.updateHistoryRail(); }
-                    else { this.h4_ui.fetchHistory(true); }
+                    this.h4_ui.updateHistoryRail();  // Force DOM paint immediately with the injected data
                     this.h4_ui.scheduleDraw();
+                    setTimeout(() => { if (this.h4_ui) this.h4_ui.scheduleDraw(); }, 200);
                 }
                 this.h4_ui.markParamsDirty();
                 this.setDirtyCanvas(true, true);
@@ -1042,12 +1106,20 @@ app.registerExtension({
                 if (hit(pts.btn_h)) { this.h4_ui.setHistoryOpen(!this.h4_ui.show_history); return true; }
 
                 if (hit(pts.toggle_box)) {
-                    console.log("[h4_Debug] toggle_box hit detected! Current value:", this.__h4_save_mode_widget?.value);
+                    if (this.__h4_save_mode_widget) {
+                        this.__h4_save_mode_widget.value = !this.__h4_save_mode_widget.value;
+                        if (this.__h4_save_mode_widget.callback) {
+                            try { this.__h4_save_mode_widget.callback(this.__h4_save_mode_widget.value); }
+                            catch (e) { console.warn("[h4] Widget callback error:", e); }
+                        }
+                        this.setDirtyCanvas(true);
+                        app.graph.setDirtyCanvas(true, true);
+                    }
                     return true;
                 }
 
-                if (hit(pts.scrub_prev)) { this.h4_ui.selected_idx = Math.max(0, this.h4_ui.selected_idx - 1); this.h4_ui.fetchSidecar(this.h4_ui.selected_idx); this.setDirtyCanvas(true); return true; }
-                if (hit(pts.scrub_next)) { this.h4_ui.selected_idx = Math.min(this.h4_ui.history.length - 1, this.h4_ui.selected_idx + 1); this.h4_ui.fetchSidecar(this.h4_ui.selected_idx); this.setDirtyCanvas(true); return true; }
+                if (hit(pts.scrub_prev) && this.h4_ui.history.length > 0) { this.h4_ui.selected_idx = Math.max(0, this.h4_ui.selected_idx - 1); this.h4_ui.fetchSidecar(this.h4_ui.selected_idx); this.setDirtyCanvas(true); return true; }
+                if (hit(pts.scrub_next) && this.h4_ui.history.length > 0) { this.h4_ui.selected_idx = Math.min(this.h4_ui.history.length - 1, this.h4_ui.selected_idx + 1); this.h4_ui.fetchSidecar(this.h4_ui.selected_idx); this.setDirtyCanvas(true); return true; }
 
                 if (hit(pts.preview_area)) {
                     const now = Date.now();
@@ -1095,7 +1167,8 @@ app.registerExtension({
                 let activeImg = null;
                 if (ui.selected_idx >= 0 && ui.history[ui.selected_idx]) {
                     const item = ui.history[ui.selected_idx];
-                    const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}&full=true`);
+                    const ts = item.timestamp ? `&t=${item.timestamp}` : "";
+                    const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}${ts}`);
                     activeImg = ui.full_imgs[url];
                     if (!activeImg) {
                         const img = new Image();

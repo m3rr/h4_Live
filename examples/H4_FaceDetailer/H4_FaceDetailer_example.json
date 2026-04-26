@@ -1,0 +1,25 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_FaceDetailer",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                315,
+                250
+            ],
+            "widgets_values": [
+                0.25,
+                0.45,
+                1.0,
+                1234,
+                "euler",
+                "karras"
+            ]
+        }
+    ]
+}

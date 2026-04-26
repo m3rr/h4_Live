@@ -5,6 +5,10 @@ Welcome to the absolute Swiss Army knife of image manipulation. The **Pythonipul
 
 It combines the precision of **Pillow**, the industrial strength of **OpenCV**, and the scientific accuracy of **scikit-image** and **NumPy** into one sleek, drawer-based HUD.
 
+> [!TIP]
+> **THE HYBRID KERNEL**: By leveraging both PyTorch tensors and NumPy arrays, the Pythonipulator-inator avoids the performance bottlenecks found in many standard nodes. It performs zero-copy transformations where possible, ensuring that 12-stage image mutations happen in milliseconds, not seconds.
+
+
 ## Expanded Description
 Most image nodes in ComfyUI do one thing and one thing only. That's fine if you like spaghetti, but if you want clean workflows and high performance, you need a tactical kernel.
 

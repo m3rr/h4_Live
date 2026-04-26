@@ -1,0 +1,28 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_PixelPress",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                315,
+                450
+            ],
+            "widgets_values": [
+                2.0,
+                0.35,
+                true,
+                0.45,
+                0.25,
+                0.15,
+                1.0,
+                1.1,
+                true
+            ]
+        }
+    ]
+}

@@ -1,0 +1,29 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_FaceForge",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                350,
+                600
+            ],
+            "widgets_values": [
+                true,
+                0.5,
+                true,
+                "CodeFormer",
+                0.5,
+                0.45,
+                true,
+                1.0,
+                0.15,
+                "INSIGHT_BUFFALO_L"
+            ]
+        }
+    ]
+}

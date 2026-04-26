@@ -5,6 +5,10 @@ The **SmartSave** node is the definitive image archiving and forensic workstatio
 
 This is the **+ULTRA Edition (v24.14.39)**, rebuilt from the ground up to handle high-performance, ghost-free canvas interactions and deep forensic backtracking.
 
+> [!WARNING]
+> **FIELD ADVISORY**: This node is a high-performance DOM-canvas hybrid. While the saving logic is 100% hardened, the thumbnail preloading engine may occasionally experience "Ghost Frames" (desynced thumbnails) if the backend is slammed with rapid sequential generations. A simple browser refresh or canvas re-serialize usually restores pixel-perfect sync.
+
+
 ## Expanded Description
 The **SmartSave** node acts as your tactical mission control during long generation sessions:
 - **Recursive Forensic Parameter Crawler**: The HUD [P] drawer contains every single setting from your workflow. It doesn't need extra wires; it autonomously crawls backwards through your graph to hunt down every Sampler, Model, CLIP, and VAE to present you with a clean, searchable list of the exact ingredients used for your art.

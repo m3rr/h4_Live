@@ -1,0 +1,22 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_MissionControl",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                210,
+                200
+            ],
+            "widgets_values": [
+                "Active",
+                true,
+                false
+            ]
+        }
+    ]
+}

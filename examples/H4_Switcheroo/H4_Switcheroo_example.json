@@ -1,0 +1,25 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_Switcheroo",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                350,
+                400
+            ],
+            "widgets_values": [
+                "1girl",
+                "1boy",
+                "standing",
+                "sitting",
+                "Enabled",
+                true
+            ]
+        }
+    ]
+}

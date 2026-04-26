@@ -1,0 +1,45 @@
+{
+    "last_node_id": 1,
+    "last_link_id": 0,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_SmartSave",
+            "pos": [
+                450,
+                200
+            ],
+            "size": [
+                400,
+                580
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "images",
+                    "type": "IMAGE",
+                    "link": null
+                }
+            ],
+            "outputs": [],
+            "properties": {
+                "Node name for S&R": "H4_SmartSave"
+            },
+            "widgets_values": [
+                "h4_vault",
+                "save_preview",
+                "h4_dev",
+                "Final Project - Version A",
+                "{}",
+                "Enabled"
+            ]
+        }
+    ],
+    "links": [],
+    "groups": [],
+    "config": {},
+    "extra": {},
+    "version": 0.4
+}

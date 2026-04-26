@@ -1,0 +1,23 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_AxisDriver",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                315,
+                200
+            ],
+            "widgets_values": [
+                "X: Steps (20,30,40)",
+                "Y: CFG (7,8,9)",
+                "Z: None",
+                0
+            ]
+        }
+    ]
+}

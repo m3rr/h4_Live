@@ -1,0 +1,23 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_ModelSave",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                315,
+                200
+            ],
+            "widgets_values": [
+                "h4_final_model",
+                "fp16",
+                "Standard Metadata",
+                "Enabled"
+            ]
+        }
+    ]
+}

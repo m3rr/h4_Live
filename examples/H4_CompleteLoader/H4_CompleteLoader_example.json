@@ -1,0 +1,29 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_CompleteLoader",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                315,
+                450
+            ],
+            "widgets_values": [
+                "ponyDiffusionV6XL_v6.safetensors",
+                "none",
+                "none",
+                "none",
+                "none",
+                "none",
+                "none",
+                "none",
+                "AUTO",
+                "AUTO"
+            ]
+        }
+    ]
+}

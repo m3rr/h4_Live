@@ -1,0 +1,21 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_DebugErrorGenerator",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                210,
+                150
+            ],
+            "widgets_values": [
+                "Critical",
+                "RUNTIME_FAULT"
+            ]
+        }
+    ]
+}

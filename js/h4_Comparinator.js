@@ -26,7 +26,7 @@ const STYLE = `
     box-sizing: border-box;
     z-index: 1000;
     /* --- BOUNDARY ENFORCEMENT: Prevent 'stretching' below the node --- */
-    overflow: hidden; 
+    overflow: visible; 
 }
 
 /* --- CLIPPED GRID UTILS (For Inspectinator) --- */

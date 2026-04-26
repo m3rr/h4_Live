@@ -1,0 +1,59 @@
+{
+    "last_node_id": 1,
+    "last_link_id": 0,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_Comparinator",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                800,
+                600
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "image_a",
+                    "type": "IMAGE",
+                    "link": null
+                },
+                {
+                    "name": "image_b",
+                    "type": "IMAGE",
+                    "link": null
+                },
+                {
+                    "name": "frozen_image",
+                    "type": "IMAGE",
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": []
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "H4_Comparinator"
+            },
+            "widgets_values": [
+                "On",
+                "Compare",
+                "latest",
+                "h4_forensics"
+            ]
+        }
+    ],
+    "links": [],
+    "groups": [],
+    "config": {},
+    "extra": {},
+    "version": 0.4
+}

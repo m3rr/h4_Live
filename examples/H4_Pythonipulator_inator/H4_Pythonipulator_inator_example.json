@@ -1,0 +1,71 @@
+{
+    "last_node_id": 1,
+    "last_link_id": 0,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_Pythonipulator_inator",
+            "pos": [
+                400,
+                150
+            ],
+            "size": [
+                350,
+                700
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "images",
+                    "type": "IMAGE",
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": []
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "H4_Pythonipulator_inator"
+            },
+            "widgets_values": [
+                "Both",
+                "h4_manipulated",
+                1,
+                true,
+                3,
+                5,
+                false,
+                false,
+                false,
+                false,
+                0,
+                false,
+                false,
+                1,
+                1,
+                0,
+                false,
+                1,
+                false,
+                0,
+                false,
+                0,
+                false,
+                0,
+                false,
+                false
+            ]
+        }
+    ],
+    "links": [],
+    "groups": [],
+    "config": {},
+    "extra": {},
+    "version": 0.4
+}

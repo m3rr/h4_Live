@@ -1,0 +1,24 @@
+{
+    "last_node_id": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "H4_UniversalLoader",
+            "pos": [
+                100,
+                100
+            ],
+            "size": [
+                315,
+                200
+            ],
+            "widgets_values": [
+                "juggernautXL_v9.safetensors",
+                "v1-5-pruned-emaonly.vae.pt",
+                "Disabled",
+                "AUTO",
+                "AUTO"
+            ]
+        }
+    ]
+}
