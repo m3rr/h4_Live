@@ -241,7 +241,7 @@ class SmartSaveUI {
             const sig = JSON.stringify(data.map((x) => [x.filename, x.subfolder, x.type, x.timestamp]));
             if (sig !== this._lastHistorySignature) {
                 this._lastHistorySignature = sig;
-                this.history = data;
+                this.history = data.filter(x => x.type !== 'temp');
                 if (this.show_history) this.updateHistoryRail();
                 this.scheduleDraw();
             }
@@ -968,9 +968,14 @@ app.registerExtension({
         nodeType.prototype.onExecuted = function (message) {
             if (this.h4_ui) {
                 console.log("[h4] Execution Complete. Anchoring DNA to History Rail...");
+                this.h4_ui.full_imgs = {}; // bust the full-res cache on new generation
+                this.h4_ui.thumb_imgs = {};
                 if (message.images && message.images.length > 0) {
                     // --- BATCH AWARE INJECTION ---
-                    [...message.images].reverse().forEach(img => {
+                    const finalImages = message.images.filter(i => i.type !== 'temp');
+                    if (finalImages.length === 0) return; // generation still in progress
+
+                    [...finalImages].reverse().forEach(img => {
                         this.h4_ui.history.unshift({ ...img, timestamp: Date.now() });
                     });
                     this.h4_ui.history = this.h4_ui.history.slice(0, 50);
@@ -978,13 +983,13 @@ app.registerExtension({
                     this.h4_ui._lastHistorySignature = JSON.stringify(this.h4_ui.history.map((x) => [x.filename, x.subfolder, x.type, x.timestamp]));
                     this.h4_ui.selected_idx = 0;
                     this.h4_ui.scroll_idx = 0;
-                    this.h4_ui.current_sidecar = message.images[0].sidecar || null;
+                    this.h4_ui.current_sidecar = finalImages[0].sidecar || null;
 
                     // --- ASSET ASSIGNMENT ---
-                    this.__h4_live_imgs = message.images.map(i => {
+                    this.__h4_live_imgs = finalImages.map(i => {
                         const img = new Image();
                         img.onload = () => { this.setDirtyCanvas(true, true); if (this.h4_ui) this.h4_ui.scheduleDraw(); };
-                        img.src = api.apiURL(`view?filename=${encodeURIComponent(i.filename)}&type=${i.type}&subfolder=${encodeURIComponent(i.subfolder)}&t=${Date.now()}`);
+                        img.src = api.apiURL(`/view?filename=${encodeURIComponent(i.filename)}&type=${i.type}&subfolder=${encodeURIComponent(i.subfolder)}&t=${Date.now()}`);
                         return img;
                     });
                     this.images = null; this.imgs = null; // Triggers DOM reconciliation via syncDOM loop
