@@ -32,16 +32,17 @@ nuke_pycache(os.path.dirname(__file__))
 # --- GLOBALS & PROTECTED ASSETS ---
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
-__version__ = "9.5.1"
+__version__ = "10.1.1"
 WEB_DIRECTORY = "./js"
 
 # Files that stay in the root /js folder and are NEVER deleted by the harvester
 PROTECTED_JS = [
     "h4_BigBrother.js", "h4_Dashboard.js", "h4_Sidebar.js", "assets", 
     "h4_generation.js", "h4_ParameterTracer.js", "h4_LoreManager.js",
-    "h4_Comparinator.js", "h4_Switcheroo.js", "h4_SmartSave.js", # Performance/Stability Protection
-    "h4_SovereignCore.js",  # Global Aesthetic Engine — applies H4 visual identity to all H4_ nodes
-    "h4_theme_overrides.json",  # User-editable colour overrides for individual nodes
+    "h4_Comparinator.js", "h4_Switcheroo.js", "h4_SmartSave.js", 
+    "h4_MissionControl.js", "h4_dead_weight.js",
+    "h4_SovereignCore.js",  # Global Aesthetic Engine
+    "h4_theme_overrides.json",  
 ]
 
 def harvest_js_assets(nodes_dir, root_js_dir):
