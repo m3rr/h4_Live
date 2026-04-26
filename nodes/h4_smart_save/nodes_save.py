@@ -13,7 +13,29 @@ from concurrent.futures import ThreadPoolExecutor
 import asyncio
 
 # --- Global Kinetic Executor for Forensic Thumbnails ---
-_h4_io_executor = ThreadPoolExecutor(max_workers=4)
+_h4_io_executor = ThreadPoolExecutor(max_workers=16)
+
+def get_h4_thumb_path(filename, subfolder, dir_type):
+    cache_dir = os.path.normpath(os.path.join(folder_paths.get_temp_directory(), "h4_thumbs_v3"))
+    if not os.path.exists(cache_dir): os.makedirs(cache_dir, exist_ok=True)
+    safe_sub = subfolder.replace("\\", "_").replace("/", "_")
+    return os.path.join(cache_dir, f"h4_t3_{dir_type}_{safe_sub}_{filename}.jpg")
+
+def generate_h4_thumbnail(img_or_path, thumb_path):
+    try:
+        if isinstance(img_or_path, str):
+            with Image.open(img_or_path) as img:
+                if img.mode != 'RGB': img = img.convert('RGB')
+                img.thumbnail((160, 160), Image.LANCZOS)
+                img.save(thumb_path, "JPEG", quality=85, optimize=True)
+        else:
+            # Assume it's a PIL Image object
+            t = img_or_path.copy()
+            if t.mode != 'RGB': t = t.convert('RGB')
+            t.thumbnail((160, 160), Image.LANCZOS)
+            t.save(thumb_path, "JPEG", quality=85, optimize=True)
+    except Exception as e:
+        print(f"[H4_Thumb] Generation Fault: {e}")
 
 class H4_ManifestCache:
     _instance = None
@@ -347,6 +369,10 @@ class H4_SmartSave:
                 sidecar=sidecar_data
             )
 
+            # --- Eager Kinetic Thumbnailing (Background) ---
+            t_path = get_h4_thumb_path(file_name, subfolder, save_res["type"])
+            _h4_io_executor.submit(generate_h4_thumbnail, img, t_path)
+
         return {"ui": {"images": results}, "result": (images,)}
 
     def _build_sidecar(self, json_mode, metadata_mode, author, model_name, comments, custom_json, forensics_map, telemetry, prompt, extra_pnginfo):
@@ -489,19 +515,14 @@ try:
             thumb_path = os.path.join(cache_dir, thumb_name)
 
             # --- Manifest Retrieval ---
-            if os.path.exists(thumb_path) and os.path.getmtime(thumb_path) >= os.path.getmtime(img_path):
-                return web.FileResponse(thumb_path)
+            if os.path.exists(thumb_path):
+                # Only check mtime if it's a persistent output to allow for edits, 
+                # but for thumbnails speed is king
+                return web.FileResponse(thumb_path, headers={"Cache-Control": "public, max-age=86400"})
 
             # --- Asynchronous Forensic Manifestation ---
-            def generate_thumb():
-                with Image.open(img_path) as img:
-                    if img.mode != 'RGB':
-                        img = img.convert('RGB')
-                    img.thumbnail((160, 160), Image.LANCZOS)
-                    img.save(thumb_path, "JPEG", quality=90, optimize=True)
-            
-            await asyncio.get_event_loop().run_in_executor(_h4_io_executor, generate_thumb)
-            return web.FileResponse(thumb_path)
+            await asyncio.get_event_loop().run_in_executor(_h4_io_executor, generate_h4_thumbnail, img_path, thumb_path)
+            return web.FileResponse(thumb_path, headers={"Cache-Control": "public, max-age=86400"})
             
         except Exception as e:
             print(f"[H4_SmartSave] Kinetic Audit Failure: {e}")
