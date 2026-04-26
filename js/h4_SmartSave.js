@@ -112,7 +112,8 @@ const DRAWER_W = 340;
 const DRAWER_GAP = 15;
 const DETAIL_GAP = 8;
 const ANIM_SPEED = 0.22;
-const HISTORY_LIMIT_VISIBLE = 5;
+const HISTORY_LIMIT_VISIBLE = 10;
+const HISTORY_VISIBLE_MIN = 1;
 const BTN_SIZE = 34;
 const SCRUB_BTN_W = 28;
 
@@ -155,6 +156,11 @@ function getGrid(node) {
     const hudY = 72;
     const previewArea = { x: 74, y: 110, w: baseW - 148, h: baseH - 180 };
 
+    const histLen = (node.h4_ui && node.h4_ui.history) ? node.h4_ui.history.length : 1;
+    const thumbCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(HISTORY_VISIBLE_MIN, histLen));
+    const railW = Math.max(400, 110 + (thumbCount * 122) - 12);
+    const railX = (baseW - railW) / 2;
+
     return {
         w: baseW, h: baseH, baseH,
         pts: {
@@ -173,7 +179,7 @@ function getGrid(node) {
             drawer_detail: { x: baseW + DRAWER_GAP + DRAWER_W + DETAIL_GAP, y: 10, w: DRAWER_W, h: baseH - 20 },
             drawer_custom: { x: -(DRAWER_W * 2 + DRAWER_GAP + DETAIL_GAP), y: 10, w: DRAWER_W, h: baseH - 20 },
             drawer_viewer: previewArea,
-            history_rail: { x: 0, y: baseH + 10, w: baseW, h: RAIL_H },
+            history_rail: { x: railX, y: baseH + 10, w: railW, h: RAIL_H },
             scrub_prev: { x: previewArea.x - SCRUB_BTN_W - 8, y: previewArea.y + previewArea.h / 2 - 20, w: SCRUB_BTN_W, h: 40 },
             scrub_next: { x: previewArea.x + previewArea.w + 8, y: previewArea.y + previewArea.h / 2 - 20, w: SCRUB_BTN_W, h: 40 },
         },
@@ -233,14 +239,18 @@ class SmartSaveUI {
     }
 
     async fetchHistory(force = false) {
-        if (this._historyInflight) return; this._historyInflight = true;
+        if (this._historyInflight) {
+            if (force) setTimeout(() => this.fetchHistory(true), 400);
+            return;
+        }
+        this._historyInflight = true;
         try {
             const res = await api.fetchApi("/h4/smart_save/history"); if (!res.ok) return;
             const data = await res.json();
             const sig = JSON.stringify(data.map((x) => [x.filename, x.subfolder, x.type, x.timestamp]));
             if (sig !== this._lastHistorySignature) {
                 this._lastHistorySignature = sig;
-                this.history = data.filter(x => x.type !== 'temp');
+                this.history = data;
                 if (this.show_history) this.updateHistoryRail();
                 this.scheduleDraw();
             }
@@ -524,9 +534,10 @@ class SmartSaveUI {
     updateHistoryRail() {
         const rail = this.node.__h4_history_rail; if (!rail || !this.show_history) return;
         let html = `<div style="height:100%;display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:0;background:${COLORS.panel};border-radius:6px;overflow:hidden;pointer-events:none;"><div class="h4-hist-nav" data-dir="-1" title="Scroll Left" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">‹</div><div style="display:flex;gap:12px;overflow:hidden;justify-content:flex-start;padding:10px 15px;pointer-events:none;">`;
-        const visibleItems = this.history.slice(this.scroll_idx, this.scroll_idx + HISTORY_LIMIT_VISIBLE);
+        const visibleCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(HISTORY_VISIBLE_MIN, this.history.length));
+        const visibleItems = this.history.slice(this.scroll_idx, this.scroll_idx + visibleCount);
         visibleItems.forEach((item, i) => {
-            const idx = i + this.scroll_idx; const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}&preview=1`);
+            const idx = i + this.scroll_idx; const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}&preview=1&channel=rgb&width=110&t=${item.timestamp || Date.now()}`);
             const isSel = idx === this.selected_idx;
             const isTemp = item.type === "temp";
             const bCol = isSel ? (isTemp ? COLORS.forensic : COLORS.accent) : "#333";
@@ -542,7 +553,8 @@ class SmartSaveUI {
                 e.stopPropagation();
                 const dir = parseInt(b.getAttribute("data-dir"));
                 const oldIdx = this.scroll_idx;
-                const maxScroll = Math.max(0, this.history.length - HISTORY_LIMIT_VISIBLE);
+                const visibleCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(HISTORY_VISIBLE_MIN, this.history.length));
+                const maxScroll = Math.max(0, this.history.length - visibleCount);
                 this.scroll_idx = Math.max(0, Math.min(maxScroll, this.scroll_idx + (dir * 4)));
                 console.log(`[h4] [NAV_FIRE] Dir:${dir} | Scroll:${oldIdx}->${this.scroll_idx} | ChildCount:${this.history.length}`);
                 this.updateHistoryRail();
@@ -980,21 +992,23 @@ app.registerExtension({
                 this.h4_ui.thumb_imgs = {};
                 if (message.images && message.images.length > 0) {
                     // --- BATCH AWARE INJECTION ---
-                    const finalImages = message.images.filter(i => i.type !== 'temp');
-                    if (finalImages.length === 0) return; // generation still in progress
-
-                    [...finalImages].reverse().forEach(img => {
-                        this.h4_ui.history.unshift({ ...img, timestamp: Date.now() });
+                    const allImages = message.images; // DON'T filter temp
+                    [...allImages].reverse().forEach(img => {
+                        const key = `${img.filename}::${img.subfolder}::${img.type}`;
+                        const exists = this.h4_ui.history.some(h => `${h.filename}::${h.subfolder}::${h.type}` === key);
+                        if (!exists) {
+                            this.h4_ui.history.unshift({ ...img, timestamp: Date.now() });
+                        }
                     });
                     this.h4_ui.history = this.h4_ui.history.slice(0, 50);
                     // --- SIGNATURE SYNC ---
-                    this.h4_ui._lastHistorySignature = JSON.stringify(this.h4_ui.history.map((x) => [x.filename, x.subfolder, x.type, x.timestamp]));
+                    this.h4_ui._lastHistorySignature = null; // nuke the dedup so fetchHistory ALWAYS repaints
                     this.h4_ui.selected_idx = 0;
                     this.h4_ui.scroll_idx = 0;
-                    this.h4_ui.current_sidecar = finalImages[0].sidecar || null;
+                    this.h4_ui.current_sidecar = allImages[0].sidecar || null;
 
                     // --- ASSET ASSIGNMENT ---
-                    this.__h4_live_imgs = finalImages.map(i => {
+                    this.__h4_live_imgs = allImages.map(i => {
                         const img = new Image();
                         img.onload = () => { this.setDirtyCanvas(true, true); if (this.h4_ui) this.h4_ui.scheduleDraw(); };
                         img.src = api.apiURL(`/view?filename=${encodeURIComponent(i.filename)}&type=${i.type}&subfolder=${encodeURIComponent(i.subfolder)}&t=${Date.now()}`);
@@ -1004,6 +1018,7 @@ app.registerExtension({
 
                     if (this.h4_ui.show_history) { this.h4_ui.updateHistoryRail(); }
                     else { this.h4_ui.fetchHistory(true); }
+                    this.h4_ui.scheduleDraw();
                 }
                 this.h4_ui.markParamsDirty();
                 this.setDirtyCanvas(true, true);
