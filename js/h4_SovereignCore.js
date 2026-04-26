@@ -190,6 +190,7 @@ function drawLODBadge(ctx, node, palette) {
 // 8. CORE INJECTION — Applies the base aesthetic to a single node
 // ============================================================================
 function applyH4Aesthetic(node) {
+    if (!_engineEnabled) return;
     const comfyClass = node.comfyClass || node.type || "";
 
     // Resolve the colour palette for this specific node
@@ -313,18 +314,20 @@ app.registerExtension({
         // Listen for live toggle changes from the Dashboard's QoL panel
         window.addEventListener("h4_config_update", (e) => {
             const { key, val } = e.detail;
-            if (key !== "sovereignCoreEnabled") return;
+            if (key !== "sovereignCoreEnabled" && key !== "qolMasterOverride") return;
 
-            const newState = Boolean(val);
+            const config = window.h4_Dashboard ? window.h4_Dashboard.config : { sovereignCoreEnabled: true, qolMasterOverride: true };
+            const newState = config.sovereignCoreEnabled && config.qolMasterOverride;
+
             if (newState === _engineEnabled) return; // No change
 
             _engineEnabled = newState;
 
             if (_engineEnabled) {
-                // User toggled ON — apply the theme to all existing H4_ nodes
+                // User toggled ON
                 applyToAllExistingNodes();
             } else {
-                // User toggled OFF — strip the theme from all non-sovereign nodes
+                // User toggled OFF
                 revertAllThemedNodes();
             }
         });

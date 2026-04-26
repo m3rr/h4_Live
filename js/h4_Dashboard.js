@@ -94,8 +94,9 @@ export const h4_Dashboard = {
     // ALL DEFAULTS MUST BE OFF/FALSE
     config: {
         // Core
-        enabled: false,
+        enabled: true,        // Global Enable
         debugMode: false,
+        qolMasterOverride: true, // Master QoL Toggle
 
         // Monitor (BigBrother)
         monitorEnabled: false,
@@ -104,16 +105,23 @@ export const h4_Dashboard = {
         // Grid / Visuals
         showGrid: false,
         showWires: false,
-        wireStyle: "Circuit", // Default style
+        wireStyle: "Circuit",
         wireSpacing: 1.0,
         wireColorSelect: "#00FF00",
         wireColorError: "#FF0000",
         gridColor: "rgba(255, 200, 0, 0.15)",
 
-        // Aesthetic Layer
-        sovereignCoreEnabled: true,  // H4 Node Aesthetic Theme — ON by default, users can disable to use their own colours
+        // UI Hygiene (QoL)
+        deadWeightEnabled: true,   // D.W.D Toolbar
+        caffeineEnabled: true,     // Caffeine Mode
+        kickItEnabled: true,       // Kick-The-Grid
+        smartSnapping: false,      // Node Snapping
+        ioColoring: false,         // Dynamic Socket Colors
 
-        // Offsets (Ported Logic)
+        // Aesthetic Layer
+        sovereignCoreEnabled: true,
+
+        // Offsets
         offsetX: 0,
         offsetY: 0,
         wireOffsetY: 0
@@ -334,16 +342,67 @@ export const h4_Dashboard = {
     renderDebug(container) {
         container.innerHTML = "<h2 class='h4-panel-title'>DEBUG PROTOCOLS</h2>";
         this.addBool(container, "debugMode", "Nuclear Debug Mode", "Enables verbose logging (Nuclear Protocol).");
-        this.addBool(container, "monitorEnabled", "System Monitor", "Enables the passive surveillance loop.");
-        this.addBool(container, "showErrorPopup", "Error Popups", "Show Red Screen of Death on errors.");
     },
 
     renderQoL(container) {
         container.innerHTML = "<h2 class='h4-panel-title'>QUALITY OF LIFE</h2>";
-        this.addBool(container, "enabled", "Enable h4_Live", "Master Switch for all H4 extensions.");
-        this.addBool(container, "showGrid", "Show Grid Overlay", "Renders the cyberpunk background grid.");
-        this.addBool(container, "showWires", "Show Data Wires", "Visualizes data flow between nodes.");
-        this.addBool(container, "sovereignCoreEnabled", "H4 Node Theme", "Applies the H4 Off-Black/Cyan aesthetic to all H4 nodes. Disable to use your own colours. Hardcoded nodes (SmartSave, ForgeMask, etc.) are not affected.");
+
+        // 1. MASTER GATE
+        const masterBox = document.createElement("div");
+        masterBox.style.cssText = "background: rgba(0,242,255,0.05); border: 1px solid rgba(0,242,255,0.2); padding: 15px; margin-bottom: 20px; border-radius: 4px;";
+        this.addBool(masterBox, "qolMasterOverride", "MASTER QoL OVERRIDE", "When OFF, all QoL features below are globally silenced.");
+        container.appendChild(masterBox);
+
+        const groupStyle = "color: #555; font-size: 10px; letter-spacing: 2px; margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 5px;";
+
+        // 2. CANVAS HACKS
+        const h1 = document.createElement("div"); h1.style.cssText = groupStyle; h1.textContent = "CANVAS HYGIENE";
+        container.appendChild(h1);
+        this.addBool(container, "enabled", "Big Brother Overlay", "Master Switch for the passive surveillance grid and wires.");
+        this.addBool(container, "showGrid", "Cyberpunk Grid", "Draws the animated background grid wipe.");
+        this.addBool(container, "showWires", "Data Flow Wires", "Highlights active/selected node connections.");
+        this.addBool(container, "deadWeightEnabled", "Dead Weight Detector", "Enables the D.W.D (Kirby) button in the toolbar.");
+        this.addBool(container, "monitorEnabled", "Passive System Monitor", "Log execution and network activity to the console.");
+
+        // 3. UI ENHANCEMENTS
+        const h2 = document.createElement("div"); h2.style.cssText = groupStyle; h2.textContent = "UI INTERFACE";
+        container.appendChild(h2);
+        this.addBool(container, "sovereignCoreEnabled", "H4 Node Aesthetic", "Forces H4 colors on all compatible nodes.");
+        this.addBool(container, "caffeineEnabled", "Caffeine Mode Button", "Shows the screen wake-lock button (Kirby Sleep).");
+        this.addBool(container, "kickItEnabled", "Kick-The-Grid Button", "Shows the canvas defibrillator button.");
+        this.addBool(container, "showErrorPopup", "Red Screen of Death", "Show the forensic error modal on crashes.");
+
+        // 4. EXPERIMENTAL
+        const h3 = document.createElement("div"); h3.style.cssText = groupStyle; h3.textContent = "EXPERIMENTAL QoL";
+        container.appendChild(h3);
+        this.addBool(container, "smartSnapping", "Node Snapping", "Enables pixel-perfect node alignment.");
+        this.addBool(container, "ioColoring", "Dynamic Input Coloring", "Colors node sockets based on their data type.");
+
+        // Visual dimming if master is off
+        const refreshDim = () => {
+            const isMasterOn = this.config.qolMasterOverride;
+            const rows = container.querySelectorAll(".h4-set-row");
+            rows.forEach(row => {
+                const id = row.querySelector("input")?.id;
+                if (id !== "h4-cfg-qolMasterOverride") {
+                    row.style.opacity = isMasterOn ? "1" : "0.3";
+                    row.style.pointerEvents = isMasterOn ? "auto" : "none";
+                }
+            });
+        };
+
+        // Hook the master toggle to refresh the UI
+        setTimeout(() => {
+            const masterChk = container.querySelector("#h4-cfg-qolMasterOverride");
+            if (masterChk) {
+                const origOnChange = masterChk.onchange;
+                masterChk.onchange = (e) => {
+                    origOnChange(e);
+                    refreshDim();
+                };
+            }
+            refreshDim();
+        }, 10);
     },
 
     renderWires(container) {

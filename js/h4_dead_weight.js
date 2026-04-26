@@ -23,6 +23,19 @@ const h4DW = {
     legendVisible: false,        // Is the legend panel open?
     scanCount: 0,                // How many nodes are currently flagged?
 
+    config: {
+        qolMasterOverride: true,
+        deadWeightEnabled: true
+    },
+
+    updateVisibility() {
+        const btn = document.getElementById("h4-dwd-toggle");
+        if (btn) {
+            const visible = this.config.qolMasterOverride && this.config.deadWeightEnabled;
+            btn.style.display = visible ? "flex" : "none";
+        }
+    },
+
     // Aesthetic Tokens
     palette: {
         red: "#FF3333",          // Total Isolation
@@ -534,6 +547,22 @@ app.registerExtension({
         injectToolbarButton();
         setupCanvasOverlay();
         installErrorInterceptor();
+
+        // Hydrate from dashboard
+        if (window.h4_Dashboard && window.h4_Dashboard.config) {
+            h4DW.config.qolMasterOverride = window.h4_Dashboard.config.qolMasterOverride;
+            h4DW.config.deadWeightEnabled = window.h4_Dashboard.config.deadWeightEnabled;
+            h4DW.updateVisibility();
+        }
+
+        window.addEventListener("h4_config_update", (e) => {
+            const { key, val } = e.detail;
+            if (key === "qolMasterOverride" || key === "deadWeightEnabled") {
+                h4DW.config[key] = val;
+                h4DW.updateVisibility();
+            }
+        });
+
         console.log("%c🧹 h4 Dead Weight Detector v1.0 ONLINE", "color: #00f2ff; font-weight: bold;");
     }
 });
