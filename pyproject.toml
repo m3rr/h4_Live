@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-h4-live"
 description = "Crazy Logic & Persistent State for ComfyUI. Simplified Tools for complex workflows"
-version = "9.5.8"
+version = "9.5.9"
 license = { text = "GPL-3.0" }
 dependencies = []
 readme = "README.md"
