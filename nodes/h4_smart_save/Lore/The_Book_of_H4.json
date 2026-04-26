@@ -191,94 +191,162 @@
         ]
     },
     "H4_SmartSave": {
-        "title": "H4 SmartSave (The Vault)",
-        "description": "A smarter way to save your images. Instead of just dumping a file, this node remembers exactly how the image was made. It saves the prompt, the seed, and even the whole workflow directly into the image file so you can recreate it later. It also features a filmstrip so you can scroll through your recent work without opening a folder.",
-        "usage": "Use this instead of the standard 'Save Image' node. You can use the buttons on the node ([H], [P], [M]) to see your history, check your parameters, or add your own notes to the file.",
+        "title": "H4 SmartSave (The Vault — +ULTRA Edition)",
+        "description": "Welcome to the ultimate forensic terminal. SmartSave is the definitive image archiving and interaction authority for ComfyUI. It's not just a file saver; it's a sentient metadata vault that records the exact DNA of your workflow. It features a high-performance filmstrip for historical traversal, a deep-zoom Lightbox for pixel inspection, and a multi-tiered diagnostic HUD that pulls every setting from your graph without you ever having to lift a finger (or a wire).",
+        "usage": "Drop this into your workflow to replace the standard 'Save Image'. Use the [H], [P], and [M] buttons to toggle the History Bar, the Workflow Parameter drawer, and the Metadata injection panel. It works best when you want to look at everything you've done today without drowning in PNG folders.",
         "inputs": {
             "images": {
                 "type": "IMAGE",
-                "description": "The pixel data to save. The actual art. The soul of your workflow.",
+                "description": "The art. The pixels. The soul. Everything you generate passes through here to be archived forever.",
                 "example": "-"
             },
             "filename_prefix": {
                 "type": "STRING",
-                "description": "The naming pattern. Supports date formatting like `%date:yyyy-MM-dd%`. Keep it organized, folks. Use slashes to create subfolders like `waifus/v1` to keep your output directory from looking like a digital landfill.",
-                "example": "MyProject/Run001"
+                "description": "Organization matters. Use slashes like `WAIFUS/V1` to create folders automatically. Supports date codes like `%date:yyyy-MM-dd%` to keep your renders perfectly indexed.",
+                "example": "Projects/Concept_Art"
             },
             "save_mode": {
                 "type": "BOOLEAN",
-                "description": "The Master Switch. \n **💾 SAVE TO DISK**: Writes the image to your output folder (Permanent). \n **👁️ PREVIEW ONLY**: Just shows a preview in the UI (Temporary). Use this during prompt-crafting to save your hard drive. The LED on the HUD will glow Green for Save and Yellow for Preview. It's like a traffic light for your creativity.",
-                "example": "False (Preview)"
+                "description": "The traffic light for your hard drive. \n **🟢 SAVE**: Commits to disk (Permanent). \n **🟡 PREVIEW**: Just shows in the HUD (Temporary). Use Preview until you've nailed the prompt, then flip it to Save for the final result.",
+                "example": "True (Save)"
             },
             "output_path": {
                 "type": "STRING",
-                "description": "Absolute path override. If you want your images saved in a specific drive or a top-secret folder, paste the full path here. I'll handle the subfolders and prefixes from there.",
-                "example": "D:/AI_Render_Vault"
+                "description": "Optional: Write your images to a specific drive or a top-secret folder. I'll handle all the subfolder logic from there.",
+                "example": "D:/AI_ARCHIVE"
             },
             "author": {
                 "type": "STRING",
-                "description": "The name of the artist (or you). Saved in the PNG 'Author' tag. Claim your throne.",
+                "description": "Burn your name into the PNG 'Author' tag. Claim your masterpiece.",
                 "example": "h4"
             },
             "model_name": {
                 "type": "STRING",
-                "description": "The name of the model that generated the image. Essential for tracking merges or specific checkpoints in the years to come.",
-                "example": "Juggernaut XL v9"
+                "description": "The name of the checkpoint used. Essential for forensic backtracking months later.",
+                "example": "Pony XL v6"
             },
             "comments": {
                 "type": "STRING",
-                "description": "Personal notes for the image. 'This one had great lighting but weird hands'. These are saved in the PNG chunks. It's like a diary for your AI experiments.",
+                "description": "Personal diary notes saved in the image file. 'Lighting was good, hands need fix'. These are permanent.",
                 "example": "Testing lighting at night"
             },
             "custom_json": {
                 "type": "STRING",
-                "description": "Inject raw, weaponized JSON here. Must be valid JSON. I'll embed this directly in the image header. Use it for tracking custom parameters, experiment IDs, or just to hide secret messages for future archaeologists.",
-                "example": "{\"experiment\": \"A1\", \"temp\": 0.8}"
+                "description": "Weaponized metadata injection. Valid JSON here is embedded directly in the PNG header. Use it for tracking specific experiment IDs or custom parameter blocks.",
+                "example": "{\"experiment_id\": \"H4-09\"}"
             }
         },
         "features": [
             {
-                "name": "Recursive Intelligence Engine (v24.14.38)",
-                "description": "The absolute brain. It automatically hunts down every node in your workflow by crawling backwards recursively from the SmartSave node. It populates the [P] Parameter drawer with zero-wire efficiency. It's like a forensics team for your pixels."
+                "name": "Recursive Forensic Engine (v24.14.38)",
+                "description": "The smartest part of the node. It autonomously crawls your workflow graph backwards recursively to find every single node connected to the image chain. It extracts their current state, widget values, and internal logic to populate the [P] Parameter drawer with zero-wire simplicity."
             },
             {
-                "name": "Nested Tier-2 Detail Drawers",
-                "description": "Deep-dive diagnostic HUD. Clicking any node card in the Parameters list slides out a secondary drawer containing the full widget state, internal values, and unique IDs for that node. Multi-tiered tactical inspection."
+                "name": "Tier-2 Insight Drawers",
+                "description": "Deep-dive diagnostic HUD. Clicking any node card in the Parameters list slides out a secondary drawer containing the full internal state, specific IDs, and raw values for that particular node. Multi-tiered tactical inspection."
             },
             {
-                "name": "Viewport Sovereign DOM Sync",
-                "description": "We chose violence against ghost widgets. This system aggressivey synchronizes DOM visibility with the canvas viewport and zoom levels. Elements are surgically purged from the document body if the node is off-screen or zoomed out too far, ensuring a 100% ghost-free interactive surface."
+                "name": "Viewport Sovereignty Protocol",
+                "description": "The node intelligently synchronizes its DOM presence with your canvas view. Elements are purged from the document body if the node is off-screen or zoomed out past the 0.35x interactive floor, ensuring 100% ghost-free, high-performance canvas interaction."
             },
             {
-                "name": "Kinetic Rescale Protocol",
-                "description": "The node is fully resizable at both prototype and instance levels, with a hard-clamped minimum of 750x500. It adapts its HUD layout in real-time to match the creative footprint of your workflow."
+                "name": "Lightbox Traveler v3",
+                "description": "Double-click any thumbnail to enter the Lightbox. Now features full keyboard navigation (Arrows), high-fidelity zoom up to 500%, and persistent index tracking so you can trawl through months of work in one sitting."
             },
             {
                 "name": "Shadow Banishment",
-                "description": "Native ComfyUI widgets are kept alive in the 'Shadow' array for perfect prompt validation but are physically relocated to -9999px. This grants the h4 Sovereign HUD absolute control over the visual real estate without breaking node logic."
+                "description": "Standard ComfyUI widgets are kept alive in the backend for prompt validation but are physically banished to -9999px in the UI. This grants the H4 Sovereign HUD absolute, unobstructed authority over the visual real estate."
             },
             {
-                "name": "Tactical HUD Controls",
-                "description": "The sleek [H], [P], and [M] buttons give you instant access to the Vault. \n - **[H] History**: Toggles the scrolling filmstrip. \n - **[P] Parameters**: Opens the Intelligence drawer. \n - **[M] Metadata**: Opens the override drawer. \n They have priority access to your clicks, even when the canvas is lagging."
+                "name": "History Filmstrip (Tactical Nav)",
+                "description": "A high-performance horizontal gallery of your last generations. Use the bottom-left [H] button to toggle it. It's virtualized to handle hundreds of images without lagging your browser."
             },
             {
-                "name": "FIFO Disk Pruning",
-                "description": "I've still got your back. I implement a **First-In-First-Out (FIFO)** pruning logic. I keep the last **25 images** per prefix folder and automatically delete the oldest ones. Your output folder stays clean."
-            },
-            {
-                "name": "History Filmstrip (Refined)",
-                "description": "The UI features a high-performance horizontal 'Filmstrip' of your last generations. Use the tactical nav buttons to scroll through months of work in seconds."
-            },
-            {
-                "name": "Lightbox Traveler",
-                "description": "Double-click any thumbnail or the main preview to enter the Lightbox. Supports full keyboard navigation (Arrows) and high-fidelity zoom up to 500%."
+                "name": "FIFO Digital Janitor",
+                "description": "First-In-First-Out logic. I keep the last 25 images per prefix subfolder and automatically prune the oldest files, keeping your output directory clean and your storage happy."
             }
         ],
         "tips": [
-            "Organization is key: Use slashes in your prefix (e.g. `Character_Tests/V1_HighCFG`) to automatically create subfolders.",
-            "The JSON field is powerful: You can use it to store and later read structured data back from your images programmatically.",
-            "If the UI feels 'ghostly', do a hard refresh (Ctrl+F5). The Sovereignty protocols need a fresh JS boot to liquidate the phantoms.",
-            "The [H] history button is now at the bottom left for better ergonomics- it's your 'Home' for history."
+            "Organization is king: Use slashes in the prefix to group your work by project or version.",
+            "Use the JSON field to store structured data that you want to read back programmatically later.",
+            "If the UI feels 'ghostly' or misaligned, just refresh. The Sovereignty protocols are complex and love a fresh boot.",
+            "Double-click headers to collapse/expand drawers instantly for a cleaner look."
+        ]
+    },
+    "H4_Pythonipulator-inator": {
+        "title": "H4 Pythonipulator-inator (The image Kernel 🐍)",
+        "description": "The ultimate image manipulation suite for h4_Live. Think of it as a professional photo editor in node form. It combines several powerful computer vision libraries like OpenCV, scikit-image, and PIL into a single, high-performance node. Whether you need to flip a canvas, add cyberpunk glitches, fix the lighting, or apply edge detection filters, the Pythonipulator-inator does it all in one pass. It also features a built-in output engine so it can act as your final save node.",
+        "usage": "Connect an image and toggle the effect categories you want to use (Cyberpunk, Geometric, Color, Blur, etc.). Each category has a master 'Enabled' switch to keep things tidy. Use it to polish your results or as a creative tool to mess with your images in weird and wonderful ways.",
+        "inputs": {
+            "image": {
+                "type": "IMAGE",
+                "description": "The input image you want to manipulate.",
+                "example": "-"
+            },
+            "operation_mode": {
+                "type": "COMBO",
+                "description": "Choose the workflow state: \n **🟢 Passthrough**: Just apply effects and send to the next node. \n **💾 Save to Disk**: Apply effects and save files to your output folder. \n **✨ Both**: Do everything.",
+                "example": "Passthrough"
+            },
+            "cb_enabled (Cyberpunk)": {
+                "type": "BOOLEAN",
+                "description": "Unlock the futurist effects: Chromatic Aberration for that lens-distortion look, Glitch for digital artifacts, and Scanlines for that retro-CRT monitor vibe.",
+                "example": "False"
+            },
+            "geo_enabled (Geometric)": {
+                "type": "BOOLEAN",
+                "description": "The canvas toolbox: Flip your image horizontally/vertically, rotate it by any angle, or resize it using specific scales or dimensions.",
+                "example": "False"
+            },
+            "clr_enabled (Color)": {
+                "type": "BOOLEAN",
+                "description": "Standard processing: Brightness, Contrast, Saturation, and Sharpness. Also includes Invert (Negative) and Gamma correction for fixing washed-out lighting.",
+                "example": "False"
+            },
+            "blur_enabled (Blur)": {
+                "type": "BOOLEAN",
+                "description": "Focus control: Gaussian and Box blurs for softness, or Median blur for that 'painted' look. Also features a dedicated Sharpen pass for crisp edges.",
+                "example": "False"
+            },
+            "sty_enabled (Stylistic)": {
+                "type": "BOOLEAN",
+                "description": "Aesthetic filters: Pixelate your image for a retro look, or add a Vignette to darken the edges and draw the eye to the center.",
+                "example": "False"
+            },
+            "noise_enabled (Noise)": {
+                "type": "BOOLEAN",
+                "description": "Grain control: Adds Gaussian noise to your image. Great for removing that 'too clean' AI look or matching film grain.",
+                "example": "False"
+            },
+            "edge_enabled (Edge)": {
+                "type": "BOOLEAN",
+                "description": "Vision tools: Canny Edge detection. You can output just the lines (Standalone) or overlay the glowing edges on top of your original image (Overlay).",
+                "example": "False"
+            }
+        },
+        "features": [
+            {
+                "name": "Surgical Drawer UI",
+                "description": "The node stays compact by default. Toggling an 'Enabled' switch for a category like Color or Blur dynamically reveals all its associated sliders and knobs. It's professional tools without the clutter."
+            },
+            {
+                "name": "Tactical Save Engine",
+                "description": "Integrated 'Save to Disk' logic. You can use this as your final node, specifying custom filenames and output folders directly on the face. It saves files incrementally with 'h4_' prefixes to prevent overwrites."
+            },
+            {
+                "name": "Inline Kernel Pipeline",
+                "description": "Effects are processed sequentially in a sane order (Cyberpunk -> Geometric -> Color -> Blur -> etc.) so that resizing doesn't break your edge detection and sharpening happens after your color correction."
+            },
+            {
+                "name": "Dependency Sentinel",
+                "description": "Smart enough to know what it needs. On first load, it scans your system for libraries like OpenCV or Scikit-Image. If they are missing, it initiates a 'Tactical Deployment' and installs them automatically for you."
+            }
+        ],
+        "tips": [
+            "Use the 'Cyberpunk' scanlines at low values (0.1) to give images a subtle techy feel.",
+            "A small amount of 'Geometric' rotation (1-3 degrees) can sometimes fix perspective issues in AI generations.",
+            "Combine 'Edge' detection in 'Overlay' mode with 'Color' saturation for a stylized, comic-book look.",
+            "Use 'Pixelate' with 'Save to Disk' to quickly generate icons or low-res placeholders."
         ]
     },
     "H4_TrafficCop": {

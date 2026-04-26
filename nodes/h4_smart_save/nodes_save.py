@@ -80,7 +80,7 @@ class H4_ManifestCache:
         finally:
             if conn: conn.close()
 
-    def query_history(self, limit=100):
+    def query_history(self, limit=10):
         conn = None
         try:
             conn = sqlite3.connect(self.db_path)
@@ -297,16 +297,28 @@ class H4_SmartSave:
             extra_pnginfo=extra_pnginfo
         )
 
+        # --- SMART COUNTER: Resolve next available slot to prevent generational overwrites ---
+        clean_prefix = filename[:-1] if filename.endswith("_") else filename
+        def get_max_counter(target_dir, pfx):
+            import re
+            pattern = re.compile(rf"^{re.escape(pfx)}_(\d+)\.png$")
+            found_max = 0
+            if os.path.exists(target_dir):
+                for f in os.listdir(target_dir):
+                    m = pattern.match(f)
+                    if m: found_max = max(found_max, int(m.group(1)))
+            return found_max
+
+        start_counter = get_max_counter(full_output_dir, clean_prefix) + 1
         results = []
+
         for i, tensor in enumerate(images):
             img = Image.fromarray(np.clip(255. * tensor.cpu().numpy(), 0, 255).astype(np.uint8))
             
-            if save_mode:
-                file_name = f"{filename}_{i+1:04}.png"
-                json_name = f"{filename}_{i+1:04}.json"
-            else:
-                file_name = f"{filename}_{i+1:04}.png"
-                json_name = f"{filename}_{i+1:04}.json"
+            # --- SEQUENTIAL ASSIGNMENT ---
+            current_count = start_counter + i
+            file_name = f"{clean_prefix}_{current_count:04}.png"
+            json_name = f"{clean_prefix}_{current_count:04}.json"
 
             save_path = os.path.abspath(os.path.join(full_output_dir, file_name))
             json_path = os.path.abspath(os.path.join(full_output_dir, json_name))

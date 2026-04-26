@@ -1,36 +1,68 @@
-# h4_smart_save / H4_SmartSave (The Image Gallery)
+# h4_smart_save / H4_SmartSave (The Vault — +ULTRA Edition)
 
 ## What it is
-The "Modern" way to save images in ComfyUI. Instead of just saving a file and forgetting it, this node shows you a live "History Strip" of your recent generations and lets you click on them to see a full-screen preview.
+The **SmartSave** node is the definitive image archiving and forensic workstation for ComfyUI. Gone are the days of simple file saving that disconnects your pixels from the data that birthed them. When you save an image with SmartSave, you aren't just saving a PNG; you're creating a sentient vault that contains the entire DNA of your creative process.
+
+This is the **+ULTRA Edition (v24.14.39)**, rebuilt from the ground up to handle high-performance, ghost-free canvas interactions and deep forensic backtracking.
 
 ## Expanded Description
-Normal saving in ComfyUI is a bit primitive. You save an image, and it's gone. If you want to compare your current work to something you made 10 minutes ago, it's a hassle.
+The **SmartSave** node acts as your tactical mission control during long generation sessions:
+- **Recursive Forensic Parameter Crawler**: The HUD [P] drawer contains every single setting from your workflow. It doesn't need extra wires; it autonomously crawls backwards through your graph to hunt down every Sampler, Model, CLIP, and VAE to present you with a clean, searchable list of the exact ingredients used for your art.
+- **Visual History Strip**: A high-performance horizontal gallery at the bottom of the node shows your latest generations. It's virtualized, meaning it can handle hundreds of images without slowing down your browser.
+- **The Lightbox Traveler**: Click any thumbnail to expand it into a full-screen Lightbox. Use arrow keys to navigate your history, or use the high-fidelity zoom (up to 500%) to hunt for atomic-level defects in your renders.
+- **Nested Insight Drawers**: Clicking any node in the parameter list slides out a secondary details HUD, showing you the raw widget values and underlying logic of that specific node. 
+- **Universal JSON Injection**: Use the [M] drawer to manually inject custom JSON into your PNG headers. Perfect for adding experiment IDs, credits, or hidden messages for tools to read later.
 
-The **Smart Save** node acts like a mini gallery on your canvas:
-- **Visual History**: It shows the last 100 images you've generated in a scrollable bar.
-- **Lightbox**: Click any image to see it full-screen.
-- **Embedded Info**: It automatically saves your prompt, seed, and workflow into the image file so you can recreate it later just by dragging the file back into ComfyUI.
+---
 
-## Options
-- **filename_prefix**: Organize your images into folders like `Characters/Heroes`.
-- **save_mode**: Pick between "Save" (Permanent file) and "Preview" (Just shows up in the gallery temporarily).
+## Tactical HUD Features (v24.14.39 Specification)
+
+### 🧩 [P] Parameters Drawer
+The brain of the node. This is where the **Recursive Crawler** displays the Workflow DNA. 
+- **Zero-Wire Efficiency**: No need to clutter your canvas with telemetry inputs.
+- **Breadcrumb Navigation**: Clicking a node in the list highlights it on your canvas so you can find the source of your settings instantly.
+
+### 📜 [M] Metadata Drawer
+The manual override for your archive.
+- **Author Branding**: Burn your name into the file permanently.
+- **Model Indexing**: Document the exact checkpoint name even if your loader node has a generic name.
+- **JSON Payload**: A dedicated field for structured data injection.
+
+### 🏛️ Viewport Sovereignty
+To keep your workspace clean, the SmartSave HUD employs aggressive **Shadow Banishment** and **LOD Guards**. 
+- **Ghost-Free UI**: The drawers and inputs are physically purged from the DOM when the node is off-screen or zoomed out past 0.35x.
+- **Tactical Icon Mode**: When you zoom out far, the node collapses into a simple, high-visibility "H4" icon, saving you massive amounts of CPU/GPU rendering power.
+
+---
 
 ## Use Case Scenarios
-**Scenario 1: Picking the best version**
-If you're doing a bunch of tests, just scroll through the History Strip on the node to see all the versions side-by-side. It makes picking the "winner" way faster.
 
-**Scenario 2: Workflow Recovery**
-If you ever lose your workflow, just find any image you saved with this node on your hard drive and drag it into ComfyUI. Everything you did to make that image will be restored instantly.
+**Scenario 1: The Iterative Scout**
+You're doing 50 different runs of a character. Instead of opening your output folder, just scroll through the **History Strip** directly on the node. Found a "winner" from 20 minutes ago? Double-click it, check the [P] drawer to see the exact seed and CFG, and you're back in business.
+
+**Scenario 2: The Workflow Doctor**
+You dragged a year-old image back into ComfyUI and the graph is a mess. Use the **Forensic Crawler** to see exactly which Lora was used at what strength, even if that node is now red or disconnected. The metadata vault remembers everything.
+
+**Scenario 3: The Organized Pro**
+Set your `filename_prefix` to `Projects/Logo_Design/V1`. SmartSave will create the folders, index the images, and automatically use its **FIFO Digital Janitor** to prune old, failed tests, keeping your "Final" folder clean and professional.
+
+---
 
 ## Quick Start
 1. Replace your standard `Save Image` node with `H4_SmartSave`.
-2. Do a few runs.
-3. Look at the thumbnails appearing on the node's foreground.
-4. Use your mouse scroll wheel to navigate the history.
+2. Connect your `IMAGE` pipe.
+3. Look for the **🟢 Green LED** on the HUD—that means you're in "Save" mode. If it's **🟡 Yellow**, you're just previewing.
+4. Use the `[H]` button (Bottom Left) to summon your history.
+5. Use the `[P]` and `[M]` buttons to dive into the data.
 
 ---
 
 ## Dev Corner (Jargon & Logic)
-- **Viewport Sovereignty**: The HUD intelligently hides itself when you zoom out or move the node off-screen to save on performance.
-- **Metadata Archiving**: It writes the entire graph JSON into a hidden PNG chunk.
-- **syncGrid Logic**: The Javascript frontend manages a virtualized list to ensure the gallery stays fast even with hundreds of images.
+- **Dimensional Decapitation**: We've mastered the war against "dom-widget.size-full" occlusion. The HUD now maintains absolute authority over its interaction maps by enforcing strict clipping on the native Comfy layers.
+- **O(n) History Resolution**: The history endpoint uses `os.scandir` for linear performance, ensuring the filmstrip loads in milliseconds even with massive directories.
+- **PNG Chunking**: Metadata is written using standard PIL `PngInfo` blocks (tEXt chunks) for 100% compatibility with other AI tools.
+- **HUD Anchor Priority**: The tactical buttons use `z-index` layering to ensure they always respond to clicks first, before the canvas-dragging logic can intercept them.
+
+---
+**Vault Status: LOCKED & HARDENED**
+*h4 - (b'.')b*

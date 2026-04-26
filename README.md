@@ -245,6 +245,7 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 - [H4_Varianator (The Remix Node)](#h4_varianator-the-remix-node)
 - [H4_Switcheroo (Universal Swap)](#h4_switcheroo-universal-swap)
 - [H4_VisualTokenizer (Weights)](#h4_visualtokenizer-weights)
+- [H4_Pythonipulator-inator (The image Kernel)](#h4_pythonipulator-inator-the-image-kernel)
 - [H4_DoubleSampler (The Two-Pass Engine)](#h4_doublesampler-the-two-pass-engine)
 
 ### Face manipulation suite (h4_faceforge/)
@@ -673,6 +674,25 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 ---
 
+### H4_Pythonipulator-inator (The image Kernel 🐍)
+**What it is:** A high-performance image manipulation kernel that combines OpenCV, Pillow, and scikit-image into a single, tactical node.
+
+**What it does:**
+- processes images through a category-based pipeline: **Cyberpunk**, **Geometric**, **Color**, **Blur**, **Stylistic**, **Noise**, and **Edge detection**.
+- Features a dynamic cabinet UI—only sliders for the effects you actually enable are visible.
+- Includes a built-in **Save Engine** so it can act as your final output node.
+
+**When to use it:**
+- To add chromatic aberration or glitch effects.
+- To flip, rotate, or resize your canvas without adding extra nodes.
+- To sharpen edges or add film grain for that "finished" look.
+
+**Dev Corner:**
+* Architecture: Drawer-based widget surfacing. The internal pipeline follows a strict execution order (`CB -> Geo -> Color -> Blur -> Noise -> Style -> Edge`) to ensure mathematical consistency.
+* Dependency Sentinel: Lazily initializes library imports. If CV2 or scikit-image is missing, it triggers an automated 'Tactical Deployment' (pip install) to resolve the environment.
+
+---
+
 ### H4_NoteInjector (Visuals)
 **What it is:** Adds a title bar to your image.
 **Why:**
@@ -861,40 +881,26 @@ This is the whole “The Buffer fixes the loop problem” thing. It is not magic
 
 ---
 
-### H4_SmartSave (The Vault)
-**Version:** v24.14.38 (**+ULTRA Edition**)
+### H4_SmartSave (The Vault — +ULTRA Edition)
+**Version:** v24.14.39 (The **+ULTRA Edition**), rebuilt from the ground up to handle high-performance, ghost-free canvas interactions and deep forensic backtracking.
 
-**What it is:** The most advanced image archiving and forensic workstation currently available for ComfyUI. It's not just a file saver; it's a sentient metadata vault that has evolved through years of development from a simple filmstrip to the interaction authority it is today.
+**The +ULTRA Edition Standard (v24.14.39):**
+- **Recursive Forensic Crawler**: No wire telemetry. The node autonomously crawls your workflow graph backwards to find every Sampler, Model, CLIP, and VAE.
+- **Nested Tier-2 Detail Drawers**: Clicking node cards in the [P] (Parameters) list slides out secondary detail HUDs with raw widget values.
+- **Viewport Sovereignty**: Aggressive DOM synchronization ensures UI elements are only rendered when the node is actively in the viewport and at an interactive zoom level (>0.35).
+- **Shadow Banishment Protocol**: Native widgets are physically banished to -9999px, granting the H4 Sovereign HUD absolute authority over the visual real estate.
+- **LOD Guard (Visibility Floor)**: Collapses into high-visibility "H4" tactical icon when zoomed out, preventing canvas interaction lag.
+- **Lightbox Traveler v3**: Full-screen preview with keyboard navigation (Arrows), pan, and 500% high-fidelity zoom.
 
-**The +ULTRA Edition Standard (v24.14.38):**
-The v24.14.38 update represents the pinnacle of "Grid-Mesh Sovereign" design. We've mastered the war against "Ghost Widgets" and implemented a multi-tiered diagnostic HUD that allows for surgical precision in parameter tracking. This version is the definitive **+ULTRA Edition**.
-
-- **Nested Drawer HUD**: A dual-tier interaction model. The **[P]** (Parameters) drawer now spawns a secondary **Tier-2 Insight** drawer. Clicking any node in the parameter list slides out a high-fidelity detail HUD containing the full widget state and internal IDs of that specific node.
-- **Recursive Parameter Crawler**: I've removed the need for visible telemetry input pins. The node now autonomously crawls your workflow graph backwards recursively from its own position to find every Sampler, Model, CLIP, and VAE. It populates the diagnostic list with zero-wire efficiency.
-- **Viewport Sovereignty**: Aggressive DOM synchronization ensures that the UI elements (drawers/inputs) are only rendered when the node is actively in the viewport and at an interactive zoom level (>0.35). This eliminates coordinate artifacts and "ghost" inputs permanently.
-- **Kinetic Rescale**: The node is fully resizable with a hard-clamped minimum footprint (750x500), ensuring the premium HUD elements always have the breathing room required for tactical data display.
-- **Shadow Banishment Protocol**: Native ComfyUI widgets are kept alive in the backend for prompt validation but are physically banished to -9999px in the DOM, granting the H4 Sovereign HUD absolute authority over the node's visual real estate.
-- **LOD Guard (Visibility Floor)**: To solve the "Zoom Implosion" issue where the UI would drift or collapse during extreme canvas manipulation, we've implemented a hard visibility floor. When you zoom out beyond 0.35x, the node collapses into a high-visibility "H4" tactical icon. When you're zoomed in, the drawers are held in a strict `display: none` state unless actively summoned, preventing DOM artifacts from bleeding into the canvas pixels.
-- **Sovereign Interaction Authority**: The HUD buttons ([H], [P], [M]) are now locked into the interaction map with absolute priority. Even if the node is "busy" or rendering, your clicks on these tactical anchors will always fire first.
-
-**HUD Controls (Tactical anchors):**
-- **[H] History Button**: Located at the tactical home (bottom-left). Click to summon the high-performance filmstrip. This is the soul of the node, giving you immediate access to your generation journey.
-- **[P] Parameters Drawer**: The brain of the node. Displays the "Workflow DNA" gathered by the intelligence engine. No more guessing what settings made that one perfect image from three hours ago.
-- **[M] Metadata Drawer**: The controller. This is where you overwrite the Author, Model Name, and Comments, and where you inject **Universal JSON** into the PNG headers. It's your manual override for the automated systems.
-
-**The Vault Methodology & Legacy Features:**
-- **Save Mode vs. Preview Mode**: The tactical LED in the HUD centers you. Green = Saving to disk (Permanent). Yellow = Preview only (Temporary). This bi-modal system keeps your drive from filling up with garbage while ensuring the gold is protected.
-- **FIFO Pruning**: We still keep your folders clean. I track the last **25 images** (optimized from the legacy 50) per prefix subfolder and prune the rest automatically. This "Digital Janitor" logic is an h4 staple.
-- **Universal JSON Injection**: In the [M] drawer, you'll find a yellow-bordered text area. Any valid JSON you put here is burned permanently into the PNG chunks. This is perfect for custom tracking, versioning, or passing data to secondary tools.
-- **The Film Strip & Lightbox**: A horizontal scrolling list of your last generations. Double-click any thumbnail or the main preview to enter the Lightbox. Supports full keyboard navigation (Arrows), pan, and high-fidelity zoom up to 500% so you can inspect every single pixel of your render.
+**HUD Controls:**
+- **[H] History Button**: Summon the high-performance filmstrip of your generation journey.
+- **[P] Parameters Drawer**: Display the Workflow DNA gathered by the intelligence engine.
+- **[M] Metadata Drawer**: Manual overrides for Author, Model, and **Universal JSON** injection.
 
 **Why use it:**
-- Because standard SaveImage nodes are boring and don't tell you the history.
-- Because you want to audit your past self's decisions without opening the PNG Info tab every 5 seconds.
-- Because you value **interaction authority** and a clean, "Ghost-Free" workspace.
-- Because it's a clean node pack. If you ship it, keep it tidy.
-
----
+- because "eyeballing it" is for amateurs.
+- because you want to audit your past self's decisions without opening the PNG Info tab.
+- because you value **interaction authority** and a clean workspace.
 
 ---
 
@@ -908,8 +914,6 @@ The v24.14.38 update represents the pinnacle of "Grid-Mesh Sovereign" design. We
 - ULTRA: nuclear inspection, min/max, attributes, internal structure.
 
 Use ULTRA when you are ready to suffer, but also ready to actually fix the problem.
-
----
 
 ### H4_DisplayAny (Universal Monitor)
 
@@ -1294,17 +1298,29 @@ Enhanced error reporting surfaces expanded diagnostic context beyond stock messa
 
 ## Version History & Changelog
 
-### v7.6.5 - THE MUTATION MANIFESTO
-*   **H4_DoubleSampler (v7.6.5)**: 
+### v9.5.1 - THE KERNEL & HUD HARDENING
+*   **H4_Pythonipulator-inator (v9.5.1)**:
+    *   **New Master Node**: Introduced the definitive image manipulation kernel. Includes Cyberpunk effects, Geometric transforms, and advanced Color/Blur/Edge detection engines.
+    *   **Tactical Metadata**: Integrated local saving with incremental file numbering and prefix support.
+*   **H4_SmartSave (v24.14.39 / +ULTRA Edition)**:
+    *   **Dimensional Decapitation**: Resolved all canvas interaction occlusions. Fixed the "dead zone" below the node and restored drawer tactile sovereignty.
+    *   **Recursive Crawler Hardening**: Optimized parameter extraction logic for complex, multi-reroute graphs.
+    *   **Viewport Sovereignty**: Finalized DOM purging logic for 100% ghost-free workspace interaction.
+*   **Toolkit Cleanup**:
+    *   Removed deprecated nodes (h4_faceforge, h4_gridinator, etc.) to streamline the V2 architecture.
+    *   Synchronized versioning to **v9.5.1** across all modules.
+
+### v7.6.6 - THE MUTATION MANIFESTO
+*   **H4_DoubleSampler (v7.6.6)**: 
     *   **Chaos Engine Phase 2**: Absolute chaos integration. The engine now operates as a **Branching Second Pass**. Select from 'Pure Chaos', 'Odds', 'Evens', 'Every #nth number', or 'Random Pulse' modes.
     *   **Mutation Strength**: Added `chaos_denoise` to control exactly how much your chaotic prompt overwrites the original composition.
     *   **Legend v3**: Updated the in-image stat tracker with high-visibility color coding for Passes and a "🔥 CHAOS ENGINE ACTIVE" badge for variants.
-*   **H4_SmartSave (v7.6.5)**:
+*   **H4_SmartSave (v7.6.6)**:
     *   **Lightbox Traveler**: Integrated Full Keyboard Control (`ArrowLeft`/ArrowRight`) and UI buttons for deep history traversal directly inside the Lightbox.
     *   **Index Persistence**: History indexing is now synchronized with the film strip, ensuring you never lose your place during a deep dive.
-*   **H4_DisplayAny (v7.6.5)**:
+*   **H4_DisplayAny (v7.6.6)**:
     *   **Safety Zone Implementation**: Hardened the UI layout with a permanent 85px left-margin "Safety Zone" to prevent input labels from bleeding into your data visualizer.
-*   **Global Version Sync**: All core systems now synchronized to **v7.6.5**.
+*   **Global Version Sync**: All core systems now synchronized to **v7.6.6**.
 
 ### v7.0.1
 - **Chaos Engine v2 Integration**: The `H4_DoubleSampler` (Logic Stage 4) now hosts the definitive Chaos Engine with mode-aware widget surfacing.

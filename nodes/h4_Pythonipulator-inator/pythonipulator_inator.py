@@ -158,9 +158,9 @@ class PythonipulatorInator:
         return (result_tensor,)
 
 NODE_CLASS_MAPPINGS = {
-    "h4_pythonipulator_inator": PythonipulatorInator
+    "H4_Pythonipulator-inator": PythonipulatorInator
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "h4_pythonipulator_inator": "h4_Pythonipulator-inator 🐍"
+    "H4_Pythonipulator-inator": "h4_Pythonipulator-inator 🐍"
 }

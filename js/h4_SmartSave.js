@@ -87,19 +87,7 @@ if (!document.getElementById(styleId)) {
     document.head.appendChild(s);
 }
 
-// --- NUCLEAR CLICK INVESTIGATOR ---
-// This tool reports exactly what element receives a click, revealing invisible capture layers.
-window.addEventListener("mousedown", (e) => {
-    const target = e.target;
-    const style = window.getComputedStyle(target);
-    if (!target) return;
-    const isH4 = (target.className && typeof target.className === "string" && target.className.includes("h4"));
-    if (isH4) {
-        console.log(`[h4] [NUCLEAR_INVESTIGATOR] DOM HIT: <${target.tagName.toLowerCase()}> class:"${target.className}" zIndex:${style.zIndex} pointer-events:${style.pointerEvents}`);
-    } else if (e.altKey) {
-        console.log(`[h4] [NUCLEAR_INVESTIGATOR] CANVAS/EXTERNAL HIT:`, target, "zIndex:", style.zIndex, "pointer-events:", style.pointerEvents);
-    }
-}, true);
+// --- NUCLEAR CLICK INVESTIGATOR REDACTED ---
 
 // --- FORENSIC VISIBILITY DEBUGGER ---
 window.addEventListener("keydown", (e) => {
@@ -140,6 +128,27 @@ function safeText(v) {
     return String(v);
 }
 
+function isModalOpen() {
+    // Detect standard ComfyUI modals, settings menus, and high-level overlays
+    const check = (sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return false;
+        const style = window.getComputedStyle(el);
+        if (style.display === "none" || style.visibility === "hidden" || parseFloat(style.opacity) < 0.1) return false;
+        // Verify it actually has dimensions to avoid stale empty shells
+        const rect = el.getBoundingClientRect();
+        return rect.width > 50 && rect.height > 50;
+    };
+
+    const isOpen = check(".comfy-modal") ||
+        check(".comfy-menu") ||
+        check(".comfy-settings-dialog") ||
+        check(".p3-modal") ||
+        (app.ui?.settings?.visible === true);
+
+    return isOpen;
+}
+
 function getGrid(node) {
     const baseW = Math.max(MIN_SIZE[0], node.size[0]);
     const baseH = Math.max(MIN_SIZE[1], node.size[1]);
@@ -159,7 +168,6 @@ function getGrid(node) {
             btn_p: { x: baseW - 55, y: 150, w: BTN_SIZE, h: BTN_SIZE },
             btn_m: { x: 20, y: 150, w: BTN_SIZE, h: BTN_SIZE },
             btn_h: { x: 20, y: baseH - 55, w: BTN_SIZE, h: BTN_SIZE },
-            btn_s: { x: baseW - 55, y: baseH - 55, w: BTN_SIZE, h: BTN_SIZE },
             preview_area: previewArea,
             drawer_p: { x: baseW + DRAWER_GAP, y: 10, w: DRAWER_W, h: baseH - 20 },
             drawer_m: { x: -DRAWER_W - DRAWER_GAP, y: 10, w: DRAWER_W, h: baseH - 20 },
@@ -231,7 +239,12 @@ class SmartSaveUI {
             const res = await api.fetchApi("/h4/smart_save/history"); if (!res.ok) return;
             const data = await res.json();
             const sig = JSON.stringify(data.map((x) => [x.filename, x.subfolder, x.type, x.timestamp]));
-            if (sig !== this._lastHistorySignature) { this._lastHistorySignature = sig; this.history = data; this.updateHistoryRail(); this.scheduleDraw(); }
+            if (sig !== this._lastHistorySignature) {
+                this._lastHistorySignature = sig;
+                this.history = data;
+                if (this.show_history) this.updateHistoryRail();
+                this.scheduleDraw();
+            }
         } catch (e) { } finally { this._historyInflight = false; }
     }
 
@@ -514,7 +527,7 @@ class SmartSaveUI {
         let html = `<div style="height:100%;display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:0;background:${COLORS.panel};border-radius:6px;overflow:hidden;pointer-events:none;"><div class="h4-hist-nav" data-dir="-1" title="Scroll Left" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">‹</div><div style="display:flex;gap:12px;overflow:hidden;justify-content:flex-start;padding:10px 15px;pointer-events:none;">`;
         const visibleItems = this.history.slice(this.scroll_idx, this.scroll_idx + HISTORY_LIMIT_VISIBLE);
         visibleItems.forEach((item, i) => {
-            const idx = i + this.scroll_idx; const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}`);
+            const idx = i + this.scroll_idx; const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}&preview=1`);
             const isSel = idx === this.selected_idx;
             const isTemp = item.type === "temp";
             const bCol = isSel ? (isTemp ? COLORS.forensic : COLORS.accent) : "#333";
@@ -564,7 +577,7 @@ class SmartSaveUI {
             // --- FULL-RES PRELOAD: Cache the high-res image on hover so the lightbox opens instantly ---
             b.addEventListener("mouseenter", () => {
                 const hItem = this.history[itemIdx]; if (!hItem) return;
-                const fullUrl = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(hItem.filename)}&subfolder=${encodeURIComponent(hItem.subfolder)}&type=${encodeURIComponent(hItem.type)}&full=true`);
+                const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(hItem.filename)}&subfolder=${encodeURIComponent(hItem.subfolder)}&type=${encodeURIComponent(hItem.type)}`);
                 if (!this.full_imgs[fullUrl]) { const preload = new Image(); preload.src = fullUrl; this.full_imgs[fullUrl] = preload; }
             });
         });
@@ -698,7 +711,7 @@ class SmartSaveUI {
     updateLightbox() {
         const lb = this.node.__h4_lightbox; if (!lb || !this.show_lightbox) return;
         const curIdx = Math.max(0, this.selected_idx); const item = this.history[curIdx]; if (!item) return;
-        const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}&full=true`);
+        const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}`);
         lb.innerHTML = `<div class="h4-lb-bg" style="position:absolute;inset:0;background:rgba(0,0,0,0.92);cursor:zoom-out;"></div><div class="h4-lb-nav h4-lb-prev" title="Previous Image" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);font-size:60px;color:${COLORS.accent};cursor:pointer;z-index:10;user-select:none;">‹</div><div class="h4-lb-nav h4-lb-next" title="Next Image" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:60px;color:${COLORS.accent};cursor:pointer;z-index:10;user-select:none;">›</div><div style="position:absolute;inset:40px 100px;display:flex;align-items:center;justify-content:center;pointer-events:none;"><div class="h4-lb-spinner" style="position:absolute;color:${COLORS.accent};font-size:14px;font-family:monospace;opacity:0.6;">LOADING...</div><img class="h4-lb-img" src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 0 40px rgba(0,0,0,0.8);border:1px solid #333;opacity:0;transition:opacity 0.3s ease;" /></div><div class="h4-lb-close" title="Close Lightbox" style="position:absolute;top:20px;right:30px;font-size:40px;color:#666;cursor:pointer;z-index:20;">×</div><div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#aaa;font-size:12px;background:rgba(0,0,0,0.6);padding:8px 20px;border-radius:20px;border:1px solid #333;">${safeText(item.filename)} • ${curIdx + 1} / ${this.history.length}</div><style>.h4-lb-nav:hover { color:#fff !important; text-shadow:0 0 15px ${COLORS.accent}; } .h4-lb-close:hover { color:${COLORS.danger} !important; }</style>`;
         // --- LIGHTBOX LOADING STATE: Fade in when image arrives, show spinner until then ---
         const lbImg = lb.querySelector(".h4-lb-img");
@@ -715,30 +728,33 @@ class SmartSaveUI {
 
     syncDOM() {
         const node = this.node; if (!node || !node.graph) { activeNodes.delete(this); return; }
+
+        // --- NUCLEAR BLOAT REMOVAL ---
+        node.imgs = null;
+        node.images = null;
+
         const mesh = getGrid(node); const pts = mesh.pts; const scale = app.canvas.ds.scale; const ds = app.canvas.ds;
 
         // --- WIDGET DOM NEUTRALIZATION: ComfyUI's DOMWidget system re-creates/re-positions widget elements ---
         // These invisible DOM elements capture mouse events and create dead zones over and below the node.
         // Neutralize them every frame to prevent blocking canvas interaction.
+        // --- WIDGET NEUTRALIZATION: Paralyze ComfyUI's V2 DOM layer to prevent interaction hijacking ---
+        // We only exile the direct widget elements and their closest dom-widget wrapper.
+        // Walking the parent tree any further risks squashing the entire system UI.
         if (node.widgets) {
             node.widgets.forEach(w => {
-                if (w.inputEl) { w.inputEl.style.display = "none"; w.inputEl.style.pointerEvents = "none"; w.inputEl.style.position = "fixed"; w.inputEl.style.left = "-9999px"; w.inputEl.style.width = "0"; w.inputEl.style.height = "0"; }
+                if (!w.__h4_cloaked) {
+                    cloakWidget(w);
+                    w.__h4_cloaked = true;
+                }
+                if (w.inputEl) {
+                    Object.assign(w.inputEl.style, { display: "none", pointerEvents: "none", position: "fixed", left: "-9999px", width: "0", height: "0" });
+                }
                 if (w.element) {
-                    w.element.style.display = "none"; w.element.style.pointerEvents = "none"; w.element.style.position = "fixed"; w.element.style.left = "-9999px"; w.element.style.width = "0"; w.element.style.height = "0";
-                    // COM-937: Enforce absolute dimensional boundaries on ComfyUI's V2 DOM layer.
-                    // This structurally prevents invisible DOM wrappers from expanding over our Side Drawers or creating 
-                    // dead zones beneath the node, while maintaining ComfyUI's native event routing for the canvas itself.
-                    const master = w.element.closest ? w.element.closest(".dom-widget.size-full") : null;
-                    if (master) {
-                        master.style.pointerEvents = "auto"; // Ensure ComfyUI still routes clicks
-                        master.style.height = `${mesh.baseH}px`;
-                        master.style.width = `${mesh.w}px`;
-                        master.style.overflow = "hidden";
-                    } else if (w.element.parentElement && w.element.parentElement.classList.contains("dom-widget")) {
-                        w.element.parentElement.style.pointerEvents = "auto";
-                        w.element.parentElement.style.height = `${mesh.baseH}px`;
-                        w.element.parentElement.style.width = `${mesh.w}px`;
-                        w.element.parentElement.style.overflow = "hidden";
+                    Object.assign(w.element.style, { display: "none", pointerEvents: "none", position: "fixed", left: "-9999px", width: "0", height: "0" });
+                    const master = w.element.closest?.(".dom-widget");
+                    if (master && !master.className.includes("h4")) {
+                        Object.assign(master.style, { pointerEvents: "none", zIndex: "-1", overflow: "hidden", width: "0", height: "0" });
                     }
                 }
             });
@@ -747,11 +763,17 @@ class SmartSaveUI {
         // --- ANIMATION STATE MACHINE: Runs here so drawer visibility never depends on onDrawForeground ---
         // This is the single source of truth for animation progression.
         this.params_anim = lerp(this.params_anim, this.show_params ? 1 : 0, ANIM_SPEED);
+        if (this.params_anim < 0.01) this.params_anim = 0;
         this.meta_anim = lerp(this.meta_anim, this.show_meta ? 1 : 0, ANIM_SPEED);
+        if (this.meta_anim < 0.01) this.meta_anim = 0;
         this.custom_meta_anim = lerp(this.custom_meta_anim, (this.show_meta && this.show_custom_meta) ? 1 : 0, ANIM_SPEED);
+        if (this.custom_meta_anim < 0.01) this.custom_meta_anim = 0;
         this.footer_anim = lerp(this.footer_anim, this.show_history ? 1 : 0, ANIM_SPEED);
+        if (this.footer_anim < 0.01) this.footer_anim = 0;
         this.viewer_anim = lerp(this.viewer_anim, this.show_viewer ? 1 : 0, ANIM_SPEED);
+        if (this.viewer_anim < 0.01) this.viewer_anim = 0;
         this.detail_anim = lerp(this.detail_anim, this._last_detailed_id ? 1 : 0, ANIM_SPEED);
+        if (this.detail_anim < 0.01) this.detail_anim = 0;
         const animStillMoving = Math.abs(this.params_anim - (this.show_params ? 1 : 0)) > 0.005 || Math.abs(this.meta_anim - (this.show_meta ? 1 : 0)) > 0.005 || Math.abs(this.footer_anim - (this.show_history ? 1 : 0)) > 0.005 || Math.abs(this.viewer_anim - (this.show_viewer ? 1 : 0)) > 0.005 || Math.abs(this.detail_anim - (this._last_detailed_id ? 1 : 0)) > 0.005;
         if (animStillMoving) this.scheduleDraw();
 
@@ -775,16 +797,18 @@ class SmartSaveUI {
             }
             if (!el.parentNode) { document.body.appendChild(el); }
 
-            // --- V2 DIRECT MATH PROJECTION ---
             let screenX = 0, screenY = 0;
+            const ds = app.canvas.ds;
+            if (!ds || isNaN(node.pos[0])) return; // --- COORD VALIDATION: Prevent 0,0 snaps ---
+
             try {
                 const canvasElement = app.canvas.canvas;
                 const rect = canvasElement ? canvasElement.getBoundingClientRect() : { left: 0, top: 0 };
                 screenX = (node.pos[0] + pt.x + ds.offset[0]) * ds.scale + rect.left;
                 screenY = (node.pos[1] + pt.y + ds.offset[1]) * ds.scale + rect.top;
-            } catch (err) { }
+            } catch (err) { return; }
 
-            el.style.position = "fixed"; el.style.left = "0"; el.style.top = "0"; el.style.zIndex = "10000";
+            el.style.position = "fixed"; el.style.left = "0"; el.style.top = "0"; el.style.zIndex = "1000";
             el.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${ds.scale})`;
             el.style.transformOrigin = "top left";
             el.style.width = `${pt.w}px`; el.style.height = `${pt.h}px`;
@@ -796,7 +820,8 @@ class SmartSaveUI {
         };
 
         // --- LIGHTBOX SUPPRESSION: Hide all HUD elements when in full-screen mode ---
-        const hudVisible = !this.show_lightbox;
+        // --- MODAL AWARENESS: Hide HUD when system dialogs or settings menus are active ---
+        const hudVisible = !this.show_lightbox && !isModalOpen();
 
         project(node.__h4_prefix, pts.prefix_box, hudVisible);
         project(node.__h4_path, pts.path_box, hudVisible);
@@ -807,8 +832,8 @@ class SmartSaveUI {
         project(node.__h4_customdrawer, pts.drawer_custom, this.show_custom_meta && hudVisible, this.custom_meta_anim, false);
 
         const rY = mesh.baseH + 10 + (1 - easeOutCubic(clamp01(this.footer_anim))) * 40;
-        project(node.__h4_history_rail, { ...pts.history_rail, y: rY }, this.show_history && hudVisible, this.footer_anim, false);
-        project(node.__h4_viewerdrawer, pts.drawer_viewer, this.show_viewer && hudVisible, this.viewer_anim, false);
+        project(node.__h4_history_rail, { ...pts.history_rail, y: rY }, this.show_history && hudVisible, this.footer_anim, (this.footer_anim < 0.5));
+        project(node.__h4_viewerdrawer, pts.drawer_viewer, this.show_viewer && hudVisible, this.viewer_anim, (this.viewer_anim < 0.5));
 
         // --- LIGHTBOX CONTAINMENT: Full-screen overlay only when explicitly activated ---
         if (this.show_lightbox) {
@@ -833,7 +858,7 @@ function cloakWidget(w) {
 function makeFloatingEl(tag, cls = "") {
     const el = document.createElement(tag);
     el.className = cls + " h4-hud-el";
-    el.style.position = "fixed"; el.style.zIndex = "100"; el.style.display = "none";
+    el.style.position = "fixed"; el.style.zIndex = "1000"; el.style.display = "none";
     el.style.background = COLORS.panel; el.style.border = "1.5px solid #222"; el.style.color = COLORS.accent; el.style.padding = "0";
     el.style.fontFamily = "monospace"; el.style.boxSizing = "border-box";
     el.style.overflowY = "auto"; el.style.overflowX = "hidden";
@@ -858,84 +883,7 @@ function kineticLoop() {
 }
 requestAnimationFrame(kineticLoop);
 
-// --- SOVEREIGN CLICK INTERCEPTOR ---
-// Canvas-drawn buttons (M, H, P, toggle, scrub arrows) cannot receive DOM events directly.
-// DOM overlay elements at z-index:9999 block the LiteGraph canvas from receiving mousedown events.
-// This window-level capture handler bypasses all DOM/canvas layering by converting screen coordinates
-// directly to node-local coordinates and performing hit-testing against the button grid.
-window.addEventListener("mousedown", (e) => {
-    if (!app.canvas) return;
-
-    // --- COORDINATE CONVERSION: Try ComfyUI's API first, fall back to manual math ---
-    let canvasX, canvasY;
-    try {
-        const coords = app.canvas.convertEventToCanvasOffset(e);
-        if (coords && coords.length >= 2) { canvasX = coords[0]; canvasY = coords[1]; }
-    } catch (ex) { /* API unavailable, fall back below */ }
-    // Fallback: manual math using ds (DrawSpace) properties
-    if (canvasX === undefined && app.canvas.ds) {
-        const rect = app.canvas.canvas.getBoundingClientRect();
-        const ds = app.canvas.ds;
-        canvasX = (e.clientX - rect.left) / ds.scale - ds.offset[0];
-        canvasY = (e.clientY - rect.top) / ds.scale - ds.offset[1];
-    }
-    if (canvasX === undefined) return; // Neither method worked
-
-    // Check each active SmartSave node for button hits
-    for (const ui of activeNodes) {
-        const node = ui.node;
-        if (!node || !node.graph) continue;
-        // Compute position relative to this node's origin
-        const px = canvasX - node.pos[0];
-        const py = canvasY - node.pos[1];
-        // --- ANIMATION KERNEL: Persistent lerp updates for smooth tactile transitions ---
-        ui.params_anim = lerp(ui.params_anim, ui.show_params ? 1 : 0, ANIM_SPEED);
-        ui.meta_anim = lerp(ui.meta_anim, ui.show_meta ? 1 : 0, ANIM_SPEED);
-        ui.footer_anim = lerp(ui.footer_anim, ui.show_history ? 1 : 0, ANIM_SPEED);
-        ui.detail_anim = lerp(ui.detail_anim, (ui.show_params && ui._last_detailed_id) ? 1 : 0, ANIM_SPEED);
-        ui.custom_meta_anim = lerp(ui.custom_meta_anim, ui.show_custom_meta ? 1 : 0, ANIM_SPEED);
-        ui.viewer_anim = lerp(ui.viewer_anim, ui.show_viewer ? 1 : 0, ANIM_SPEED);
-
-        const mesh = getGrid(node);
-        // Quick boundary check: is the click even within this node's footprint?
-        if (px < 0 || px > mesh.w || py < 0 || py > mesh.baseH) continue;
-        // Skip title bar region (let ComfyUI handle dragging)
-        if (py < 30) continue;
-
-        console.log(`[h4] [INTERCEPTOR] Hit inside node at [${Math.round(px)}, ${Math.round(py)}] | Node bounds: [${mesh.w}, ${mesh.baseH}]`);
-
-        const pts = mesh.pts;
-        const hit = r => r && px >= r.x - 4 && px <= r.x + r.w + 4 && py >= r.y - 4 && py <= r.y + r.h + 4;
-
-        let handled = false;
-        if (hit(pts.btn_p)) { ui.show_params = !ui.show_params; if (!ui.show_params) ui._last_detailed_id = null; console.log("[h4] Toggle Params:", ui.show_params); ui.markParamsDirty(); node.setDirtyCanvas(true); handled = true; }
-        else if (hit(pts.btn_m)) { ui.show_meta = !ui.show_meta; console.log("[h4] Toggle Meta:", ui.show_meta); node.setDirtyCanvas(true); handled = true; }
-        else if (hit(pts.btn_h)) { ui.setHistoryOpen(!ui.show_history); console.log("[h4] Toggle History:", ui.show_history); node.setDirtyCanvas(true); handled = true; }
-        else if (hit(pts.toggle_box)) {
-            if (node.__h4_save_mode_widget) {
-                node.__h4_save_mode_widget.value = !node.__h4_save_mode_widget.value;
-                console.log("[h4] Toggle Save Mode:", node.__h4_save_mode_widget.value);
-                if (node.__h4_save_mode_widget.callback) node.__h4_save_mode_widget.callback(node.__h4_save_mode_widget.value);
-                node.setDirtyCanvas(true, true);
-            }
-            handled = true;
-        }
-        else if (hit(pts.scrub_prev)) { ui.selected_idx = ui.selected_idx <= 0 ? 0 : ui.selected_idx - 1; ui.fetchSidecar(ui.selected_idx); handled = true; }
-        else if (hit(pts.scrub_next)) { if (ui.selected_idx === -1) ui.selected_idx = 0; else ui.selected_idx = Math.min(ui.history.length - 1, ui.selected_idx + 1); ui.fetchSidecar(ui.selected_idx); handled = true; }
-        else if (hit(pts.preview_area)) {
-            const now = Date.now();
-            if (node._last_clk && (now - node._last_clk < 300)) { ui.show_lightbox = true; ui.updateLightbox(); ui.scheduleDraw(); }
-            node._last_clk = now;
-            handled = true;
-        }
-
-        if (handled) {
-            e.stopImmediatePropagation();
-            e.preventDefault();
-            return;
-        }
-    }
-}, true);
+// --- SOVEREIGN CLICK INTERCEPTOR INTEGRATED INTO onMouseDown ---
 
 app.registerExtension({
     name: "h4.SmartSave.Core.Fixed",
@@ -943,7 +891,20 @@ app.registerExtension({
         if (nodeDef.name !== "H4_SmartSave") return;
         nodeType.prototype.onNodeCreated = function () {
             this.h4_ui = new SmartSaveUI(this); activeNodes.add(this.h4_ui);
-            const styleId = "h4-smartsave-kinetic-styles"; if (!document.getElementById(styleId)) { const s = document.createElement("style"); s.id = styleId; s.innerHTML = `.h4gridscroll::-webkit-scrollbar { width:4px; height:4px; } .h4gridscroll::-webkit-scrollbar-track { background:transparent; } .h4gridscroll::-webkit-scrollbar-thumb { background:#333; border-radius:4px; } .h4gridscroll::-webkit-scrollbar-thumb:hover { background:#00f2ff; }`; document.head.appendChild(s); }
+            const styleId = "h4-smartsave-kinetic-styles";
+            if (!document.getElementById(styleId)) {
+                const s = document.createElement("style");
+                s.id = styleId;
+                s.innerHTML = `
+                    .h4gridscroll::-webkit-scrollbar { width:4px; height:4px; }
+                    .h4gridscroll::-webkit-scrollbar-track { background:transparent; }
+                    .h4gridscroll::-webkit-scrollbar-thumb { background:#333; border-radius:4px; }
+                    .h4gridscroll::-webkit-scrollbar-thumb:hover { background:#00f2ff; }
+                    /* VHS_floatinghelp bug: sitting at 0,0 eating clicks while trying to hide with left:-5000px on position:static */
+                    .VHS_floatinghelp { pointer-events: none !important; }
+                `;
+                document.head.appendChild(s);
+            }
             // --- ELEMENT CREATION: __h4_interactive flag controls which elements capture clicks ---
             // Only input fields and open drawers should intercept mouse events.
             // Buttons M/H/P/toggle/scrub are canvas-drawn and need the click to reach the canvas.
@@ -974,15 +935,16 @@ app.registerExtension({
                 if (!this.widgets) return false;
                 this.widgets.forEach(w => {
                     if (!w) return;
-                    if (w.name === "filename_prefix") { this.__h4_prefix.value = w.value ?? ""; this.__h4_prefix.oninput = () => { w.value = this.__h4_prefix.value; }; }
-                    else if (w.name === "output_path") { this.__h4_path.value = w.value ?? ""; this.__h4_path.oninput = () => { w.value = this.__h4_path.value; }; }
-                    else if (w.name === "author") { const inp = this.__h4_metadrawer.querySelector(".h4-meta-author"); if (inp) { inp.value = w.value ?? ""; inp.oninput = () => { w.value = inp.value; }; } }
-                    else if (w.name === "comments") { const tx = this.__h4_metadrawer.querySelector(".h4-meta-comments"); if (tx) { tx.value = w.value ?? ""; tx.oninput = () => { w.value = tx.value; }; } }
-                    else if (w.name === "save_mode") this.__h4_save_mode_widget = w;
-                    else if (w.name === "metadata_mode" || w.name === "json_mode") {
-                        const sel = this.__h4_metadrawer.querySelector(w.name === "metadata_mode" ? ".h4-meta-mode" : ".h4-json-mode");
+                    const n = w.name;
+                    if (n === "filename_prefix") { this.__h4_prefix.value = w.value ?? ""; this.__h4_prefix.oninput = () => { w.value = this.__h4_prefix.value; }; }
+                    else if (n === "output_path") { this.__h4_path.value = w.value ?? ""; this.__h4_path.oninput = () => { w.value = this.__h4_path.value; }; }
+                    else if (n === "author") { const inp = this.__h4_metadrawer.querySelector(".h4-meta-author"); if (inp) { inp.value = w.value ?? ""; inp.oninput = () => { w.value = inp.value; }; } }
+                    else if (n === "comments") { const tx = this.__h4_metadrawer.querySelector(".h4-meta-comments"); if (tx) { tx.value = w.value ?? ""; tx.oninput = () => { w.value = tx.value; }; } }
+                    else if (n === "save_mode") this.__h4_save_mode_widget = w;
+                    else if (n === "metadata_mode" || n === "json_mode") {
+                        const sel = this.__h4_metadrawer.querySelector(n === "metadata_mode" ? ".h4-meta-mode" : ".h4-json-mode");
                         if (sel) { sel.innerHTML = ""; (w.options?.values || []).forEach(v => { const o = document.createElement("option"); o.value = v; o.text = v; sel.add(o); }); sel.value = w.value; sel.onchange = () => { w.value = sel.value; this.h4_ui.show_custom_meta = this.__h4_metadrawer.querySelector(".h4-meta-mode")?.value === "Custom" || this.__h4_metadrawer.querySelector(".h4-json-mode")?.value === "Custom"; this.setDirtyCanvas(true); }; }
-                    } else if (w.name === "custom_json") { const raw = this.__h4_customdrawer.querySelector(".h4-meta-raw"); if (raw) { raw.value = w.value || raw.value; raw.oninput = () => { w.value = raw.value; }; } }
+                    } else if (n === "custom_json") { const raw = this.__h4_customdrawer.querySelector(".h4-meta-raw"); if (raw) { raw.value = w.value || raw.value; raw.oninput = () => { w.value = raw.value; }; } }
                     cloakWidget(w);
                 }); return true;
             };
@@ -1021,19 +983,27 @@ app.registerExtension({
                         this.h4_ui.history.unshift({ ...img, timestamp: Date.now() });
                     });
                     this.h4_ui.history = this.h4_ui.history.slice(0, 50);
-                    // --- SIGNATURE SYNC: Update the local signature to prevent the polling motor from overwriting this live shift ---
+                    // --- SIGNATURE SYNC ---
                     this.h4_ui._lastHistorySignature = JSON.stringify(this.h4_ui.history.map((x) => [x.filename, x.subfolder, x.type, x.timestamp]));
                     this.h4_ui.selected_idx = 0;
                     this.h4_ui.scroll_idx = 0;
                     this.h4_ui.current_sidecar = message.images[0].sidecar || null;
-                    this.h4_ui.updateHistoryRail();
+
+                    // --- ASSET ASSIGNMENT ---
+                    this.__h4_live_imgs = message.images.map(i => {
+                        const img = new Image();
+                        img.onload = () => { this.setDirtyCanvas(true, true); if (this.h4_ui) this.h4_ui.scheduleDraw(); };
+                        img.src = api.apiURL(`/view?filename=${encodeURIComponent(i.filename)}&type=${i.type}&subfolder=${encodeURIComponent(i.subfolder)}&t=${Date.now()}`);
+                        return img;
+                    });
+                    this.images = null; this.imgs = null; // Triggers DOM reconciliation via syncDOM loop
+
+                    if (this.h4_ui.show_history) { this.h4_ui.updateHistoryRail(); }
+                    else { this.h4_ui.fetchHistory(true); }
                 }
                 this.h4_ui.markParamsDirty();
-                // Suspended immediate fetchHistory(true) to allow local unshifts to survive without getting overwritten.
+                this.setDirtyCanvas(true, true);
             }
-            if (message.images) { this.__h4_live_imgs = message.images.map(i => { const img = new Image(); img.onload = () => this.setDirtyCanvas(true, true); img.src = api.apiURL(`/view?filename=${encodeURIComponent(i.filename)}&subfolder=${encodeURIComponent(i.subfolder)}&type=${encodeURIComponent(i.type)}`); return img; }); }
-            this.imgs = null; this.images = null; // --- PURGE AUTO-IMGS ONLY ---
-            this.setDirtyCanvas(true, true);
         };
         nodeType.prototype.onResize = function (size) { if (size[0] < MIN_SIZE[0]) size[0] = MIN_SIZE[0]; if (size[1] < MIN_SIZE[1]) size[1] = MIN_SIZE[1]; return size; };
         if (nodeType.prototype.onMouseDown && nodeType.prototype.onMouseDown.isH4) return;
@@ -1053,18 +1023,36 @@ app.registerExtension({
                 // --- PREVIEW AREA: Capture clicks to prevent node drag and handle double-click for lightbox ---
                 const pts = mesh.pts;
                 const hit = r => r && px >= r.x - 4 && px <= r.x + r.w + 4 && py >= r.y - 4 && py <= r.y + r.h + 4;
+
+                // --- SOVEREIGN BUTTON INTERCEPTOR ---
+                // Handle HUD buttons directly in the node's capture phase to prevent LiteGraph consumption.
+                if (hit(pts.btn_p)) { this.h4_ui.show_params = !this.h4_ui.show_params; this.setDirtyCanvas(true); return true; }
+                if (hit(pts.btn_m)) { this.h4_ui.show_meta = !this.h4_ui.show_meta; this.setDirtyCanvas(true); return true; }
+                if (hit(pts.btn_h)) { this.h4_ui.setHistoryOpen(!this.h4_ui.show_history); return true; }
+
+                if (hit(pts.toggle_box)) {
+                    if (this.__h4_save_mode_widget) {
+                        this.__h4_save_mode_widget.value = !this.__h4_save_mode_widget.value;
+                        if (this.__h4_save_mode_widget.callback) {
+                            try { this.__h4_save_mode_widget.callback(this.__h4_save_mode_widget.value); }
+                            catch (e) { console.warn("[h4] Widget callback error:", e); }
+                        }
+                        this.setDirtyCanvas(true);
+                        app.graph.setDirtyCanvas(true, true);
+                    }
+                    return true;
+                }
+
+                if (hit(pts.scrub_prev)) { this.h4_ui.selected_idx = Math.max(0, this.h4_ui.selected_idx - 1); this.h4_ui.fetchSidecar(this.h4_ui.selected_idx); this.setDirtyCanvas(true); return true; }
+                if (hit(pts.scrub_next)) { this.h4_ui.selected_idx = Math.min(this.h4_ui.history.length - 1, this.h4_ui.selected_idx + 1); this.h4_ui.fetchSidecar(this.h4_ui.selected_idx); this.setDirtyCanvas(true); return true; }
+
                 if (hit(pts.preview_area)) {
                     const now = Date.now();
                     if (this._last_clk && (now - this._last_clk < 300)) { this.h4_ui.show_lightbox = true; this.h4_ui.updateLightbox(); this.h4_ui.scheduleDraw(); }
                     this._last_clk = now;
                     return true; // Prevent drag when clicking on the image preview
                 }
-                // --- ALL OTHER CLICKS: Buttons are handled by the Sovereign Click Interceptor ---
-                // Allow clicks on the node body to be captured for node selection without blocking canvas ---
-                if (px >= 0 && px <= mesh.w && py >= 0 && py <= mesh.baseH) {
-                    // Allow node selection but don't block the event chain
-                    return true;
-                }
+                // --- ALL OTHER CLICKS: Handle via original LiteGraph chain ---
                 return origMouseDown ? origMouseDown.apply(this, arguments) : false;
             } catch (err) {
                 console.error("[h4] onMouseDown Fault:", err);
@@ -1104,7 +1092,7 @@ app.registerExtension({
                 let activeImg = null;
                 if (ui.selected_idx >= 0 && ui.history[ui.selected_idx]) {
                     const item = ui.history[ui.selected_idx];
-                    const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}&full=true`);
+                    const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}`);
                     activeImg = ui.full_imgs[url];
                     if (!activeImg) {
                         const img = new Image();
