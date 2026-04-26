@@ -2,12 +2,12 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 /*
-    h4 - Pythonipulator-inator (Sovereign Pixel Kernel v1.2.1)
+    h4 - Pythonipulator-inator (Sovereign Pixel Kernel v1.2.2)
     ---------------------------------------------------------
-    - FIXED: Restored native types to ensure Prompt API serialization.
+    - FIXED: Node name mapping synchronization for absolute registry alignment.
+    - REFACTORED: Interaction kernel corrected to prevent reference collisions.
+    - MODULARITY: Decoupled web assets for standalone shelf deployment.
     - TACTILE HUD: 3D beveled buttons and recessed slider channels.
-    - FORENSIC SYNC: Unified via Mothership to prevent duplicate loading.
-    - INTERACTION LOCK: Click-drag enforcement for precise parameter control.
 */
 
 const COLORS = {
@@ -67,7 +67,7 @@ class PythonipulatorUI {
 app.registerExtension({
     name: "h4.Pythonipulator_Inator",
     async beforeRegisterNodeDef(nodeType, nodeDef) {
-        if (nodeDef.name !== "h4_pythonipulator_inator") return;
+        if (nodeDef.name !== "H4_Pythonipulator-inator") return;
 
         nodeType.prototype.onNodeCreated = function () {
             this.h4_ui = new PythonipulatorUI(this);
@@ -113,7 +113,7 @@ app.registerExtension({
                             } else {
                                 this._h4_active_w = w;
                                 this._h4_is_dragging = true;
-                                this.node._h4_update_val(w, px);
+                                this._h4_update_val(w, px);
                             }
                             this.setDirtyCanvas(true);
                             return true;
@@ -171,7 +171,12 @@ app.registerExtension({
             const ui = this.h4_ui;
 
             // --- DEEP SOVEREIGN PURGE ---
-            this.widgets.forEach(w => cloakWidget(w));
+            this.widgets?.forEach(w => {
+                if (!w.__h4_cloaked) {
+                    cloakWidget(w);
+                    w.__h4_cloaked = true;
+                }
+            });
 
             // Dynamic Height
             let targetH = 120;

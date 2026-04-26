@@ -129,6 +129,10 @@ def dynamic_discovery():
         is_python_file = item.endswith(".py")
         is_folder = os.path.isdir(item_path)
         
+        # 1.5. Guard: Skip invalid module candidates (e.g. archives, docs, temp files)
+        if not (is_python_file or is_folder):
+            continue
+        
         module_name = item.replace(".py", "") if is_python_file else item
         full_module_path = f".nodes.{module_name}"
         

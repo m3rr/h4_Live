@@ -144,6 +144,9 @@ function isModalOpen() {
         check(".comfy-menu") ||
         check(".comfy-settings-dialog") ||
         check(".p3-modal") ||
+        check(".p-dialog") ||
+        check(".simple-dialog") ||
+        check(".comfy-manager-dialog") ||
         (app.ui?.settings?.visible === true);
 
     return isOpen;
@@ -800,7 +803,7 @@ class SmartSaveUI {
                 screenY = (node.pos[1] + pt.y + ds.offset[1]) * ds.scale + rect.top;
             } catch (err) { return; }
 
-            el.style.position = "fixed"; el.style.left = "0"; el.style.top = "0"; el.style.zIndex = "1000";
+            el.style.position = "fixed"; el.style.left = "0"; el.style.top = "0"; el.style.zIndex = "501";
             el.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${ds.scale})`;
             el.style.transformOrigin = "top left";
             el.style.width = `${pt.w}px`; el.style.height = `${pt.h}px`;
@@ -850,7 +853,7 @@ function cloakWidget(w) {
 function makeFloatingEl(tag, cls = "") {
     const el = document.createElement(tag);
     el.className = cls + " h4-hud-el";
-    el.style.position = "fixed"; el.style.zIndex = "1000"; el.style.display = "none";
+    el.style.position = "fixed"; el.style.zIndex = "501"; el.style.display = "none";
     el.style.background = COLORS.panel; el.style.border = "1.5px solid #222"; el.style.color = COLORS.accent; el.style.padding = "0";
     el.style.fontFamily = "monospace"; el.style.boxSizing = "border-box";
     el.style.overflowY = "auto"; el.style.overflowX = "hidden";
