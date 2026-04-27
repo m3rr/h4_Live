@@ -80,15 +80,34 @@ if (!document.getElementById(styleId)) {
     const s = document.createElement("style");
     s.id = styleId;
     s.innerHTML = `
-        .h4-hud-el { user-select: none !important; -webkit-user-drag: none !important; -webkit-touch-callout: none; }
-        .h4-hud-el img { -webkit-user-drag: none !important; pointer-events: none !important; }
-        .h4-hud-el input, .h4-hud-el textarea { user-select: text !important; -webkit-user-drag: auto !important; }
-        .h4gridscroll::-webkit-scrollbar { width:4px; height:4px; }
-        .h4gridscroll::-webkit-scrollbar-track { background:transparent; }
-        .h4gridscroll::-webkit-scrollbar-thumb { background:#333; border-radius:4px; }
-        .h4gridscroll::-webkit-scrollbar-thumb:hover { background:#00f2ff; }
-        .VHS_floatinghelp { pointer-events: none !important; }
-    `;
+            .h4-hud-el { user-select: none !important; -webkit-user-drag: none !important; -webkit-touch-callout: none; }
+            .h4-hud-el img { -webkit-user-drag: none !important; pointer-events: none !important; }
+            .h4-hud-el input, .h4-hud-el textarea { user-select: text !important; -webkit-user-drag: auto !important; }
+            .h4gridscroll::-webkit-scrollbar { width:4px; height:4px; }
+            .h4gridscroll::-webkit-scrollbar-track { background:transparent; }
+            .h4gridscroll::-webkit-scrollbar-thumb { background:#333; border-radius:4px; }
+            .h4gridscroll::-webkit-scrollbar-thumb:hover { background:#00f2ff; }
+            .VHS_floatinghelp { pointer-events: none !important; }
+
+            /* Pinned panel border glow */
+            .h4-grid-drawer[data-pinned="true"] {
+                border-right: 1.5px solid #00f2ff !important;
+                box-shadow: 4px 0 24px rgba(0,242,255,0.08);
+            }
+
+            /* Popout window scroll */
+            .h4gridscroll {
+                scrollbar-width: thin;
+                scrollbar-color: #333 transparent;
+            }
+
+            /* Prevent text selection in panel headers */
+            .h4-panel-pin-btn,
+            .h4-panel-popout-btn {
+                user-select: none;
+                -webkit-user-select: none;
+            }
+        `;
     document.head.appendChild(s);
 }
 
@@ -222,6 +241,14 @@ class SmartSaveUI {
         this._historyInflight = false; this._sidecarInflight = false;
         this._lastHistorySignature = ""; this._lastSidecarSignature = "";
         this.pollTimer = null;
+
+        // --- NEW: PANNEL MODE STATE ---
+        this.panelMode = 'docked';   // 'docked' | 'pinned' | 'popout'
+        this.pinnedPos = { x: 0, y: 0, w: 340, h: window.innerHeight };
+        this.popoutWin = null;        // reference to the window.open() object
+        this.popoutReady = false;     // true once the popout window has loaded and is ready for postMessage
+        this._popoutMessageHandler = null;
+
         this.fetchHistory(false);
     }
 
@@ -416,6 +443,266 @@ class SmartSaveUI {
         }
     }
 
+    setPanelMode(mode) {
+        const prev = this.panelMode;
+        this.panelMode = mode;
+
+        // --- LEAVING PINNED ---
+        if (prev === 'pinned' && mode !== 'pinned') {
+            this._unpinPanel();
+        }
+
+        // --- LEAVING POPOUT ---
+        if (prev === 'popout' && mode !== 'popout') {
+            this._closePopout();
+        }
+
+        // --- ENTERING PINNED ---
+        if (mode === 'pinned') {
+            this._pinPanel();
+        }
+
+        // --- ENTERING POPOUT ---
+        if (mode === 'popout') {
+            this._openPopout();
+        }
+
+        // Redraw header buttons to reflect new state
+        this._dirty_params = true;
+        this.scheduleDraw();
+    }
+
+    _pinPanel() {
+        const el = this.node.__h4_core_drawer;
+        if (!el) return;
+
+        // Snap to left edge of viewport
+        this.pinnedPos = { x: 0, y: 0, w: 340, h: window.innerHeight };
+
+        // Apply pinned styles directly — bypass project() for this element
+        Object.assign(el.style, {
+            position: 'fixed',
+            left: '0px',
+            top: '0px',
+            width: '340px',
+            height: '100vh',
+            transform: 'none',       // CRITICAL: remove the canvas-space transform
+            zIndex: '9000',
+            borderRight: `1px solid ${COLORS.accent}`,
+            borderRadius: '0',
+            overflowY: 'auto',
+            display: 'block',
+            visibility: 'visible',
+            opacity: '1',
+            pointerEvents: 'auto',
+        });
+        el.setAttribute('data-pinned', 'true');
+
+        // Nudge the canvas so nodes aren't hidden under the pinned panel
+        this._applyCanvasMargin(340);
+    }
+
+    _unpinPanel() {
+        const el = this.node.__h4_core_drawer;
+        if (!el) return;
+        el.removeAttribute('data-pinned');
+
+        // Return element to the normal project() flow
+        // project() will re-apply position/transform on the next frame
+        // We only need to clear the pinned overrides
+        el.style.transform = '';
+        el.style.left = '0px';
+        el.style.top = '0px';
+        el.style.width = '';
+        el.style.height = '';
+        el.style.borderRight = '';
+        el.style.borderRadius = '';
+
+        // Remove the canvas margin nudge
+        this._applyCanvasMargin(0);
+    }
+
+    _applyCanvasMargin(px) {
+        // ComfyUI canvas container — try several selectors
+        const container = document.querySelector('.graph-canvas-container') ||
+            document.querySelector('#graph-canvas')?.parentElement ||
+            app.canvas?.canvas?.parentElement;
+
+        if (!container) return;
+
+        container.style.transition = 'padding-left 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+        container.style.paddingLeft = px > 0 ? `${px}px` : '';
+    }
+
+    _openPopout() {
+        // Don't open a second window if one is already open
+        if (this.popoutWin && !this.popoutWin.closed) {
+            this.popoutWin.focus();
+            return;
+        }
+
+        this.popoutWin = window.open(
+            'about:blank',
+            'h4SmartSavePanel',
+            'width=380,height=800,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no'
+        );
+
+        if (!this.popoutWin) {
+            // Popup was blocked
+            console.warn('h4: Popout window was blocked by the browser. Falling back to pinned.');
+            this.panelMode = 'pinned';
+            this._pinPanel();
+            return;
+        }
+
+        this.popoutReady = false;
+
+        // Write the shell HTML — the content will be injected via postMessage
+        const doc = this.popoutWin.document;
+        doc.open();
+        doc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>h4 SmartSave — Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #111;
+      color: #fff;
+      font-family: monospace;
+      font-size: 12px;
+      overflow-x: hidden;
+    }
+    #panel-root {
+      width: 100%;
+      min-height: 100vh;
+      overflow-y: auto;
+    }
+    /* Custom scrollbar — matches COLORS */
+    #panel-root::-webkit-scrollbar { width: 4px; }
+    #panel-root::-webkit-scrollbar-track { background: transparent; }
+    #panel-root::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    #panel-root::-webkit-scrollbar-thumb:hover { background: #00f2ff; }
+
+    .popout-header {
+      position: sticky;
+      top: 0;
+      background: #0a0a0a;
+      border-bottom: 1px solid #00f2ff;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+    .popout-header span {
+      color: #00f2ff;
+      font-weight: 900;
+      font-size: 13px;
+    }
+    .popout-return-btn {
+      background: rgba(0,242,255,0.08);
+      border: 1px solid #00f2ff;
+      color: #00f2ff;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 10px;
+      cursor: pointer;
+      font-family: monospace;
+      font-weight: bold;
+    }
+    .popout-return-btn:hover { background: rgba(0,242,255,0.18); }
+  </style>
+</head>
+<body>
+  <div class="popout-header">
+    <span>h4 SmartSave</span>
+    <button class="popout-return-btn" id="return-btn">↩ RETURN TO DOCK</button>
+  </div>
+  <div id="panel-root">
+    <div style="color:#555;padding:40px 20px;text-align:center;font-style:italic;">
+      Waiting for data...
+    </div>
+  </div>
+  <script>
+    // Listen for content updates from the parent window
+    window.addEventListener('message', (evt) => {
+      if (evt.data && evt.data.type === 'h4-panel-update') {
+        const root = document.getElementById('panel-root')
+        if (root) root.innerHTML = evt.data.html
+      }
+    })
+
+    // Notify parent that we're ready
+    if (window.opener) {
+      window.opener.postMessage({ type: 'h4-popout-ready' }, '*')
+    }
+
+    // Return to dock button
+    document.getElementById('return-btn').addEventListener('click', () => {
+      if (window.opener) {
+        window.opener.postMessage({ type: 'h4-popout-return' }, '*')
+      }
+      window.close()
+    })
+
+    // Notify parent when window is closed
+    window.addEventListener('beforeunload', () => {
+      if (window.opener) {
+        window.opener.postMessage({ type: 'h4-popout-closed' }, '*')
+      }
+    })
+  </script>
+</body>
+</html>`);
+        doc.close();
+
+        // Listen for messages back from the popout
+        this._popoutMessageHandler = (evt) => {
+            if (!evt.data || typeof evt.data !== 'object') return;
+
+            if (evt.data.type === 'h4-popout-ready') {
+                this.popoutReady = true;
+                // Push current content immediately
+                this._pushToPopout();
+            }
+
+            if (evt.data.type === 'h4-popout-return' || evt.data.type === 'h4-popout-closed') {
+                this.panelMode = 'docked';
+                this.popoutWin = null;
+                this.popoutReady = false;
+                window.removeEventListener('message', this._popoutMessageHandler);
+                this._popoutMessageHandler = null;
+                this._dirty_params = true;
+                this.scheduleDraw();
+            }
+        }
+
+        window.addEventListener('message', this._popoutMessageHandler);
+    }
+
+    _closePopout() {
+        if (this._popoutMessageHandler) {
+            window.removeEventListener('message', this._popoutMessageHandler);
+            this._popoutMessageHandler = null;
+        }
+        if (this.popoutWin && !this.popoutWin.closed) {
+            try { this.popoutWin.close(); } catch (e) { }
+        }
+        this.popoutWin = null;
+        this.popoutReady = false;
+    }
+
+    _pushToPopout() {
+        if (!this.popoutWin || this.popoutWin.closed || !this.popoutReady) return;
+        const dr = this.node.__h4_core_drawer;
+        if (!dr) return;
+        // Send the drawer content
+        const content = dr.innerHTML;
+        this.popoutWin.postMessage({ type: 'h4-panel-update', html: content }, '*');
+    }
+
     crawlWorkflow() {
         if (!this._dirty_params) return; this._dirty_params = false;
         const params = []; const visited = new Set(); const queue = [this.node];
@@ -430,7 +717,54 @@ class SmartSaveUI {
             (n.inputs || []).forEach((input) => { if (input.link != null) { const link = app.graph.links[input.link]; if (link) { const originNode = app.graph.getNodeById(link.origin_id); if (originNode) queue.push(originNode); } } });
         }
         const dr = this.node.__h4_core_drawer; if (!dr) return;
-        let html = `<div style="color:${COLORS.accent};margin:15px;font-weight:900;border-bottom:1px solid #333;padding-bottom:8px;font-size:14px;">h4 // LIVE PARAMETERS</div>`;
+
+        let headerHtml = `
+          <div style="
+            color:${COLORS.accent};
+            margin:15px 15px 8px 15px;
+            font-weight:900;
+            border-bottom:1px solid #333;
+            padding-bottom:8px;
+            font-size:14px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+          ">
+            <span>h4 LIVE PARAMETERS</span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button class="h4-panel-pin-btn" title="Pin to screen edge (locks panel in place)"
+                style="
+                  background:${this.panelMode === 'pinned' ? COLORS.accentSoft : 'rgba(255,255,255,0.04)'};
+                  border:1px solid ${this.panelMode === 'pinned' ? COLORS.accent : '#444'};
+                  color:${this.panelMode === 'pinned' ? COLORS.accent : '#666'};
+                  border-radius:4px;
+                  padding:3px 7px;
+                  font-size:10px;
+                  cursor:pointer;
+                  font-family:monospace;
+                  font-weight:bold;
+                ">
+                ${this.panelMode === 'pinned' ? '📌 PINNED' : '📌 PIN'}
+              </button>
+              <button class="h4-panel-popout-btn" title="Pop out into its own window"
+                style="
+                  background:rgba(255,255,255,0.04);
+                  border:1px solid #444;
+                  color:#666;
+                  border-radius:4px;
+                  padding:3px 7px;
+                  font-size:10px;
+                  cursor:pointer;
+                  font-family:monospace;
+                  font-weight:bold;
+                ">
+                ↗ POP OUT
+              </button>
+            </div>
+          </div>
+        `;
+
+        let html = headerHtml;
         if (params.length === 0) html += `<div style="color:#555;margin:40px 20px;font-style:italic;">No upstream parameters found.</div>`;
         else params.forEach((p) => {
             const isSwapped = this.swapped_ids.has(String(p.id));
@@ -439,7 +773,26 @@ class SmartSaveUI {
 
             html += `<div class="h4-param-card" data-node-id="${p.id}" data-hist="0" data-h4-tip="${cardTip.replace(/"/g, "&quot;")}" style="margin:0 12px 12px 12px;background:rgba(20,20,20,0.55);border:1px solid #222;border-radius:6px;overflow:hidden;cursor:pointer;position:relative;"><div style="background:#222;color:#aaa;font-size:10px;padding:4px 8px;display:flex;justify-content:space-between;"><span>${safeText(p.title)}</span><span style="color:#555;">ID ${p.id}</span></div><div style="padding:8px;max-height:80px;overflow:hidden;">${p.items.slice(0, 3).map((it) => `<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:2px;font-size:10px;white-space:nowrap;overflow:hidden;"><span style="color:#555;overflow:hidden;text-overflow:ellipsis;">${safeText(it.name)}</span><span style="color:${COLORS.accent};text-align:right;overflow:hidden;text-overflow:ellipsis;">${safeText(it.val)}</span></div>`).join("")}</div><button class="h4-swap-btn" data-node-id="${p.id}" data-h4-tip="${swapTip.replace(/"/g, "&quot;")}" style="width:100%;padding:4px;border:none;background:${isSwapped ? COLORS.accentSoft : "rgba(255,255,255,0.03)"};color:${isSwapped ? COLORS.accent : "#555"};font-size:9px;font-weight:bold;cursor:pointer;border-top:1px solid #222;">${isSwapped ? "SWAP BACK" : "SWAP"}</button></div>`;
         });
-        dr.innerHTML = html; this.bindParamCards(false);
+        dr.innerHTML = html;
+
+        const pinBtn = dr.querySelector('.h4-panel-pin-btn')
+        const popBtn = dr.querySelector('.h4-panel-popout-btn')
+        if (pinBtn) {
+            pinBtn.addEventListener('mousedown', (e) => {
+                e.stopPropagation()
+                if (this.panelMode === 'pinned') this.setPanelMode('docked')
+                else this.setPanelMode('pinned')
+            })
+        }
+        if (popBtn) {
+            popBtn.addEventListener('mousedown', (e) => {
+                e.stopPropagation()
+                this.setPanelMode('popout')
+            })
+        }
+
+        this.bindParamCards(false);
+        if (this.panelMode === 'popout') this._pushToPopout()
     }
 
     updateParamsFromSidecar(sidecar) {
@@ -470,7 +823,53 @@ class SmartSaveUI {
         console.log(`[h4] Deep Discovery Result:`, { ids: Object.keys(forensics), totalKeys: Object.keys(sidecar || {}).length });
         this.discovered_forensics = forensics; // Store for binding coherency
 
-        let html = `<div style="color:${COLORS.forensic};margin:15px;font-weight:900;border-bottom:1.5px solid #333;padding-bottom:8px;font-size:14px;display:flex;justify-content:space-between;align-items:center;"><span>h4 // FORENSICS</span><span style="font-size:9px;color:#6c5730;font-weight:normal;opacity:0.8;">[DNA: ${safeText(this._lastSidecarSignature?.split("|")[0] || "BAKED")}]</span></div>`;
+        let headerHtml = `
+          <div style="
+            color:${COLORS.forensic};
+            margin:15px 15px 8px 15px;
+            font-weight:900;
+            border-bottom:1.5px solid #333;
+            padding-bottom:8px;
+            font-size:14px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+          ">
+            <span>h4 // FORENSICS</span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button class="h4-panel-pin-btn" title="Pin to screen edge (locks panel in place)"
+                style="
+                  background:${this.panelMode === 'pinned' ? COLORS.accentSoft : 'rgba(255,255,255,0.04)'};
+                  border:1px solid ${this.panelMode === 'pinned' ? COLORS.accent : '#444'};
+                  color:${this.panelMode === 'pinned' ? COLORS.accent : '#666'};
+                  border-radius:4px;
+                  padding:3px 7px;
+                  font-size:10px;
+                  cursor:pointer;
+                  font-family:monospace;
+                  font-weight:bold;
+                ">
+                ${this.panelMode === 'pinned' ? '📌 PINNED' : '📌 PIN'}
+              </button>
+              <button class="h4-panel-popout-btn" title="Pop out into its own window"
+                style="
+                  background:rgba(255,255,255,0.04);
+                  border:1px solid #444;
+                  color:#666;
+                  border-radius:4px;
+                  padding:3px 7px;
+                  font-size:10px;
+                  cursor:pointer;
+                  font-family:monospace;
+                  font-weight:bold;
+                ">
+                ↗ POP OUT
+              </button>
+            </div>
+          </div>
+        `;
+
+        let html = headerHtml;
         const ids = Object.keys(forensics || {});
 
         if (ids.length === 0) {
@@ -489,7 +888,26 @@ class SmartSaveUI {
                 html += `<div class="h4-param-card" data-node-id="${id}" data-hist="1" data-h4-tip="${cardTip.replace(/"/g, "&quot;")}" style="margin:0 12px 12px 12px;background:rgba(36,28,8,0.45);border:1px solid ${isGhost ? COLORS.danger : "#4a3a16"};border-radius:6px;overflow:hidden;cursor:pointer;position:relative;"><div style="background:${isGhost ? "#2d1212" : "#2a220f"};color:${isGhost ? COLORS.danger : COLORS.forensic};font-size:10px;padding:4px 8px;display:flex;justify-content:space-between;"><span>${safeText(title)} ${isGhost ? "!! MISSING" : ""}</span><span style="color:#6c5730;">ID ${id}</span></div><div style="padding:8px;max-height:80px;overflow:hidden;">${Object.entries(values).slice(0, 3).map(([k, v]) => `<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:2px;font-size:10px;white-space:nowrap;overflow:hidden;"><span style="color:#8e7a4f;overflow:hidden;text-overflow:ellipsis;">${safeText(k)}</span><span style="color:${COLORS.forensic};text-align:right;overflow:hidden;text-overflow:ellipsis;">${safeText(v)}</span></div>`).join("")}</div>${!isGhost ? `<button class="h4-swap-btn" data-node-id="${id}" data-hist="1" data-h4-tip="${swapTip.replace(/"/g, "&quot;")}" style="width:100%;padding:4px;border:none;background:${isSwapped ? "rgba(255,215,0,0.15)" : "rgba(255,255,255,0.03)"};color:${isSwapped ? COLORS.forensic : "#7c6838"};font-size:9px;font-weight:bold;cursor:pointer;border-top:1px solid #333;">${isSwapped ? "SWAP BACK" : "SWAP"}</button>` : ""}</div>`;
             });
         }
-        dr.innerHTML = html; this.bindParamCards(true);
+        dr.innerHTML = html;
+
+        const pinBtn = dr.querySelector('.h4-panel-pin-btn')
+        const popBtn = dr.querySelector('.h4-panel-popout-btn')
+        if (pinBtn) {
+            pinBtn.addEventListener('mousedown', (e) => {
+                e.stopPropagation()
+                if (this.panelMode === 'pinned') this.setPanelMode('docked')
+                else this.setPanelMode('pinned')
+            })
+        }
+        if (popBtn) {
+            popBtn.addEventListener('mousedown', (e) => {
+                e.stopPropagation()
+                this.setPanelMode('popout')
+            })
+        }
+
+        this.bindParamCards(true);
+        if (this.panelMode === 'popout') this._pushToPopout()
     }
 
     bindParamCards(isHist) {
@@ -860,6 +1278,56 @@ class SmartSaveUI {
         // --- PROJECTION KERNEL: Position a DOM element over its canvas counterpart ---
         const project = (el, pt, isShown, animVal = 1, passthrough = false) => {
             if (!el) return;
+
+            // --- PINNED MODE GUARD ---
+            if (el === this.node.__h4_core_drawer && this.panelMode === 'pinned') {
+                if (!isShown) {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
+                } else {
+                    el.style.display = 'block';
+                    el.style.visibility = 'visible';
+                    el.style.opacity = String(animVal);
+                }
+                return;
+            }
+
+            // --- PINNED DETAIL GUARD ---
+            if (el === this.node.__h4_detaildrawer && this.panelMode === 'pinned') {
+                if (!isShown || !this._last_detailed_id) {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
+                    return;
+                }
+                Object.assign(el.style, {
+                    position: 'fixed',
+                    left: `${this.pinnedPos.w + DETAIL_GAP}px`,
+                    top: '0px',
+                    width: `${DRAWER_W}px`,
+                    height: '100vh',
+                    transform: 'none',
+                    zIndex: '9000',
+                    overflowY: 'auto',
+                    display: 'block',
+                    visibility: 'visible',
+                    opacity: String(animVal),
+                    pointerEvents: 'auto',
+                    borderRight: `1px solid #222`,
+                    borderRadius: '0',
+                });
+                return;
+            }
+
+            // --- POPOUT MODE GUARD ---
+            if (el === this.node.__h4_core_drawer && this.panelMode === 'popout') {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.width = '0';
+                el.style.height = '0';
+                if (el.parentNode) el.remove();
+                return;
+            }
+
             const finalOpacity = isShown ? animVal : 0;
             // --- LIFECYCLE VIGILANCE: Hard-purge from DOM and Render-Tree when inactive ---
             if (finalOpacity < 0.01 || !node.graph || scale < 0.2) {
@@ -950,6 +1418,21 @@ function makeFloatingEl(tag, cls = "") {
 
 function kineticLoop() {
     try {
+        // Popout closed detection — fallback for when beforeunload message doesn't arrive
+        activeNodes.forEach(ui => {
+            if (ui.panelMode === 'popout' && ui.popoutWin && ui.popoutWin.closed) {
+                ui.panelMode = 'docked';
+                ui.popoutWin = null;
+                ui.popoutReady = false;
+                if (ui._popoutMessageHandler) {
+                    window.removeEventListener('message', ui._popoutMessageHandler);
+                    ui._popoutMessageHandler = null;
+                }
+                ui._dirty_params = true;
+                ui.scheduleDraw();
+            }
+        });
+
         activeNodes.forEach(ui => {
             if (ui.node && ui.node.graph) ui.syncDOM();
             else activeNodes.delete(ui);
@@ -1038,7 +1521,21 @@ app.registerExtension({
 
             return this;
         };
-        nodeType.prototype.onRemoved = function () { if (this.h4_ui) { this.h4_ui.stopPolling(); activeNodes.delete(this.h4_ui); } [this.__h4_prefix, this.__h4_path, this.__h4_core_drawer, this.__h4_detaildrawer, this.__h4_metadrawer, this.__h4_customdrawer, this.__h4_viewerdrawer, this.__h4_history_rail, this.__h4_lightbox].forEach(el => el?.remove()); };
+        nodeType.prototype.onRemoved = function () {
+            if (this.h4_ui) {
+                this.h4_ui.stopPolling();
+                // NEW: Close popout if open
+                if (this.h4_ui.panelMode === 'popout') {
+                    this.h4_ui._closePopout();
+                }
+                // NEW: Remove canvas margin if pinned
+                if (this.h4_ui.panelMode === 'pinned') {
+                    this.h4_ui._applyCanvasMargin(0);
+                }
+                activeNodes.delete(this.h4_ui);
+            }
+            [this.__h4_prefix, this.__h4_path, this.__h4_core_drawer, this.__h4_detaildrawer, this.__h4_metadrawer, this.__h4_customdrawer, this.__h4_viewerdrawer, this.__h4_history_rail, this.__h4_lightbox].forEach(el => el?.remove());
+        };
         nodeType.prototype.onExecuted = function (message) {
             if (this.h4_ui) {
                 console.log("[h4] Execution Complete. Anchoring DNA to History Rail...");
@@ -1101,7 +1598,18 @@ app.registerExtension({
 
                 // --- SOVEREIGN BUTTON INTERCEPTOR ---
                 // Handle HUD buttons directly in the node's capture phase to prevent LiteGraph consumption.
-                if (hit(pts.btn_p)) { this.h4_ui.show_params = !this.h4_ui.show_params; this.setDirtyCanvas(true); return true; }
+                // --- SOVEREIGN BUTTON INTERCEPTOR ---
+                // Handle HUD buttons directly in the node's capture phase to prevent LiteGraph consumption.
+                if (hit(pts.btn_p)) {
+                    if (this.h4_ui.panelMode === 'pinned' || this.h4_ui.panelMode === 'popout') {
+                        // Clicking P while pinned or popped out returns to docked
+                        this.h4_ui.setPanelMode('docked');
+                    } else {
+                        this.h4_ui.show_params = !this.h4_ui.show_params;
+                    }
+                    this.setDirtyCanvas(true);
+                    return true;
+                }
                 if (hit(pts.btn_m)) { this.h4_ui.show_meta = !this.h4_ui.show_meta; this.setDirtyCanvas(true); return true; }
                 if (hit(pts.btn_h)) { this.h4_ui.setHistoryOpen(!this.h4_ui.show_history); return true; }
 
@@ -1216,7 +1724,15 @@ app.registerExtension({
                 ctx.beginPath(); ctx.arc(knobX + 8, 2 + 8, 4, 0, Math.PI * 2); ctx.fill();
                 ctx.restore();
                 const drawButton = (r, label, active = false, fg = COLORS.dim, glow = false) => { ctx.save(); if (glow) { ctx.shadowBlur = 10; ctx.shadowColor = COLORS.accent; } ctx.fillStyle = active ? "#111" : "rgba(28,28,28,0.9)"; ctx.strokeStyle = active ? COLORS.accent : (glow ? COLORS.accent : COLORS.border); ctx.lineWidth = active || glow ? 1.5 : 1; ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, 5); ctx.fill(); ctx.stroke(); ctx.fillStyle = active || glow ? COLORS.accent : fg; ctx.font = `bold ${Math.round(r.w * 0.45)}px monospace`; ctx.textAlign = "center"; ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2 + (r.h * 0.15)); ctx.restore(); };
-                drawButton(pts.btn_p, "P", ui.show_params); drawButton(pts.btn_m, "M", ui.show_meta); drawButton(pts.btn_h, "H", ui.show_history);
+
+                const isPinned = ui.panelMode === 'pinned';
+                const isPopout = ui.panelMode === 'popout';
+                const pActive = ui.show_params || isPinned || isPopout;
+                const pGlow = isPinned || isPopout;
+                const pLabel = isPopout ? '↗' : isPinned ? '📌' : 'P';
+                drawButton(pts.btn_p, pLabel, pActive, isPinned ? COLORS.accent : COLORS.dim, pGlow);
+
+                drawButton(pts.btn_m, "M", ui.show_meta); drawButton(pts.btn_h, "H", ui.show_history);
                 if (ui.history.length > 0) { drawButton(pts.scrub_prev, "⟨", false, COLORS.accent, true); drawButton(pts.scrub_next, "⟩", false, COLORS.accent, true); }
                 if (activeImg && activeImg.width > 0) { ctx.font = "11px monospace"; ctx.fillStyle = COLORS.accent; ctx.textAlign = "center"; ctx.fillText(`${activeImg.width} x ${activeImg.height}`, pts.lod_badge.x, pts.lod_badge.y); }
 

@@ -8,82 +8,8 @@ console.log("[h4] h4_Dashboard.js LOADED (Sanity Check)");
 // H4 Dashboard - The Central Hub
 // ------------------------------------------------------------------------------
 
-// --- THE BOOK OF H4 (CONTENT REGISTRY) ---
-const NODE_CONTENT = {
-    // --- LOGIC / TRAFFIC ---
-    "H4_TrafficRouter": {
-        title: "Traffic Router (The Nexus)",
-        desc: "The ultimate flow control center. Merges 'Start' (Run 0) and 'Loop' (Run 1+) flows into a single stream. Automatically switches Denoise values based on the run count.<br><br><b>Usage:</b><br>1. Connect `Context_Out` to KSampler input.<br>2. Connect `Denoise_Val` to KSampler denoise."
-    },
-    "H4_TrafficCop": {
-        title: "Traffic Cop (Splitter)",
-        desc: "The Logic Gate. Splits a workflow into 'Run Once' (Start) and 'Loop' (Continue) paths.<br><b>SAFE MODE:</b> Unlike standard splitters, this node prevents crashes by sending data to BOTH outputs if a path is inactive, ensuring the graph never breaks."
-    },
-    "H4_TrafficMerge": {
-        title: "Traffic Merge (Zipper)",
-        desc: "Safely selects between two inputs based on the run count.<br><b>Features:</b><br>- <b>Wireless Loop Mode:</b> Leave `loop_input` empty and use `H4_ImageBuffer` to prevent ComfyUI Cycle Errors.<br>- <b>Smart Denoise:</b> Outputs unique denoise values for Start vs Loop."
-    },
-    "H4_ContextHub": {
-        title: "Context Hub (Mothership)",
-        desc: "Bundles all your messy wires into a single `H4_PIPE`.<br>Accepts Models, VAE, CLIP, Conditioning, Latents, Images, Masks, and 2 Generic inputs.<br><b>Debug Feature:</b> Logs detailed tensor shapes and data types to the console."
-    },
-    "H4_ContextUnpack": {
-        title: "Context Unpack (Distributor)",
-        desc: "Unpacks the `H4_PIPE` back into individual components. Connect this to your samplers or other workflow parts."
-    },
+// --- THE BOOK OF H4 (LORE SYSTEM ACTIVE) ---
 
-    // --- MISSION CONTROL ---
-    "H4_MissionControl": {
-        title: "Mission Control",
-        desc: "<b>The Flight Deck for your Loop.</b><br>- <b>Active Mode:</b> Drives the loop count. Connect logic flow here.<br>- <b>Passive Mode:</b> Just displays stats.<br>- <b>Wireless Reset:</b> Can receive reset signals from `H4_WirelessResetButton`."
-    },
-    "H4_LinearScheduler": {
-        title: "Linear Scheduler",
-        desc: "Generates a ramping float value over time.<br><b>Formula:</b> `Start + (End - Start) * (Current / Max)`<br>Perfect for Denoise Ramps or CFG Ramps."
-    },
-    "H4_SeedGenerator": {
-        title: "Seed Generator",
-        desc: "Controls randomness with intent.<br><b>Modes:</b><br>- <b>Incremental:</b> Run 0 = Seed, Run 1 = Seed+1... (Best for sweeping)<br>- <b>Fixed:</b> Reuses same seed.<br>- <b>Random:</b> Pure Chaos."
-    },
-
-    // --- VISUALS ---
-    "H4_Comparinator": {
-        title: "Comparinator (A/B Test)",
-        desc: "Dual-Channel Image Comparator with Time-Travel History.<br><b>Inspectinator Mode:</b> Zoom, Pan, and Compare pixels with a sliding reticle.<br><b>Vault:</b> Autosaves history to disk."
-    },
-    "H4_DisplayAny": {
-        title: "Display Any+",
-        desc: "Universal Monitor Node.<br>Accepts up to 4 inputs of ANY type (Images, Text, Tensors, Json) and visualizes them."
-    },
-    "H4_SmartSave": {
-        title: "SmartSave",
-        desc: "A dual-mode image handler.<br><b>Toggle:</b> Switch between 'Preview Only' (Temp) and 'Save to Disk' (Output).<br><b>Features:</b><br>- Custom Metadata Injection.<br>- Film Strip History.<br>- Privacy Mode (Blur)."
-    },
-
-    // --- UTILITIES ---
-    "H4_UniversalLoader": {
-        title: "Universal Loader",
-        desc: "The One Loader to Rule Them All.<br>Switchable between <b>Standard Checkpoints</b> and <b>Component Loading</b> (UNET/CLIP/VAE).<br><b>Auto-Fix:</b> Detects and handles Wan2.1 and Lumina architectures automatically."
-    },
-    "H4_DocuScribe": {
-        title: "DocuScribe",
-        desc: "The Workflow Documenter.<br>Connect nodes to this, and it will generate a Markdown report file detailing every setting, class type, and name of the connected nodes."
-    },
-    "H4_FaceForge": {
-        title: "FaceForge (AIO)",
-        desc: "<b>All-In-One Face Swap Suite.</b><br>Combines Face Swapping, Restoration (CodeFormer/GFPGAN), Boosting, Upscaling, and SAM-based Occlusion Masking into a single node."
-    },
-
-    // --- OBSCURE ---
-    "H4_Gridinator": {
-        title: "Gridinator 9001",
-        desc: "<b>ITS OVER 9000?!?!</b><br>Arranges images into a massive grid.<br>Useful for batch visualizations."
-    },
-    "H4_Discombobulator": {
-        title: "The Discombobulator",
-        desc: "<b>⚠️ USE WITH CAUTION</b><br>Randomly disconnects or scrambles wires in your workflow.<br>Why? Because chaos is fair."
-    }
-};
 
 export const h4_Dashboard = {
     modal: null,
@@ -350,7 +276,7 @@ export const h4_Dashboard = {
         // 1. MASTER GATE
         const masterBox = document.createElement("div");
         masterBox.style.cssText = "background: rgba(0,242,255,0.05); border: 1px solid rgba(0,242,255,0.2); padding: 15px; margin-bottom: 20px; border-radius: 4px;";
-        this.addBool(masterBox, "qolMasterOverride", "MASTER QoL OVERRIDE", "When OFF, all QoL features below are globally silenced.");
+        this.addBool(masterBox, "qolMasterOverride", "MASTER QoL OVERRIDE", "The primary jurisdiction gatekeeper. When disabled, all subordinate QoL enhancements are silenced and detached from the system.");
         container.appendChild(masterBox);
 
         const groupStyle = "color: #555; font-size: 10px; letter-spacing: 2px; margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 5px;";
@@ -358,25 +284,25 @@ export const h4_Dashboard = {
         // 2. CANVAS HACKS
         const h1 = document.createElement("div"); h1.style.cssText = groupStyle; h1.textContent = "CANVAS HYGIENE";
         container.appendChild(h1);
-        this.addBool(container, "enabled", "Big Brother Overlay", "Master Switch for the passive surveillance grid and wires.");
-        this.addBool(container, "showGrid", "Cyberpunk Grid", "Draws the animated background grid wipe.");
-        this.addBool(container, "showWires", "Data Flow Wires", "Highlights active/selected node connections.");
-        this.addBool(container, "deadWeightEnabled", "Dead Weight Detector", "Enables the D.W.D (Kirby) button in the toolbar.");
-        this.addBool(container, "monitorEnabled", "Passive System Monitor", "Log execution and network activity to the console.");
+        this.addBool(container, "enabled", "Big Brother Overlay", "Engages the global Passive Surveillance Grid. When enabled, a tactical HUD overlay monitors canvas activity, selected nodes, and active data streams in real-time.");
+        this.addBool(container, "showGrid", "Cyberpunk Grid", "Renders an animated, high-fidelity background grid. Provides visual depth and alignment anchors for complex tactical workflows.");
+        this.addBool(container, "showWires", "Data Flow Wires", "Enables predictive connection highlighting. Active or selected node paths will glow with data-flow energy, making signal tracing intuitive in dense graphs.");
+        this.addBool(container, "deadWeightEnabled", "Dead Weight Detector", "Deploys the D.W.D (Kirby) unit to the main toolbar. Scans the active graph for orphaned nodes, broken links, and logical dead-ends.");
+        this.addBool(container, "monitorEnabled", "Passive System Monitor", "Exfiltrates system events, execution logs, and network telemetry directly to the console controller for forensic debugging.");
 
         // 3. UI ENHANCEMENTS
         const h2 = document.createElement("div"); h2.style.cssText = groupStyle; h2.textContent = "UI INTERFACE";
         container.appendChild(h2);
-        this.addBool(container, "sovereignCoreEnabled", "H4 Node Aesthetic", "Forces H4 colors on all compatible nodes.");
-        this.addBool(container, "caffeineEnabled", "Caffeine Mode Button", "Shows the screen wake-lock button (Kirby Sleep).");
-        this.addBool(container, "kickItEnabled", "Kick-The-Grid Button", "Shows the canvas defibrillator button.");
-        this.addBool(container, "showErrorPopup", "Red Screen of Death", "Show the forensic error modal on crashes.");
+        this.addBool(container, "sovereignCoreEnabled", "H4 Node Aesthetic", "Enforces Sovereign H4 Branding across the canvas. Themes all compatible nodes with the signature cyan-and-black aesthetic for visual consistency.");
+        this.addBool(container, "caffeineEnabled", "Caffeine Mode Button", "Adds the wake-lock override (Kirby Sleep) to the toolbar. Prevents the display from entering low-power states during long generation sequences.");
+        this.addBool(container, "kickItEnabled", "Kick-The-Grid Button", "Installs the canvas defibrillator in the toolbar. Force-refreshes the LiteGraph rendering pipeline to resolve ghost artifacts or UI stutters.");
+        this.addBool(container, "showErrorPopup", "Red Screen of Death", "Replaces generic alerts with a high-fidelity forensic error modal. Provides detailed stack traces and system state snapshots upon execution failure.");
 
         // 4. EXPERIMENTAL
         const h3 = document.createElement("div"); h3.style.cssText = groupStyle; h3.textContent = "EXPERIMENTAL QoL";
         container.appendChild(h3);
-        this.addBool(container, "smartSnapping", "Node Snapping", "Enables pixel-perfect node alignment.");
-        this.addBool(container, "ioColoring", "Dynamic Input Coloring", "Colors node sockets based on their data type.");
+        this.addBool(container, "smartSnapping", "Node Snapping", "Engages sub-pixel magnetic alignment. Ensures nodes snap into professional, grid-aligned positions automatically.");
+        this.addBool(container, "ioColoring", "Dynamic Input Coloring", "Real-time socket chromatic analyzer. Colors input and output ports based on their data class (Images, Tensors, Flow) for rapid identification.");
 
         // Visual dimming if master is off
         const refreshDim = () => {
@@ -532,6 +458,7 @@ export const h4_Dashboard = {
                 // --- EVENTS ---
 
                 // Click Card -> Open Docs ("The Book of H4")
+                // card.onclick -> Open Docs
                 card.onclick = (e) => {
                     if (e.target.classList.contains("h4-btn-summon")) return;
                     this.openNodeDocs(n);
@@ -542,10 +469,6 @@ export const h4_Dashboard = {
                 btnSummon.onclick = () => {
                     this.summonNode(n.type);
                 };
-
-                // Hover Preview
-                card.onmouseenter = (e) => this.showHoverPreview(e, n);
-                card.onmouseleave = () => this.hideHoverPreview();
 
                 grid.appendChild(card);
             });
@@ -559,148 +482,6 @@ export const h4_Dashboard = {
 
         // Inject Styles if needed
         this.injectNodeGridCSS();
-    },
-
-    summonNode(type) {
-        if (!app.graph) return;
-
-        const node = LiteGraph.createNode(type);
-        if (node) {
-            node.pos = [
-                app.canvas.ds.offset[0] * -1 + (app.canvas.canvas.width / 2 / app.canvas.ds.scale) - 100,
-                app.canvas.ds.offset[1] * -1 + (app.canvas.canvas.height / 2 / app.canvas.ds.scale) - 40
-            ];
-            app.graph.add(node);
-            app.canvas.selectNode(node);
-            app.canvas.bringToFront(node);
-
-            // Optional: Close modal on summon?
-            this.close();
-
-            // Feedback
-            this.showToast(`SUMMONED: ${type}`);
-        } else {
-            console.error("Failed to create node:", type);
-        }
-    },
-
-    showToast(msg) {
-        const t = document.createElement("div");
-        t.style.cssText = `
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #00f2ff; color: #000; padding: 10px 20px;
-            font-family: monospace; font-weight: bold; z-index: 20000;
-            border-radius: 4px; box-shadow: 0 0 10px #00f2ff;
-        `;
-        t.textContent = msg;
-        document.body.appendChild(t);
-        setTimeout(() => t.remove(), 2000);
-    },
-
-    // HOVER PREVIEW SYSTEM
-    previewEl: null,
-
-    showHoverPreview(e, nodeData) {
-        if (!this.previewEl) {
-            this.previewEl = document.createElement("div");
-            this.previewEl.id = "h4-hover-preview";
-            document.body.appendChild(this.previewEl);
-        }
-
-        const p = this.previewEl;
-        p.style.display = "block";
-        p.innerHTML = `
-            <div style="color: #00f2ff; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 5px;">
-                ${nodeData.def.title}
-            </div>
-            <div style="font-size: 11px; color: #aaa;">
-                ${nodeData.def.desc || "No description available in protocol."}
-            </div>
-            <!-- Image placeholder -->
-            <div style="margin-top: 10px; width: 200px; height: 100px; background: #111; display: flex; align-items: center; justify-content: center; color: #333; font-size: 10px; border: 1px solid #222;">
-                [PREVIEW SIGNAL LOST]
-            </div>
-        `;
-
-        // Position Logic (Follow Mouse or Fixed side)
-        // Let's float near the mouse but not under it
-        const updatePos = (mx, my) => {
-            p.style.left = (mx + 20) + "px";
-            p.style.top = (my + 20) + "px";
-        };
-        updatePos(e.clientX, e.clientY);
-
-        // Attach move listener to card? OR just update once. 
-        // Simple fixed offset is safer to avoid flicker.
-        // Actually, let's just create a mousemove handler on the card temporarily?
-        // Simpler: Just set it once on enter.
-    },
-
-    hideHoverPreview() {
-        if (this.previewEl) this.previewEl.style.display = "none";
-    },
-
-    // DOCUMENTATION (THE BOOK OF H4)
-    openNodeDocs(nodeData) {
-        // 1. Resolve Content
-        // Check our manual registry first, fallback to node definition
-        const content = NODE_CONTENT[nodeData.type] || {};
-
-        // Fallbacks
-        const title = content.title || nodeData.def.title || nodeData.type;
-        const desc = content.desc || nodeData.def.desc || "No comprehensive data available in archives.";
-        const category = nodeData.def.category || "Unknown";
-
-        // Create an overlay on top of the dashboard
-        const doc = document.createElement("div");
-        doc.className = "h4-doc-overlay";
-        doc.innerHTML = `
-            <div class="h4-doc-content">
-                <div class="h4-doc-close">CLOSE FILE</div>
-                <h1>${nodeData.def.title}</h1>
-                <div class="h4-doc-meta">ID: ${nodeData.type} | CAT: ${nodeData.def.category || "Unknown"}</div>
-                
-                <hr style="border-color:#333; margin: 20px 0;">
-                
-                <div class="h4-doc-body">
-                    <h3>// SYNOPSIS</h3>
-                    <p>${nodeData.def.desc || "No data available in archives."}</p>
-                    
-                    <h3>// INPUTS</h3>
-                    <ul>
-                        ${(nodeData.def.input?.required ? Object.keys(nodeData.def.input.required).map(k => `<li>${k}</li>`).join('') : "<li>None</li>")}
-                    </ul>
-                    
-                    <h3>// OUTPUTS</h3>
-                    <ul>
-                         ${(nodeData.def.output ? nodeData.def.output.map(k => `<li>${k}</li>`).join('') : "<li>None</li>")}
-                    </ul>
-
-                    <br><br>
-                    <div style="text-align:center; padding: 20px; border: 1px dashed #333; color: #555;">
-                        [ ADVANCED USAGE DATA CORRUPTED ]<br>
-                        Please consult the Github Repository for advanced field maneuvers.
-                    </div>
-                </div>
-            </div>
-        `;
-
-        this.modal.appendChild(doc);
-
-        // Animation
-        requestAnimationFrame(() => doc.classList.add("open"));
-
-        doc.querySelector(".h4-doc-close").onclick = () => {
-            doc.classList.remove("open");
-            setTimeout(() => doc.remove(), 300);
-        };
-
-        doc.onclick = (e) => {
-            if (e.target === doc) {
-                doc.classList.remove("open");
-                setTimeout(() => doc.remove(), 300);
-            }
-        };
     },
 
     injectNodeGridCSS() {
@@ -822,128 +603,222 @@ export const h4_Dashboard = {
     },
 
     LORE: {
-        "H4_ModelMerger": {
-            "title": "H4 Model Merger (The Lab)",
-            "description": "Okay, welcome to the Thunderdome. This isn't your average model merger. This is absolute, unadulterated MAD SCIENCE. We're talking deep, block-level weight manipulation—injecting the soul of one model into the body of another. Unlike basic mergers that just average everything out into a muddy mess, this bad boy lets you surgically target specific layers of the UNet. Want the composition of an SDXL base but the shading of that obscure anime checkpoint you found on Civitai at 3 AM? You can do that. Want to fix broken hands by grafting the 'Out' blocks of a better model? You can try. Just be warned: If you push the sliders too far, you're gonna conjure eldritch horrors. But when it hits? It's pure magic.",
-            "usage": "Use this node when you're tired of using the same old checkpoints everyone else uses. It's for creating custom hybrid models on the fly, directly in your workflow, without filling your hard drive with 50GB of intermediate files. The 'Test Image' output lets you verify the merge instantly before you commit to a long render.",
-            "tips": ["Use 'Weighted Average' unless you have a PhD in math.", "Unlock 'Settings' to experiment. Lower Input blocks usually affect composition/shapes. Higher Output blocks affect fine details/textures/lighting.", "If you seek pure speed, turn 'decode_test_image' OFF and use the 'TEST_LATENT' output."]
-        },
-        "H4_Comparinator": {
-            "title": "H4 Comparinator (The Sniper)",
-            "description": "Ever generate two images and squint at them trying to decide which one has better hands? Yeah, we all have. The Comparinator fixes that. It's a professional-grade A/B testing suite with a built-in SNIPER SCOPE. It captures your image stream, saves a history (locally, in 'The Vault'), and lets you compare generations side-by-side with a slick sliding divider. You can lock a 'Gold Standard' image to the left pane and endlessly compare new variations against it on the right. It's the ultimate tool for refining prompts or testing checkpoints.",
-            "usage": "Throw this at the very end of your workflow. Instead of a 'Save Image' or 'Preview Image' node, use this. It does both, but better. Trust me, once you start using the slider, you can't go back.",
-            "tips": ["Use the 'Auto-Previous' feature to iterate quickly on prompts. It's a game changer.", "Right-click to Lock. Seriously, try it.", "Click the 'Parameters Toggle' to open the Metadata Drawer and see exactly what seed/prompt created that masterpiece."]
-        },
-        "H4_SmartSave": {
-            "title": "H4 SmartSave (The Brain)",
-            "description": "Saving images shouldn't be dumb. The default saver just dumps files. This one? This one has an IQ of 200. It embeds every single piece of metadata—prompt, seed, model hash, workflow graph—directly into the PNG chunks. But it also gives you a UI to *inspect* that data before you save. Plus, you can add custom user notes that get burned into the metadata too. Never forget *why* you used that specific LorA again.",
-            "usage": "Replace the standard 'Save Image' node. Toggle 'Save to Disk' to actually write files, otherwise it just previews."
+        // --- LOGIC & TRAFFIC CONTROL ---
+        "H4_TrafficRouter": {
+            "title": "H4 Traffic Router // THE NEXUS",
+            "description": "The definitive command-and-control center for cyclic workflows. In a standard 'vending machine' workflow, data moves once and dies. The Nexus changes that. It acts as a jurisdictional gatekeeper: on the first run (Run 0), it sources data from your 'Start' input. On every subsequent loop (Run 1+), it instantly redirects to the 'Loop' input. This allows for recursive refining, feedback loops, and multi-stage creative evolutions without manually shifting wires.",
+            "usage": "The core of your engine. Connect your initial Load Image to 'first_run_in' and the refined result from the end of your chain (likely via an H4_ImageBuffer) to 'loop_run_in'. It coordinates the hand-off between creation and refinement perfectly.",
+            "tips": ["Use the 'Smart Denoise' outputs to differentiate between the heavy lifting of the first pass and the surgical refinement of the loops.", "If inputs are missing, the Router defaults to a safe-pass mode to prevent workflow crashes."]
         },
         "H4_TrafficCop": {
-            "title": "H4 Traffic Cop (Legacy Splitter)",
-            "description": "Standard Logic Gates in ComfyUI are kinda... fragile. This node acts as a specific 'Start vs Loop' splitter. It takes one input and sends it to the 'Start' output on Run 0, and the 'Loop' output on Run 1+. It's a legacy version of the Router logic, useful for simpler setups.",
-            "usage": "Use this if you want to fork a single input into two different processing chains based on whether it's the first run or a loop."
+            "title": "H4 Traffic Cop // THE FORK",
+            "description": "A logic-based bifurcator. While the Router merges, the Cop splits. It detects the current system state and routes a single input signal to either the 'Start' or 'Loop' output path. It is essentially a 'Switch' node that understands time.",
+            "usage": "Use this when you want a specific part of your workflow to *only* fire during the first generation, or *only* during the recursive loops (e.g. only adding grain on the final pass).",
+            "tips": ["Connect a single data source (like a prompt) and fork it into two different encoders based on loop count."]
         },
         "H4_TrafficMerge": {
-            "title": "H4 Traffic Merge (The Zipper)",
-            "description": "Okay, so you split your workflow into two paths. Now how do you bring them back together? With the Zipper. This node takes two inputs and intelligently selects the one that matches the current Loop Count phase. It also handles Denoise switching just like the Router."
-        },
-        "H4_TrafficRouter": {
-            "title": "H4 Traffic Router (The Big Boss)",
-            "description": "This is the big daddy. It combines the Traffic Cop and Traffic Merge into one massive brain. It manages the 'Loop Count' of your workflow. Run 0 (Start)? It routes data from the 'First Run' input. Run 1+ (Loop)? It switches to the 'Loop Run' input. It completely automates multi-stage workflows.",
-            "usage": "The core of any 'Live Logic' or 'Feedback Loop' workflow. Connect your 'Load Image' to 'first_run_in' and your 'Refined Image' (from the end of the chain) to 'loop_run_in'."
+            "title": "H4 Traffic Merge // THE ZIPPER",
+            "description": "The inverse of the Traffic Cop. It pulls from two separate logic paths and 'Zips' them into a single coherent stream based on the loop phase. It is hardened against cycle errors and features a specialized 'Wireless Buffer' integration to prevent ComfyUI from panicking during feedback loops.",
+            "usage": "Perfect for bringing divergent logic chains back together before they hit the KSampler.",
+            "tips": ["Enable 'Auto-Loop-Reset' if you want the counter to clear when you disconnect the primary input."]
         },
         "H4_LoopIncrementer": {
-            "title": "H4 Loop Incrementer",
-            "description": "The engine. This tiny node does one thing: It adds +1 to the global counter. But where you put it matters. Place it *after* your KSampler or Save Node. It ensures that the counter only goes up when a generation performs successfully.",
-            "usage": "Connect your image output through this node. It passes the image through unchanged, but triggers the system to say 'Ok, Run 1 is done. Next is Run 2.'"
+            "title": "H4 Loop Incrementer // THE CLICKER",
+            "description": "The odometer of your creative process. Every time data passes through this node, it signals the global H4 Kernel that a step is complete. It is the engine that drives the Traffic Router's decision-making process.",
+            "usage": "Place this immediately after your primary generation or save node. It passes data through with zero latency while updating the system state.",
+            "tips": ["Always place it *after* nodes that could potentially fail. You only want the count to go up if the step actually worked."]
         },
         "H4_WirelessResetButton": {
-            "title": "H4 Wireless Reset Button",
-            "description": "It's a big red button. But virtual. And wireless. Sometimes your loop gets stuck or you just want to start fresh without reloading the workflow. Pressing (toggling) this sends a telepathic signal to the Loop Incrementer to reset the counter to 0."
+            "title": "H4 Wireless Reset // THE RED BUTTON",
+            "description": "A virtual, wireless kill-switch. When your loop has achieved perfection—or if it's spiralling into chaos—you need a way to clear the deck. This button sends a sub-atomic signal across the entire graph to reset the Mission Control counter to zero instantly.",
+            "usage": "Keep it near your 'Play' button. Toggle it whenever you want to start a 'Run 0' from scratch.",
+            "tips": ["It is non-destructive. It only resets the internal counter; it never deletes your work."]
         },
-        "H4_ImageBuffer": {
-            "title": "H4 Universal Buffer (The black Hole)",
-            "description": "Loops in ComfyUI are hard because of 'execution order'. The graph wants to move forward, not backward. The Image Buffer cheats. It creates a pocket dimension (global variable) where it stores the image from the end of the loop. Then, the Traffic Router can teleport that image back to the start for the next run. It eliminates the dreaded '1-Cycle Lag' where your loop is always using old data.",
-            "usage": "Put this at the VERY END of your loop chain. It catches the result and holds it for the Router."
-        },
-        "H4_StateMonitor": {
-            "title": "H4 State Monitor",
-            "description": "Lost? Confused? Don't know if you're on Run 5 or Run 500? The State Monitor simply displays the current Loop Count as an integer. Wire it up to a display text node to keep track of your sanity."
-        },
+
+        // --- CONTEXT & DATA BUNDLING ---
         "H4_ContextHub": {
-            "title": "H4 Context Hub (The Mothership)",
-            "description": "Spaghetti wires are the enemy of creativity. The Context Hub is your cable management solution. It takes up to 10 different types of inputs (Model, VAE, CLIP, Positive, Negative, Latent, Images, Masks...) and bundles them into a SINGLE distinct connection called 'H4_PIPE'. You can run this single purple wire across your entire graph.",
-            "usage": "Place this at the start of your workflow. Plug everything in. Then just run one wire to where you're going. You can even chain them by connecting an existing pipe to 'base_pipe'."
+            "title": "H4 Context Hub // THE MOTHERSHIP",
+            "description": "Cables are the enemy of clarity. The Context Hub is your tactical wiring solution. It accepts every conceivable ComfyUI data type—Models, VAEs, CLIPs, Conds, Latents, Images, and Masks—and bundles them into a single, high-bandwidth 'H4_PIPE'. One purple wire to rule them all.",
+            "usage": "Place it at the start of your graph. Feed it your 'Base' components. Then, just drag one single wire across your canvas to the destination.",
+            "tips": ["Chaining Hubs allows you to 'Update' a pipe. Connect an old pipe to 'base_pipe' and plug in a new VAE—the Mothership will intelligently swap the component in transit."]
         },
         "H4_ContextUnpack": {
-            "title": "H4 Context Unpack (The Receiver)",
-            "description": "The Receiver. It takes the single 'H4_PIPE' connection from the Mothership (Hub) and explodes it back out into its 10 individual components. Place this near your KSampler or Detailer nodes to get access to the models/conditions you bundled up earlier."
+            "title": "H4 Context Unpack // THE DISTRIBUTOR",
+            "description": "The destination for your Mothership's signal. It takes the bundled 'H4_PIPE' and decodes it back into its individual components with zero loss and zero latency.",
+            "usage": "Place this near your KSamplers or processing nodes. Instead of running 10 wires from the left side of the map, just plug in the Pipe and pull what you need.",
+            "tips": ["Unused outputs are 'Safe'. They won't cause errors if left disconnected."]
         },
-        "H4_LatentSelector": {
-            "title": "H4 Latent Selector (The Canvas)",
-            "description": "Don't guess resolutions. This node provides safe, trained aspect ratios for every major model (SD1.5, SDXL, Flux, and Wan/Z-Image video). It outputs a compliant empty latent and the width/height integers. \n\n **Wan/Z-Image Support:** selects 720p/1080p equivalent resolutions.",
-            "usage": "Pick a model type. Pick a shape. Connect to KSampler or VAE Encode."
+        "H4_Oxidine": {
+            "title": "H4 Oxidine // THE SENTIENT CONDUIT",
+            "description": "A paradigm-shifting approach to connectivity. Oxidine is an 'Omni-Proxy'. It is a single node with one input and one output that *automatically shapeshifts* to match whatever is plugged into it. If you plug in a Model, it is a Model. If you plug in a Mask, it is a Mask.",
+            "usage": "Use it to pass data through your graph without knowing the type in advance. It prevents 'Type Mismatch' errors by acting as a universal translator.",
+            "tips": ["Extremely useful for modular workflow templates where components might be swapped frequently."]
         },
+
+        // --- MISSION CONTROL ---
+        "H4_MissionControl": {
+            "title": "H4 Mission Control // THE FLIGHT DECK",
+            "description": "The administrative heart of the toolkit. While the Router handles the plumbing, Mission Control handles the soul. It tracks the global loop count, provides real-time telemetry on system health, and coordinates all scheduler signals. It is the conductor that ensures every node is playing in the correct key.",
+            "usage": "Required for any 'Live' workflow. Set to 'Active' to drive the generation loop, or 'Passive' to simply monitor state. It acts as the anchor point for your creative process.",
+            "tips": ["Features a 'Wireless Reset' listener—pair it with the Red Button for tactical control."]
+        },
+        "H4_LinearScheduler": {
+            "title": "H4 Linear Scheduler // THE RAMP",
+            "description": "Control change over time with mathematical precision. This node generates a ramping float value based on where you are in your loop. You define the Start, the End, and the Max steps, and it handles the trajectory.",
+            "usage": "Perfect for 'Denoise Ramps' (e.g. Start at 0.8 on Run 0, and slowly drop to 0.1 by Run 5) or CFG sweeps.",
+            "tips": ["Use 'Loop Mode' to have the ramp automatically reset and restart once it hits the maximum value."]
+        },
+        "H4_SeedGenerator": {
+            "title": "H4 Seed Generator // SIGNAL GEN",
+            "description": "The source of controlled randomness. Unlike standard seed nodes that are either 'fixed' or 'randomized' per-queue, this node is 'Sequence Aware'. It can increment, decrement, or scramble seeds based on the H4 loop state.",
+            "usage": "Use 'Incremental' to explore the neighbors of a specific seed across multiple runs, or 'Loop Sync' to ensuring a specific seed only changes when the loop resets.",
+            "tips": ["Perfect for 'Exploratory Grids' where you want to see how a prompt evolves across 10 different seeds."]
+        },
+
+        // --- LOADERS & FILE OPS ---
         "H4_UniversalLoader": {
-            "title": "H4 Universal Loader (The Source)",
-            "description": "The One Loader to Rule Them All. It handles standard Checkpoints (.safetensors) AND separated Diffusers components (UNET/CLIP/VAE). It also inherently accepts single LoRAs.\n\n **Features:** \n - **Smart Validaton**: Detects if you mix SDXL limits with T5 encoders (crash prevention). \n - **GGUF Support**: Auto-delegates to ComfyUI-GGUF input (if installed) for quantized models. \n - **Wan Support**: Native detection and loading for Wan 2.1 video models (including GGUF).",
-            "usage": "Select 'Checkpoint' for normal use. Select 'Diffusers' for advanced mixing."
+            "title": "H4 Universal Loader // SKELETON KEY",
+            "description": "The only loader you will ever need. It intelligently bridges the gap between 'Checkpoints' (Safetensors), 'Diffusers' (Directory-based), and 'GGUF' (Quantized). It also features built-in LoRA support and 'Architecture Detection'—meaning it automatically configures itself for SDXL, Flux, or the new Wan 2.1 video models without you lifting a finger.",
+            "usage": "Simply select your model. The node will probe the file headers, determine the required CLIP/VAE configuration, and 'just work.' It's magic.",
+            "tips": ["Features 'GGUF Delegation'—if you select a GGUF file, it automatically routes the processing through the GGUF kernel if installed."]
         },
         "h4_Complete_Loader": {
-            "title": "H4 Complete Loader (The Swiss Army Knife)",
-            "description": "The Universal Loader on steroids. It inherits all the insane automated architecture routing of the standard Source Loader, but it features a custom HTML-overlay interface that hides all the image uploading bloat until you click 'Smart Upload Image(s)'. You grab 4 images, it magically spawns the inputs and loads them right out into the graph alongside your Checkpoint/UNET, VAE, CLIP, and LoRA. The interface is mathematically bound to have a zero-pixel footprint for any features you aren't currently using.",
-            "usage": "Drop it in, choose your model and LoRA, and click the upload button if you need reference inputs. Drag outputs straight to your IPAdapters."
+            "title": "H4 Complete Loader // THE SWISS ARMY",
+            "description": "A high-density loader designed for performance. It features a tactical HTML overlay that stays hidden until needed. Click 'Smart Upload' and it expands to handle up to 4 reference images, patching them directly into your workflow alongside the model and LoRA stack. It's designed to have a zero-pixel footprint for any feature you aren't using.",
+            "usage": "The ultimate starter node. Load your model, your LoRA, and your reference images in one tiny box.",
+            "tips": ["Drag an image *directly* onto the node to 'Smart Upload' it instantly."]
         },
         "h4_Multi_ImgUpload": {
-            "title": "H4 Multi Image Upload (The Bulk Handler)",
-            "description": "Stripped of the models, stripped of the LoRAs, this is just for raw image ingestion. Same magic smart-upload button as the Complete Loader, but it scales up to 10 images at once. Unused slots are fully collapsed so it never takes up ungodly amounts of canvas real estate.",
-            "usage": "Click 'Smart Upload Image(s)' and select up to 10 files. Connect the resulting images wherever needed."
+            "title": "H4 Multi-Upload // THE GALLERY",
+            "description": "For when one image isn't enough. A dedicated image ingestion engine that supports up to 10 simultaneous uploads via a single tactical button. It uses dynamic socket allocation, meaning it only shows as many outputs as you have images uploaded.",
+            "usage": "Perfect for batch processing, IPAdapter reference sets, or building massive image grids.",
+            "tips": ["Upload 10 images and watch it scale. Delete half and watch the sockets collapse to keep your canvas clean."]
+        },
+        "H4_SmartSave": {
+            "title": "H4 SmartSave // THE FORENSIC VAULT",
+            "description": "The gold standard for image output. It's not just a file saver; it's a metadata forensic lab. It 'Fingerprints' every image by embedding the entire prompt, seed, model hashes, and the workflow graph itself into the PNG chunks. It features a 'History Rail' (The Viewport) that tracks every generation in your session with high-res previews and metadata inspection.",
+            "usage": "Replace your standard Save nodes. Toggle 'Save to Disk' to commit files, or leave it OFF for 'Stealth Mode' (RAM-only preview). Click the '?' Icon for the History Rail.",
+            "tips": ["Use 'Privacy Mode' to blur the history thumbnails if you're streaming or in public.", "Right-click the History Rail to 'Export DNA' (Save metadata as JSON)."]
         },
         "H4_ModelSave": {
-            "title": "H4 Model Save (The Vault)",
-            "description": "Saves your creation properly. Supports standard floating point formats (FP16, BF16, FP32) and the new Float8 formats (e4m3fn) if your torch version supports it. Features 'Nuclear RAM Saver' which writes the file iteratively to disk, preventing memory crashes when saving massive 10GB+ files.",
-            "usage": "Connect Model/CLIP/VAE. Pick a filename. Save."
+            "title": "H4 Model Save // THE VAULT",
+            "description": "Safeguard your fine-tunes or merges. This node handles the complex task of serializing massive model weights to disk without crashing your system. It features 'Nuclear RAM Saver' technology that writes the file in chunks, circumventing the OOM (Out Of Memory) errors common when saving 10GB+ checkpoints.",
+            "usage": "Connect your merged Model, CLIP, and VAE. Pick a format (FP16, BF16, or the new E4M3FN Float8). Name it and commit.",
+            "tips": ["Always use BF16 for modern architectures (SDXL/Flux) and FP16 for SD1.5 to ensure best precision-to-weight ratio."]
+        },
+
+        // --- IMAGE PROCESSING ---
+        "H4_Mutate": {
+            "title": "H4 Mutate // THE FINISHER",
+            "description": "The definitive post-processing monolith. Why chain 10 nodes for sharpness, color grading, and film grain when you can do it in one? Mutate is a 7-stage image manipulation pipeline: Color Grade, Sharpness, Upscale, Style Transfer, Film Emulation, Vignette, and FX. Each section is modular—it only expands and uses compute when you turn it ON.",
+            "usage": "Drop it at the end of your workflow. Turn on 'Film' for Portra 400 emulation. Turn on 'Color' to push the shadows. It's the 'Final Polish' node.",
+            "tips": ["Change the 'Pipeline Order' to determine if you sharpen *before* or *after* the upscale. It makes a huge difference in the final look."]
         },
         "H4_PixelPress": {
-            "title": "H4 Pixel Press (Density/HDR)",
-            "description": "The Density God. Supersample your image (2x-4x), apply HDR tone mapping (Shadows/Highlights), sharpen, and downscale back to original size. This creates 'Super Density' where pixel crispness is unmatched. Supports Tiled processing to save VRAM.",
-            "usage": "Connect Image. Select 2x. Enable HDR. Queue."
-        },
-        "H4_VisualTokenizer": {
-            "title": "H4 Visual Tokenizer (The Mind)",
-            "description": "Visualize token processing. Displays how your prompt is broken down into tokens and weighted by the CLIP model. Helps debug why 'cat' is being ignored.",
-            "usage": "Connect CLIP and write Text. Run. See visualization in the node."
-        },
-        "H4_MissionControl": {
-            "title": "H4 Mission Control (The Flight Deck)",
-            "description": "This is the brain of your loop. While the Traffic Router handles the plumbing, Mission Control handles the administrative state. It increments the global Loop Counter, listens for Wireless Reset signals, and provides a central dashboard for your loop's status. It also acts as a pass-through for scheduler signals. \n\n Think of it as the conductor of the orchestra. Without it, the violinists (your schedulers) don't know when to start playing.",
-            "usage": "Use this as the start of your 'Control Stack'. Set it to 'Active' to drive the loop. Set to 'Passive' if you just want to watch."
-        },
-        "H4_Gridinator": {
-            "title": "H4 Gridinator 9001 (OVER 9000!!!)",
-            "description": "Welcome to the endgame. The Gridinator is an X/Y/Z Plotter on steroids. Unlike other grid nodes that require complex node setups, this is a MONOLITH. It handles Model Loading, LoRA patching, Sampling, Decoding, and Stitching all internally. It supports fuzzy-matching for model names. It features a 'Sliding Scale' generator. It even supports 'Prompt Stutter'.",
-            "usage": "Connect a VAE (optional). Set your axes. Click Queue. Wait for the magic."
+            "title": "H4 Pixel Press // THE DENSITY GOD",
+            "description": "A professional-grade HDR and Density engine. It supersamples your image, applies custom tone mapping to recover blown-out highlights and crushed shadows, sharpens at the super-resolution level, and downsamples back to target. The result is an image with 'High Information Density' and zero aliasing.",
+            "usage": "Use this for 'High-End' outputs where standard upscaling isn't crisp enough. It mimics the look of high-end camera sensors.",
+            "tips": ["Enable 'Tiled' mode for massive 4K+ renders to keep your VRAM happy."]
         },
         "H4_FaceForge": {
-            "title": "H4 FaceForge (The Flagship)",
-            "description": "The ultimate All-In-One face manipulation node. It handles Swapping, Restoration, Boosting (High-Res Swap), Upscaling, and Occlusion Masking (preventing the face from pasting over hair/hands) all in one go.",
-            "usage": "Connect an Image. Turn on features. Queue."
+            "title": "H4 FaceForge // THE SURGEON",
+            "description": "The flagship face manipulation suite. It's not just a face swapper; it's a full reconstructive engine. It combines Swapping (InsightFace), Restoration (CodeFormer/GFPGAN), and 'Boosting' (performing a high-res generation pass on the face) into a single, automated workflow.",
+            "usage": "Feed it a source and destination. It handles the alignment, swapping, and blending automatically. Features 'Occlusion Guard' to prevent hair/hands from being 'swapped away.'",
+            "tips": ["Enable 'Face Boosting' to 2x the face resolution before restoration for the most realistic skin textures."]
         },
-        "H4_IdentityEngine": {
-            "title": "H4 Identity Engine (Character Studio)",
-            "description": "A standalone powerhouse for creating consistent characters. It combines a Checkpoint Loader, CLIP Text Encode, KSampler, and FaceForge into one massive node. You define the 'DNA' (fixed traits) and the 'Scene' (action), and it generates the image with the face already swapped and restored.",
-            "usage": "Load a Preset. Type a scene. Queue."
+        "h4_pythonipulator_inator": {
+            "title": "h4 Pythonipulator-inator // THE IMAGE KERNEL",
+            "description": "[ WIP ] A raw, distributed image manipulation kernel that exposes low-level Python primitives (OpenCV/Pillow/Numpy) as tactical blocks. It is designed for 'Degenerate Art'—glitching, geometric scrambling, and extreme bit-level operations that standard nodes can't touch.",
+            "usage": "Experimental usage only. Use to add 'Cyberpunk' glitches or mathematical artifacts to your image stream.",
+            "tips": ["The 'Glitch-Core' settings can create anything from subtle VHS noise to total digital annihilation."]
         },
-        "H4_FaceDetailer": {
-            "title": "H4 Face Detailer (The Surgeon)",
-            "description": "Face Swaps often lose texture (skin pores, wrinkles). The Detailer fixes this by cropping the face, running a high-res Img2Img pass on it with a specialized model/LoRA, and blending it back using a soft-edge mask.",
-            "usage": "Connect image. Adjust denoise. Queue."
+
+        // --- GRID & TESTING ---
+        "H4_Gridinator": {
+            "title": "H4 Gridinator // THE MONOLITH",
+            "description": "An X/Y/Z Plotter without the spaghetti. Gridinator is a self-contained generation environment that handles model switching, LoRA patching, and sampling internally. You define your axes (e.g. X = Prompt, Y = Model, Z = Denoise) and it builds the entire comparison grid in one go.",
+            "usage": "Perfect for testing which LoRA at which strength works best with which Checkpoint. Highly efficient—it only reloads models when they actually change on the axis.",
+            "tips": ["Use 'Fuzzy Mapping' for model names—no need to type the full '.safetensors' path, just a keyword will find it."]
         },
-        "H4_Mutate": {
-            "title": "H4 Mutate (The Frankenstein Machine)",
-            "description": "Look, generating an image is only half the battle. Once the pixels hit the canvas, you usually stare at it and think: 'Hmm, could be punchier.' Instead of chaining 15 different image processing nodes together, you use H4_Mutate. It is a monolithic, dynamically toggleable post-processing powerhouse giving you 7 distinct sections of image manipulation: Color Grade, Sharpness, Upscale, Style Transfer, Film & Grain, Vignette, and Effects.\n\nThe best part? It's completely modular. The node starts as a clean pass-through. You only turn ON the sections you need, and only those controls expand.",
-            "usage": "Drop it after your primary generation. Turn on Color to tweak gamma/tint. Turn on Film to add Portra 400 emulation. Turn on Effects to add bloom. Reorganize the Pipeline Order if you want upscale to happen before sharpening."
+        "H4_Comparinator": {
+            "title": "H4 Comparinator // THE SNIPER",
+            "description": "Professional-grade A/B testing. It features a 3-pane viewport with a sliding divider for pixel-accurate comparisons. It saves every generation to a local 'Vault' history, allowing you to drag past images back into the view. Includes a 'Sniper Scope' for inspecting fine details (eyes, hands) at 4x magnification.",
+            "usage": "Place it at the end of your workflow. Compare your current run against your 'Gold Standard' reference on the left.",
+            "tips": ["Use the 'Telemetry Drawer' to see the exact prompt and seed differences between the two images you are comparing."]
+        },
+
+        // --- UTILITIES & DOCS ---
+        "H4_DocuScribe": {
+            "title": "H4 DocuScribe // THE REPORTER",
+            "description": "An automated workflow documenter. Connect nodes to DocuScribe, and it will generate a clean, readable Markdown report detailing every setting, model name, and parameter used in your graph.",
+            "usage": "Connect the 'Context' or individual nodes. It writes a file to your /output/ folder every time you generate. Perfect for tracking your experiments.",
+            "tips": ["Great for sharing workflows or keeping a 'Logbook' of your best settings."]
+        },
+        "H4_ModelMerger": {
+            "title": "H4 Model Merger // THE LAB",
+            "description": "Absolute MAD SCIENCE. This is deep, block-level weight manipulation—injecting the soul of one model into the body of another. Unlike basic mergers that just average everything out, this allows you to surgically target specific layers of the UNet. Want the composition of SDXL but the shading of an anime model? This is your scalpels and lightning bolts.",
+            "usage": "For creating custom hybrid models on the fly. The 'Test Image' output lets you verify the merge instantly before committing to a 50GB file.",
+            "tips": ["Lower Input blocks usually affect composition/shapes.", "Higher Output blocks affect fine details/textures/lighting."]
+        },
+        "H4_DoubleSampler": {
+            "title": "H4 Double Sampler // THE TWO-PASS ENGINE",
+            "description": "The monster truck of samplers. It handles a full two-stage generation pipeline (Base + Refiner) in a single node. Features prompt 'Stutter' (transformation between passes), CFG sliding, and native noise-injection control.",
+            "usage": "Use this for 'High-Relief' generations where you need a secondary pass to fix textural hallucinations or add fine-grained detail.",
+            "tips": ["Enable 'Stutter Mode' for more stylistic divergence between the base and refiner passes."]
+        },
+        "H4_Varianator": {
+            "title": "H4 Varianator // THE REMIX",
+            "description": "A high-speed iteration engine. It takes an image and generates a series of 'Variations' based on a secondary prompt or structural mask. It's essentially a condensed Img2Img workflow optimized for speed.",
+            "usage": "Use it find 'The One' when you like the composition but want to explore different lighting or color palettes.",
+            "tips": ["Low denoise (0.1 - 0.3) keeps the structure; high denoise (0.6+) allows for total mutation."]
+        },
+        "H4_NoteInjector": {
+            "title": "H4 Note Injector // CANVAS DECAL",
+            "description": "Add high-visibility tactical notes directly to your canvas. These aren't just standard ComfyUI notes; they feature the H4 tactical aesthetic, glowing borders, and support for Markdown-style formatting.",
+            "usage": "Use them to label sections of your workflow or leave instructions for other users.",
+            "tips": ["Double-click to expand/collapse. They stay visible even at far zoom levels (LOD Guard)."]
+        },
+        "H4_AxisDriver": {
+            "title": "H4 Axis Driver // GRID CONTROL",
+            "description": "The logic backbone for the Gridinator. This node defines the 'Variable' that changes across your image grid. It can drive Model names, CFG values, Float Ramps, or specialized Prompt keywords.",
+            "usage": "Connect multiple Drivers to the Gridinator to create X/Y/Z plots. Each driver handles one axis of variability.",
+            "tips": ["Use 'Fuzzy Search' for model paths to keep your drivers clean."]
+        },
+        "H4_DataStream": {
+            "title": "H4 Data Stream // BATCH PIPELINE",
+            "description": "A high-performance batch loader. It streams data (Images, JSON, or Text) from a directory and iterates through them per-queue. It is designed for 'Industrial' generation where you are processing hundreds of files.",
+            "usage": "Select a path and connect to your encoders. It handles the indexing and looping through the filesystem automatically.",
+            "tips": ["Enable 'Skip Existing' to resume a project if your system crashes."]
+        },
+        "H4_ForgeMask": {
+            "title": "H4 Forge Mask // SURGICAL SUITE",
+            "description": "A monolithic masking toolkit. It combines Blur, Grow/Shrink, Invert, and specialized 'Edge Softening' kernels for precise inpainting control. It features a custom HUD for visualising the mask fidelity before it hits the sampler.",
+            "usage": "Connect a Mask or Image. Use the 'Sovereign HUD' to tweak the mask threshold in real-time.",
+            "tips": ["Use 'Soft Feathering' to eliminate hard edges in face swaps and detailer passes."]
+        },
+        "H4_SmartConsole": {
+            "title": "H4 Smart Console // X-RAY",
+            "description": "A tactical debugger. It intercepts data in transit and displays a detailed breakdown of tensor shapes, data types, and values directly on top of the node. No more guessing why your latent is the wrong resolution.",
+            "usage": "Plug it into any wire to see the 'X-Ray' of what is moving through that connection.",
+            "tips": ["Right-click to copy the data dump to your clipboard for analysis."]
+        },
+        "H4_SeedSequencer": {
+            "title": "H4 Seed Sequencer // CHAOS CONTROLLER",
+            "description": "Advanced randomness management. Unlike the standard Seed Generator, the Sequencer allows you to define 'Keys' (specific seed lists) and cycle through them. It ensures that your 'Random' generations are actually predictable and repeatable experiments.",
+            "usage": "Define a list of seeds and a movement mode (Linear, Ping-Pong, Random). Perfect for testing a prompt against a broad but controlled set of seeds.",
+            "tips": ["Use 'Ping-Pong' mode to iterate back and forth through a sequence of 5 seeds."]
+        },
+        "H4_PixelVisualizer": {
+            "title": "H4 Pixel Visualizer // DIFF INSPECTOR",
+            "description": "See the invisible. This node performs a mathematical 'Subtraction' between two images and displays the difference. It highlights exactly what changed between two generations, making it invaluable for testing LorAs or Denoise settings.",
+            "usage": "Connect two images (e.g. before and after a refiner pass). The node will render a heatmap of the pixels that changed.",
+            "tips": ["A pure black image means zero change—your settings might be too low!"]
+        },
+        "H4_Switcheroo": {
+            "title": "H4 Switcheroo // UNIVERSAL SWAP",
+            "description": "The Swiss Army switch. It is a multi-type selector that can swap between Models, Images, Latents, or VAEs with a single toggle. It features a high-performance terminal interface that logs whenever a swap occurs.",
+            "usage": "Use this instead of deleting and re-running wires. Toggle inputs instantly.",
+            "tips": ["Pair with h4_DocuScribe to track which 'Switch' state was active for each generation."]
         }
     },
 
