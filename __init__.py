@@ -37,12 +37,17 @@ WEB_DIRECTORY = "./js"
 
 # Files that stay in the root /js folder and are NEVER deleted by the harvester
 PROTECTED_JS = [
-    "h4_BigBrother.js", "h4_Dashboard.js", "h4_Sidebar.js", "assets", 
+    # Original names (keep for backward compat)
+    "h4BigBrother.js", "h4Dashboard.js", "h4Sidebar.js", "assets", 
+    "h4generation.js", "h4ParameterTracer.js", "h4LoreManager.js",
+    "h4Comparinator.js", "h4Switcheroo.js", "h4SmartSave.js", 
+    "h4MissionControl.js", "h4deadweight.js",
+    "h4SovereignCore.js", "h4themeoverrides.json",  
+    # Underscore variants — ACTUAL filenames on disk
+    "h4_Dashboard.js", "h4_Sidebar.js", "h4_Lore.js", "h4_BigBrother.js",
     "h4_generation.js", "h4_ParameterTracer.js", "h4_LoreManager.js",
     "h4_Comparinator.js", "h4_Switcheroo.js", "h4_SmartSave.js", 
-    "h4_MissionControl.js", "h4_dead_weight.js",
-    "h4_SovereignCore.js",  # Global Aesthetic Engine
-    "h4_theme_overrides.json",  
+    "h4_MissionControl.js", "h4_deadweight.js", "h4_SovereignCore.js",
 ]
 
 def harvest_js_assets(nodes_dir, root_js_dir):

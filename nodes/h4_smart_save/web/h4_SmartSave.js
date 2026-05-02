@@ -107,6 +107,54 @@ if (!document.getElementById(styleId)) {
                 user-select: none;
                 -webkit-user-select: none;
             }
+
+            @keyframes h4-thumb-in {
+                from { opacity: 0; transform: translateY(8px) scale(0.95); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+
+            @keyframes h4-glitch-flicker {
+                0% { opacity: 0.1; transform: scale(1); }
+                5% { opacity: 0.8; transform: skewX(10deg); }
+                10% { opacity: 0.2; transform: skewX(-5deg); }
+                15% { opacity: 0.9; }
+                20% { opacity: 0.1; }
+                50% { opacity: 1; transform: scale(1.05); }
+                51% { opacity: 0.2; }
+                100% { opacity: 0.1; }
+            }
+
+            @keyframes h4-scanline {
+                0% { top: -10%; }
+                100% { top: 110%; }
+            }
+
+            .h4-loading-scanline {
+                position: absolute;
+                left: 0;
+                width: 100%;
+                height: 2px;
+                background: #00f2ff;
+                box-shadow: 0 0 8px #00f2ff;
+                animation: h4-scanline 1.5s linear infinite;
+                z-index: 5;
+            }
+
+            .h4-loading-text {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #00f2ff;
+                font-family: monospace;
+                font-size: 9px;
+                font-weight: 900;
+                letter-spacing: 1px;
+                animation: h4-glitch-flicker 1.5s infinite;
+                z-index: 4;
+                text-shadow: 0 0 5px rgba(0,242,255,0.5);
+            }
         `;
     document.head.appendChild(s);
 }
@@ -136,7 +184,7 @@ const DRAWER_W = 340;
 const DRAWER_GAP = 15;
 const DETAIL_GAP = 8;
 const ANIM_SPEED = 0.22;
-const HISTORY_LIMIT_VISIBLE = 10;
+const HISTORY_LIMIT_VISIBLE = 5;
 const HISTORY_VISIBLE_MIN = 1;
 const BTN_SIZE = 34;
 const SCRUB_BTN_W = 28;
@@ -249,6 +297,7 @@ class SmartSaveUI {
         this.popoutReady = false;     // true once the popout window has loaded and is ready for postMessage
         this._popoutMessageHandler = null;
 
+        this.loading_thumbs = new Set(); // Tracks URLs currently verifying on disk
         this.fetchHistory(false);
     }
 
@@ -260,6 +309,7 @@ class SmartSaveUI {
     setHistoryOpen(open) {
         this.show_history = !!open;
         if (this.show_history) {
+            this._histOpening = true; // Trigger animation
             this.fetchHistory(false);
             this.startPolling();
         } else {
@@ -1009,8 +1059,35 @@ class SmartSaveUI {
             const glow = (isSel && isTemp) ? `box-shadow: 0 0 12px ${COLORS.forensic}88;` : "";
             const hTip = `${safeText(item.filename)}: Click once to see the settings, or double-click to blow it up in the high-res Lightbox.`;
 
-            html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${idx}" data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;pointer-events:auto;"><img src="${url}" draggable="false" style="width:100%;height:100%;object-fit:cover;border-radius:2px;pointer-events:none;" /><div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.7);color:#888;font-size:9px;padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;">${safeText(item.filename)}</div></div>`;
+            // --- PERSISTENT LOAD TRACKING: Only hide scanlines if image is 100% verified and painted ---
+            const cachedImg = this.thumb_imgs[url];
+            const isLoaded = cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0;
+            const isLoading = this.loading_thumbs.has(url) || !isLoaded;
+            
+            // --- STUBBORN LOADING: If we are actively verifying on disk, FORCE the scanline ---
+            const forceScan = this.loading_thumbs.has(url);
+            const animStyle = this._histOpening ? `opacity:0; animation: h4-thumb-in 0.25s ease forwards; animation-delay: ${i * 0.04}s;` : "";
+
+            html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${idx}" data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;pointer-events:auto; ${animStyle}">
+                ${(isLoading || forceScan) ? `
+                    <div class="h4-loading-scanline"></div>
+                    <div class="h4-loading-text">RETRIEVING...</div>
+                ` : `<img src="${url}" draggable="false" style="width:100%;height:100%;object-fit:cover;border-radius:2px;pointer-events:none;" />`}
+                <div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.7);color:#888;font-size:9px;padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;">${safeText(item.filename)}</div>
+            </div>`;
+
+            // If not loaded and not already in the verification pipeline, kick off a load
+            if (!isLoaded && !cachedImg) {
+                const img = new Image();
+                img.onload = () => {
+                    this.thumb_imgs[url] = img;
+                    this.updateHistoryRail();
+                };
+                img.src = url;
+                this.thumb_imgs[url] = img; // Placeholder to avoid redundant triggers
+            }
         });
+        this._histOpening = false;
         html += `</div><div class="h4-hist-nav" data-dir="1" title="Scroll Right" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">›</div></div><style> .h4-hist-nav:hover { background:rgba(0,242,255,0.08) !important; color:#fff !important; text-shadow:0 0 10px ${COLORS.accent}; } </style>`;
 
         rail.innerHTML = html;
@@ -1487,8 +1564,26 @@ app.registerExtension({
                     else if (n === "comments") { const tx = this.__h4_metadrawer.querySelector(".h4-meta-comments"); if (tx) { tx.value = w.value ?? ""; tx.oninput = () => { w.value = tx.value; }; } }
                     else if (n === "save_mode") this.__h4_save_mode_widget = w;
                     else if (n === "metadata_mode" || n === "json_mode") {
+                        if (n === "metadata_mode") this.__h4_metadata_mode_widget = w;
+                        else this.__h4_json_mode_widget = w;
+
                         const sel = this.__h4_metadrawer.querySelector(n === "metadata_mode" ? ".h4-meta-mode" : ".h4-json-mode");
-                        if (sel) { sel.innerHTML = ""; (w.options?.values || []).forEach(v => { const o = document.createElement("option"); o.value = v; o.text = v; sel.add(o); }); sel.value = w.value; sel.onchange = () => { w.value = sel.value; this.h4_ui.show_custom_meta = this.__h4_metadrawer.querySelector(".h4-meta-mode")?.value === "Custom" || this.__h4_metadrawer.querySelector(".h4-json-mode")?.value === "Custom"; this.setDirtyCanvas(true); }; }
+                        if (sel) {
+                            sel.innerHTML = "";
+                            (w.options?.values || []).forEach(v => {
+                                const o = document.createElement("option"); o.value = v; o.text = v;
+                                sel.add(o);
+                            });
+                            sel.value = w.value;
+                            sel.onchange = () => {
+                                w.value = sel.value;
+                                // --- DUAL-TRIGGER VISIBILITY: Show Custom drawer if EITHER mode is set to Custom ---
+                                const metaMode = this.__h4_metadata_mode_widget?.value;
+                                const jsonMode = this.__h4_json_mode_widget?.value;
+                                this.h4_ui.show_custom_meta = (metaMode === "Custom" || jsonMode === "Custom");
+                                this.setDirtyCanvas(true);
+                            };
+                        }
                     } else if (n === "custom_json") { const raw = this.__h4_customdrawer.querySelector(".h4-meta-raw"); if (raw) { raw.value = w.value || raw.value; raw.oninput = () => { w.value = raw.value; }; } }
                     cloakWidget(w);
                 }); return true;
@@ -1542,36 +1637,55 @@ app.registerExtension({
                 this.h4_ui.full_imgs = {}; // bust the full-res cache on new generation
                 this.h4_ui.thumb_imgs = {};
                 if (message.images && message.images.length > 0) {
-                    // --- BATCH AWARE INJECTION ---
-                    const allImages = message.images; // DON'T filter temp
-                    [...allImages].reverse().forEach(img => {
-                        const key = `${img.filename}::${img.subfolder}::${img.type}`;
-                        const exists = this.h4_ui.history.some(h => `${h.filename}::${h.subfolder}::${h.type}` === key);
-                        if (!exists) {
-                            this.h4_ui.history.unshift({ ...img, timestamp: Date.now() });
-                        }
-                    });
+                    // --- TACTILE BUFFER: Settle before injection ---
+                    setTimeout(() => {
+                        const allImages = message.images;
+                        [...allImages].reverse().forEach(img => {
+                            const key = `${img.filename}::${img.subfolder}::${img.type}`;
+                            const exists = this.h4_ui.history.some(h => `${h.filename}::${h.subfolder}::${h.type}` === key);
+                            if (!exists) {
+                                // --- SECONDS SYNC: Match backend os.path.getmtime resolution ---
+                                const histItem = { ...img, timestamp: Math.floor(Date.now() / 1000) };
+                                this.h4_ui.history.unshift(histItem);
 
-                    this.h4_ui.history = this.h4_ui.history.slice(0, 50);
+                                // --- RETRY KERNEL: Verify disk readability ---
+                                const ts = histItem.timestamp ? `&t=${histItem.timestamp}` : "";
+                                const url = api.apiURL(`/view?filename=${encodeURIComponent(histItem.filename)}&subfolder=${encodeURIComponent(histItem.subfolder)}&type=${encodeURIComponent(histItem.type)}${ts}`);
 
-                    // --- PROTECTED SYNC ---
-                    // Do NOT null the signature here. Let the delayed global fetch handle data validation.
-                    this.h4_ui.selected_idx = 0;
-                    this.h4_ui.scroll_idx = 0;
-                    this.h4_ui.current_sidecar = allImages[0].sidecar || null;
+                                this.h4_ui.loading_thumbs.add(url);
+                                this.h4_ui.updateHistoryRail(); // --- IMMEDIATE MANIFESTATION: Show slot + scanline instantly ---
 
-                    // --- ASSET ASSIGNMENT ---
-                    this.__h4_live_imgs = allImages.map(i => {
-                        const img = new Image();
-                        img.onload = () => { this.setDirtyCanvas(true, true); if (this.h4_ui) this.h4_ui.scheduleDraw(); };
-                        img.src = api.apiURL(`/view?filename=${encodeURIComponent(i.filename)}&type=${i.type}&subfolder=${encodeURIComponent(i.subfolder)}&t=${Date.now()}`);
-                        return img;
-                    });
-                    this.images = null; this.imgs = null;
+                                const verify = (retries = 0) => {
+                                    const testImg = new Image();
+                                    testImg.onload = () => {
+                                        this.h4_ui.loading_thumbs.delete(url);
+                                        this.h4_ui.updateHistoryRail();
+                                        this.h4_ui.scheduleDraw();
+                                    };
+                                    testImg.onerror = () => {
+                                        if (retries < 6) {
+                                            console.log(`[h4] Disk Latency Detected (${histItem.filename}). Retrying ${retries + 1}/6...`);
+                                            setTimeout(() => verify(retries + 1), 600);
+                                        } else {
+                                            console.error(`[h4] Forensic Data Timeout: ${histItem.filename} remains unreadable.`);
+                                            this.h4_ui.loading_thumbs.delete(url);
+                                            this.h4_ui.updateHistoryRail();
+                                        }
+                                    };
+                                    testImg.src = url;
+                                };
+                                verify();
+                            }
+                        });
 
-                    this.h4_ui.updateHistoryRail();  // Force DOM paint immediately with the injected data
-                    this.h4_ui.scheduleDraw();
-                    setTimeout(() => { if (this.h4_ui) this.h4_ui.scheduleDraw(); }, 200);
+                        this.h4_ui.history = this.h4_ui.history.slice(0, 50);
+                        this.h4_ui.selected_idx = 0;
+                        this.h4_ui.scroll_idx = 0;
+                        this.h4_ui.current_sidecar = allImages[0].sidecar || null;
+
+                        this.h4_ui.updateHistoryRail();
+                        this.h4_ui.scheduleDraw();
+                    }, 350); // 350ms Settle Buffer
                 }
                 this.h4_ui.markParamsDirty();
                 this.setDirtyCanvas(true, true);

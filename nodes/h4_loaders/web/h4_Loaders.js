@@ -68,357 +68,334 @@ function openLightbox(images, startIndex) {
     document.body.appendChild(overlay);
 }
 
+function setWidgetVisible(w, visible) {
+    if (visible) {
+        if (w.h4_orig_type) {
+            Object.defineProperty(w, "type", { get: () => w.h4_orig_type, set: (v) => { w.h4_orig_type = v; }, configurable: true });
+        }
+        w.hidden = false;
+        w.computeSize = () => [200, 20];
+        delete w.draw;
+        if (w.element) w.element.style.display = "";
+        if (w.inputEl) w.inputEl.style.display = "";
+    } else {
+        if (!w.h4_orig_type) w.h4_orig_type = w.type;
+        Object.defineProperty(w, "type", { get: () => "customtext", set: () => { }, configurable: true });
+        w.hidden = true;
+        w.computeSize = () => [0, -4];
+        w.draw = () => { };
+        if (w.element) w.element.style.display = "none";
+        if (w.inputEl) w.inputEl.style.display = "none";
+    }
+}
+
 app.registerExtension({
     name: "h4_Live.Loaders",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if (nodeData.name === "H4_CompleteLoader" || nodeData.name === "H4_MultiImgUpload") {
-            const onNodeCreated = nodeType.prototype.onNodeCreated;
-            nodeType.prototype.onNodeCreated = function () {
-                if (onNodeCreated) onNodeCreated.apply(this, arguments);
+            function initNode(node) {
+                if (node.h4_initialized) return;
+                node.h4_initialized = true;
 
-                const node = this;
-                node.is_h4_loader = true;
-
-                node.size[0] = 340;
-
-                setTimeout(() => {
-                    const uploadWidget = node.addWidget("button", "📤 Smart Upload Image(s)", null, () => {
-                        let input = document.createElement("input");
-                        input.type = "file";
-                        input.multiple = true;
-                        input.accept = "image/jpeg,image/png,image/webp,image/bmp";
-                        input.onchange = async (e) => {
-                            const currentImageWidgets = node.widgets.filter(w => w.name && w.name.startsWith("image_"));
-                            const files = Array.from(e.target.files);
-                            for (let file of files) {
-                                let slot = currentImageWidgets.find(w => w.value === "none" || w.value === "");
-                                if (!slot) {
-                                    alert("Maximum active image capacity reached for this node!");
-                                    break;
-                                }
-
-                                try {
-                                    const body = new FormData();
-                                    body.append("image", file);
-                                    body.append("type", "input");
-                                    const resp = await api.fetchApi("/upload/image", {
-                                        method: "POST",
-                                        body: body,
-                                    });
-
-                                    if (resp.status === 200) {
-                                        const data = await resp.json();
-                                        if (!slot.options.values.includes(data.name)) {
-                                            slot.options.values.push(data.name);
-                                        }
-                                        slot.value = data.name;
-                                        if (slot.callback) slot.callback(data.name);
-                                    }
-                                } catch (error) {
-                                    console.error("[h4_Live] Image upload failed", error);
-                                }
-                            }
-                            refreshLayout();
-                        };
-                        input.click();
-                    });
-
-                    // Hide original buttons safely
-                    node.widgets.forEach(w => {
-                        if (w.type === "button" && w.name !== "📤 Smart Upload Image(s)" && (!w.name || w.name.includes("choose file to upload") || w.name === "image")) {
-                            Object.defineProperty(w, "type", { get: () => "customtext", set: () => { }, configurable: true });
-                            w.computeSize = function () { return [0, -4]; };
-                            w.draw = function () { return false; };
-                            if (w.element) w.element.style.display = "none";
-                            if (w.inputEl) w.inputEl.style.display = "none";
-                        }
-                    });
-
-                    function enforceSequentialSlots() {
+                const uploadWidget = node.addWidget("button", "📤 Smart Upload Image(s)", null, () => {
+                    let input = document.createElement("input");
+                    input.type = "file";
+                    input.multiple = true;
+                    input.accept = "image/jpeg,image/png,image/webp,image/bmp";
+                    input.onchange = async (e) => {
                         const currentImageWidgets = node.widgets.filter(w => w.name && w.name.startsWith("image_"));
-                        let values = currentImageWidgets.map(w => w.value).filter(v => v && v !== "none");
-                        for (let i = 0; i < currentImageWidgets.length; i++) {
-                            currentImageWidgets[i].value = i < values.length ? values[i] : "none";
-                        }
+                        const files = Array.from(e.target.files);
+                        for (let file of files) {
+                            let slot = currentImageWidgets.find(w => !w.value || w.value === "none" || w.value === "");
+                            if (!slot) {
+                                alert("Maximum active image capacity reached for this node!");
+                                break;
+                            }
 
-                        // Sync images for preview layer
-                        let currentNames = (node.h4_images || []).map(img => img.dataset.filename);
-                        if (JSON.stringify(currentNames) !== JSON.stringify(values)) {
-                            node.h4_images = values.map(val => {
-                                let img = new Image();
-                                img.dataset.filename = val;
-                                img.onload = () => { app.graph?.setDirtyCanvas(true, true); };
-                                img.src = api.apiURL(`/view?filename=${encodeURIComponent(val)}&type=input&subfolder=&t=${Date.now()}`);
-                                return img;
-                            });
-                            node.h4_active_preview_index = 0;
+                            try {
+                                const body = new FormData();
+                                body.append("image", file);
+                                body.append("type", "input");
+                                const resp = await api.fetchApi("/upload/image", {
+                                    method: "POST",
+                                    body: body,
+                                });
+
+                                if (resp.status === 200) {
+                                    const data = await resp.json();
+                                    if (!slot.options.values.includes(data.name)) {
+                                        slot.options.values.push(data.name);
+                                    }
+                                    slot.value = data.name;
+                                    if (slot.callback) slot.callback(data.name);
+                                }
+                            } catch (error) {
+                                console.error("[h4_Live] Image upload failed", error);
+                            }
                         }
+                        refreshLayout();
+                    };
+                    input.click();
+                });
+
+                // Hide original buttons safely
+                node.widgets.forEach(w => {
+                    if (w.type === "button" &&
+                        w.name !== "📤 Smart Upload Image(s)" &&
+                        (!w.name || w.name.includes("choose file to upload") || w.name === "image")) {
+                        setWidgetVisible(w, false);
+                    }
+                });
+
+                function enforceSequentialSlots() {
+                    const currentImageWidgets = node.widgets.filter(w => w.name && w.name.startsWith("image_"));
+                    let values = currentImageWidgets.map(w => w.value).filter(v => v && v !== "none");
+                    for (let i = 0; i < currentImageWidgets.length; i++) {
+                        currentImageWidgets[i].value = i < values.length ? values[i] : "none";
                     }
 
-                    function refreshLayout() {
-                        enforceSequentialSlots();
+                    let currentNames = (node.h4_images || []).map(img => img.dataset.filename);
+                    if (JSON.stringify(currentNames) === JSON.stringify(values)) return;
 
-                        let usedCount = (node.h4_images || []).length;
-                        const showCount = usedCount;
+                    node.h4_images = values.map((val, i) => {
+                        const existing = (node.h4_images || []).find(img => img.dataset.filename === val);
+                        if (existing) return existing;
 
-                        const loadModeWidget = node.widgets.find(w => w.name === "load_mode");
-                        if (loadModeWidget) {
-                            const isCheckpointMode = loadModeWidget.value === "Checkpoint (Standard)";
-                            node.widgets.forEach(w => {
-                                if (w.name === "ckpt_name") {
-                                    if (isCheckpointMode) {
-                                        Object.defineProperty(w, "type", { get: () => "combo", set: () => { }, configurable: true });
-                                        w.hidden = false;
-                                        w.computeSize = function () { return [200, 20]; };
-                                        delete w.draw;
-                                        if (w.element) w.element.style.display = "";
-                                        if (w.inputEl) w.inputEl.style.display = "";
-                                    } else {
-                                        Object.defineProperty(w, "type", { get: () => "customtext", set: () => { }, configurable: true });
-                                        w.hidden = true;
-                                        w.computeSize = function () { return [0, -4]; };
-                                        w.draw = function () { return false; };
-                                        if (w.element) w.element.style.display = "none";
-                                        if (w.inputEl) w.inputEl.style.display = "none";
-                                    }
-                                }
-                                if (["unet_name", "vae_name", "clip_name"].includes(w.name)) {
-                                    if (!isCheckpointMode) {
-                                        Object.defineProperty(w, "type", { get: () => "combo", set: () => { }, configurable: true });
-                                        w.hidden = false;
-                                        w.computeSize = function () { return [200, 20]; };
-                                        delete w.draw;
-                                        if (w.element) w.element.style.display = "";
-                                        if (w.inputEl) w.inputEl.style.display = "";
-                                    } else {
-                                        Object.defineProperty(w, "type", { get: () => "customtext", set: () => { }, configurable: true });
-                                        w.hidden = true;
-                                        w.computeSize = function () { return [0, -4]; };
-                                        w.draw = function () { return false; };
-                                        if (w.element) w.element.style.display = "none";
-                                        if (w.inputEl) w.inputEl.style.display = "none";
-                                    }
-                                }
-                            });
+                        let img = new Image();
+                        img.dataset.filename = val;
+                        img.onload = () => { app.graph?.setDirtyCanvas(true, true); };
+                        img.src = api.apiURL(`/view?filename=${encodeURIComponent(val)}&type=input&subfolder=`);
+                        return img;
+                    });
+                    node.h4_active_preview_index = 0;
+                }
+
+                function refreshLayout() {
+                    enforceSequentialSlots();
+
+                    let usedCount = (node.h4_images || []).length;
+                    const showCount = usedCount;
+
+                    const loadModeWidget = node.widgets.find(w => w.name === "load_mode");
+                    if (loadModeWidget) {
+                        const isCheckpointMode = loadModeWidget.value === "Checkpoint (Standard)";
+
+                        node.widgets.forEach(w => {
+                            if (w.name === "ckpt_name") {
+                                setWidgetVisible(w, isCheckpointMode);
+                            }
+                            if (["unet_name", "vae_name", "clip_name"].includes(w.name)) {
+                                setWidgetVisible(w, !isCheckpointMode);
+                            }
+                        });
+                    }
+
+                    const currentImageWidgets = node.widgets.filter(w => w.name && w.name.startsWith("image_"));
+                    for (let i = 0; i < currentImageWidgets.length; i++) {
+                        setWidgetVisible(currentImageWidgets[i], i < showCount);
+                    }
+
+                    const baseOutputs = nodeData.name === "H4_CompleteLoader" ? 3 : 0;
+                    const requiredOutputCount = baseOutputs + (usedCount * 2);
+
+                    if (node.outputs) {
+                        let changed = false;
+                        while (node.outputs.length > requiredOutputCount) {
+                            node.removeOutput(node.outputs.length - 1);
+                            changed = true;
                         }
-
-                        const currentImageWidgets = node.widgets.filter(w => w.name && w.name.startsWith("image_"));
-                        for (let i = 0; i < currentImageWidgets.length; i++) {
-                            const w = currentImageWidgets[i];
-                            w.computeSize = w.computeSize || function () { return [200, 20]; };
-                            if (i < showCount) {
-                                Object.defineProperty(w, "type", { get: () => "combo", set: () => { }, configurable: true });
-                                w.hidden = false;
-                                w.computeSize = function () { return [200, 20]; };
-                                delete w.draw;
-                                if (w.element) w.element.style.display = "";
-                                if (w.inputEl) w.inputEl.style.display = "";
-                            } else {
-                                Object.defineProperty(w, "type", { get: () => "customtext", set: () => { }, configurable: true });
-                                w.hidden = true;
-                                w.computeSize = function () { return [0, -4]; };
-                                w.draw = function () { return false; };
-                                if (w.element) w.element.style.display = "none";
-                                if (w.inputEl) w.inputEl.style.display = "none";
-                            }
+                        while (node.outputs.length < requiredOutputCount) {
+                            const idx = node.outputs.length - baseOutputs;
+                            const imgNum = Math.floor(idx / 2) + 1;
+                            const isMask = idx % 2 === 1;
+                            node.addOutput(isMask ? `MASK_${imgNum}` : `IMAGE_${imgNum}`, isMask ? "MASK" : "IMAGE");
+                            changed = true;
                         }
-
-                        const baseOutputs = nodeData.name === "H4_CompleteLoader" ? 3 : 0;
-                        const requiredOutputCount = baseOutputs + (usedCount * 2);
-
-                        if (node.outputs) {
-                            let changed = false;
-                            while (node.outputs.length > requiredOutputCount) {
-                                node.removeOutput(node.outputs.length - 1);
-                                changed = true;
-                            }
-                            while (node.outputs.length < requiredOutputCount) {
-                                const idx = node.outputs.length - baseOutputs;
-                                const imgNum = Math.floor(idx / 2) + 1;
-                                const isMask = idx % 2 === 1;
-                                node.addOutput(isMask ? `MASK_${imgNum}` : `IMAGE_${imgNum}`, isMask ? "MASK" : "IMAGE");
-                                changed = true;
-                            }
-                            if (changed) {
-                                app.graph?.setDirtyCanvas(true, true);
-                            }
-                        }
-
-                        const minHeight = node.computeSize([node.size[0], 0])[1];
-                        if (node.size[1] !== minHeight) {
-                            node.size[1] = minHeight;
+                        if (changed) {
                             app.graph?.setDirtyCanvas(true, true);
                         }
                     }
 
-                    const origOnConfigure = node.onConfigure;
-                    node.onConfigure = function (info) {
-                        if (origOnConfigure) origOnConfigure.apply(this, arguments);
-                        setTimeout(() => refreshLayout(), 50);
-                    };
+                    node.setSize(node.computeSize([node.size[0], 0]));
+                    app.graph?.setDirtyCanvas(true, true);
+                }
 
-                    console.log("[h4_Live] h4_Loaders loaded dynamically final");
-                    const originalComputeSize = node.computeSize;
-                    node.computeSize = function (out) {
-                        let res = originalComputeSize ? originalComputeSize.apply(this, arguments) : [200, 100];
-                        if (Array.isArray(res)) {
-                            if (this.h4_images && this.h4_images.length > 0) {
-                                res[1] += 270;
-                            }
+                console.log("[h4_Live] h4_Loaders initialized");
+                const originalComputeSize = node.computeSize;
+                node.computeSize = function (out) {
+                    let res = originalComputeSize ? originalComputeSize.apply(this, arguments) : [200, 100];
+                    if (Array.isArray(res)) {
+                        if (this.h4_images && this.h4_images.length > 0) {
+                            res[1] += 270;
                         }
-                        return res;
-                    };
+                    }
+                    return res;
+                };
 
-                    node.onDrawBackground = function (ctx) {
-                        if (!this.flags.collapsed && this.h4_images && this.h4_images.length > 0) {
-                            let previewHeight = 180;
-                            let stripHeight = 50;
-                            let padding = 15;
+                node.onDrawBackground = function (ctx) {
+                    if (!this.flags.collapsed && this.h4_images && this.h4_images.length > 0) {
+                        let previewHeight = 180;
+                        let stripHeight = 50;
+                        let padding = 15;
 
-                            // Prevent arbitrary rendering box if images are empty
-                            if (this.h4_images.length === 0 || !this.h4_images[0]) return;
+                        if (this.h4_images.length === 0 || !this.h4_images[0]) return;
 
-                            let cx = padding;
-                            let cy = this.size[1] - previewHeight - stripHeight - padding * 1.5;
-                            let cw = this.size[0] - padding * 2;
+                        let cx = padding;
+                        let cy = this.size[1] - previewHeight - stripHeight - padding * 1.5;
+                        let cw = this.size[0] - padding * 2;
 
-                            let activeImg = this.h4_images[this.h4_active_preview_index || 0];
-                            if (activeImg && activeImg.complete && activeImg.naturalWidth > 0) {
-                                ctx.save();
-                                ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
-                                ctx.beginPath();
-                                ctx.roundRect(cx, cy, cw, previewHeight, 5);
-                                ctx.fill();
-                                ctx.clip();
+                        let activeImg = this.h4_images[this.h4_active_preview_index || 0];
+                        if (activeImg && activeImg.complete && activeImg.naturalWidth > 0) {
+                            ctx.save();
+                            ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+                            ctx.beginPath();
+                            ctx.roundRect(cx, cy, cw, previewHeight, 5);
+                            ctx.fill();
+                            ctx.clip();
 
-                                let rx = cw / activeImg.naturalWidth;
-                                let ry = previewHeight / activeImg.naturalHeight;
-                                let ratio = Math.min(rx, ry);
-                                let dw = activeImg.naturalWidth * ratio;
-                                let dh = activeImg.naturalHeight * ratio;
-                                let dx = cx + (cw - dw) / 2;
-                                let dy = cy + (previewHeight - dh) / 2;
+                            let rx = cw / activeImg.naturalWidth;
+                            let ry = previewHeight / activeImg.naturalHeight;
+                            let ratio = Math.min(rx, ry);
+                            let dw = activeImg.naturalWidth * ratio;
+                            let dh = activeImg.naturalHeight * ratio;
+                            let dx = cx + (cw - dw) / 2;
+                            let dy = cy + (previewHeight - dh) / 2;
 
-                                ctx.drawImage(activeImg, dx, dy, dw, dh);
-                                ctx.restore();
+                            ctx.drawImage(activeImg, dx, dy, dw, dh);
+                            ctx.restore();
 
-                                ctx.strokeStyle = "rgba(255,255,255,0.1)";
-                                ctx.lineWidth = 1;
-                                ctx.beginPath();
-                                ctx.roundRect(cx, cy, cw, previewHeight, 5);
-                                ctx.stroke();
+                            ctx.strokeStyle = "rgba(255,255,255,0.1)";
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.roundRect(cx, cy, cw, previewHeight, 5);
+                            ctx.stroke();
 
-                                this.h4_preview_rect = [cx, cy, cw, previewHeight];
-                            }
+                            this.h4_preview_rect = [cx, cy, cw, previewHeight];
+                        }
 
-                            let stripY = cy + previewHeight + padding * 0.8;
-                            this.h4_strip_rects = [];
+                        let stripY = cy + previewHeight + padding * 0.8;
+                        this.h4_strip_rects = [];
 
-                            let thumbW = stripHeight;
-                            let gap = 8;
-                            let totalW = (thumbW * this.h4_images.length) + (gap * (this.h4_images.length - 1));
-                            let startX = cx + (cw - totalW) / 2;
-                            if (startX < cx) startX = cx;
+                        let thumbW = stripHeight;
+                        let gap = 8;
+                        let totalW = (thumbW * this.h4_images.length) + (gap * (this.h4_images.length - 1));
+                        let startX = cx + (cw - totalW) / 2;
+                        if (startX < cx) startX = cx;
 
-                            for (let i = 0; i < this.h4_images.length; i++) {
-                                let img = this.h4_images[i];
-                                let tx = startX + i * (thumbW + gap);
-                                if (tx + thumbW > cx + cw) break;
+                        for (let i = 0; i < this.h4_images.length; i++) {
+                            let img = this.h4_images[i];
+                            let tx = startX + i * (thumbW + gap);
+                            if (tx + thumbW > cx + cw) break;
 
-                                if (img.complete && img.naturalWidth > 0) {
-                                    let srcRatio = img.naturalWidth / img.naturalHeight;
-                                    let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
-                                    if (srcRatio > 1) {
-                                        sw = img.naturalHeight;
-                                        sx = (img.naturalWidth - sw) / 2;
-                                    } else {
-                                        sh = img.naturalWidth;
-                                        sy = (img.naturalHeight - sh) / 2;
-                                    }
-
-                                    ctx.save();
-                                    ctx.beginPath();
-                                    ctx.roundRect(tx, stripY, thumbW, thumbW, 4);
-                                    ctx.clip();
-                                    ctx.drawImage(img, sx, sy, sw, sh, tx, stripY, thumbW, thumbW);
-                                    ctx.restore();
+                            if (img.complete && img.naturalWidth > 0) {
+                                let srcRatio = img.naturalWidth / img.naturalHeight;
+                                let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+                                if (srcRatio > 1) {
+                                    sw = img.naturalHeight;
+                                    sx = (img.naturalWidth - sw) / 2;
+                                } else {
+                                    sh = img.naturalWidth;
+                                    sy = (img.naturalHeight - sh) / 2;
                                 }
 
-                                let isActive = i === (this.h4_active_preview_index || 0);
-                                ctx.strokeStyle = isActive ? "#fbc02d" : "rgba(255,255,255,0.2)";
-                                ctx.lineWidth = isActive ? 2 : 1;
+                                ctx.save();
                                 ctx.beginPath();
                                 ctx.roundRect(tx, stripY, thumbW, thumbW, 4);
-                                ctx.stroke();
-
-                                this.h4_strip_rects.push([tx, stripY, thumbW, thumbW]);
+                                ctx.clip();
+                                ctx.drawImage(img, sx, sy, sw, sh, tx, stripY, thumbW, thumbW);
+                                ctx.restore();
                             }
-                        }
-                    };
 
-                    const originalMouseDown = node.onMouseDown;
-                    node.onMouseDown = function (e, localPos, canvas) {
-                        let handled = false;
-                        if (this.h4_strip_rects) {
-                            for (let i = 0; i < this.h4_strip_rects.length; i++) {
-                                let r = this.h4_strip_rects[i];
-                                if (localPos[0] > r[0] && localPos[0] < r[0] + r[2] &&
-                                    localPos[1] > r[1] && localPos[1] < r[1] + r[3]) {
-                                    this.h4_active_preview_index = i;
-                                    app.graph?.setDirtyCanvas(true, true);
-                                    handled = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (handled) return true;
-                        if (originalMouseDown) return originalMouseDown.apply(this, arguments);
-                        return false;
-                    };
+                            let isActive = i === (this.h4_active_preview_index || 0);
+                            ctx.strokeStyle = isActive ? "#fbc02d" : "rgba(255,255,255,0.2)";
+                            ctx.lineWidth = isActive ? 2 : 1;
+                            ctx.beginPath();
+                            ctx.roundRect(tx, stripY, thumbW, thumbW, 4);
+                            ctx.stroke();
 
-                    const originalDblClick = node.onDblClick;
-                    node.onDblClick = function (e, localPos, canvas) {
-                        if (this.h4_preview_rect) {
-                            let r = this.h4_preview_rect;
+                            this.h4_strip_rects.push([tx, stripY, thumbW, thumbW]);
+                        }
+                    }
+                };
+
+                const originalMouseDown = node.onMouseDown;
+                node.onMouseDown = function (e, localPos, canvas) {
+                    let handled = false;
+                    if (this.h4_strip_rects) {
+                        for (let i = 0; i < this.h4_strip_rects.length; i++) {
+                            let r = this.h4_strip_rects[i];
                             if (localPos[0] > r[0] && localPos[0] < r[0] + r[2] &&
                                 localPos[1] > r[1] && localPos[1] < r[1] + r[3]) {
-                                if (this.h4_images && this.h4_images.length > 0) {
-                                    openLightbox(this.h4_images, this.h4_active_preview_index || 0);
-                                    return true;
-                                }
+                                this.h4_active_preview_index = i;
+                                app.graph?.setDirtyCanvas(true, true);
+                                handled = true;
+                                break;
                             }
                         }
-                        if (originalDblClick) return originalDblClick.apply(this, arguments);
-                    };
-
-                    const originalOnResize = node.onResize;
-                    node.onResize = function () {
-                        if (originalOnResize) originalOnResize.apply(this, arguments);
-                        this.properties = this.properties || {};
-                        this.properties._user_resized = true;
-                    };
-
-                    const imageWidgetsFinal = node.widgets.filter(w => w.name && w.name.startsWith("image_"));
-                    imageWidgetsFinal.forEach(w => {
-                        const origCb = w.callback;
-                        w.callback = function () {
-                            if (origCb) origCb.apply(this, arguments);
-                            refreshLayout();
-                        }
-                    });
-
-                    const loadModeWidgetFinal = node.widgets.find(w => w.name === "load_mode");
-                    if (loadModeWidgetFinal) {
-                        const origModeCb = loadModeWidgetFinal.callback;
-                        loadModeWidgetFinal.callback = function () {
-                            if (origModeCb) origModeCb.apply(this, arguments);
-                            refreshLayout();
-                        };
                     }
+                    if (handled) return true;
+                    if (originalMouseDown) return originalMouseDown.apply(this, arguments);
+                    return false;
+                };
 
-                    refreshLayout();
-                }, 200);
+                const originalDblClick = node.onDblClick;
+                node.onDblClick = function (e, localPos, canvas) {
+                    if (this.h4_preview_rect) {
+                        let r = this.h4_preview_rect;
+                        if (localPos[0] > r[0] && localPos[0] < r[0] + r[2] &&
+                            localPos[1] > r[1] && localPos[1] < r[1] + r[3]) {
+                            if (this.h4_images && this.h4_images.length > 0) {
+                                openLightbox(this.h4_images, this.h4_active_preview_index || 0);
+                                return true;
+                            }
+                        }
+                    }
+                    if (originalDblClick) return originalDblClick.apply(this, arguments);
+                };
+
+                const originalOnResize = node.onResize;
+                node.onResize = function () {
+                    if (originalOnResize) originalOnResize.apply(this, arguments);
+                    this.properties = this.properties || {};
+                    this.properties._user_resized = true;
+                };
+
+                const imageWidgetsFinal = node.widgets.filter(w => w.name && w.name.startsWith("image_"));
+                imageWidgetsFinal.forEach(w => {
+                    const origCb = w.callback;
+                    w.callback = function () {
+                        if (origCb) origCb.apply(this, arguments);
+                        refreshLayout();
+                    }
+                });
+
+                const loadModeWidgetFinal = node.widgets.find(w => w.name === "load_mode");
+                if (loadModeWidgetFinal) {
+                    const origModeCb = loadModeWidgetFinal.callback;
+                    loadModeWidgetFinal.callback = function () {
+                        if (origModeCb) origModeCb.apply(this, arguments);
+                        refreshLayout();
+                    };
+                }
+
+                refreshLayout();
+            }
+
+            const origOnConfigure = nodeType.prototype.onConfigure;
+            nodeType.prototype.onConfigure = function (info) {
+                if (origOnConfigure) origOnConfigure.apply(this, arguments);
+                initNode(this);
             };
+
+            const onNodeCreated = nodeType.prototype.onNodeCreated;
+            nodeType.prototype.onNodeCreated = function () {
+                if (onNodeCreated) onNodeCreated.apply(this, arguments);
+                const node = this;
+                node.is_h4_loader = true;
+                node.size[0] = 340;
+                requestAnimationFrame(() => initNode(node));
+            };
+
         }
     }
 });

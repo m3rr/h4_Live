@@ -26,27 +26,36 @@ except ImportError:
 # Helper for Image Loading natively
 # ==============================================================================
 def _load_image(image_name):
+    def _empty():
+        image = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
+        mask  = torch.zeros((1, 64, 64),    dtype=torch.float32)
+        return image, mask
+
     if image_name == "none" or not image_name:
-        return None, None
+        return _empty()
+
     image_path = folder_paths.get_annotated_filepath(image_name)
     if not image_path:
-        return None, None
+        return _empty()
+
     try:
-        img = Image.open(image_path)
-        img = node_helpers.pillow(ImageOps.exif_transpose, img)
+        img  = Image.open(image_path)
+        img  = node_helpers.pillow(ImageOps.exif_transpose, img)
         img_rgb = img.convert("RGB")
         image = np.array(img_rgb).astype(np.float32) / 255.0
-        image = torch.from_numpy(image)[None,]
+        image = torch.from_numpy(image)[None,]  # [1, H, W, 3]
+
         if 'A' in img.getbands():
             mask = np.array(img.getchannel('A')).astype(np.float32) / 255.0
             mask = 1. - mask
+            mask = torch.from_numpy(mask)[None,]  # [1, H, W]
         else:
-            mask = np.zeros((64,64), dtype=np.float32, copy=False)
-        mask = torch.from_numpy(mask)
+            mask = torch.zeros((1, image.shape[1], image.shape[2]), dtype=torch.float32)
+
         return image, mask
     except Exception as e:
         _log(f"[WARNING] Failed to load image {image_name}: {e}")
-        return None, None
+        return _empty()
 
 class H4_UniversalLoader:
     """

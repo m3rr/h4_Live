@@ -173,6 +173,9 @@ Below is the “in painful detail” breakdown of every QoL enhancement. This se
 ### The Book of H4 (In-App Help)
 **What it is:** A massive, built-in documentation system inside the node pack itself.
 **How to use it:** Look at the top-right of **ANY** h4_Live node. See that little `?` button? Click it. A drawer slides out and explains **everything** about that node.
+- **Lore Injection**: The system parses `The_Book_of_H4.json` to provide consistent, narrative-driven documentation.
+- **Wireless Access**: The documentation is synchronized across the toolkit, ensuring that any logic change in the backend is instantly reflected in the UI.
+- **Viewport Sovereignty**: For advanced nodes like `H4_SmartSave`, the help system integrates with the **Three-Mode Panel System**, allowing help drawers and forensic panels to be **Pinned** or **Popped Out** for persistent reference.
 
 ---
 
@@ -180,9 +183,13 @@ Below is the “in painful detail” breakdown of every QoL enhancement. This se
 **Status:** **STABLE**.
 **What it is:** The definitive preview and save infrastructure for the h4 toolkit.
 **Features:**
-- **DOM Sovereignty:** Operates a high-performance visual overlay that does not interfere with canvas interaction.
+- **Three-Mode Panel System (The Book of H4 Edition):**
+    - **Mode A: Docked**: Standard behavior. The forensic drawers anchor to the node and move with the canvas.
+    - **Mode B: Pinned / Locked**: The drawers detach and lock to the screen edge (left). Includes a "Canvas Margin Nudge" to keep your graph visible.
+    - **Mode C: Popout**: The drawers are mirrored into a standalone browser window. Perfect for dual-monitor setups or focusing purely on the canvas while tracking settings.
+- **Viewport Sovereignty:** Operates a high-performance visual overlay that does not interfere with canvas interaction.
 - **DNA Extraction:** Automatically parses workflow parameters and injects them as forensic metadata into your PNG files.
-- **The History Rail:** A non-blocking, infinite scroll sidebar that monitors every generation in real-time.
+- **The History Rail:** A non-blocking, infinite scroll sidebar that monitors every generation in real-time. Supports **Pinned Mode** for persistent visibility.
 - **Lightbox Sovereignty:** High-resolution image inspection with keyboard traversal (`ArrowKeys`) and telemetry readouts.
 *Note: Large history states may cause occasional UI lag during metadata parsing passes.*
 

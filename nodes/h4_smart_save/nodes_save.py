@@ -22,20 +22,39 @@ def get_h4_thumb_path(filename, subfolder, dir_type):
     return os.path.join(cache_dir, f"h4_t3_{dir_type}_{safe_sub}_{filename}.jpg")
 
 def generate_h4_thumbnail(img_or_path, thumb_path):
+    """
+    Kinetic Forensic Manifestation: Generates a 160x160 JPEG thumbnail.
+    Handles both PIL objects (eager) and file paths (lazy/API).
+    """
     try:
+        source_img = None
         if isinstance(img_or_path, str):
-            with Image.open(img_or_path) as img:
-                if img.mode != 'RGB': img = img.convert('RGB')
-                img.thumbnail((160, 160), Image.LANCZOS)
-                img.save(thumb_path, "JPEG", quality=85, optimize=True)
+            if not os.path.exists(img_or_path):
+                return False
+            # Check if it's already a thumbnail request for a thumb
+            if img_or_path == thumb_path: return True
+            source_img = Image.open(img_or_path)
         else:
-            # Assume it's a PIL Image object
-            t = img_or_path.copy()
-            if t.mode != 'RGB': t = t.convert('RGB')
-            t.thumbnail((160, 160), Image.LANCZOS)
-            t.save(thumb_path, "JPEG", quality=85, optimize=True)
+            # Thread-safe copy of the PIL object
+            source_img = img_or_path.copy()
+
+        if source_img:
+            # Ensure we are in RGB mode for JPEG compatibility
+            if source_img.mode != 'RGB':
+                source_img = source_img.convert('RGB')
+            
+            # Sub-sampled resizing (LANCZOS is the industrial standard here)
+            source_img.thumbnail((160, 160), Image.LANCZOS)
+            
+            # Save to disk with aggressive optimization
+            source_img.save(thumb_path, "JPEG", quality=80, optimize=True)
+            source_img.close()
+            return True
+            
     except Exception as e:
-        print(f"[H4_Thumb] Generation Fault: {e}")
+        # We catch but don't crash, as this is a background forensic step
+        print(f"[H4_Thumb] Forensic Manifestation Fault: {e}")
+    return False
 
 class H4_ManifestCache:
     _instance = None
@@ -54,10 +73,11 @@ class H4_ManifestCache:
             if not os.path.exists(temp_dir):
                 os.makedirs(temp_dir, exist_ok=True)
             self.db_path = os.path.abspath(os.path.join(temp_dir, "h4_smart_manifest_v1.db"))
-            # [H4] REPORT DELAYED: Moved to post-boot sequence
             
             conn = sqlite3.connect(self.db_path)
             try:
+                # Force WAL mode for better concurrency in ComfyUI's multi-threaded/async env
+                conn.execute("PRAGMA journal_mode=WAL")
                 with conn:
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS assets (
@@ -71,10 +91,20 @@ class H4_ManifestCache:
                     """)
                     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_asset_uniq ON assets(filename, subfolder, type)")
                     conn.execute("CREATE INDEX IF NOT EXISTS idx_asset_time ON assets(timestamp DESC)")
+                print(f"[H4_Manifest] DNA Registry Initialized: {self.db_path}")
             finally:
                 conn.close()
         except Exception as e:
             print(f"[H4_Manifest] Registry Critical Initialization Failure: {e}")
+
+    def _ensure_schema(self, conn):
+        """Failsafe check to ensure table exists in the current connection context."""
+        try:
+            conn.execute("SELECT 1 FROM assets LIMIT 1")
+        except sqlite3.OperationalError as e:
+            if "no such table" in str(e).lower():
+                print("[H4_Manifest] Table 'assets' missing in active connection. Re-initializing...")
+                self._init_db()
 
     def record(self, filename, subfolder, dir_type, timestamp, sidecar):
         conn = None
@@ -90,6 +120,7 @@ class H4_ManifestCache:
                         except: pass
 
             conn = sqlite3.connect(self.db_path)
+            self._ensure_schema(conn)
             with conn:
                 conn.execute("""
                     INSERT INTO assets (filename, subfolder, type, timestamp, sidecar) 
@@ -106,6 +137,7 @@ class H4_ManifestCache:
         conn = None
         try:
             conn = sqlite3.connect(self.db_path)
+            self._ensure_schema(conn)
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("SELECT filename, subfolder, type, timestamp, sidecar FROM assets ORDER BY timestamp DESC LIMIT ?", (limit,))
             results = []
@@ -119,13 +151,26 @@ class H4_ManifestCache:
                 })
             return results
         except Exception as e:
-            print(f"[H4_Manifest] Registry Query Failure: {e}")
+            # Final fallback to avoid crash-loop
+            if "no such table" in str(e).lower():
+                print("[H4_Manifest] Schema recovery failed in query_history.")
+            else:
+                print(f"[H4_Manifest] Registry Query Failure: {e}")
             return []
         finally:
             if conn: conn.close()
 
     def report_status(self):
-        print(f"[H4_Manifest] DNA Registry Active at: {self.db_path}")
+        # Verification pass on boot
+        conn = None
+        try:
+            conn = sqlite3.connect(self.db_path)
+            self._ensure_schema(conn)
+            print(f"[H4_Manifest] DNA Registry Active & Verified at: {self.db_path}")
+        except:
+            print(f"[H4_Manifest] DNA Registry Active (Schema Pending) at: {self.db_path}")
+        finally:
+            if conn: conn.close()
 
     def cold_boot_sync(self):
         # --- Flat Shallow Scan Only (Performance Priority) ---
@@ -376,23 +421,46 @@ class H4_SmartSave:
         return {"ui": {"images": results}, "result": (images,)}
 
     def _build_sidecar(self, json_mode, metadata_mode, author, model_name, comments, custom_json, forensics_map, telemetry, prompt, extra_pnginfo):
-        sidecar_data = {
-            "h4_identity": {
-                "author": author,
-                "model_assigned": model_name,
-                "comments": comments,
-                "timestamp": server.PromptServer.instance.last_node_id if hasattr(server.PromptServer.instance, 'last_node_id') else 0
+        sidecar_data = {}
+
+        # --- 1. IDENTITY BLOCK (Controlled by metadata_mode) ---
+        if metadata_mode == "Custom":
+            # --- OVERRIDE: Use custom payload as the primary identity ---
+            if custom_json:
+                try:
+                    sidecar_data["h4_identity"] = json.loads(custom_json)
+                except:
+                    sidecar_data["h4_identity"] = {"raw_custom": custom_json}
+        elif metadata_mode != "None":
+            identity = {
+                "h4_timestamp": server.PromptServer.instance.last_node_id if hasattr(server.PromptServer.instance, "last_node_id") else 0
             }
-        }
-        
+            
+            # --- Hierarchical Mapping ---
+            if metadata_mode in ["Clean (Author)", "Lite (Author+Model)", "Lite+ (+Prompt)", "Full (Forensic)"]:
+                identity["author"] = author
+            
+            if metadata_mode in ["Lite (Author+Model)", "Lite+ (+Prompt)", "Full (Forensic)"]:
+                identity["model_assigned"] = model_name
+                
+            if metadata_mode in ["Lite+ (+Prompt)", "Full (Forensic)"]:
+                identity["comments"] = comments
+
+            sidecar_data["h4_identity"] = identity
+
+        # --- 2. DATA PAYLOADS (Controlled by json_mode) ---
         if json_mode != "None":
             if json_mode == "Custom" and custom_json:
                 try:
+                    # Attempt to parse as JSON. If it fails, we treat it as raw text.
                     sidecar_data["custom_dna"] = json.loads(custom_json)
                 except:
-                    sidecar_data["custom_dna_error"] = "Invalid JSON structure."
+                    sidecar_data["custom_dna"] = custom_json
             elif json_mode == "Full (Forensic)":
                 sidecar_data["h4_forensics"] = forensics_map or {}
+                # Also include telemetry if available
+                if telemetry:
+                    sidecar_data["h4_telemetry"] = telemetry
         
         return sidecar_data
 
@@ -403,13 +471,13 @@ try:
     @PromptServer.instance.routes.get("/h4/smart_save/history")
     async def get_smart_save_history(request):
         try:
-            # Shift to 10 thumbnails per user request
-            history = _manifest.query_history(limit=10)
+            # Shift to 5 thumbnails per user request for performance
+            history = _manifest.query_history(limit=5)
             
             # --- Optional Cold Boot Migration (Only if empty) ---
             if not history:
                 _manifest.cold_boot_sync()
-                history = _manifest.query_history(limit=10)
+                history = _manifest.query_history(limit=5)
 
             return web.json_response(clean_nan(history))
 
@@ -521,8 +589,16 @@ try:
                 return web.FileResponse(thumb_path, headers={"Cache-Control": "public, max-age=86400"})
 
             # --- Asynchronous Forensic Manifestation ---
-            await asyncio.get_event_loop().run_in_executor(_h4_io_executor, generate_h4_thumbnail, img_path, thumb_path)
-            return web.FileResponse(thumb_path, headers={"Cache-Control": "public, max-age=86400"})
+            # We await the executor to ensure the file exists before attempting to serve it
+            success = await asyncio.get_event_loop().run_in_executor(_h4_io_executor, generate_h4_thumbnail, img_path, thumb_path)
+            
+            if success and os.path.exists(thumb_path):
+                return web.FileResponse(thumb_path, headers={"Cache-Control": "public, max-age=86400"})
+            else:
+                # If thumbnail failed, we'll try to serve the full image as a last resort if it's not too big
+                if os.path.exists(img_path) and os.path.getsize(img_path) < 1024 * 1024: # 1MB limit for fallback
+                    return web.FileResponse(img_path)
+                return web.Response(status=404)
             
         except Exception as e:
             print(f"[H4_SmartSave] Kinetic Audit Failure: {e}")

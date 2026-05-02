@@ -15,6 +15,10 @@ The **SmartSave** node acts as your tactical mission control during long generat
 - **Visual History Strip**: A high-performance horizontal gallery at the bottom of the node shows your latest generations. It's virtualized, meaning it can handle hundreds of images without slowing down your browser.
 - **The Lightbox Traveler**: Click any thumbnail to expand it into a full-screen Lightbox. Use arrow keys to navigate your history, or use the high-fidelity zoom (up to 500%) to hunt for atomic-level defects in your renders.
 - **Nested Insight Drawers**: Clicking any node in the parameter list slides out a secondary details HUD, showing you the raw widget values and underlying logic of that specific node. 
+- **The Three-Mode Panel System (The Book of H4)**: 
+    - **Docked**: Panels remain node-locked.
+    - **Pinned (📌)**: Detaches panels and pins them to the viewport edge. The canvas automatically nudges to the right to prevent node occlusion.
+    - **Popout (↗)**: Mirrors the entire forensic interface into a separate browser window. Ideal for dedicated monitoring screens.
 - **Universal JSON Injection**: Use the [M] drawer to manually inject custom JSON into your PNG headers. Perfect for adding experiment IDs, credits, or hidden messages for tools to read later.
 
 ---
@@ -25,6 +29,7 @@ The **SmartSave** node acts as your tactical mission control during long generat
 The brain of the node. This is where the **Recursive Crawler** displays the Workflow DNA. 
 - **Zero-Wire Efficiency**: No need to clutter your canvas with telemetry inputs.
 - **Breadcrumb Navigation**: Clicking a node in the list highlights it on your canvas so you can find the source of your settings instantly.
+- **Tactical Scaling (📌 / ↗)**: Use the header buttons to **Pin** the panel to your screen or **Pop Out** to a new window. The Pinned mode includes viewport-aware margins to keep your node in focus.
 
 ### 📜 [M] Metadata Drawer
 The manual override for your archive.

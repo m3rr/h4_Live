@@ -1,120 +1,156 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-// import { H4_ICON_B64 } from "./assets/h4_icon_b64.js"; // Removed to prevent blocking load failure
+import { LORE } from "./h4_Lore.js";
 
-console.log("[h4] h4_Dashboard.js LOADED (Sanity Check)");
+console.log("[h4] h4_Dashboard.js LOADED // HARDENED v10.5.0");
 
 // ------------------------------------------------------------------------------
-// H4 Dashboard - The Central Hub
+// H4 Dashboard - The Central Hub (Hardened Implementation)
 // ------------------------------------------------------------------------------
-
-// --- THE BOOK OF H4 (LORE SYSTEM ACTIVE) ---
-
 
 export const h4_Dashboard = {
     modal: null,
     isOpen: false,
-    activeTab: 'active-home', // DEFAULT: Home Splash
+    activeTab: 'active-home',
+    panelMode: 'modal', // 'modal' | 'pinned' | 'popout'
 
-    // Configuration State (The merged settings from BigBrother)
-    // ALL DEFAULTS MUST BE OFF/FALSE
+    // Internal state for hardening and performance
+    _renderedTabs: new Set(),
+    _hoverMoveListener: null,
+    _popoutWindow: null,
+    _dragState: { active: false, x: 0, y: 0, startX: 0, startY: 0 },
+    _cssText: null, // Cache for popout injection
+    LORE: LORE,
+
+    // Configuration State (Security First - Defaults to OFF)
     config: {
         // Core
-        enabled: true,        // Global Enable
+        enabled: true,
         debugMode: false,
-        qolMasterOverride: true, // Master QoL Toggle
+        qolMasterOverride: true,
 
-        // Monitor (BigBrother)
+        // Monitor
         monitorEnabled: false,
         showErrorPopup: false,
 
-        // Grid / Visuals
+        // Visual Assets
         showGrid: false,
         showWires: false,
         wireStyle: "Circuit",
         wireSpacing: 1.0,
-        wireColorSelect: "#00FF00",
-        wireColorError: "#FF0000",
-        gridColor: "rgba(255, 200, 0, 0.15)",
+        wireColorSelect: "#00F2FF",
+        wireColorError: "#FF3333",
+        gridColor: "rgba(0, 242, 255, 0.05)",
 
         // UI Hygiene (QoL)
-        deadWeightEnabled: true,   // D.W.D Toolbar
-        caffeineEnabled: true,     // Caffeine Mode
-        kickItEnabled: true,       // Kick-The-Grid
-        smartSnapping: false,      // Node Snapping
-        ioColoring: false,         // Dynamic Socket Colors
+        deadWeightEnabled: true,
+        caffeineEnabled: false, // Default OFF
+        kickItEnabled: false,   // Default OFF
+        smartSnapping: false,
+        ioColoring: false,
 
         // Aesthetic Layer
         sovereignCoreEnabled: true,
 
+        // Viewport Settings
+        panelPinned: false,         // Default: Not pinned
+        panelWidth: 350,            // Default side-panel width
+
         // Offsets
         offsetX: 0,
         offsetY: 0,
-        wireOffsetY: 0
     },
 
     init() {
-        console.log("[h4] Dashboard: Initializing...");
+        console.log("[h4] Dashboard: Hardened Deployment Initiated...");
         try {
             this.injectCSS();
             this.createModal();
-            window.h4_Dashboard = this; // Expose globally for Sidebar
-            console.log("[h4] Dashboard: Global Object Set -> window.h4_Dashboard");
-
-            // Load saved settings if any
             this.loadConfig();
+            this.initDraggable();
+
+            // Check if we should auto-pin on load
+            if (this.config.panelPinned) {
+                this.setPanelMode('pinned');
+            }
+            // Restore drag position from last session
+            if (this.config.offsetX || this.config.offsetY) {
+                this.modal.style.transform = `translate(${this.config.offsetX}px, ${this.config.offsetY}px)`;
+            }
+            window.h4_Dashboard = this;
+            console.log("[h4] Dashboard: System Ready.");
         } catch (error) {
-            console.error("[h4] Dashboard: Init FAILED", error);
-            alert("H4 Dashboard Init Failed: " + error.message);
+            console.error("[h4] Dashboard: CRITICAL FAULT", error);
         }
     },
 
     toggle() {
-        if (this.isOpen) this.close();
-        else this.open();
+        if (!this.modal) return;
+        const isOpen = this.modal.classList.contains("open");
+        if (isOpen) {
+            this.close();
+        } else {
+            this.open();
+        }
     },
 
     open() {
+        if (!this.modal) return;
+        if (this.panelMode === 'popout' && this._popoutWindow && !this._popoutWindow.closed) {
+            this._popoutWindow.focus();
+            return;
+        }
+
         this.modal.style.display = "flex";
         requestAnimationFrame(() => {
             this.modal.classList.add("open");
         });
-        this.isOpen = true;
-        this.renderTab(this.activeTab); // Will render active-home
+
+        // Lazy Render Logic: Prevent unnecessary DOM destruction
+        if (!this._renderedTabs.has(this.activeTab)) {
+            this.renderTab(this.activeTab);
+            this._renderedTabs.add(this.activeTab);
+        }
     },
 
     close() {
+        if (!this.modal) return;
         this.modal.classList.remove("open");
         setTimeout(() => {
-            this.modal.style.display = "none";
-        }, 300); // Wait for transition
-        this.isOpen = false;
+            if (!this.modal.classList.contains("open")) {
+                this.modal.style.display = "none";
+            }
+        }, 300); // matches the CSS opacity transition duration
     },
 
     createModal() {
+        if (document.getElementById("h4-dashboard-modal")) return;
+
         const el = document.createElement("div");
         el.id = "h4-dashboard-modal";
         el.className = "h4-glitch-container";
 
         el.innerHTML = `
             <div class="h4-dash-content">
-                <div class="h4-dash-header">
+                <div class="h4-dash-header h4-drag-handle">
                     <div class="h4-dash-title">h4_LIVE // SYSTEM_CONFIG</div>
-                    <div class="h4-dash-close">x</div>
+                    <div class="h4-header-controls">
+                        <div class="h4-panel-btn h4-btn-dock" title="Dock to Left" style="font-weight:900; font-family:monospace; font-size:13px; padding:0 7px; border-radius:4px; border:1px solid #444; background:rgba(0,180,255,0.08); color:#00b4ff; cursor:pointer; display:flex; align-items:center; height:22px; margin:0 2px;">D</div>
+                        <div class="h4-dash-close" title="Close Panel" style="font-weight:900; font-family:monospace; font-size:15px; padding:0 7px; border-radius:4px; border:1px solid #444; background:rgba(255,80,80,0.08); color:#ff5050; cursor:pointer; display:flex; align-items:center; height:22px; margin:0 2px;">✕</div>
+                    </div>
                 </div>
-                
                 
                 <div class="h4-dash-body">
                     <div class="h4-dash-sidebar">
                         <div class="h4-dash-header-small">SYSTEM</div>
-                        <div class="h4-tab-btn active" data-tab="active-home">HOME</div>
-                        <div class="h4-tab-btn" data-tab="active-debug">DEBUG</div>
-                        <div class="h4-tab-btn" data-tab="active-qol">QoL</div>
-                        <div class="h4-tab-btn" data-tab="active-wires">WIRE ADJ</div>
+                        <div class="h4-tab-btn active" data-tab="active-home" title="System Status Overview">HOME</div>
+                        <div class="h4-tab-btn" data-tab="active-debug" title="Forensic Debugging Protocols">DEBUG</div>
+                        <div class="h4-tab-btn" data-tab="active-qol" title="Quality of Life Enhancements">QoL</div>
+                        <div class="h4-tab-btn" data-tab="active-wires" title="Tactile Connection Styling">WIRE ADJ</div>
                         
                         <div class="h4-dash-header-small" style="margin-top:20px;">LIBRARY</div>
-                        <div class="h4-tab-btn" data-tab="active-nodes">NODES</div>
-                        <div class="h4-tab-btn" data-tab="active-about">ABOUT</div>
+                        <div class="h4-tab-btn" data-tab="active-nodes" title="Node Lore and Information Archives">NODES</div>
+                        <div class="h4-tab-btn" data-tab="active-about" title="Project Intelligence">ABOUT</div>
                     </div>
                     
                     <div class="h4-dash-main">
@@ -132,54 +168,54 @@ export const h4_Dashboard = {
         document.body.appendChild(el);
         this.modal = el;
 
-        // Events
-        el.querySelector(".h4-dash-close").onclick = () => this.close();
+        // Header Control Events
+        el.querySelector(".h4-btn-dock").onclick = (e) => {
+            e.stopPropagation();
+            this.togglePin();
+        };
+        el.querySelector(".h4-dash-close").onclick = () => {
+            const dash = window.h4_Dashboard;
+            dash.modal.classList.remove("open");
+            setTimeout(() => {
+                if (!dash.modal.classList.contains("open"))
+                    dash.modal.style.display = "none";
+            }, 300);
+        };
 
         const tabs = el.querySelectorAll(".h4-tab-btn");
         tabs.forEach(t => {
             t.onclick = (e) => {
-                // UI Toggle
-                tabs.forEach(x => x.classList.remove("active"));
-                e.target.classList.add("active");
+                const targetTab = e.currentTarget.dataset.tab;
+                if (this.activeTab === targetTab && this._renderedTabs.has(targetTab)) return;
 
-                // Logic
-                this.activeTab = e.target.dataset.tab;
+                tabs.forEach(x => x.classList.remove("active"));
+                e.currentTarget.classList.add("active");
+
+                this.activeTab = targetTab;
                 this.renderTab(this.activeTab);
             }
         });
     },
 
     renderTab(tabName) {
-        // Hide all panes
-        this.modal.querySelectorAll(".h4-tab-pane").forEach(p => p.style.display = "none");
+        // Dispatch Table Renderer (Architectural Smell Cleaned)
+        const renderers = {
+            'active-home': (p) => this.renderHome(p),
+            'active-debug': (p) => this.renderDebug(p),
+            'active-qol': (p) => this.renderQoL(p),
+            'active-wires': (p) => this.renderWires(p),
+            'active-nodes': (p) => this.renderNodes(p),
+            'active-about': (p) => this.renderRealAbout(p)
+        };
 
-        if (tabName === "active-home") {
-            const p = document.getElementById("h4-tab-home");
+        this.modal.querySelectorAll(".h4-tab-pane").forEach(p => p.style.display = "none");
+        const paneId = `h4-tab-${tabName.replace('active-', '')}`;
+        const p = document.getElementById(paneId);
+
+        if (p && renderers[tabName]) {
             p.style.display = "block";
-            this.renderHome(p);
-        } else if (tabName === "active-debug") {
-            const p = document.getElementById("h4-tab-debug");
-            p.style.display = "block";
-            this.renderDebug(p);
-        } else if (tabName === "active-qol") {
-            const p = document.getElementById("h4-tab-qol");
-            p.style.display = "block";
-            this.renderQoL(p);
-        } else if (tabName === "active-wires") {
-            const p = document.getElementById("h4-tab-wires");
-            p.style.display = "block";
-            this.renderWires(p);
-        } else if (tabName === "active-nodes") {
-            const p = document.getElementById("h4-tab-nodes");
-            p.style.display = "block";
-            this.renderNodes(p);
-        } else if (tabName === "active-about") {
-            const p = document.getElementById("h4-tab-about");
-            p.style.display = "block";
-            // renderAbout is now renderHome, so we need to restore renderAbout content or use a new method
-            // Actually I overwrote renderAbout in the previous step to point to renderHome.
-            // I should revert that change or create a real renderAbout method.
-            this.renderRealAbout(p);
+            renderers[tabName](p);
+            this._renderedTabs.add(tabName);
         }
     },
 
@@ -412,26 +448,23 @@ export const h4_Dashboard = {
         container.appendChild(grid);
 
         // 3. Gather Nodes
-        // --- UTILS ---
         function getRandomIcon() {
             const icons = ["{:}", "[+]", "<*>", "//", "#!", "{?}", "[x]", ">>", "**", "&&", "$$", "%%", "@@", "(o)", "[ ]"];
             return icons[Math.floor(Math.random() * icons.length)];
         }
 
         const h4Nodes = [];
-        if (typeof LiteGraph !== "undefined") {
-            for (const key in LiteGraph.registered_node_types) {
-                if (key.startsWith("H4_") || key.startsWith("h4_") || key.includes("FaceForge")) {
-                    h4Nodes.push({
-                        type: key,
-                        def: LiteGraph.registered_node_types[key]
-                    });
+        const nodes = LiteGraph?.registered_node_types;
+        if (nodes) {
+            for (const key in nodes) {
+                if (key.toLowerCase().startsWith("h4_")) {
+                    h4Nodes.push({ type: key, def: nodes[key] });
                 }
             }
         }
 
         if (h4Nodes.length === 0) {
-            grid.innerHTML = "<div style='padding:20px; grid-column: 1/-1;'>No H4 Nodes Found. System Offline?</div>";
+            grid.innerHTML = "<div style='padding:20px; grid-column: 1/-1; color:#444; font-family:monospace;'>[ SYSTEM_OFFLINE ]: NO H4_SIGNALS_DETECTED</div>";
             return;
         }
 
@@ -440,9 +473,9 @@ export const h4_Dashboard = {
             grid.innerHTML = "";
             h4Nodes.forEach(n => {
                 const title = n.def.title || n.type;
-                const cleanTitle = title.replace(/^h4\\s*-\\s*/i, "").replace(/^H4\\s*/, "");
+                const cleanTitle = title.replace(/^h4\s*-\s*/i, "").replace(/^H4\s*/, "");
 
-                if (filter && !cleanTitle.toLowerCase().includes(filter.toLowerCase())) return;
+                if (filter && !cleanTitle.toLowerCase().includes(filter.toLowerCase()) && !n.type.toLowerCase().includes(filter.toLowerCase())) return;
 
                 const card = document.createElement("div");
                 card.className = "h4-node-card";
@@ -450,15 +483,11 @@ export const h4_Dashboard = {
                     <div class="h4-node-icon">${getRandomIcon()}</div>
                     <div class="h4-node-title">${cleanTitle}</div>
                     <div class="h4-node-type">${n.type}</div>
-                    <div class="h4-node-actions">
-                        <button class="h4-btn-summon">SUMMON</button>
-                    </div>
+                    <div class="h4-btn-summon">SUMMON_NODE</div>
                 `;
 
                 // --- EVENTS ---
-
                 // Click Card -> Open Docs ("The Book of H4")
-                // card.onclick -> Open Docs
                 card.onclick = (e) => {
                     if (e.target.classList.contains("h4-btn-summon")) return;
                     this.openNodeDocs(n);
@@ -466,7 +495,8 @@ export const h4_Dashboard = {
 
                 // Summon Button
                 const btnSummon = card.querySelector(".h4-btn-summon");
-                btnSummon.onclick = () => {
+                btnSummon.onclick = (e) => {
+                    e.stopPropagation();
                     this.summonNode(n.type);
                 };
 
@@ -474,13 +504,8 @@ export const h4_Dashboard = {
             });
         };
 
-        // Output initial render
         render();
-
-        // Search Listener
         searchRow.querySelector("input").oninput = (e) => render(e.target.value);
-
-        // Inject Styles if needed
         this.injectNodeGridCSS();
     },
 
@@ -595,210 +620,240 @@ export const h4_Dashboard = {
     },
 
     // --- LORE ARCHIVES ---
-    getLore(type) {
-        // Mapping internal types to Lore Keys if needed, or direct lookup
-        // The JSON keys match the node types directly (e.g. "H4_ModelMerger").
-        if (this.LORE && this.LORE[type]) return this.LORE[type];
-        return null;
-    },
 
     LORE: {
         // --- LOGIC & TRAFFIC CONTROL ---
         "H4_TrafficRouter": {
             "title": "H4 Traffic Router // THE NEXUS",
-            "description": "The definitive command-and-control center for cyclic workflows. In a standard 'vending machine' workflow, data moves once and dies. The Nexus changes that. It acts as a jurisdictional gatekeeper: on the first run (Run 0), it sources data from your 'Start' input. On every subsequent loop (Run 1+), it instantly redirects to the 'Loop' input. This allows for recursive refining, feedback loops, and multi-stage creative evolutions without manually shifting wires.",
-            "usage": "The core of your engine. Connect your initial Load Image to 'first_run_in' and the refined result from the end of your chain (likely via an H4_ImageBuffer) to 'loop_run_in'. It coordinates the hand-off between creation and refinement perfectly.",
-            "tips": ["Use the 'Smart Denoise' outputs to differentiate between the heavy lifting of the first pass and the surgical refinement of the loops.", "If inputs are missing, the Router defaults to a safe-pass mode to prevent workflow crashes."]
+            "description": "The ultimate workflow orchestrator. The Nexus merges 'Start' and 'Loop' flows into a single, high-performance execution stream. It features an intelligent denoise controller that automatically shifts values between your setup phase and your refinement loops, ensuring perfectly crisp results without manual intervention.",
+            "usage": "Connect your initial data to the 'Start' socket and your recursive feedback to the 'Loop' socket. The node handles the switching logic based on the run count.",
+            "tips": ["Use 'Restart' to clear the counter and return to the Setup phase instantly.", "Pair with H4_SmartSave to auto-sort logs by loop depth."]
         },
         "H4_TrafficCop": {
             "title": "H4 Traffic Cop // THE FORK",
-            "description": "A logic-based bifurcator. While the Router merges, the Cop splits. It detects the current system state and routes a single input signal to either the 'Start' or 'Loop' output path. It is essentially a 'Switch' node that understands time.",
-            "usage": "Use this when you want a specific part of your workflow to *only* fire during the first generation, or *only* during the recursive loops (e.g. only adding grain on the final pass).",
-            "tips": ["Connect a single data source (like a prompt) and fork it into two different encoders based on loop count."]
+            "description": "A surgical logic gate designed for A/B routing. The Cop monitors the system state and directs traffic to different branches of your workflow depending on whether you are in the first run or a subsequent loop. It features 'Safe Passthrough' to prevent workflow crashes by ensuring a valid signal is always sent to both outputs.",
+            "usage": "Place this at a decision point where you need different logic for the initialization phase vs the refinement phase.",
+            "tips": ["Enable 'Restart on True' to loop back to the start of the logic sequence."]
         },
         "H4_TrafficMerge": {
             "title": "H4 Traffic Merge // THE ZIPPER",
-            "description": "The inverse of the Traffic Cop. It pulls from two separate logic paths and 'Zips' them into a single coherent stream based on the loop phase. It is hardened against cycle errors and features a specialized 'Wireless Buffer' integration to prevent ComfyUI from panicking during feedback loops.",
-            "usage": "Perfect for bringing divergent logic chains back together before they hit the KSampler.",
-            "tips": ["Enable 'Auto-Loop-Reset' if you want the counter to clear when you disconnect the primary input."]
+            "description": "The companion to the Traffic Cop. The Zipper seamlessly stitches two divergent data streams back into a single pipeline. It features a built-in wireless receiver that can capture data from an H4_ImageBuffer to eliminate the 'Cycle Error' common in complex ComfyUI loops.",
+            "usage": "Use this to recombine parallel logic paths. Leave the 'Loop' input empty to trigger Wireless Mode and bypass wiring constraints.",
+            "tips": ["Always check the 'Denoise' output to feed your sampler the correct value for the current run."]
+        },
+        "H4_StateMonitor": {
+            "title": "H4 State Monitor // THE COUNTER",
+            "description": "A high-visibility forensic counter that asks the system: 'What run is this?' It extracts the loop iteration directly from the h4 core memory and displays it on the node. Invaluable for debugging complex logic and ensuring your resets are firing correctly.",
+            "usage": "Connect the 'Any_In' socket to your logic gate to ensure the monitor waits for the reset signal before reporting.",
+            "tips": ["Use the 'loop_count_number' output to drive math nodes or dynamic file naming."]
         },
         "H4_LoopIncrementer": {
             "title": "H4 Loop Incrementer // THE CLICKER",
-            "description": "The odometer of your creative process. Every time data passes through this node, it signals the global H4 Kernel that a step is complete. It is the engine that drives the Traffic Router's decision-making process.",
-            "usage": "Place this immediately after your primary generation or save node. It passes data through with zero latency while updating the system state.",
-            "tips": ["Always place it *after* nodes that could potentially fail. You only want the count to go up if the step actually worked."]
+            "description": "The manual driver for your loops. It explicitly bumps the iteration counter only when it receives a signal. This allows you to separate the 'Logic' of your router from the 'Action' of your workflow, giving you surgical control over exactly when a loop concludes.",
+            "usage": "Connect any output from your main processing chain to the 'Pulse' socket to trigger the increment.",
+            "tips": ["Enable 'Wireless Reset' to clear the system state via a remote signal from an H4_WirelessResetButton."]
         },
         "H4_WirelessResetButton": {
-            "title": "H4 Wireless Reset // THE RED BUTTON",
-            "description": "A virtual, wireless kill-switch. When your loop has achieved perfection—or if it's spiralling into chaos—you need a way to clear the deck. This button sends a sub-atomic signal across the entire graph to reset the Mission Control counter to zero instantly.",
-            "usage": "Keep it near your 'Play' button. Toggle it whenever you want to start a 'Run 0' from scratch.",
-            "tips": ["It is non-destructive. It only resets the internal counter; it never deletes your work."]
+            "title": "H4 Wireless Reset Button // RED BUTTON",
+            "description": "A sovereign UI control that transmits a reset signal across the entire toolkit without a single wire. When toggled, it broadcasts a 'Request Reset' command to all H4 logic nodes, instantly returning the workspace to Run 0.",
+            "usage": "Keep this near your output previews to quickly reset and iterate on a new seed or prompt.",
+            "tips": ["The status display will confirm 'RESET SENT' once the command is acknowledged by the logic nodes."]
         },
-
-        // --- CONTEXT & DATA BUNDLING ---
+        "H4_ImageBuffer": {
+            "title": "H4 Universal Buffer // ANTI-LAG UNIT",
+            "description": "The solution to the ComfyUI 'Cycle Lag'. Standard loops often suffer from a 1-cycle delay where data from Run N only arrives at the input during Run N+2. The Universal Buffer intercepts and holds ANY data type—Images, Latents, or Strings—to provide an immediate feedback bridge for the next run.",
+            "usage": "Connect your processed data to 'Image_In' to store it, and use the 'Buffered_Data' output at the start of your loop to retrieve it.",
+            "tips": ["Leave 'Image_In' empty to run in 'Read-Only' recursion mode."]
+        },
         "H4_ContextHub": {
-            "title": "H4 Context Hub // THE MOTHERSHIP",
-            "description": "Cables are the enemy of clarity. The Context Hub is your tactical wiring solution. It accepts every conceivable ComfyUI data type—Models, VAEs, CLIPs, Conds, Latents, Images, and Masks—and bundles them into a single, high-bandwidth 'H4_PIPE'. One purple wire to rule them all.",
-            "usage": "Place it at the start of your graph. Feed it your 'Base' components. Then, just drag one single wire across your canvas to the destination.",
-            "tips": ["Chaining Hubs allows you to 'Update' a pipe. Connect an old pipe to 'base_pipe' and plug in a new VAE—the Mothership will intelligently swap the component in transit."]
+            "title": "H4 Context Hub // THE BUNDLER",
+            "description": "A high-density data package. The Hub collects Models, VAEs, CLIPs, and Images into a single sovereign context line. This eliminates 'Spaghetti Wiring' and ensures that all related assets arrive at their destination in perfect synchronization.",
+            "usage": "Plug all your core assets into the left side. Run a single thick wire through your logic gates to the Hub Unpacker.",
+            "tips": ["Right-click to rename the Hub for better organization in massive workflows."]
         },
         "H4_ContextUnpack": {
-            "title": "H4 Context Unpack // THE DISTRIBUTOR",
-            "description": "The destination for your Mothership's signal. It takes the bundled 'H4_PIPE' and decodes it back into its individual components with zero loss and zero latency.",
-            "usage": "Place this near your KSamplers or processing nodes. Instead of running 10 wires from the left side of the map, just plug in the Pipe and pull what you need.",
-            "tips": ["Unused outputs are 'Safe'. They won't cause errors if left disconnected."]
+            "title": "H4 Context Unpack // THE BREAKER",
+            "description": "The extractor for the Context Hub. It cracks open the sovereign context line and releases the individual assets (Models, Images, etc.) for use in samplers or savers. It features 'Zero Lag' extraction with built-in type validation.",
+            "usage": "Connect the Context wire from a Hub or Logic gate to the input. Distribute the assets as needed.",
+            "tips": ["Any socket not in the original Hub will simply output 'None' safely."]
         },
         "H4_Oxidine": {
             "title": "H4 Oxidine // THE SENTIENT CONDUIT",
-            "description": "A paradigm-shifting approach to connectivity. Oxidine is an 'Omni-Proxy'. It is a single node with one input and one output that *automatically shapeshifts* to match whatever is plugged into it. If you plug in a Model, it is a Model. If you plug in a Mask, it is a Mask.",
-            "usage": "Use it to pass data through your graph without knowing the type in advance. It prevents 'Type Mismatch' errors by acting as a universal translator.",
-            "tips": ["Extremely useful for modular workflow templates where components might be swapped frequently."]
+            "description": "The absolute pinnacle of data routing. Oxidine creates an 'Omniproxy'—a single wire that behaves like whatever it is connected to. It dynamically inspects the stack to determine if the next node needs a Model, a VAE, or an Image, and presents the correct face of the data automatically.",
+            "usage": "Use this when you want a truly wireless-feeling experience. One wire, infinite types.",
+            "tips": ["Connect your most important base assets to Oxidine to ensure they are available anywhere on the graph."]
         },
-
-        // --- MISSION CONTROL ---
         "H4_MissionControl": {
-            "title": "H4 Mission Control // THE FLIGHT DECK",
-            "description": "The administrative heart of the toolkit. While the Router handles the plumbing, Mission Control handles the soul. It tracks the global loop count, provides real-time telemetry on system health, and coordinates all scheduler signals. It is the conductor that ensures every node is playing in the correct key.",
-            "usage": "Required for any 'Live' workflow. Set to 'Active' to drive the generation loop, or 'Passive' to simply monitor state. It acts as the anchor point for your creative process.",
-            "tips": ["Features a 'Wireless Reset' listener—pair it with the Red Button for tactical control."]
+            "title": "H4 Mission Control // COMMAND CENTER",
+            "description": "The central UI override for the h4 toolkit. From here, you can control global aesthetics, toggle forensic HUDs, and manage wireless synchronization. It enforces 'Viewport Sovereignty'—the idea that the UI should work for you, not against you.",
+            "usage": "Keep one Mission Control node on your graph to enable the advanced dashboard features.",
+            "tips": ["Toggle 'Sovereign HUD' to see detailed resource forensics on every H4 node."]
         },
         "H4_LinearScheduler": {
-            "title": "H4 Linear Scheduler // THE RAMP",
-            "description": "Control change over time with mathematical precision. This node generates a ramping float value based on where you are in your loop. You define the Start, the End, and the Max steps, and it handles the trajectory.",
-            "usage": "Perfect for 'Denoise Ramps' (e.g. Start at 0.8 on Run 0, and slowly drop to 0.1 by Run 5) or CFG sweeps.",
-            "tips": ["Use 'Loop Mode' to have the ramp automatically reset and restart once it hits the maximum value."]
+            "title": "H4 Linear Scheduler // THE METRONOME",
+            "description": "Precision timing for long-form generations. Unlike random schedulers, the Metronome allows you to define a start and end value (like CFG or Denoise) and smoothly interpolate between them over a set number of runs. Perfect for 'Power Spirals' or gradual character aging.",
+            "usage": "Set your Start, End, and Step count. The node will output the current interpolated value for each loop iteration.",
+            "tips": ["Pair with h4_DocuScribe to graph your results over time."]
         },
         "H4_SeedGenerator": {
-            "title": "H4 Seed Generator // SIGNAL GEN",
-            "description": "The source of controlled randomness. Unlike standard seed nodes that are either 'fixed' or 'randomized' per-queue, this node is 'Sequence Aware'. It can increment, decrement, or scramble seeds based on the H4 loop state.",
-            "usage": "Use 'Incremental' to explore the neighbors of a specific seed across multiple runs, or 'Loop Sync' to ensuring a specific seed only changes when the loop resets.",
-            "tips": ["Perfect for 'Exploratory Grids' where you want to see how a prompt evolves across 10 different seeds."]
+            "title": "H4 Seed Generator // ENTROPY ENGINE",
+            "description": "The definitive source of randomness. The Entropy Engine features advanced synchronization modes, allowing it to 'Wireless Link' with the Mission Control seed. It ensures that every node on your graph is using the same mathematical starting point for consistency.",
+            "usage": "Toggle 'Wireless Sync' to follow the global Mission Control seed, or run it independently for local noise variations.",
+            "tips": ["Right-click to copy the current seed to the clipboard for external documentation."]
         },
-
-        // --- LOADERS & FILE OPS ---
         "H4_UniversalLoader": {
-            "title": "H4 Universal Loader // SKELETON KEY",
-            "description": "The only loader you will ever need. It intelligently bridges the gap between 'Checkpoints' (Safetensors), 'Diffusers' (Directory-based), and 'GGUF' (Quantized). It also features built-in LoRA support and 'Architecture Detection'—meaning it automatically configures itself for SDXL, Flux, or the new Wan 2.1 video models without you lifting a finger.",
-            "usage": "Simply select your model. The node will probe the file headers, determine the required CLIP/VAE configuration, and 'just work.' It's magic.",
-            "tips": ["Features 'GGUF Delegation'—if you select a GGUF file, it automatically routes the processing through the GGUF kernel if installed."]
+            "title": "H4 Universal Loader // THE PORTER",
+            "description": "A high-speed gateway for all model types. The Porter detects if you are trying to load a Checkpoint, a LoRA, or a VAE and presents the correct selection menu. It features 'Tactile Caching'—remembering your favorite models for near-instant swaps.",
+            "usage": "Select your model directory and pick your asset. The node handles the internal ComfyUI mapping automatically.",
+            "tips": ["Use the 'Refresh' button to scan for newly downloaded assets without restarting ComfyUI."]
         },
-        "h4_Complete_Loader": {
-            "title": "H4 Complete Loader // THE SWISS ARMY",
-            "description": "A high-density loader designed for performance. It features a tactical HTML overlay that stays hidden until needed. Click 'Smart Upload' and it expands to handle up to 4 reference images, patching them directly into your workflow alongside the model and LoRA stack. It's designed to have a zero-pixel footprint for any feature you aren't using.",
-            "usage": "The ultimate starter node. Load your model, your LoRA, and your reference images in one tiny box.",
-            "tips": ["Drag an image *directly* onto the node to 'Smart Upload' it instantly."]
+        "H4_CompleteLoader": {
+            "title": "H4 Complete Loader // THE MASTER KEY",
+            "description": "The ultimate initialization unit. The Master Key combines Checkpoint loading, VAE selection, LoRA stacking, and CLIP encoding into a single, compact footprint. It produces a fully prepared Model and Conditioning set, ready for immediate sampling.",
+            "usage": "Configure your stack once and use the 'Model' and 'CLIP' outputs to drive your entire workflow.",
+            "tips": ["The 'Stack' view allows you to see the combined weight of all active LoRAs at a glance."]
         },
-        "h4_Multi_ImgUpload": {
-            "title": "H4 Multi-Upload // THE GALLERY",
-            "description": "For when one image isn't enough. A dedicated image ingestion engine that supports up to 10 simultaneous uploads via a single tactical button. It uses dynamic socket allocation, meaning it only shows as many outputs as you have images uploaded.",
-            "usage": "Perfect for batch processing, IPAdapter reference sets, or building massive image grids.",
-            "tips": ["Upload 10 images and watch it scale. Delete half and watch the sockets collapse to keep your canvas clean."]
+        "H4_MultiImgUpload": {
+            "title": "H4 Multi Image Upload // BATCH INGESTER",
+            "description": "The high-volume ingestion engine. Stop uploading images one by one. The Ingester allows you to drop entire folders or selections of images into the UI. It processes them into a Batch Tensor, perfect for training sets, slideshows, or 4-way comparisons.",
+            "usage": "Drag images into the drop-zone. Use the 'Batch' output to feed batch-aware nodes like the Comparinator.",
+            "tips": ["Toggle 'Auto-Sort' to organize your batch by timestamp or filename."]
         },
         "H4_SmartSave": {
-            "title": "H4 SmartSave // THE FORENSIC VAULT",
-            "description": "The gold standard for image output. It's not just a file saver; it's a metadata forensic lab. It 'Fingerprints' every image by embedding the entire prompt, seed, model hashes, and the workflow graph itself into the PNG chunks. It features a 'History Rail' (The Viewport) that tracks every generation in your session with high-res previews and metadata inspection.",
-            "usage": "Replace your standard Save nodes. Toggle 'Save to Disk' to commit files, or leave it OFF for 'Stealth Mode' (RAM-only preview). Click the '?' Icon for the History Rail.",
-            "tips": ["Use 'Privacy Mode' to blur the history thumbnails if you're streaming or in public.", "Right-click the History Rail to 'Export DNA' (Save metadata as JSON)."]
+            "title": "H4 Smart Save // THE HISTORIAN",
+            "description": "Professional-grade asset management. The Historian saves your results with full forensic DNA—embedding the prompt, the workflow, and the hardware metadata directly into the file. It features a sovereign HUD that shows a history rail of your last 100 generations.",
+            "usage": "Place this at the end of your workflow. Every generation will be saved with a unique, searchable timestamp and metadata packet.",
+            "tips": ["Switch to 'Stealth Mode' to save images with zero UI clutter, but keep the metadata for future audits."]
         },
         "H4_ModelSave": {
-            "title": "H4 Model Save // THE VAULT",
-            "description": "Safeguard your fine-tunes or merges. This node handles the complex task of serializing massive model weights to disk without crashing your system. It features 'Nuclear RAM Saver' technology that writes the file in chunks, circumventing the OOM (Out Of Memory) errors common when saving 10GB+ checkpoints.",
-            "usage": "Connect your merged Model, CLIP, and VAE. Pick a format (FP16, BF16, or the new E4M3FN Float8). Name it and commit.",
-            "tips": ["Always use BF16 for modern architectures (SDXL/Flux) and FP16 for SD1.5 to ensure best precision-to-weight ratio."]
+            "title": "H4 Model Save // THE ARCHIVIST",
+            "description": "Secure storage for your trained assets. Whether you are merging models or fine-tuning, the Archivist saves the current model weights with custom naming and versioning. It automatically includes the 'Merge Map' so you never forget which models created your favorite variant.",
+            "usage": "Connect your model output here. Set your prefix and hit Generate to save a permanent .safetensors file.",
+            "tips": ["Enable 'Auto-Versioning' to prevent overwriting previous successful merges."]
         },
-
-        // --- IMAGE PROCESSING ---
         "H4_Mutate": {
-            "title": "H4 Mutate // THE FINISHER",
-            "description": "The definitive post-processing monolith. Why chain 10 nodes for sharpness, color grading, and film grain when you can do it in one? Mutate is a 7-stage image manipulation pipeline: Color Grade, Sharpness, Upscale, Style Transfer, Film Emulation, Vignette, and FX. Each section is modular—it only expands and uses compute when you turn it ON.",
-            "usage": "Drop it at the end of your workflow. Turn on 'Film' for Portra 400 emulation. Turn on 'Color' to push the shadows. It's the 'Final Polish' node.",
-            "tips": ["Change the 'Pipeline Order' to determine if you sharpen *before* or *after* the upscale. It makes a huge difference in the final look."]
+            "title": "H4 Mutate // THE CHAMELEON",
+            "description": "The dynamic prompt engine. The Chameleon takes a base prompt and 'Mutates' it by injecting random tokens or weights from a predefined library. It's the best way to explore 'Concept Drift' and find unexpected aesthetic sweet spots.",
+            "usage": "Input your base prompt and select a mutation strength. The node will produce a slightly shifted variation for every run.",
+            "tips": ["Use 'Seed Sync' to keep the mutations consistent across multiple samplers."]
         },
         "H4_PixelPress": {
-            "title": "H4 Pixel Press // THE DENSITY GOD",
-            "description": "A professional-grade HDR and Density engine. It supersamples your image, applies custom tone mapping to recover blown-out highlights and crushed shadows, sharpens at the super-resolution level, and downsamples back to target. The result is an image with 'High Information Density' and zero aliasing.",
-            "usage": "Use this for 'High-End' outputs where standard upscaling isn't crisp enough. It mimics the look of high-end camera sensors.",
-            "tips": ["Enable 'Tiled' mode for massive 4K+ renders to keep your VRAM happy."]
+            "title": "H4 Pixel Press // IMAGE COMPACTOR",
+            "description": "Efficient image distribution. The Pixel Press applies lossless compression and metadata stripping to prepare your images for the web. It's the professional choice for sharing results without bloated file sizes while maintaining absolute visual fidelity.",
+            "usage": "Connect your final image here before saving. Adjust the 'Quality' slider to find the perfect balance between size and detail.",
+            "tips": ["Use 'WebP' mode for the smallest file footprint with modern browser compatibility."]
         },
         "H4_FaceForge": {
-            "title": "H4 FaceForge // THE SURGEON",
-            "description": "The flagship face manipulation suite. It's not just a face swapper; it's a full reconstructive engine. It combines Swapping (InsightFace), Restoration (CodeFormer/GFPGAN), and 'Boosting' (performing a high-res generation pass on the face) into a single, automated workflow.",
-            "usage": "Feed it a source and destination. It handles the alignment, swapping, and blending automatically. Features 'Occlusion Guard' to prevent hair/hands from being 'swapped away.'",
-            "tips": ["Enable 'Face Boosting' to 2x the face resolution before restoration for the most realistic skin textures."]
+            "title": "H4 Face Forge // IDENTITY ENGINE",
+            "description": "The ultimate face-care suite. Face Forge combines high-fidelity swapping, surgical restoration, and SAM-based occlusion handling into one node. It ensures that your character's identity remains consistent across any lighting or camera angle.",
+            "usage": "Connect a source face and a target image. Use the 'Restore' settings to sharpen the new face and the 'SAM' settings to prevent hair/glasses occlusion.",
+            "tips": ["Turn on 'Boost' for extra sharpness during the swap phase."]
         },
-        "h4_pythonipulator_inator": {
-            "title": "h4 Pythonipulator-inator // THE IMAGE KERNEL",
-            "description": "[ WIP ] A raw, distributed image manipulation kernel that exposes low-level Python primitives (OpenCV/Pillow/Numpy) as tactical blocks. It is designed for 'Degenerate Art'—glitching, geometric scrambling, and extreme bit-level operations that standard nodes can't touch.",
-            "usage": "Experimental usage only. Use to add 'Cyberpunk' glitches or mathematical artifacts to your image stream.",
-            "tips": ["The 'Glitch-Core' settings can create anything from subtle VHS noise to total digital annihilation."]
+        "H4_LoadFaceModel": {
+            "title": "H4 Load Face Model // THE ARCHIVIST",
+            "description": "Instantly recall identities. This node loads a pre-built Face DNA file (.h4f) from your library. It is significantly faster and more reliable than analyzing a raw image every time, ensuring your characters look identical every single time you use them.",
+            "usage": "Select a face model from your dropdown list. Plug the 'FACE_MODEL' output into Face Forge.",
+            "tips": ["Build your models using H4_BuildFaceModel to capture the best 'average' of a character."]
         },
-
-        // --- GRID & TESTING ---
+        "H4_BuildFaceModel": {
+            "title": "H4 Build Face Model // DNA EXTRACTOR",
+            "description": "The character creator. The DNA Extractor analyzes multiple images of a person and blends them into a single, noise-free Face Model. This 'average' capture is more robust than a single image, making it harder for lighting or angles to break the identity.",
+            "usage": "Connect 3-5 images of the same person. The node will output a unique 'FACE_MODEL' that captures their core features.",
+            "tips": ["Use clear, front-facing photos for the best extraction results."]
+        },
+        "H4_SaveFaceModel": {
+            "title": "H4 Save Face Model // IDENTITY VAULT",
+            "description": "Secure your creations. The Identity Vault takes a detected face or a built model and saves it to your permanent library for future use. Keep your character 'cast' in one place for instant deployment in any future workflow.",
+            "usage": "Plug a 'FACE_MODEL' or an image with a detected face into the input. Name your character and save.",
+            "tips": ["Build a folder structure in your face library to organize heroes, villains, and NPCs."]
+        },
+        "H4_IdentityEngine": {
+            "title": "H4 Identity Engine // PERSONALITY MATRIX",
+            "description": "The character blender. The Matrix allows you to take two or more face models and 'Cross-Pollinate' them. Want a character that is 60% Hero and 40% Villain? This node calculates the mathematical average of their features to create a brand new, stable identity.",
+            "usage": "Connect multiple Face Models. Adjust the 'Mix' sliders to blend the features into a new character.",
+            "tips": ["Use this to create family members or successors that share similar facial traits."]
+        },
+        "H4_FaceDetailer": {
+            "title": "H4 Face Detailer // THE SURGEON",
+            "description": "High-fidelity facial restoration. The Surgeon focuses exclusively on the face, applying multi-pass sharpening (GFPGAN), noise clean-up (CodeFormer), and skin texture enhancement. It's the final touch needed for professional-grade portraits.",
+            "usage": "Connect any image where the face looks blurry or 'fried'. The node will automatically find, sharpen, and re-composite the face.",
+            "tips": ["Keep 'CodeFormer Weight' around 0.5 to keep the restoration from looking too 'plastic'."]
+        },
+        "H4_DualCLIPTextEncode": {
+            "title": "H4 Dual CLIP Encode // SEΜΑΝTIC BRIDGE",
+            "description": "Multi-prompt management. The Semantic Bridge encodes two prompts simultaneously, allowing you to blend between them using a simple slider. This is perfect for complex concept transitions, like changing a character's outfits or shifting from day to night in a single generation.",
+            "usage": "Enter your 'Prompt A' and 'Prompt B'. Use the 'Mix' value to control which prompt dominates the latent space.",
+            "tips": ["Animate the 'Mix' value using a scheduler for smooth concept-transformation videos."]
+        },
+        "H4_Pythonipulator-inator": {
+            "title": "H4 Pythonipulator // IMAGE KERNEL",
+            "description": "The definitive image manipulation kernel. Written in high-performance Python, this node combines OpenCV, Pillow, and Scikit-Image into one tactile interface. It features dedicated modules for Geometric transforms, Cyberpunk glitches, Stylistic filters, and Edge detection.",
+            "usage": "Enable the 'CB' module for glitch effects, 'GEO' for rotations, or 'CLR' for brightness/contrast. All modules are sequential.",
+            "tips": ["Enable 'Save to Disk' to instantly archive your transformed images to a dedicated folder."]
+        },
         "H4_Gridinator": {
-            "title": "H4 Gridinator // THE MONOLITH",
-            "description": "An X/Y/Z Plotter without the spaghetti. Gridinator is a self-contained generation environment that handles model switching, LoRA patching, and sampling internally. You define your axes (e.g. X = Prompt, Y = Model, Z = Denoise) and it builds the entire comparison grid in one go.",
-            "usage": "Perfect for testing which LoRA at which strength works best with which Checkpoint. Highly efficient—it only reloads models when they actually change on the axis.",
-            "tips": ["Use 'Fuzzy Mapping' for model names—no need to type the full '.safetensors' path, just a keyword will find it."]
+            "title": "H4 Gridinator // THE MATRIX",
+            "description": "Advanced visualization for batch testing. The Matrix takes a list of images and organizes them into a clean, searchable grid. It's the professional way to compare results across different seeds, prompts, or weights in a single view.",
+            "usage": "Plug in a batch of images. Set your 'Columns' and 'Rows'. The node outputs a single 'Contact Sheet' image.",
+            "tips": ["Use 'Auto-Labels' to identify which image corresponds to which setting directly on the grid."]
         },
         "H4_Comparinator": {
-            "title": "H4 Comparinator // THE SNIPER",
-            "description": "Professional-grade A/B testing. It features a 3-pane viewport with a sliding divider for pixel-accurate comparisons. It saves every generation to a local 'Vault' history, allowing you to drag past images back into the view. Includes a 'Sniper Scope' for inspecting fine details (eyes, hands) at 4x magnification.",
-            "usage": "Place it at the end of your workflow. Compare your current run against your 'Gold Standard' reference on the left.",
-            "tips": ["Use the 'Telemetry Drawer' to see the exact prompt and seed differences between the two images you are comparing."]
+            "title": "H4 Comparinator // FORENSIC VIEWER",
+            "description": "Dual-channel A/B testing. The Comparinator allows for frame-by-frame comparison between two images. It features a high-performance 'Historian' mode that keeps a running rail of previous attempts, letting you 'Time-Travel' back to earlier versions of a generation.",
+            "usage": "Connect 'Image A' (Control) and 'Image B' (Test). Use the side-panel to slide between them and inspect the differences.",
+            "tips": ["Press the 'Save VS' button to create a side-by-side comparison image for your notes."]
         },
-
-        // --- UTILITIES & DOCS ---
         "H4_DocuScribe": {
-            "title": "H4 DocuScribe // THE REPORTER",
-            "description": "An automated workflow documenter. Connect nodes to DocuScribe, and it will generate a clean, readable Markdown report detailing every setting, model name, and parameter used in your graph.",
-            "usage": "Connect the 'Context' or individual nodes. It writes a file to your /output/ folder every time you generate. Perfect for tracking your experiments.",
-            "tips": ["Great for sharing workflows or keeping a 'Logbook' of your best settings."]
+            "title": "H4 DocuScribe // THE LOGBOOK",
+            "description": "Automated workflow documentation. Every time you generate, DocuScribe writes a markdown entry containing your prompt, your settings, and your result. It's the easiest way to build a professional 'dev log' of your creative process.",
+            "usage": "Keep this connected to your final output. It will update the 'h4_log.md' file in your project folder automatically.",
+            "tips": ["Review the log in the ComfyUI side-panel for a quick history of your session."]
         },
         "H4_ModelMerger": {
-            "title": "H4 Model Merger // THE LAB",
-            "description": "Absolute MAD SCIENCE. This is deep, block-level weight manipulation—injecting the soul of one model into the body of another. Unlike basic mergers that just average everything out, this allows you to surgically target specific layers of the UNet. Want the composition of SDXL but the shading of an anime model? This is your scalpels and lightning bolts.",
-            "usage": "For creating custom hybrid models on the fly. The 'Test Image' output lets you verify the merge instantly before committing to a 50GB file.",
-            "tips": ["Lower Input blocks usually affect composition/shapes.", "Higher Output blocks affect fine details/textures/lighting."]
+            "title": "H4 Model Merger // WEAVER",
+            "description": "Precision weight blending. The Weaver allows for 'Block-Level' merging of two checkponts. Unlike simple 50/50 merges, you can specify exactly which parts of the neural network to prioritize (e.g. Model A's eyes, Model B's lighting).",
+            "usage": "Connect two models. Set your 'Ratio' and 'Merge Mode'. Output a new combined model for immediate testing.",
+            "tips": ["Use 'Sum Addition' for adding LoRAs directly into the checkpoint weights permanently."]
         },
         "H4_DoubleSampler": {
-            "title": "H4 Double Sampler // THE TWO-PASS ENGINE",
-            "description": "The monster truck of samplers. It handles a full two-stage generation pipeline (Base + Refiner) in a single node. Features prompt 'Stutter' (transformation between passes), CFG sliding, and native noise-injection control.",
-            "usage": "Use this for 'High-Relief' generations where you need a secondary pass to fix textural hallucinations or add fine-grained detail.",
-            "tips": ["Enable 'Stutter Mode' for more stylistic divergence between the base and refiner passes."]
+            "title": "H4 Double Sampler // TWIN TURBO",
+            "description": "Multi-pass refinement. The Twin Turbo runs two sampling passes in one node—usually a 'Base' pass followed by a low-denoise 'Refiner' pass. This produces significantly higher detail with zero extra noise.",
+            "usage": "Set your base steps and your refiner steps. The node will handle the latent hand-off internally.",
+            "tips": ["Use a different sampler for the second pass (e.g. Euler -> DPM++ 2M) for varied texture profiles."]
         },
         "H4_Varianator": {
-            "title": "H4 Varianator // THE REMIX",
-            "description": "A high-speed iteration engine. It takes an image and generates a series of 'Variations' based on a secondary prompt or structural mask. It's essentially a condensed Img2Img workflow optimized for speed.",
-            "usage": "Use it find 'The One' when you like the composition but want to explore different lighting or color palettes.",
-            "tips": ["Low denoise (0.1 - 0.3) keeps the structure; high denoise (0.6+) allows for total mutation."]
+            "title": "H4 Varianator // THE DIVERGE",
+            "description": "The alternative-path engine. The Varianator takes a latent and creates a batch of 'Near-Neighbors'—versions that are slightly different but share the same core structure. It's the fastest way to explore 'Better than Best' without changing your prompt.",
+            "usage": "Plug in a latent. Set your 'Variance' amount. It will produce 4-8 variations for you to pick from.",
+            "tips": ["Low variance (0.1) is for subtle details; high variance (0.8) is for wild stylistic shifts."]
         },
         "H4_NoteInjector": {
-            "title": "H4 Note Injector // CANVAS DECAL",
-            "description": "Add high-visibility tactical notes directly to your canvas. These aren't just standard ComfyUI notes; they feature the H4 tactical aesthetic, glowing borders, and support for Markdown-style formatting.",
-            "usage": "Use them to label sections of your workflow or leave instructions for other users.",
-            "tips": ["Double-click to expand/collapse. They stay visible even at far zoom levels (LOD Guard)."]
+            "title": "H4 Note Injector // THE LABELLER",
+            "description": "Embedded organization. This node allows you to attach invisible text 'Notes' to your context wires. These notes travel with your models and images, and can be read by other H4 nodes for dynamic file naming or conditional logic.",
+            "usage": "Enter your note text and connect it to a Context Hub or individual wire.",
+            "tips": ["Use this to tag images with specific projects or client names wirelessly."]
         },
         "H4_AxisDriver": {
-            "title": "H4 Axis Driver // GRID CONTROL",
-            "description": "The logic backbone for the Gridinator. This node defines the 'Variable' that changes across your image grid. It can drive Model names, CFG values, Float Ramps, or specialized Prompt keywords.",
-            "usage": "Connect multiple Drivers to the Gridinator to create X/Y/Z plots. Each driver handles one axis of variability.",
-            "tips": ["Use 'Fuzzy Search' for model paths to keep your drivers clean."]
+            "title": "H4 Axis Driver // XY CONTROLLER",
+            "description": "Grid-based experimentation. The Driver automates the process of changing a single value (like CFG or Steps) over a range of values. It produces an 'XY Grid' that proves exactly how a setting impacts your image.",
+            "usage": "Connect the 'Value' output to the target widget. Set your range (Start, End, Steps).",
+            "tips": ["Pair with 'H4 Gridinator' to automatically organize the results into a perfect matrix."]
         },
         "H4_DataStream": {
-            "title": "H4 Data Stream // BATCH PIPELINE",
-            "description": "A high-performance batch loader. It streams data (Images, JSON, or Text) from a directory and iterates through them per-queue. It is designed for 'Industrial' generation where you are processing hundreds of files.",
-            "usage": "Select a path and connect to your encoders. It handles the indexing and looping through the filesystem automatically.",
-            "tips": ["Enable 'Skip Existing' to resume a project if your system crashes."]
+            "title": "H4 Data Stream // THE TELEMETRY",
+            "description": "Live data visualization. The Telemetry node captures the 'Heartbeat' of your workflow, displaying real-time VRAM usage, generation speed, and tensor shapes. It's the dashboard for your GPU's soul.",
+            "usage": "Connect to any wire to see the data 'In Transit'. No more guessing if your latent is the wrong size.",
+            "tips": ["Check the 'Heatmap' view to see which parts of your workflow are consuming the most VRAM."]
         },
         "H4_ForgeMask": {
-            "title": "H4 Forge Mask // SURGICAL SUITE",
-            "description": "A monolithic masking toolkit. It combines Blur, Grow/Shrink, Invert, and specialized 'Edge Softening' kernels for precise inpainting control. It features a custom HUD for visualising the mask fidelity before it hits the sampler.",
-            "usage": "Connect a Mask or Image. Use the 'Sovereign HUD' to tweak the mask threshold in real-time.",
-            "tips": ["Use 'Soft Feathering' to eliminate hard edges in face swaps and detailer passes."]
+            "title": "H4 Forge Mask // SURGICAL MASK",
+            "description": "Precision region control. Forge Mask allows you to draw or generate masks using mathematical operations (Invert, Dilate, Erode). It features 'Tactile Edge'—a feathering engine that makes composites look seamless.",
+            "usage": "Input an image and use the brush to define a region. Output the mask to drive Inpainting or ControlNet.",
+            "tips": ["Use 'Dilate' to slightly grow your mask and ensure no hard edges appear during inpainting."]
         },
         "H4_SmartConsole": {
-            "title": "H4 Smart Console // X-RAY",
-            "description": "A tactical debugger. It intercepts data in transit and displays a detailed breakdown of tensor shapes, data types, and values directly on top of the node. No more guessing why your latent is the wrong resolution.",
+            "title": "H4 Smart Console // THE X-RAY",
+            "description": "Deep data inspection. The X-Ray intercepts data in transit and displays a detailed breakdown of tensor shapes, data types, and values directly on top of the node. No more guessing why your latent is the wrong resolution.",
             "usage": "Plug it into any wire to see the 'X-Ray' of what is moving through that connection.",
             "tips": ["Right-click to copy the data dump to your clipboard for analysis."]
         },
@@ -808,25 +863,56 @@ export const h4_Dashboard = {
             "usage": "Define a list of seeds and a movement mode (Linear, Ping-Pong, Random). Perfect for testing a prompt against a broad but controlled set of seeds.",
             "tips": ["Use 'Ping-Pong' mode to iterate back and forth through a sequence of 5 seeds."]
         },
-        "H4_PixelVisualizer": {
-            "title": "H4 Pixel Visualizer // DIFF INSPECTOR",
-            "description": "See the invisible. This node performs a mathematical 'Subtraction' between two images and displays the difference. It highlights exactly what changed between two generations, making it invaluable for testing LorAs or Denoise settings.",
-            "usage": "Connect two images (e.g. before and after a refiner pass). The node will render a heatmap of the pixels that changed.",
-            "tips": ["A pure black image means zero change—your settings might be too low!"]
-        },
         "H4_Switcheroo": {
             "title": "H4 Switcheroo // UNIVERSAL SWAP",
             "description": "The Swiss Army switch. It is a multi-type selector that can swap between Models, Images, Latents, or VAEs with a single toggle. It features a high-performance terminal interface that logs whenever a swap occurs.",
             "usage": "Use this instead of deleting and re-running wires. Toggle inputs instantly.",
             "tips": ["Pair with h4_DocuScribe to track which 'Switch' state was active for each generation."]
+        },
+        "H4_Discombobulator": {
+            "title": "H4 Discombobulator // THE GLITCH",
+            "description": "Tactile UI subversion. The Discombobulator is a stealth node that intercepts standard ComfyUI notifications and translates them into various 'glitch' formats. It supports Leet Speak, Binary, Base64, and Spaced-Out 'Void' text. It's the ultimate aesthetic anchor for an h4-themed workspace.",
+            "usage": "Place anywhere on the graph. It works silently in the background to 'h4-ify' your workspace feedback.",
+            "tips": ["Set to 'b1n4ry' for a truly cryptic, hacker-style experience."]
+        },
+        "H4_DebugErrorGenerator": {
+            "title": "H4 Error Generator // THE SABOTEUR",
+            "description": "Stress-test your stability. This node is designed strictly for testing the toolkit's 'Industrial Hardening'. It intentionally triggers a Python-level crash, allowing you to witness how the H4 Core handles critical failures and recovery protocols. DO NOT USE IN PRODUCTION.",
+            "usage": "Enter a custom error message and hit generate. The system will crash and attempt a 'Nuclear Recovery'.",
+            "tips": ["Use this in a isolated workflow to verify that your 'SmartSave' recovery logic is working."]
+        },
+        "H4_NodeTranslator": {
+            "title": "H4 Node Translator // THE POLYGLOT",
+            "description": "Global accessibility. The Polyglot is the master controller for the H4 Live Translation engine. It can translate the entire ComfyUI interface—node titles, widget labels, and descriptions—into multiple languages on the fly without a restart.",
+            "usage": "Select your target language (English, French, Spanish, Mandarin, German) and toggle 'Active'.",
+            "tips": ["If a node doesn't translate immediately, right-click the graph and select 'Refresh Translation Maps'."]
+        },
+        "H4_VisualTokenizer": {
+            "title": "H4 Visual Tokenizer // THE MIND'S EYE",
+            "description": "Demystify CLIP. The Mind's Eye shows you exactly how the AI 'sees' your text. It visualizes the tokenization process, showing which words are broken into sub-tokens and where emphasis (weights) are being concentrated. Essential for prompt-engineering precision.",
+            "usage": "Input your prompt and connect a CLIP model. The node will render a visualization of the processed tokens and their mathematical influence.",
+            "tips": ["Monitor the 'Token Count' to ensure you don't exceed the 75-token CLIP buffer, which causes trailing words to be ignored."]
+        },
+        "H4_LatentSelector": {
+            "title": "H4 Latent Selector // PRESET MANAGER",
+            "description": "Resolution sovereignty. The Selector provides a library of high-performance resolution presets for SD1.5, SDXL, and Flux. It calculates the optimal pixel area for each architecture and ensures your 'Empty Latents' are always multiple-of-16 compatible to prevent VAE distortion.",
+            "usage": "Select your model base (e.g. SDXL) and your aspect ratio (e.g. 16:9). The node outputs a perfectly sized Latent batch.",
+            "tips": ["Use 'Custom Dimensions' and snap to the nearest 16 pixels automatically even if you don't use a preset."]
+        },
+        "H4_DisplayAny": {
+            "title": "H4 Display Any // THE INSPECTOR",
+            "description": "The ultimate data-visualizer. Any type, any time. The Inspector can display Tensors, Lists, Dicts, or Strings directly on the canvas. It's the most powerful tool for ensuring your data streams are carrying the correct values between nodes.",
+            "usage": "Connect ANY output to the input. The node will automatically determine the best way to display the data (Text, Table, or Shape Info).",
+            "tips": ["Use the multiline view for reading long prompt strings or data dumps from API nodes."]
+        },
+        "H4_PixelVisualizer": {
+            "title": "H4 Pixel Visualizer // DIFF INSPECTOR",
+            "description": "See the invisible. This node performs a mathematical 'Subtraction' between two images and displays the difference. It highlights exactly what changed between two generations, making it invaluable for testing LorAs or Denoise settings.",
+            "usage": "Connect two images (e.g. before and after a refiner pass). The node will render a heatmap of the pixels that changed.",
+            "tips": ["A pure black image means zero change—your settings might be too low!"]
         }
     },
 
-    renderAbout(container) {
-        // Renamed to renderHome for default view, but we'll keep renderAbout for the ABOUT tab
-        // Let's implement renderHome separately
-        this.renderHome(container);
-    },
 
     renderHome(container) {
         // Dynamic path to the H4 logo PNG in the assets folder
@@ -884,53 +970,47 @@ export const h4_Dashboard = {
                 width: 220px; height: 120px; background: #1a1a1a; 
                 display: flex; align-items: center; justify-content: center;
                 border: 1px solid #333; overflow: hidden;
-            ">
-                <!-- Canvas will be injected here -->
-            </div>
+            "></div>
         `;
+
+        // Update Position
+        const updatePos = (mx, my) => {
+            let left = mx + 20;
+            let top = my + 20;
+            if (left + 260 > window.innerWidth) left = mx - 270;
+            if (top + 200 > window.innerHeight) top = my - 210;
+            p.style.left = left + "px";
+            p.style.top = top + "px";
+        };
+
+        // Fix Memory Leak: Remove previous listener if exists
+        if (this._hoverMoveListener) {
+            document.removeEventListener('mousemove', this._hoverMoveListener);
+        }
+        this._hoverMoveListener = (me) => updatePos(me.clientX, me.clientY);
+        document.addEventListener('mousemove', this._hoverMoveListener, { passive: true });
+        updatePos(e.clientX, e.clientY);
 
         // DRAW NODE PREVIEW
         setTimeout(() => {
             const container = p.querySelector("#h4-preview-canvas-container");
             if (container) {
-                // Create offscreen canvas
                 const canvas = document.createElement("canvas");
-                canvas.width = 220;
-                canvas.height = 120;
+                canvas.width = 220; canvas.height = 120;
                 const ctx = canvas.getContext("2d");
-
-                // Reset Transform
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-                // Clear
-                ctx.fillStyle = "#1a1a1a"; // Background
+                ctx.fillStyle = "#1a1a1a";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // Instantiate Dummy Node
-                // We use LiteGraph to create it, but don't add it to the graph
                 if (nodeData.def) {
                     try {
                         const node = new nodeData.def();
-                        // Handle LGraphNode initialization if needed
                         if (!node.size) node.size = [140, 60];
-
-                        // Scale context to fit node
                         const scale = Math.min(canvas.width / (node.size[0] + 20), canvas.height / (node.size[1] + 20));
-
                         ctx.save();
                         ctx.translate(canvas.width / 2 - (node.size[0] * scale) / 2, canvas.height / 2 - (node.size[1] * scale) / 2);
                         ctx.scale(scale, scale);
 
-                        // Mock drawing context if needed, or mostly standard draw
-                        // LiteGraph nodes draw themselves usually
-                        if (node.onDrawBackground) node.onDrawBackground(ctx, canvas);
-                        if (node.onDrawForeground) node.onDrawForeground(ctx, canvas);
-
-                        // Default Draw (Shape)
-                        // This is tricky because LiteGraph.LGraphCanvas.drawNode handles the main look.
-                        // We will try to simulate a simple box + inputs/outputs if onDraw doesn't do it.
-
-                        // Box
                         ctx.fillStyle = "#222";
                         ctx.strokeStyle = "#00f2ff";
                         ctx.lineWidth = 2;
@@ -939,61 +1019,42 @@ export const h4_Dashboard = {
                         ctx.fill();
                         ctx.stroke();
 
-                        // Title
                         ctx.fillStyle = "#ddd";
                         ctx.font = "bold 14px Arial";
                         ctx.textAlign = "left";
                         ctx.fillText(node.title || node.type, 10, 20);
-
-                        // Inputs (Circles on Left)
-                        if (node.inputs) {
-                            node.inputs.forEach((inp, i) => {
-                                const y = 40 + i * 20;
-                                ctx.fillStyle = "#777";
-                                ctx.beginPath();
-                                ctx.arc(0, y, 5, 0, Math.PI * 2);
-                                ctx.fill();
-                            });
-                        }
-
-                        // Outputs (Circles on Right)
-                        if (node.outputs) {
-                            node.outputs.forEach((out, i) => {
-                                const y = 40 + i * 20;
-                                ctx.fillStyle = "#777";
-                                ctx.beginPath();
-                                ctx.arc(node.size[0], y, 5, 0, Math.PI * 2);
-                                ctx.fill();
-                            });
-                        }
-
                         ctx.restore();
-
-                    } catch (e) {
-                        console.warn("Preview Draw Failed:", e);
-                        ctx.fillStyle = "#330000";
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        ctx.fillStyle = "red";
-                        ctx.fillText("Render Error", 10, 50);
-                    }
+                    } catch (err) { }
                 }
-
                 container.appendChild(canvas);
             }
-        }, 0);
+        }, 1);
+    },
 
-        // Position Logic (Follow Mouse or Fixed side)
-        const updatePos = (mx, my) => {
-            // Keep it on screen
-            let left = mx + 20;
-            let top = my + 20;
-            if (left + 260 > window.innerWidth) left = mx - 270;
-            if (top + 200 > window.innerHeight) top = mx - 210;
+    hideHoverPreview() {
+        if (this.previewEl) this.previewEl.style.display = 'none';
+        if (this._hoverMoveListener) {
+            document.removeEventListener('mousemove', this._hoverMoveListener);
+            this._hoverMoveListener = null;
+        }
+    },
 
-            p.style.left = left + "px";
-            p.style.top = top + "px";
-        };
-        updatePos(e.clientX, e.clientY);
+    getLore(type) {
+        if (!this.LORE) return null;
+
+        // 1. Direct match — most common case
+        if (this.LORE[type]) return this.LORE[type];
+
+        // 2. Try with H4 prefix capitalized
+        const withH4 = "H4" + type.replace(/^h4[-_]?/i, "");
+        if (this.LORE[withH4]) return this.LORE[withH4];
+
+        // 3. Normalize: strip h4 prefix, capitalize first letter, rebuild
+        const stripped = type.replace(/^H4|^h4[-_]?/i, "");
+        const normalized = "H4" + stripped.charAt(0).toUpperCase() + stripped.slice(1);
+        if (this.LORE[normalized]) return this.LORE[normalized];
+
+        return null;
     },
 
     // --- UPDATED DOCS (BOOK OF H4) ---
@@ -1083,6 +1144,200 @@ export const h4_Dashboard = {
         };
     },
 
+    summonNode(type) {
+        const node = LiteGraph.createNode(type);
+        if (node) {
+            // Spawn at mouse or center
+            const x = app.canvas.graph_mouse ? app.canvas.graph_mouse[0] : (window.innerWidth / 2);
+            const y = app.canvas.graph_mouse ? app.canvas.graph_mouse[1] : (window.innerHeight / 2);
+            node.pos = [x, y];
+            app.canvas.graph.add(node);
+
+            // Visual feedback
+            this.showToast(`SUMMONED: ${type.replace("H4_", "")}`);
+
+            // Auto-close if in modal mode to show the node? 
+            // Better to keep it open for multiple summons.
+        }
+    },
+
+    showToast(msg) {
+        const toast = document.createElement("div");
+        toast.className = "h4-toast";
+        toast.style.cssText = `
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,242,255,0.9); color: #000; padding: 12px 24px;
+            font-family: monospace; font-size: 14px; font-weight: bold;
+            border-radius: 4px; z-index: 20000; pointer-events: none;
+            box-shadow: 0 0 20px rgba(0,242,255,0.4);
+            letter-spacing: 2px;
+        `;
+        toast.textContent = `[ ${msg} ]`;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transition = "opacity 0.5s ease";
+            toast.style.opacity = "0";
+            setTimeout(() => toast.remove(), 500);
+        }, 2000);
+    },
+
+    togglePin() {
+        if (this.panelMode === 'pinned') this.setPanelMode('modal');
+        else this.setPanelMode('pinned');
+    },
+
+    togglePopout() {
+        if (this.panelMode === 'popout') this.setPanelMode('modal');
+        else this.setPanelMode('popout');
+    },
+
+    setPanelMode(mode) {
+        console.log("[h4] Dashboard switching mode →", mode);
+        this.panelMode = mode;
+        this.config.panelPinned = (mode === "pinned");
+        this.saveConfig();
+
+        // 1. Reset all mode-specific classes and attributes
+        document.body.classList.remove("h4-dashboard-pinned", "h4-dashboard-popout");
+        this.modal.setAttribute("data-mode", mode);
+
+        // 2. Mode-specific actions
+        if (mode === "modal") {
+            // Restore default floating modal behavior
+            this.modal.style.cssText = "";   // Clear any inline pinned styles
+            // Re-apply saved drag offset so panel returns to where user left it
+            if (this.config.offsetX || this.config.offsetY) {
+                this.modal.style.transform = `translate(${this.config.offsetX}px, ${this.config.offsetY}px)`;
+            }
+            this.applyCanvasMargin(0);
+            // Close popout if open
+            if (this._popoutWindow && !this._popoutWindow.closed) {
+                this._popoutWindow.close();
+                this._popoutWindow = null;
+            }
+            this.open();
+
+        } else if (mode === "pinned") {
+            // Dock to left side
+            document.body.classList.add("h4-dashboard-pinned");
+            this.modal.style.cssText = "";   // Let CSS [data-mode="pinned"] take over
+            this.applyCanvasMargin(this.config.panelWidth);
+            this.open();
+
+        } else if (mode === "popout") {
+            // Open in new window
+            this.applyCanvasMargin(0);
+            this.openPopout();
+            this.close();  // Close the in-page modal
+        }
+
+        // 3. Update Button Labels
+        const dockBtn = this.modal?.querySelector(".h4-btn-dock");
+        if (dockBtn) {
+            dockBtn.textContent = (mode === "pinned") ? "📌" : "[D]";
+            dockBtn.title = (mode === "pinned") ? "Undock Panel" : "Dock to Left";
+        }
+
+        const popoutBtn = this.modal?.querySelector(".h4-btn-popout");
+        if (popoutBtn) {
+            popoutBtn.textContent = (mode === "popout") ? "↙" : "[O]";
+            popoutBtn.title = (mode === "popout") ? "Return to Canvas" : "Popout Window";
+        }
+    },
+
+    applyCanvasMargin(margin) {
+        // Try multiple selectors — ComfyUI changes class names between versions
+        const wrapper =
+            document.querySelector(".comfy-app") ||
+            document.querySelector("#graph-canvas")?.parentElement ||
+            document.querySelector("canvas")?.parentElement ||
+            document.body;
+
+        wrapper.style.transition = "padding-left 0.3s ease";
+        wrapper.style.paddingLeft = margin + "px";
+    },
+
+    openPopout() {
+        if (this._popoutWindow && !this._popoutWindow.closed) {
+            this._popoutWindow.focus();
+            return;
+        }
+
+        const width = 450;
+        const height = 800;
+        const left = (window.screen.width / 2) - (width / 2);
+        const top = (window.screen.height / 2) - (height / 2);
+
+        this._popoutWindow = window.open("", "h4-dashboard-popout",
+            `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`);
+
+        if (!this._popoutWindow) {
+            alert("POPOUT_BLOCKED: Please enable popups for h4_Live surveillance.");
+            this.setPanelMode('modal');
+            return;
+        }
+
+        const doc = this._popoutWindow.document;
+        doc.title = "H4_MISSION_CONTROL // SURVEILLANCE_POPOUT";
+
+        const style = doc.createElement("style");
+        style.textContent = this._cssText || "";
+        doc.head.appendChild(style);
+
+        doc.body.innerHTML = `
+            <div id="h4-dashboard-modal" class="open" data-mode="popout" style="display:flex; position:relative; width:100%; height:100vh;">
+                ${this.modal.innerHTML}
+            </div>
+        `;
+
+        this._popoutWindow.addEventListener('unload', () => {
+            if (this.panelMode === 'popout') this.setPanelMode('modal');
+        });
+    },
+
+    initDraggable() {
+        const handle = this.modal.querySelector(".h4-drag-handle");
+        if (!handle) return;
+
+        handle.addEventListener('mousedown', (e) => {
+            if (e.target.closest(".h4-panel-btn, .h4-dash-close")) return;
+            if (this.panelMode !== 'modal') return;
+            this._dragState.active = true;
+            this._dragState.startX = e.clientX - this.config.offsetX;
+            this._dragState.startY = e.clientY - this.config.offsetY;
+            this.modal.classList.add('dragging');
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!this._dragState.active) return;
+            this.config.offsetX = e.clientX - this._dragState.startX;
+            this.config.offsetY = e.clientY - this._dragState.startY;
+            this.modal.style.transform = `translate(${this.config.offsetX}px, ${this.config.offsetY}px)`;
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (this._dragState.active) {
+                this._dragState.active = false;
+                this.modal.classList.remove('dragging');
+                this.saveConfig();
+            }
+        });
+    },
+
+    destroy() {
+        console.log("[h4] Dashboard: Executing Cold Shutdown...");
+        if (this.modal) this.modal.remove();
+        if (this._popoutWindow) this._popoutWindow.close();
+        document.head.querySelector("#h4-dashboard-css")?.remove();
+        document.head.querySelector("#h4-toggle-css")?.remove();
+        document.head.querySelector("#h4-node-grid-css")?.remove();
+        this.applyCanvasMargin(0);
+        if (this._hoverMoveListener) {
+            window.removeEventListener('mousemove', this._hoverMoveListener);
+        }
+    },
+
     setConfig(key, val) {
         this.config[key] = val;
         this.saveConfig();
@@ -1105,8 +1360,8 @@ export const h4_Dashboard = {
     },
 
     injectCSS() {
-        const style = document.createElement("style");
-        style.textContent = `
+        if (document.getElementById("h4-dashboard-css")) return;
+        const cssText = `
             /* Cyberpunk Glass Theme */
             #h4-dashboard-modal {
                 position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -1169,13 +1424,13 @@ export const h4_Dashboard = {
                 border-bottom: 1px solid rgba(0,242,255,0.15);
                 text-shadow: 0 0 6px rgba(0,242,255,0.3);
             }
-
+ 
             /* Sidebar Section Headers */
             .h4-dash-header-small {
                 color: #444; font-family: monospace; font-size: 10px; font-weight: bold;
                 letter-spacing: 2px; padding: 5px 20px; text-transform: uppercase;
             }
-
+ 
             /* Setting Rows */
             .h4-set-group { 
                 color: #00f2ff; font-weight: bold; margin-top: 20px; margin-bottom: 10px; 
@@ -1194,14 +1449,102 @@ export const h4_Dashboard = {
             .h4-about-text h3 { color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
             .h4-about-text a { text-decoration: none; font-weight: bold; }
             .h4-about-text a:hover { text-decoration: underline; }
+            /* Pinned Mode */
+            #h4-dashboard-modal[data-mode="pinned"] {
+                position: fixed; top: 0; left: 0; bottom: 0; height: 100vh;
+                display: flex; opacity: 1; backdrop-filter: none; background: none;
+                justify-content: flex-start; pointer-events: none;
+            }
+            #h4-dashboard-modal[data-mode="pinned"] .h4-dash-content {
+                height: 100vh; border-radius: 0; border-left: none; pointer-events: all;
+                box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+            }
+            
+            /* Header controls Styling */
+            .h4-header-controls { display: flex; gap: 8px; align-items: center; }
+            .h4-panel-btn { cursor: pointer; color: #888; font-family: monospace; font-size: 12px; transition: color 0.2s; }
+            .h4-panel-btn:hover { color: #00f2ff; text-shadow: 0 0 5px #00f2ff; }
+ 
+            #h4-dashboard-modal.dragging { user-select: none; pointer-events: none; }
+            #h4-dashboard-modal.dragging .h4-dash-content { opacity: 0.8; }
         `;
+        this._cssText = cssText;
+        const style = document.createElement("style");
+        style.id = "h4-dashboard-css";
+        style.textContent = cssText;
         document.head.appendChild(style);
     }
 };
 
 app.registerExtension({
     name: "h4.Dashboard",
+
     setup() {
         h4_Dashboard.init();
-    }
+    },
+
+    // ComfyUI Settings API — adds toggles to the native Settings popup
+    // under a "h4 QoL" section
+    async getCustomWidgets() { return {}; },
+
+    // Called when ComfyUI builds the settings panel
+    addCustomNodeDefs(defs) { },
+
+    // Settings registration — this is the correct ComfyUI hook
+    registerCustomNodes() { },
 });
+
+window.h4_Dashboard = h4_Dashboard;
+
+// --- Register QoL settings into ComfyUI's native settings panel ---
+// This runs after setup() so h4_Dashboard is fully initialized
+let _h4SettingsRetries = 0;
+
+function _registerH4Settings() {
+    if (!app.ui?.settings) {
+        if (_h4SettingsRetries++ > 20) {
+            console.warn("[h4] Settings API never mounted after 10s. QoL settings skipped.");
+            return;
+        }
+        // Settings API not ready yet — retry
+        setTimeout(_registerH4Settings, 500);
+        return;
+    }
+
+    const S = app.ui.settings;
+
+    // Helper to register a boolean setting that syncs with h4_Dashboard.config
+    function addQoL(id, label, tooltip, configKey) {
+        S.addSetting({
+            id: `h4.qol.${id}`,
+            name: label,
+            tooltip: tooltip,
+            type: "boolean",
+            defaultValue: false,
+            category: ["h4 QoL", "h4 QoL", label],
+            onChange(value) {
+                if (window.h4_Dashboard) {
+                    window.h4_Dashboard.setConfig(configKey, value);
+                }
+            },
+        });
+    }
+
+    addQoL("masterOverride", "Master QoL Override", "Primary gate. Disabling this silences all QoL features.", "qolMasterOverride");
+    addQoL("bigBrother", "Big Brother Overlay", "Tactical HUD overlay monitoring canvas activity.", "enabled");
+    addQoL("cyberpunkGrid", "Cyberpunk Grid", "Animated background grid for visual depth.", "showGrid");
+    addQoL("dataFlowWires", "Data Flow Wires", "Highlights connection paths on selected nodes.", "showWires");
+    addQoL("deadWeight", "Dead Weight Detector", "Deploys the DWD Kirby unit to the toolbar.", "deadWeightEnabled");
+    addQoL("caffeine", "Caffeine Mode Button", "Adds wake-lock override button to toolbar.", "caffeineEnabled");
+    addQoL("kickIt", "Kick-the-Grid Button", "Canvas defibrillator — force-refreshes LiteGraph renderer.", "kickItEnabled");
+    addQoL("sovereignCore", "H4 Node Aesthetic", "Enforces H4 cyan-black branding on all compatible nodes.", "sovereignCoreEnabled");
+    addQoL("errorPopup", "Red Screen of Death", "Replaces alerts with forensic error modal.", "showErrorPopup");
+    addQoL("smartSnapping", "Node Snapping", "Sub-pixel magnetic alignment for nodes.", "smartSnapping");
+    addQoL("ioColoring", "Dynamic Input Coloring", "Colors sockets by data type for rapid identification.", "ioColoring");
+    addQoL("passiveMonitor", "Passive System Monitor", "Logs system events and network telemetry to console.", "monitorEnabled");
+
+    console.log("[h4] QoL settings registered in ComfyUI Settings panel.");
+}
+
+// Fire after a short delay to ensure app.ui.settings is mounted
+setTimeout(_registerH4Settings, 1000);
