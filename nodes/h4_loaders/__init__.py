@@ -7,8 +7,8 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "H4_UniversalLoader": "h4 - Universal Loader",
-    "H4_CompleteLoader": "h4 - Complete Loader",
+    "H4_UniversalLoader": "h4 - Universal Loader (Retired)",
+    "H4_CompleteLoader": "h4 - Universal Pipeline Loader",
     "H4_MultiImgUpload": "h4 - Multi Image Upload",
 }
 

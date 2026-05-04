@@ -1,0 +1,128 @@
+# OBJECTIVE: NUCLEAR STABILIZATION OF H4_SMARTSAVE HUD
+## STATUS: SYSTEM AUDIT COMPLETE // ROOT CAUSES IDENTIFIED
+
+### 1) THE ISSUE
+**SYMPTOM A: The "Ghost" Flicker**
+Thumbnails appear for a fraction of a second after generation, then vanish into a "RETRIEVING..." scanline state for several minutes.
+**SYMPTOM B: Compounding Latency**
+The more generations performed in a session, the slower the UI becomes. Response times for the "Film Strip" and "Forensic Detail" drawers degrade exponentially.
+**SYMPTOM C: Preview Pane Paralysis**
+The main node preview (Forensic Viewer) fails to render the current generation, showing a black box or a stale image. It appears tethered to the thumbnail verification lifecycle.
+
+---
+
+### 2) CODE AUDIT (NUCLEAR DEPTH)
+
+#### SNIPPET A: THE OPTIMISTIC INJECTION RACE (js/h4_SmartSave.js)
+This block handles the immediate "hopeful" update of the UI before the server has even finished writing the file to disk.
+
+```javascript
+// --- LINE 1640: onExecuted Hook ---
+nodeType.prototype.onExecuted = function (message) {
+    if (this.h4_ui) {
+        console.log("[h4] Execution Complete. Anchoring DNA to History Rail...");
+        if (message.images && message.images.length > 0) {
+            setTimeout(() => { // 100ms Settle Buffer
+                const allImages = message.images;
+                [...allImages].reverse().forEach(img => {
+                    const key = `${img.filename}::${img.subfolder}::${img.type}`;
+                    const exists = this.h4_ui.history.some(h => `${h.filename}::${h.subfolder}::${h.type}` === key);
+                    if (!exists) {
+                        // PROBLEM: "LATEST" is a collision-prone token.
+                        // If multiple nodes or generations use "LATEST", the browser cache gets confused.
+                        const histItem = { ...img, timestamp: "LATEST" }; 
+                        this.h4_ui.history.unshift(histItem);
+
+                        const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(histItem.filename)}&subfolder=${encodeURIComponent(histItem.subfolder)}&type=${encodeURIComponent(histItem.type)}&t=LATEST`);
+
+                        this.h4_ui.loading_thumbs.add(url);
+                        this.h4_ui.updateHistoryRail(); 
+
+                        const verify = (retries = 0) => {
+                            const testImg = new Image();
+                            testImg.onload = () => {
+                                this.h4_ui.thumb_imgs[url] = testImg;
+                                this.h4_ui.full_imgs[url] = testImg; 
+                                this.h4_ui.loading_thumbs.delete(url);
+                                this.h4_ui.updateHistoryRail();
+                                this.h4_ui.scheduleDraw();
+                            };
+                            testImg.onerror = () => {
+                                if (retries < 15) { 
+                                    setTimeout(() => verify(retries + 1), 500); 
+                                } else {
+                                    this.h4_ui.loading_thumbs.delete(url);
+                                    this.h4_ui.updateHistoryRail();
+                                }
+                            };
+                            testImg.src = url;
+                        };
+                        verify();
+                    }
+                });
+
+                this.h4_ui.history = this.h4_ui.history.slice(0, 50);
+                this.h4_ui.selected_idx = 0;
+                
+                // CRITICAL FLAW: 2s delay for fetchHistory(true)
+                // This "Force" fetch hits the server while the background thread is likely still 
+                // generating the next thumbnail, leading to 404s and cache-poisoning.
+                setTimeout(() => this.h4_ui.fetchHistory(true), 2000);
+
+                this.h4_ui.updateHistoryRail();
+                this.h4_ui.scheduleDraw();
+            }, 100); 
+        }
+    }
+};
+```
+
+#### SNIPPET B: THE POLLING CONGESTION (js/h4_SmartSave.js)
+The background fetch logic does not account for the browser's request limit (6 concurrent).
+
+```javascript
+// --- LINE 345: fetchHistory ---
+async fetchHistory(force = false) {
+    // FLAW: "force" ignores the inflight check and schedules a retry.
+    // If generations are fast, we can end up with 10+ pending fetchHistory calls.
+    if (this._historyInflight) {
+        if (force) setTimeout(() => this.fetchHistory(true), 400);
+        return;
+    }
+    this._historyInflight = true;
+    try {
+        const res = await api.fetchApi("/h4/smart_save/history"); 
+        const data = await res.json();
+        // FLAW: If the server is slow, the signature won't change, 
+        // but the 'force' fetch will just keep spamming the endpoint.
+        const sig = JSON.stringify(data.map((x) => [x.filename, x.subfolder, x.type, x.timestamp]));
+        if (sig !== this._lastHistorySignature) {
+            this._lastHistorySignature = sig;
+            this.history = data;
+            // ... update UI ...
+        }
+    } finally { this._historyInflight = false; }
+}
+```
+
+---
+
+### 3) SUGGESTED PATH
+1.  **Request Serialization**: Implement a strict "One-at-a-time" policy for history fetches. No overlapping requests allowed, even if "forced".
+2.  **Signature Hardening**: Replace the `LATEST` token with a high-resolution `Date.now()` seed in the `onExecuted` hook to prevent the browser from serving a stale/missing image from the previous generation's cache.
+3.  **Atomic Verification**: The `verify()` loop must be smarter. If a fetch for the "real" history completes and contains the image, the optimistic verification should self-destruct to prevent double-rendering.
+4.  **Network Throttle Awareness**: Reduce polling frequency during active executions.
+
+---
+
+### 4) SUGGESTED FIX (THE "NUCLEAR" SOLUTION)
+
+*   **Logic Change**: In `onExecuted`, don't just `unshift`. Create a "Pending" state for the new item. 
+*   **Logic Change**: In `fetchHistory`, merge the server history with the local "Pending" items. This prevents the "vanish" effect where the server doesn't know about the image yet but the client does.
+*   **Logic Change**: Use a per-execution `SessionID` for URL cache busting.
+
+**PLANNING:**
+- [ ] Refactor `fetchHistory` to support a "Merge" strategy.
+- [ ] Implement `this._pendingInjections` Set to track images in-flight.
+- [ ] Fix the `setTimeout` spam in `onExecuted`.
+- [ ] Hard-code a "Disk Cooldown" phase to wait for OS file locks to release before the first verification.

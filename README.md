@@ -1,5 +1,7 @@
-# h4_Live
 A stateful, loop-friendly utility belt for ComfyUI, built to make workflows feel less like “one-shot vending machines” and more like… actual processes. Keep in mind this is a Massive project and is currently **STILL IN DEVELOPMENT**.
+
+> [!WARNING]
+> **SYSTEM ALERT**: Apologies for the lag currently present in the toolkit (especially in **SmartSave**). While the node operates with 100% precision, the load time for thumbnails and initial previews can occasionally be latent. I'm working on it. lol — h4
 
 > [!IMPORTANT]
 > **STABILITY STATUS**: The core engine and high-impact nodes (especially **H4_SmartSave**) have been transitioned to **STABLE**. While the toolkit is now production-hardened, you may experience occasional lag in external HUD interfaces (History Rail, Comparinator) during heavy backend processing. Current development focus (**WIP**) is centered on the `H4_NodeTranslator` and the `H4_Pythonipulator-inator` kernel extension.
@@ -189,8 +191,11 @@ Below is the “in painful detail” breakdown of every QoL enhancement. This se
     - **Mode C: Popout**: The drawers are mirrored into a standalone browser window. Perfect for dual-monitor setups or focusing purely on the canvas while tracking settings.
 - **Viewport Sovereignty:** Operates a high-performance visual overlay that does not interfere with canvas interaction.
 - **DNA Extraction:** Automatically parses workflow parameters and injects them as forensic metadata into your PNG files.
-- **The History Rail:** A non-blocking, infinite scroll sidebar that monitors every generation in real-time. Supports **Pinned Mode** for persistent visibility.
 - **Lightbox Sovereignty:** High-resolution image inspection with keyboard traversal (`ArrowKeys`) and telemetry readouts.
+
+> [!WARNING]
+> **FIELD ADVISORY**: Apologies for the lag that's currently an active bug with the Smart Save. The node operates perfectly, except the load time for the thumbnails and the initial preview isn't the greatest... sometimes it can take a long time to load. I'm confident this is an issue on my end of the machine. However, in the event I am wrong and you come across this issue yourself—I'm working on it. lol. All the best, h4.
+
 *Note: Large history states may cause occasional UI lag during metadata parsing passes.*
 
 ---

@@ -41,14 +41,7 @@ function showTip(text, e) {
     const x = e.clientX; const y = e.clientY;
     tipDelay = setTimeout(() => {
         let content = text.replace("//", "<br/><span style='color:#666;font-size:10px;font-style:italic;'>") + (text.includes("//") ? "</span>" : "");
-        if (e.altKey) {
-            const t = e.target;
-            content = `<div style="color:#ff3333;font-weight:bold;margin-bottom:5px;">[ GHOST_RADAR ]</div>` +
-                `TAG: &lt;${t.tagName.toLowerCase()}&gt;<br/>` +
-                `CLASS: ${t.className || "none"}<br/>` +
-                `ID: ${t.id || "none"}<br/>` +
-                `POINTER: ${window.getComputedStyle(t).pointerEvents}`;
-        }
+        // GHOST_RADAR DISABLED BY USER COMMAND
         h4Tooltip.innerHTML = content;
         h4Tooltip.style.display = "block";
         h4Tooltip.style.left = (x + 18) + "px"; h4Tooltip.style.top = (y + 18) + "px";
@@ -289,6 +282,7 @@ class SmartSaveUI {
         this._historyInflight = false; this._sidecarInflight = false;
         this._lastHistorySignature = ""; this._lastSidecarSignature = "";
         this.pollTimer = null;
+        this.backgroundPollTimer = null;
 
         // --- NEW: PANNEL MODE STATE ---
         this.panelMode = 'docked';   // 'docked' | 'pinned' | 'popout'
@@ -299,6 +293,7 @@ class SmartSaveUI {
 
         this.loading_thumbs = new Set(); // Tracks URLs currently verifying on disk
         this.fetchHistory(false);
+        this.startBackgroundPolling();
     }
 
     scheduleDraw() { if (this._redrawTimer) return; this._redrawTimer = setTimeout(() => { this._redrawTimer = null; this.node.setDirtyCanvas(true, true); }, 1); }
@@ -333,26 +328,78 @@ class SmartSaveUI {
         this.pollTimer = null;
     }
 
+    // --- BACKGROUND SYNC: Always running at low frequency (30s) ---
+    startBackgroundPolling() {
+        if (this.backgroundPollTimer) return;
+        this.backgroundPollTimer = setInterval(() => {
+            // Only poll if the aggressive foreground poll isn't already active
+            if (!this.pollTimer) this.fetchHistory(false);
+        }, 30000); 
+    }
+
+    stopBackgroundPolling() {
+        if (this.backgroundPollTimer) clearInterval(this.backgroundPollTimer);
+        this.backgroundPollTimer = null;
+    }
+
     async fetchHistory(force = false) {
+        // NUCLEAR SERIALIZATION: Queue at most ONE pending force-fetch.
+        // Discard subsequent calls while one is already queued/inflight.
         if (this._historyInflight) {
-            if (force) setTimeout(() => this.fetchHistory(true), 400);
+            if (force && !this._historyForcePending) {
+                this._historyForcePending = true; // Absorb into a single pending flag
+            }
             return;
         }
+
         this._historyInflight = true;
+        this._historyForcePending = false; // Consumed
+
         try {
-            const res = await api.fetchApi("/h4/smart_save/history"); if (!res.ok) return;
+            const res = await api.fetchApi("/h4/smart_save/history");
+            if (!res.ok) return;
             const data = await res.json();
             const sig = JSON.stringify(data.map((x) => [x.filename, x.subfolder, x.type, x.timestamp]));
+
             if (sig !== this._lastHistorySignature) {
                 this._lastHistorySignature = sig;
-                this.history = data;
-                if (this.show_history) {
-                    this.preloadThumbnails(); // Kicks off silent loading
-                    this.updateHistoryRail();
+
+                // NUCLEAR MERGE: Preserve any _pendingInjections not yet confirmed by server.
+                // This prevents the "vanish" where server history replaces an optimistic item
+                // before the file is fully written to disk.
+                const serverKeys = new Map(data.map(x => [`${x.filename}::${x.subfolder}::${x.type}`, x]));
+                const survivingPending = [];
+
+                for (const p of (this._pendingInjections || [])) {
+                    const key = `${p.filename}::${p.subfolder}::${p.type}`;
+                    if (serverKeys.has(key)) {
+                        // Inherit the pending seed timestamp to prevent URL cache breakage!
+                        serverKeys.get(key).timestamp = p.timestamp;
+                    } else {
+                        survivingPending.push(p);
+                    }
                 }
-                this.scheduleDraw();
+
+                this.history = [...survivingPending, ...data];
+                this._pendingInjections = survivingPending; // Prune confirmed items
+
+                if (this.show_history) {
+                    this.preloadThumbnails();
+                    this.updateHistoryRail();
+                    this.scheduleDraw();
+                }
             }
-        } catch (e) { } finally { this._historyInflight = false; }
+        } catch (e) {
+            console.error("[h4] fetchHistory fault", e);
+        } finally {
+            this._historyInflight = false;
+
+            // Drain the single pending force-fetch if one was queued while we were inflight
+            if (this._historyForcePending) {
+                this._historyForcePending = false;
+                setTimeout(() => this.fetchHistory(true), 150); // Single deferred drain
+            }
+        }
     }
 
     async fetchSidecar(idx) {
@@ -1026,9 +1073,9 @@ class SmartSaveUI {
         const toPreload = this.history.slice(start, end);
 
         toPreload.forEach(item => {
-            // Safe timestamp check that doesn't trigger a cache bust on missing data
+            // --- KINETIC PRELOAD: Always use thumbnails for the rail to prevent network choke ---
             const ts = item.timestamp ? `&t=${item.timestamp}` : "";
-            const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}${ts}`);
+            const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}${ts}`);
 
             if (!this.thumb_imgs[url]) {
                 const img = new Image();
@@ -1051,7 +1098,7 @@ class SmartSaveUI {
         const visibleItems = this.history.slice(this.scroll_idx, this.scroll_idx + visibleCount);
         visibleItems.forEach((item, i) => {
             const ts = item.timestamp ? `&t=${item.timestamp}` : "";
-            const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}${ts}`);
+            const url = api.apiURL(`/h4/thumbnail?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}${ts}`);
             const idx = i + this.scroll_idx;
             const isSel = idx === this.selected_idx;
             const isTemp = item.type === "temp";
@@ -1062,25 +1109,34 @@ class SmartSaveUI {
             // --- PERSISTENT LOAD TRACKING: Only hide scanlines if image is 100% verified and painted ---
             const cachedImg = this.thumb_imgs[url];
             const isLoaded = cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0;
-            const isLoading = this.loading_thumbs.has(url) || !isLoaded;
-            
-            // --- STUBBORN LOADING: If we are actively verifying on disk, FORCE the scanline ---
-            const forceScan = this.loading_thumbs.has(url);
+            const hasError = cachedImg && cachedImg.__h4_error;
+
+            // AUTO-PROMOTE: If the image is confirmed loaded by ANY pathway (preload, verify, inline),
+            // forcefully clear loading_thumbs. This is the definitive safety net against scanline persistence.
+            if (isLoaded && this.loading_thumbs.has(url)) {
+                this.loading_thumbs.delete(url);
+            }
+
+            const isLoading = !isLoaded && !hasError;
             const animStyle = this._histOpening ? `opacity:0; animation: h4-thumb-in 0.25s ease forwards; animation-delay: ${i * 0.04}s;` : "";
 
             html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${idx}" data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;pointer-events:auto; ${animStyle}">
-                ${(isLoading || forceScan) ? `
+                ${isLoading ? `
                     <div class="h4-loading-scanline"></div>
-                    <div class="h4-loading-text">RETRIEVING...</div>
+                    <div class="h4-loading-text">${hasError ? "DISK_BUSY" : "RETRIEVING..."}</div>
                 ` : `<img src="${url}" draggable="false" style="width:100%;height:100%;object-fit:cover;border-radius:2px;pointer-events:none;" />`}
                 <div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.7);color:#888;font-size:9px;padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;">${safeText(item.filename)}</div>
             </div>`;
 
             // If not loaded and not already in the verification pipeline, kick off a load
-            if (!isLoaded && !cachedImg) {
+            if (!isLoaded && !cachedImg && !hasError && !this.loading_thumbs.has(url)) {
                 const img = new Image();
                 img.onload = () => {
                     this.thumb_imgs[url] = img;
+                    this.updateHistoryRail();
+                };
+                img.onerror = () => {
+                    img.__h4_error = true;
                     this.updateHistoryRail();
                 };
                 img.src = url;
@@ -1603,22 +1659,14 @@ app.registerExtension({
             const previewBtn = this.__h4_metadrawer.querySelector(".h4-viewer-btn"); if (previewBtn) previewBtn.onclick = () => { this.h4_ui.markViewerDirty(); this.h4_ui.show_viewer = !this.h4_ui.show_viewer; this.setDirtyCanvas(true); };
             bindWidgets(); setTimeout(bindWidgets, 300); setTimeout(bindWidgets, 900);
 
-            // --- EXECUTION EVENT HOOK: Buffer the fetch to prevent race conditions ---
-            const nodeRef = this;
-            api.addEventListener("executed", (evt) => {
-                if (!nodeRef.h4_ui) return;
-                // 1500ms delay ensures backend has flushed file to disk before syncing,
-                // preventing stale data from overwriting our optimistic UI injection.
-                setTimeout(() => {
-                    if (nodeRef.h4_ui) nodeRef.h4_ui.fetchHistory(true);
-                }, 1500);
-            });
+            // --- EXECUTION EVENT HOOK REDACTED: Handled by onExecuted to prevent duplicate fetches ---
 
             return this;
         };
         nodeType.prototype.onRemoved = function () {
             if (this.h4_ui) {
                 this.h4_ui.stopPolling();
+                this.h4_ui.stopBackgroundPolling();
                 // NEW: Close popout if open
                 if (this.h4_ui.panelMode === 'popout') {
                     this.h4_ui._closePopout();
@@ -1634,47 +1682,83 @@ app.registerExtension({
         nodeType.prototype.onExecuted = function (message) {
             if (this.h4_ui) {
                 console.log("[h4] Execution Complete. Anchoring DNA to History Rail...");
-                this.h4_ui.full_imgs = {}; // bust the full-res cache on new generation
-                this.h4_ui.thumb_imgs = {};
                 if (message.images && message.images.length > 0) {
-                    // --- TACTILE BUFFER: Settle before injection ---
                     setTimeout(() => {
                         const allImages = message.images;
+                        // NUCLEAR: Per-execution session seed. Unique per generation,
+                        // immune to browser cache collision across runs.
+                        const sessionSeed = Date.now();
+
                         [...allImages].reverse().forEach(img => {
                             const key = `${img.filename}::${img.subfolder}::${img.type}`;
-                            const exists = this.h4_ui.history.some(h => `${h.filename}::${h.subfolder}::${h.type}` === key);
+                            const exists = this.h4_ui.history.some(h =>
+                                `${h.filename}::${h.subfolder}::${h.type}` === key
+                            );
+
                             if (!exists) {
-                                // --- SECONDS SYNC: Match backend os.path.getmtime resolution ---
-                                const histItem = { ...img, timestamp: Math.floor(Date.now() / 1000) };
+                                const histItem = { ...img, timestamp: `${sessionSeed}` };
+                                
+                                // Register as pending BEFORE injecting into history.
+                                // fetchHistory's merge logic will protect this item.
+                                if (!this.h4_ui._pendingInjections) this.h4_ui._pendingInjections = [];
+                                this.h4_ui._pendingInjections.unshift(histItem);
                                 this.h4_ui.history.unshift(histItem);
 
-                                // --- RETRY KERNEL: Verify disk readability ---
-                                const ts = histItem.timestamp ? `&t=${histItem.timestamp}` : "";
-                                const url = api.apiURL(`/view?filename=${encodeURIComponent(histItem.filename)}&subfolder=${encodeURIComponent(histItem.subfolder)}&type=${encodeURIComponent(histItem.type)}${ts}`);
+                                // Use the session seed for the URL — guarantees a fresh network fetch.
+                                const url = api.apiURL(
+                                    `/h4/thumbnail?filename=${encodeURIComponent(histItem.filename)}` +
+                                    `&subfolder=${encodeURIComponent(histItem.subfolder)}` +
+                                    `&type=${encodeURIComponent(histItem.type)}` +
+                                    `&t=${sessionSeed}` // UNIQUE PER GENERATION
+                                );
 
                                 this.h4_ui.loading_thumbs.add(url);
-                                this.h4_ui.updateHistoryRail(); // --- IMMEDIATE MANIFESTATION: Show slot + scanline instantly ---
+                                this.h4_ui.updateHistoryRail();
 
+                                // NUCLEAR VERIFY: Self-destructs when confirmed by server history.
                                 const verify = (retries = 0) => {
+                                    // If the image is fully loaded, clean up and stop verifying.
+                                    const existing = this.h4_ui.thumb_imgs[url];
+                                    if (existing && existing.complete && existing.naturalWidth > 0) {
+                                        this.h4_ui.loading_thumbs.delete(url);
+                                        this.h4_ui._pendingInjections = (this.h4_ui._pendingInjections || []).filter(
+                                            p => `${p.filename}::${p.subfolder}::${p.type}` !== key
+                                        );
+                                        this.h4_ui.updateHistoryRail();
+                                        return;
+                                    }
+
                                     const testImg = new Image();
                                     testImg.onload = () => {
+                                        this.h4_ui.thumb_imgs[url] = testImg;
+                                        this.h4_ui.full_imgs[url] = testImg;
                                         this.h4_ui.loading_thumbs.delete(url);
+
+                                        // Prune from pending, since it is now successfully loaded!
+                                        this.h4_ui._pendingInjections = this.h4_ui._pendingInjections?.filter(
+                                            p => `${p.filename}::${p.subfolder}::${p.type}` !== key
+                                        ) || [];
+
                                         this.h4_ui.updateHistoryRail();
                                         this.h4_ui.scheduleDraw();
                                     };
                                     testImg.onerror = () => {
-                                        if (retries < 6) {
-                                            console.log(`[h4] Disk Latency Detected (${histItem.filename}). Retrying ${retries + 1}/6...`);
-                                            setTimeout(() => verify(retries + 1), 600);
+                                        if (retries < 15) {
+                                            // DISK COOLDOWN: Exponential backoff, not fixed 500ms.
+                                            // Gives the OS time to release file locks on fast-NVMe systems.
+                                            const backoff = Math.min(500 * Math.pow(1.4, retries), 8000);
+                                            setTimeout(() => verify(retries + 1), backoff);
                                         } else {
-                                            console.error(`[h4] Forensic Data Timeout: ${histItem.filename} remains unreadable.`);
                                             this.h4_ui.loading_thumbs.delete(url);
                                             this.h4_ui.updateHistoryRail();
                                         }
                                     };
                                     testImg.src = url;
                                 };
-                                verify();
+
+                                // DISK COOLDOWN: 800ms hard wait before first verification attempt.
+                                // Prevents the first probe from poisoning the cache with a 404.
+                                setTimeout(() => verify(0), 800);
                             }
                         });
 
@@ -1683,9 +1767,14 @@ app.registerExtension({
                         this.h4_ui.scroll_idx = 0;
                         this.h4_ui.current_sidecar = allImages[0].sidecar || null;
 
+                        // NUCLEAR: Delay the real fetch longer — 3s instead of 2s.
+                        // The disk cooldown + exponential backoff make the optimistic item
+                        // self-sufficient; the real fetch is now a *confirmation*, not a race.
+                        setTimeout(() => this.h4_ui.fetchHistory(true), 3000);
+
                         this.h4_ui.updateHistoryRail();
                         this.h4_ui.scheduleDraw();
-                    }, 350); // 350ms Settle Buffer
+                    }, 100);
                 }
                 this.h4_ui.markParamsDirty();
                 this.setDirtyCanvas(true, true);
@@ -1789,13 +1878,30 @@ app.registerExtension({
                 let activeImg = null;
                 if (ui.selected_idx >= 0 && ui.history[ui.selected_idx]) {
                     const item = ui.history[ui.selected_idx];
-                    const ts = item.timestamp ? `&t=${item.timestamp}` : "";
-                    const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}${ts}`);
+                    // Use the item's actual timestamp — covers both pending_ and stable seeds
+                    const ts = item.timestamp ? `&t=${item.timestamp}` : '';
+                    const url = api.apiURL(
+                        `/view?filename=${encodeURIComponent(item.filename)}` +
+                        `&subfolder=${encodeURIComponent(item.subfolder)}` +
+                        `&type=${encodeURIComponent(item.type)}${ts}`
+                    );
                     activeImg = ui.full_imgs[url];
+
                     if (!activeImg) {
-                        const img = new Image();
-                        img.onload = () => { ui.full_imgs[url] = img; this.setDirtyCanvas(true); };
-                        img.src = url;
+                        // Also check if the thumbnail verify() already loaded a usable image
+                        const thumbUrl = api.apiURL(
+                            `/h4/thumbnail?filename=${encodeURIComponent(item.filename)}` +
+                            `&subfolder=${encodeURIComponent(item.subfolder)}` +
+                            `&type=${encodeURIComponent(item.type)}${ts}`
+                        );
+                        activeImg = ui.thumb_imgs[thumbUrl] || ui.full_imgs[thumbUrl];
+
+                        if (!activeImg) {
+                            // Final fallback: kick off a fresh load with the stable seed
+                            const img = new Image();
+                            img.onload = () => { ui.full_imgs[url] = img; this.setDirtyCanvas(true); };
+                            img.src = url;
+                        }
                     }
                 } else if (this.__h4_live_imgs?.length) {
                     activeImg = this.__h4_live_imgs[0];

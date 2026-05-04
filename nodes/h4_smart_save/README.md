@@ -6,7 +6,7 @@ The **SmartSave** node is the definitive image archiving and forensic workstatio
 This is the **+ULTRA Edition (v24.14.39)**, rebuilt from the ground up to handle high-performance, ghost-free canvas interactions and deep forensic backtracking.
 
 > [!WARNING]
-> **FIELD ADVISORY**: This node is a high-performance DOM-canvas hybrid. While the saving logic is 100% hardened, the thumbnail preloading engine may occasionally experience "Ghost Frames" (desynced thumbnails) if the backend is slammed with rapid sequential generations. A simple browser refresh or canvas re-serialize usually restores pixel-perfect sync.
+> **DEVELOPER ADVISORY**: Apologies for the lag that's currently an active bug with the Smart Save. The node operates perfectly, except the load time for the thumbnails and the initial preview isn't the greatest... sometimes it can take a long time to load. I'm confident this is an issue on my end of the machine. However, in the event I am wrong and you come across this issue yourself—I'm working on it. lol. All the best, h4.
 
 
 ## Expanded Description

@@ -82,7 +82,7 @@ class H4_UniversalLoader:
     RETURN_TYPES = ("MODEL", "CLIP", "VAE")
     RETURN_NAMES = ("MODEL", "CLIP", "VAE")
     FUNCTION = "load"
-    CATEGORY = "h4_Live/Loaders"
+    CATEGORY = "h4_Live/Loaders/_Legacy"
 
     @classmethod
     def VALIDATE_INPUTS(s, input_types):
