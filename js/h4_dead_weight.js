@@ -1,6 +1,7 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
+
 /**
  * 🧹 h4 Dead Weight Detector (D.W.D) v1.0.0
  * -----------------------------------------------------------------------------
@@ -13,6 +14,7 @@ import { api } from "../../scripts/api.js";
  * 3. H4 Aesthetic: Monospace, Off-Black, Tactical Cyan.
  */
 
+
 // ============================================================================
 // 1. STATE MANAGEMENT
 // ============================================================================
@@ -23,10 +25,12 @@ const h4DW = {
     legendVisible: false,        // Is the legend panel open?
     scanCount: 0,                // How many nodes are currently flagged?
 
+
     config: {
         qolMasterOverride: true,
         deadWeightEnabled: true
     },
+
 
     updateVisibility() {
         const btn = document.getElementById("h4-dwd-toggle");
@@ -35,6 +39,7 @@ const h4DW = {
             btn.style.display = visible ? "flex" : "none";
         }
     },
+
 
     // Aesthetic Tokens
     palette: {
@@ -49,9 +54,11 @@ const h4DW = {
     }
 };
 
+
 // ============================================================================
 // 2. UI INJECTION — TOOLBAR & LEGEND
 // ============================================================================
+
 
 /**
  * Injects the h4-styled Kirby button into the fixed top-right toolbar.
@@ -60,18 +67,19 @@ function injectToolbarButton() {
     const btn = document.createElement("div");
     btn.id = "h4-dwd-toggle";
 
+
     // Base Toolbar Style
     Object.assign(btn.style, {
         position: "fixed",
         top: "5px",
-        right: "300px", // Anchored to the left of Kick it (220)
+        right: "300px",
         zIndex: "9999",
-        color: "#eee", // LIGHTENED FONT (was #888)
+        color: "#eee",
         fontFamily: "monospace",
         fontWeight: "bold",
-        fontSize: "15px", // ENLARGED FONT (was 14px)
+        fontSize: "15px",
         cursor: "pointer",
-        padding: "2px 10px", // INCREASED PADDING
+        padding: "2px 10px",
         background: "rgba(0,0,0,0.6)",
         borderRadius: "4px",
         border: "1px solid #444",
@@ -80,8 +88,9 @@ function injectToolbarButton() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        height: "26px" // ENLARGED HEIGHT (was 22px)
+        height: "26px"
     });
+
 
     // Legend Reveal Icon (?) — MOVED TO THE LEFT
     const legendBtn = document.createElement("span");
@@ -90,19 +99,22 @@ function injectToolbarButton() {
     Object.assign(legendBtn.style, {
         marginRight: "10px",
         fontSize: "12px",
-        color: "#aaa", // LIGHTENED (was #555)
+        color: "#aaa",
         borderRight: "1px solid #444",
         paddingRight: "8px",
         transition: "color 0.2s"
     });
     btn.appendChild(legendBtn);
 
+
     // Icon and Label
     const content = document.createElement("div");
     content.innerHTML = `<span id="h4-dwd-icon" style="margin-right:8px;">(v_v)</span><span style="font-size:11px; letter-spacing:1px; opacity: 0.9;">MANUAL</span>`;
     btn.appendChild(content);
 
+
     btn.title = "RUN MANUAL DEAD WEIGHT SCAN (h4 D.W.D)";
+
 
     // Add Count Badge (Cyan)
     const badge = document.createElement("span");
@@ -123,6 +135,7 @@ function injectToolbarButton() {
     });
     btn.appendChild(badge);
 
+
     // Interaction handlers
     btn.onmouseenter = () => {
         btn.style.borderColor = h4DW.palette.cyan;
@@ -137,6 +150,7 @@ function injectToolbarButton() {
         }
     };
 
+
     btn.onclick = (e) => {
         e.stopPropagation();
         if (e.target === legendBtn) {
@@ -146,8 +160,10 @@ function injectToolbarButton() {
         toggleScan();
     };
 
+
     document.body.appendChild(btn);
 }
+
 
 /**
  * Toggles the analysis engine and visual overlay.
@@ -158,9 +174,11 @@ function toggleScan() {
     const icon = document.getElementById("h4-dwd-icon");
     const badge = document.getElementById("h4-dwd-badge");
 
+
     // 1. Flip State
     const wasActive = h4DW.active;
     h4DW.active = !wasActive;
+
 
     if (h4DW.active) {
         // TRIGGER ANIMATION: Table Flip
@@ -170,20 +188,24 @@ function toggleScan() {
         btn.style.background = "rgba(0, 242, 255, 0.15)";
         btn.style.boxShadow = `0 0 10px rgba(0, 242, 255, 0.2)`;
 
+
         // Run analysis
         runAnalysis();
+
 
         if (h4DW.scanCount > 0) {
             badge.textContent = h4DW.scanCount;
             badge.style.display = "block";
         }
 
+
         // 2. REVERT ICON: Wait for the "Complete" moment
         setTimeout(() => {
             if (h4DW.active) {
-                icon.textContent = "(v_v)"; // Back to original Kirby
+                icon.textContent = "(v_v)";
             }
         }, 1500);
+
 
     } else {
         // RESET
@@ -194,12 +216,15 @@ function toggleScan() {
         btn.style.boxShadow = "none";
         badge.style.display = "none";
 
+
         h4DW.classifications.clear();
         h4DW.scanCount = 0;
     }
 
+
     if (app.canvas) app.canvas.setDirty(true, true);
 }
+
 
 /**
  * Toggles the HUD Legend UI.
@@ -211,25 +236,28 @@ function toggleLegend() {
     panel.style.display = h4DW.legendVisible ? "block" : "none";
 }
 
+
 function createLegendPanel() {
     const el = document.createElement("div");
     el.id = "h4-dwd-legend";
+
 
     Object.assign(el.style, {
         position: "fixed",
         top: "40px",
         right: "60px",
-        width: "360px", // INCREASED SIZE (was 300px)
+        width: "360px",
         background: h4DW.palette.offBlack,
         border: "1px solid #333",
         borderRadius: "4px",
-        padding: "20px", // INCREASED PADDING
+        padding: "20px",
         zIndex: "10000",
         fontFamily: "monospace",
         boxShadow: "0 10px 50px rgba(0,0,0,0.95)",
         display: "none",
         userSelect: "none"
     });
+
 
     el.innerHTML = `
         <div style="color: ${h4DW.palette.cyan}; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
@@ -247,10 +275,12 @@ function createLegendPanel() {
         </div>
     `;
 
+
     window.addEventListener('h4_dwd_close_legend', () => {
         el.style.display = 'none';
         h4DW.legendVisible = false;
     });
+
 
     const items = [
         { color: h4DW.palette.pink, name: "HOT PINK", label: "Active Console Error", desc: "A node currently contributing to JavaScript console errors or backend execution failures. This is highly disruptive and should be resolved before continuing your work." },
@@ -261,10 +291,12 @@ function createLegendPanel() {
         { color: h4DW.palette.red, name: "RED", label: "Total Isolation", desc: "Zero connections. A standalone island on your canvas. Safe to delete immediately without affecting your workflow in any way." }
     ];
 
+
     const container = el.querySelector("#h4-dwd-items");
     items.forEach(item => {
         const row = document.createElement("div");
         row.className = "h4-dwd-row";
+
 
         row.innerHTML = `
             <div style="width: 12px; height: 12px; border-radius: 2px; background: ${item.color}; margin-right: 15px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 0 8px ${item.color}44;"></div>
@@ -287,6 +319,7 @@ function createLegendPanel() {
         container.appendChild(row);
     });
 
+
     // Nuke Button Logic
     const nukeBtn = el.querySelector("#h4-dwd-nuke");
     nukeBtn.onclick = () => {
@@ -294,7 +327,9 @@ function createLegendPanel() {
             .filter(([id, color]) => color === h4DW.palette.red)
             .map(([id]) => app.graph.getNodeById(id));
 
+
         if (redNodes.length === 0) return;
+
 
         if (confirm(`SYSTEM PROTOCOL: Delete ${redNodes.length} isolated nodes?`)) {
             redNodes.forEach(node => app.graph.remove(node));
@@ -304,46 +339,52 @@ function createLegendPanel() {
         }
     };
 
+
     document.body.appendChild(el);
     return el;
 }
+
 
 // ============================================================================
 // 3. ANALYSIS ENGINE
 // ============================================================================
 
+
 /**
  * Detects if a node is semantically a terminal node (output node).
- * Critical: We ignore structural dead ends, only counting nodes that 
- * provide external value (Pixels, Files, Previews).
  */
 function isTerminalNode(node) {
     // 1. Check official ComfyUI metadata
     const typeDef = LiteGraph.registered_node_types[node.type];
     if (typeDef?.node_data?.output_node) return true;
 
+
     // 2. Fallback: Internal flagging used by some extensions
     if (node.is_output_node || node.output_node) return true;
 
-    // 3. Semantic keyword check (covers cases where metadata is missing or dynamic)
+
+    // 3. Semantic keyword check
     const type = (node.comfyClass || node.type || "").toLowerCase();
     const terminalKeywords = ["save", "preview", "export", "write", "display", "visualize", "output"];
 
-    // Exact matches or strong keyword usage for nodes that usually have outputs but act as terminals
-    // e.g. "SaveImage" or "PreviewImage"
+
     return terminalKeywords.some(kw => type.includes(kw));
 }
+
 
 function buildLiveSet(graph) {
     const live = new Set();
     const terminals = graph._nodes.filter(isTerminalNode);
     const queue = [...terminals];
 
+
     while (queue.length > 0) {
         const node = queue.shift();
         if (!node || live.has(node.id)) continue;
 
+
         live.add(node.id);
+
 
         if (node.inputs) {
             for (const input of node.inputs) {
@@ -360,23 +401,28 @@ function buildLiveSet(graph) {
     return live;
 }
 
+
 /**
  * Main analysis pass. Classifies every node into one of the 6 states.
  */
 function runAnalysis() {
     if (!app.graph) return;
 
+
     const graph = app.graph;
     const nodes = graph._nodes || [];
     h4DW.classifications.clear();
     h4DW.scanCount = 0;
 
+
     // Phase 1: Build the Live Set
     const liveSet = buildLiveSet(graph);
+
 
     // Phase 2: Classification Loop
     for (const node of nodes) {
         let state = null;
+
 
         // Priority Cascade
         if (h4DW.errorNodes.has(node.id)) {
@@ -389,20 +435,22 @@ function runAnalysis() {
             state = h4DW.palette.blue;
         }
         else if (!liveSet.has(node.id)) {
-            // It's some form of dead weight
             const hasInput = node.inputs?.some(i => i.link !== null);
             const hasOutput = node.outputs?.some(o => o.links?.length > 0);
 
+
             if (!hasInput && !hasOutput) state = h4DW.palette.red;
-            else if (!hasOutput) state = h4DW.palette.orange; // End of dead chain
-            else state = h4DW.palette.fuchsia; // Middle of dead chain
+            else if (!hasOutput) state = h4DW.palette.orange;
+            else state = h4DW.palette.fuchsia;
         }
+
 
         if (state) {
             h4DW.classifications.set(node.id, state);
             h4DW.scanCount++;
         }
     }
+
 
     // Phase 3: Toggle Nuke Visibility if red nodes exist
     const panel = document.getElementById("h4-dwd-legend");
@@ -412,12 +460,14 @@ function runAnalysis() {
     }
 }
 
+
 /**
  * Advanced validation: Checks if a node is missing one or more REQUIRED inputs.
- * Ignores optional inputs and widgets.
+ * Ignores optional inputs, widgets, and converted widget slots.
  */
 function isMissingRequiredInput(node) {
     if (!node.inputs || node.inputs.length === 0) return false;
+
 
     // 1. Get the official definition from ComfyUI/LiteGraph registry
     const typeDef = LiteGraph.registered_node_types[node.type];
@@ -426,22 +476,29 @@ function isMissingRequiredInput(node) {
         return node.inputs.every(i => i.link === null);
     }
 
+
     const requiredConfig = typeDef.node_data.input?.required || {};
+
 
     // 2. Check every input slot on the node instance
     for (const input of node.inputs) {
         if (input.link === null) {
+            // Skip converted widgets — they are optional by nature
+            if (input.widget) continue;
             // Is this specific input name in the "required" config?
             if (requiredConfig[input.name]) return true;
         }
     }
 
+
     return false;
 }
+
 
 // ============================================================================
 // 4. VISUAL OVERLAY LAYER
 // ============================================================================
+
 
 /**
  * Global override for all node rendering.
@@ -449,22 +506,28 @@ function isMissingRequiredInput(node) {
 function setupCanvasOverlay() {
     const originalDrawNode = LGraphCanvas.prototype.drawNode;
 
+
     LGraphCanvas.prototype.drawNode = function (node, ctx) {
         originalDrawNode.apply(this, arguments);
+
 
         if (h4DW.active && h4DW.classifications.has(node.id)) {
             const color = h4DW.classifications.get(node.id);
             const [w, h] = node.size;
 
+
             ctx.save();
 
-            // 1. TACTICAL TINT (Slightly stronger on hovered nodes)
+
+            // 1. TACTICAL TINT
             ctx.fillStyle = color + "1a"; // ~10% opacity
             ctx.fillRect(0, 0, w, h);
+
 
             // 2. HIGHLIGHT BORDER
             ctx.strokeStyle = color;
             ctx.lineWidth = 2;
+
 
             if (color === h4DW.palette.pink || color === h4DW.palette.yellow) {
                 ctx.shadowColor = color;
@@ -472,7 +535,9 @@ function setupCanvasOverlay() {
                 ctx.lineWidth = 3;
             }
 
+
             ctx.strokeRect(0, 0, w, h);
+
 
             // 3. FORENSIC DNA DOT (Top Right Corner)
             ctx.shadowBlur = 0;
@@ -481,19 +546,23 @@ function setupCanvasOverlay() {
             ctx.arc(w - 10, 10, 5, 0, Math.PI * 2);
             ctx.fill();
 
+
             ctx.fillStyle = color;
             ctx.beginPath();
             ctx.arc(w - 10, 10, 3, 0, Math.PI * 2);
             ctx.fill();
+
 
             ctx.restore();
         }
     };
 }
 
+
 // ============================================================================
 // 5. EVENT HOOKS
 // ============================================================================
+
 
 function installErrorInterceptor() {
     const _origError = console.error;
@@ -507,6 +576,7 @@ function installErrorInterceptor() {
         }
     };
 
+
     api.addEventListener("execution_error", (e) => {
         if (e.detail?.node_id) {
             h4DW.errorNodes.add(parseInt(e.detail.node_id));
@@ -514,11 +584,13 @@ function installErrorInterceptor() {
         }
     });
 
+
     api.addEventListener("execution_start", () => {
         h4DW.errorNodes.clear();
         if (h4DW.active) runAnalysis();
     });
 }
+
 
 function injectStyles() {
     if (document.getElementById("h4-dwd-css")) return;
@@ -536,9 +608,11 @@ function injectStyles() {
     document.head.appendChild(style);
 }
 
+
 // ============================================================================
 // 6. INITIALISATION
 // ============================================================================
+
 
 app.registerExtension({
     name: "h4.DeadWeightDetector",
@@ -548,12 +622,14 @@ app.registerExtension({
         setupCanvasOverlay();
         installErrorInterceptor();
 
+
         // Hydrate from dashboard
         if (window.h4_Dashboard && window.h4_Dashboard.config) {
             h4DW.config.qolMasterOverride = window.h4_Dashboard.config.qolMasterOverride;
             h4DW.config.deadWeightEnabled = window.h4_Dashboard.config.deadWeightEnabled;
             h4DW.updateVisibility();
         }
+
 
         window.addEventListener("h4_config_update", (e) => {
             const { key, val } = e.detail;
@@ -562,6 +638,7 @@ app.registerExtension({
                 h4DW.updateVisibility();
             }
         });
+
 
         console.log("%c🧹 h4 Dead Weight Detector v1.0 ONLINE", "color: #00f2ff; font-weight: bold;");
     }

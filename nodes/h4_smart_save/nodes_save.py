@@ -12,50 +12,6 @@ from aiohttp import web
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
 
-# --- Global Kinetic Executor for Forensic Thumbnails ---
-_h4_io_executor = ThreadPoolExecutor(max_workers=16)
-
-def get_h4_thumb_path(filename, subfolder, dir_type):
-    cache_dir = os.path.normpath(os.path.join(folder_paths.get_temp_directory(), "h4_thumbs_v3"))
-    if not os.path.exists(cache_dir): os.makedirs(cache_dir, exist_ok=True)
-    safe_sub = subfolder.replace("\\", "_").replace("/", "_")
-    return os.path.join(cache_dir, f"h4_t3_{dir_type}_{safe_sub}_{filename}.jpg")
-
-def generate_h4_thumbnail(img_or_path, thumb_path):
-    """
-    Kinetic Forensic Manifestation: Generates a 160x160 JPEG thumbnail.
-    Handles both PIL objects (eager) and file paths (lazy/API).
-    """
-    try:
-        source_img = None
-        if isinstance(img_or_path, str):
-            if not os.path.exists(img_or_path):
-                return False
-            # Check if it's already a thumbnail request for a thumb
-            if img_or_path == thumb_path: return True
-            source_img = Image.open(img_or_path)
-        else:
-            # Thread-safe copy of the PIL object
-            source_img = img_or_path.copy()
-
-        if source_img:
-            # Ensure we are in RGB mode for JPEG compatibility
-            if source_img.mode != 'RGB':
-                source_img = source_img.convert('RGB')
-            
-            # Sub-sampled resizing (LANCZOS is the industrial standard here)
-            source_img.thumbnail((160, 160), Image.LANCZOS)
-            
-            # Save to disk with aggressive optimization
-            source_img.save(thumb_path, "JPEG", quality=80, optimize=True)
-            source_img.close()
-            return True
-            
-    except Exception as e:
-        # We catch but don't crash, as this is a background forensic step
-        print(f"[H4_Thumb] Forensic Manifestation Fault: {e}")
-    return False
-
 class H4_ManifestCache:
     _instance = None
     _lock = threading.Lock()
@@ -414,10 +370,6 @@ class H4_SmartSave:
                 sidecar=sidecar_data
             )
 
-            # --- Eager Kinetic Thumbnailing (Background) ---
-            t_path = get_h4_thumb_path(file_name, subfolder, save_res["type"])
-            _h4_io_executor.submit(generate_h4_thumbnail, img, t_path)
-
         return {"ui": {"images": results}, "result": (images,)}
 
     def _build_sidecar(self, json_mode, metadata_mode, author, model_name, comments, custom_json, forensics_map, telemetry, prompt, extra_pnginfo):
@@ -546,63 +498,6 @@ try:
             if node_data is None: return web.json_response({"error": "Node not in cache"}, status=404)
             return web.json_response({"values": clean_nan(node_data)})
         except Exception as e: return web.json_response({"error": str(e)}, status=500)
-
-    @PromptServer.instance.routes.get("/h4/thumbnail")
-    async def get_smart_save_thumbnail(request):
-        try:
-            filename = request.query.get("filename")
-            subfolder = request.query.get("subfolder", "")
-            dir_type = request.query.get("type", "output")
-            full_res = request.query.get("full", "false").lower() == "true"
-
-            if not filename: return web.Response(status=400)
-            
-            # --- Robust Path Resolution ---
-            if dir_type == "temp":
-                root_dir = folder_paths.get_temp_directory()
-            else:
-                root_dir = folder_paths.get_output_directory()
-            
-            img_path = os.path.normpath(os.path.join(root_dir, subfolder, filename))
-            
-            if not os.path.exists(img_path):
-                # Critical Fallback: Try checking the other root just in case of mis-labeling
-                alt_root = folder_paths.get_output_directory() if dir_type == "temp" else folder_paths.get_temp_directory()
-                img_path = os.path.normpath(os.path.join(alt_root, subfolder, filename))
-                if not os.path.exists(img_path): return web.Response(status=404)
-
-            if full_res: return web.FileResponse(img_path)
-
-            # --- Cache Management ---
-            cache_dir = os.path.normpath(os.path.join(folder_paths.get_temp_directory(), "h4_thumbs_v3"))
-            if not os.path.exists(cache_dir): os.makedirs(cache_dir, exist_ok=True)
-            
-            # Sanitized Cache Name
-            safe_sub = subfolder.replace("\\", "_").replace("/", "_")
-            thumb_name = f"h4_t3_{dir_type}_{safe_sub}_{filename}.jpg"
-            thumb_path = os.path.join(cache_dir, thumb_name)
-
-            # --- Manifest Retrieval ---
-            if os.path.exists(thumb_path):
-                # Only check mtime if it's a persistent output to allow for edits, 
-                # but for thumbnails speed is king
-                return web.FileResponse(thumb_path, headers={"Cache-Control": "public, max-age=86400"})
-
-            # --- Asynchronous Forensic Manifestation ---
-            # We await the executor to ensure the file exists before attempting to serve it
-            success = await asyncio.get_event_loop().run_in_executor(_h4_io_executor, generate_h4_thumbnail, img_path, thumb_path)
-            
-            if success and os.path.exists(thumb_path):
-                return web.FileResponse(thumb_path, headers={"Cache-Control": "public, max-age=86400"})
-            else:
-                # If thumbnail failed, we'll try to serve the full image as a last resort if it's not too big
-                if os.path.exists(img_path) and os.path.getsize(img_path) < 1024 * 1024: # 1MB limit for fallback
-                    return web.FileResponse(img_path)
-                return web.Response(status=404)
-            
-        except Exception as e:
-            print(f"[H4_SmartSave] Kinetic Audit Failure: {e}")
-            return web.Response(status=500)
 
 except Exception as e:
     print(f"[H4_SmartSave] Failed api register: {e}")

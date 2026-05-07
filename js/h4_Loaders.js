@@ -1,6 +1,7 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
+
 function openLightbox(images, startIndex) {
     let overlay = document.createElement("div");
     overlay.style.position = "fixed";
@@ -68,6 +69,7 @@ function openLightbox(images, startIndex) {
     document.body.appendChild(overlay);
 }
 
+
 function setWidgetVisible(w, visible) {
     if (visible) {
         if (w.h4_orig_type) {
@@ -89,6 +91,7 @@ function setWidgetVisible(w, visible) {
     }
 }
 
+
 app.registerExtension({
     name: "h4_Live.Loaders",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
@@ -97,48 +100,52 @@ app.registerExtension({
                 if (node.h4_initialized) return;
                 node.h4_initialized = true;
 
+                let refreshTimer = null;
+
                 const uploadWidget = node.addWidget("button", "📤 Smart Upload Image(s)", null, () => {
                     let input = document.createElement("input");
                     input.type = "file";
                     input.multiple = true;
                     input.accept = "image/jpeg,image/png,image/webp,image/bmp";
                     input.onchange = async (e) => {
-                        const currentImageWidgets = node.widgets.filter(w => w.name && w.name.startsWith("image_"));
                         const files = Array.from(e.target.files);
-                        for (let file of files) {
-                            let slot = currentImageWidgets.find(w => !w.value || w.value === "none" || w.value === "");
-                            if (!slot) {
-                                alert("Maximum active image capacity reached for this node!");
-                                break;
-                            }
+                        const currentImageWidgets = node.widgets.filter(w => w.name && w.name.startsWith("image_"));
+                        const availableSlots = currentImageWidgets.filter(w => !w.value || w.value === "none" || w.value === "");
 
+                        if (files.length > availableSlots.length) {
+                            alert(`Only ${availableSlots.length} slot(s) available. ${files.length - availableSlots.length} file(s) will be skipped.`);
+                        }
+
+                        const filesToUpload = files.slice(0, availableSlots.length);
+
+                        const results = await Promise.all(filesToUpload.map(async (file) => {
                             try {
                                 const body = new FormData();
                                 body.append("image", file);
                                 body.append("type", "input");
-                                const resp = await api.fetchApi("/upload/image", {
-                                    method: "POST",
-                                    body: body,
-                                });
-
-                                if (resp.status === 200) {
-                                    const data = await resp.json();
-                                    if (!slot.options.values.includes(data.name)) {
-                                        slot.options.values.push(data.name);
-                                    }
-                                    slot.value = data.name;
-                                    if (slot.callback) slot.callback(data.name);
-                                }
+                                const resp = await api.fetchApi("/upload/image", { method: "POST", body });
+                                if (resp.status === 200) return await resp.json();
                             } catch (error) {
                                 console.error("[h4_Live] Image upload failed", error);
                             }
-                        }
+                            return null;
+                        }));
+
+                        results.forEach((data, i) => {
+                            if (!data) return;
+                            const slot = availableSlots[i];
+                            if (!slot.options.values.includes(data.name)) {
+                                slot.options.values.push(data.name);
+                            }
+                            slot.value = data.name;
+                            if (slot.callback) slot.callback(data.name);
+                        });
+
                         refreshLayout();
                     };
                     input.click();
                 });
 
-                // Hide original buttons safely
                 node.widgets.forEach(w => {
                     if (w.type === "button" &&
                         w.name !== "📤 Smart Upload Image(s)" &&
@@ -157,42 +164,40 @@ app.registerExtension({
                     let currentNames = (node.h4_images || []).map(img => img.dataset.filename);
                     if (JSON.stringify(currentNames) === JSON.stringify(values)) return;
 
-                    node.h4_images = values.map((val, i) => {
+                    node.h4_images = values.map((val) => {
                         const existing = (node.h4_images || []).find(img => img.dataset.filename === val);
                         if (existing) return existing;
 
                         let img = new Image();
                         img.dataset.filename = val;
                         img.onload = () => { app.graph?.setDirtyCanvas(true, true); };
+                        img.onerror = () => {
+                            img.__h4_error = true;
+                            app.graph?.setDirtyCanvas(true, true);
+                        };
                         img.src = api.apiURL(`/view?filename=${encodeURIComponent(val)}&type=input&subfolder=`);
                         return img;
                     });
                     node.h4_active_preview_index = 0;
                 }
 
-                function refreshLayout() {
+                function _doRefresh() {
                     enforceSequentialSlots();
 
                     let usedCount = (node.h4_images || []).length;
-                    const showCount = usedCount;
 
                     const loadModeWidget = node.widgets.find(w => w.name === "load_mode");
                     if (loadModeWidget) {
                         const isCheckpointMode = loadModeWidget.value === "Checkpoint (Standard)";
-
                         node.widgets.forEach(w => {
-                            if (w.name === "ckpt_name") {
-                                setWidgetVisible(w, isCheckpointMode);
-                            }
-                            if (["unet_name", "vae_name", "clip_name"].includes(w.name)) {
-                                setWidgetVisible(w, !isCheckpointMode);
-                            }
+                            if (w.name === "ckpt_name") setWidgetVisible(w, isCheckpointMode);
+                            if (["unet_name", "vae_name", "clip_name"].includes(w.name)) setWidgetVisible(w, !isCheckpointMode);
                         });
                     }
 
                     const currentImageWidgets = node.widgets.filter(w => w.name && w.name.startsWith("image_"));
                     for (let i = 0; i < currentImageWidgets.length; i++) {
-                        setWidgetVisible(currentImageWidgets[i], i < showCount);
+                        setWidgetVisible(currentImageWidgets[i], i < usedCount);
                     }
 
                     const baseOutputs = nodeData.name === "H4_CompleteLoader" ? 3 : 0;
@@ -211,41 +216,47 @@ app.registerExtension({
                             node.addOutput(isMask ? `MASK_${imgNum}` : `IMAGE_${imgNum}`, isMask ? "MASK" : "IMAGE");
                             changed = true;
                         }
-                        if (changed) {
-                            app.graph?.setDirtyCanvas(true, true);
-                        }
+                        if (changed) app.graph?.setDirtyCanvas(true, true);
                     }
 
-                    node.setSize(node.computeSize([node.size[0], 0]));
-                    app.graph?.setDirtyCanvas(true, true);
+                    const newSize = node.computeSize([node.size[0], 0]);
+                    node.setSize([Math.max(node.size[0], newSize[0]), newSize[1]]);
                 }
 
-                console.log("[h4_Live] h4_Loaders initialized");
+                function refreshLayout() {
+                    clearTimeout(refreshTimer);
+                    refreshTimer = setTimeout(_doRefresh, 50);
+                }
+
                 const originalComputeSize = node.computeSize;
                 node.computeSize = function (out) {
                     let res = originalComputeSize ? originalComputeSize.apply(this, arguments) : [200, 100];
                     if (Array.isArray(res)) {
-                        if (this.h4_images && this.h4_images.length > 0) {
-                            res[1] += 270;
-                        }
+                        if (this.h4_images && this.h4_images.length > 0) res[1] += 230;
                     }
                     return res;
                 };
 
                 node.onDrawBackground = function (ctx) {
                     if (!this.flags.collapsed && this.h4_images && this.h4_images.length > 0) {
-                        let previewHeight = 180;
-                        let stripHeight = 50;
-                        let padding = 15;
+                        const stripHeight = 50;
+                        const padding = 15;
 
-                        if (this.h4_images.length === 0 || !this.h4_images[0]) return;
+                        const naturalHeight = originalComputeSize
+                            ? originalComputeSize.call(this, [this.size[0], 0])
+                            : [this.size[0], 100];
+                        const widgetAreaHeight = Array.isArray(naturalHeight) ? naturalHeight[1] : 100;
 
-                        let cx = padding;
-                        let cy = this.size[1] - previewHeight - stripHeight - padding * 1.5;
-                        let cw = this.size[0] - padding * 2;
+                        const previewHeight = Math.max(120, this.size[1] - widgetAreaHeight - stripHeight - padding * 2);
 
-                        let activeImg = this.h4_images[this.h4_active_preview_index || 0];
-                        if (activeImg && activeImg.complete && activeImg.naturalWidth > 0) {
+                        if (!this.h4_images[0]) return;
+
+                        const cx = padding;
+                        const cy = widgetAreaHeight + padding;
+                        const cw = this.size[0] - padding * 2;
+
+                        const activeImg = this.h4_images[this.h4_active_preview_index || 0];
+                        if (activeImg) {
                             ctx.save();
                             ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
                             ctx.beginPath();
@@ -253,15 +264,21 @@ app.registerExtension({
                             ctx.fill();
                             ctx.clip();
 
-                            let rx = cw / activeImg.naturalWidth;
-                            let ry = previewHeight / activeImg.naturalHeight;
-                            let ratio = Math.min(rx, ry);
-                            let dw = activeImg.naturalWidth * ratio;
-                            let dh = activeImg.naturalHeight * ratio;
-                            let dx = cx + (cw - dw) / 2;
-                            let dy = cy + (previewHeight - dh) / 2;
-
-                            ctx.drawImage(activeImg, dx, dy, dw, dh);
+                            if (activeImg.complete && activeImg.naturalWidth > 0) {
+                                const rx = cw / activeImg.naturalWidth;
+                                const ry = previewHeight / activeImg.naturalHeight;
+                                const ratio = Math.min(rx, ry);
+                                const dw = activeImg.naturalWidth * ratio;
+                                const dh = activeImg.naturalHeight * ratio;
+                                const dx = cx + (cw - dw) / 2;
+                                const dy = cy + (previewHeight - dh) / 2;
+                                ctx.drawImage(activeImg, dx, dy, dw, dh);
+                            } else {
+                                ctx.fillStyle = activeImg.__h4_error ? "#ff3333" : "#888";
+                                ctx.font = "14px monospace";
+                                ctx.textAlign = "center";
+                                ctx.fillText(activeImg.__h4_error ? "⚠ FAILED" : "LOADING...", cx + cw / 2, cy + previewHeight / 2);
+                            }
                             ctx.restore();
 
                             ctx.strokeStyle = "rgba(255,255,255,0.1)";
@@ -273,30 +290,33 @@ app.registerExtension({
                             this.h4_preview_rect = [cx, cy, cw, previewHeight];
                         }
 
-                        let stripY = cy + previewHeight + padding * 0.8;
+                        const stripY = cy + previewHeight + padding * 0.8;
                         this.h4_strip_rects = [];
+                        this.h4_arrow_rects = {};
 
-                        let thumbW = stripHeight;
-                        let gap = 8;
-                        let totalW = (thumbW * this.h4_images.length) + (gap * (this.h4_images.length - 1));
-                        let startX = cx + (cw - totalW) / 2;
-                        if (startX < cx) startX = cx;
+                        const arrowSize = 16;
+                        const arrowPad = 4;
+                        const arrowW = arrowSize + arrowPad * 2;
+
+                        const stripCx = this.h4_images.length > 1 ? cx + arrowW : cx;
+                        const stripCw = this.h4_images.length > 1 ? cw - arrowW * 2 : cw;
+
+                        const thumbW = stripHeight;
+                        const gap = 8;
+                        const totalW = (thumbW * this.h4_images.length) + (gap * (this.h4_images.length - 1));
+                        let startX = stripCx + (stripCw - totalW) / 2;
+                        if (startX < stripCx) startX = stripCx;
 
                         for (let i = 0; i < this.h4_images.length; i++) {
-                            let img = this.h4_images[i];
-                            let tx = startX + i * (thumbW + gap);
-                            if (tx + thumbW > cx + cw) break;
+                            const img = this.h4_images[i];
+                            const tx = startX + i * (thumbW + gap);
+                            if (tx + thumbW > stripCx + stripCw) break;
 
                             if (img.complete && img.naturalWidth > 0) {
-                                let srcRatio = img.naturalWidth / img.naturalHeight;
+                                const srcRatio = img.naturalWidth / img.naturalHeight;
                                 let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
-                                if (srcRatio > 1) {
-                                    sw = img.naturalHeight;
-                                    sx = (img.naturalWidth - sw) / 2;
-                                } else {
-                                    sh = img.naturalWidth;
-                                    sy = (img.naturalHeight - sh) / 2;
-                                }
+                                if (srcRatio > 1) { sw = img.naturalHeight; sx = (img.naturalWidth - sw) / 2; }
+                                else { sh = img.naturalWidth; sy = (img.naturalHeight - sh) / 2; }
 
                                 ctx.save();
                                 ctx.beginPath();
@@ -306,7 +326,7 @@ app.registerExtension({
                                 ctx.restore();
                             }
 
-                            let isActive = i === (this.h4_active_preview_index || 0);
+                            const isActive = i === (this.h4_active_preview_index || 0);
                             ctx.strokeStyle = isActive ? "#fbc02d" : "rgba(255,255,255,0.2)";
                             ctx.lineWidth = isActive ? 2 : 1;
                             ctx.beginPath();
@@ -315,25 +335,67 @@ app.registerExtension({
 
                             this.h4_strip_rects.push([tx, stripY, thumbW, thumbW]);
                         }
+
+                        if (this.h4_images.length > 1) {
+                            const arrowMidY = stripY + thumbW / 2;
+
+                            ctx.save();
+                            ctx.fillStyle = this.h4_active_preview_index > 0 ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)";
+                            ctx.font = `${arrowSize}px monospace`;
+                            ctx.textAlign = "center";
+                            ctx.textBaseline = "middle";
+                            ctx.fillText("◀", cx + arrowW / 2, arrowMidY);
+                            ctx.restore();
+                            this.h4_arrow_rects.left = [cx, stripY, arrowW, thumbW];
+
+                            const rax = cx + cw - arrowW;
+                            ctx.save();
+                            ctx.fillStyle = this.h4_active_preview_index < this.h4_images.length - 1 ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)";
+                            ctx.font = `${arrowSize}px monospace`;
+                            ctx.textAlign = "center";
+                            ctx.textBaseline = "middle";
+                            ctx.fillText("▶", rax + arrowW / 2, arrowMidY);
+                            ctx.restore();
+                            this.h4_arrow_rects.right = [rax, stripY, arrowW, thumbW];
+                        }
                     }
                 };
 
                 const originalMouseDown = node.onMouseDown;
                 node.onMouseDown = function (e, localPos, canvas) {
-                    let handled = false;
+                    if (this.h4_arrow_rects) {
+                        const l = this.h4_arrow_rects.left;
+                        const r = this.h4_arrow_rects.right;
+                        if (l && localPos[0] > l[0] && localPos[0] < l[0] + l[2] &&
+                            localPos[1] > l[1] && localPos[1] < l[1] + l[3]) {
+                            if (this.h4_active_preview_index > 0) {
+                                this.h4_active_preview_index--;
+                                app.graph?.setDirtyCanvas(true, true);
+                            }
+                            return true;
+                        }
+                        if (r && localPos[0] > r[0] && localPos[0] < r[0] + r[2] &&
+                            localPos[1] > r[1] && localPos[1] < r[1] + r[3]) {
+                            if (this.h4_active_preview_index < this.h4_images.length - 1) {
+                                this.h4_active_preview_index++;
+                                app.graph?.setDirtyCanvas(true, true);
+                            }
+                            return true;
+                        }
+                    }
+
                     if (this.h4_strip_rects) {
                         for (let i = 0; i < this.h4_strip_rects.length; i++) {
-                            let r = this.h4_strip_rects[i];
+                            const r = this.h4_strip_rects[i];
                             if (localPos[0] > r[0] && localPos[0] < r[0] + r[2] &&
                                 localPos[1] > r[1] && localPos[1] < r[1] + r[3]) {
                                 this.h4_active_preview_index = i;
                                 app.graph?.setDirtyCanvas(true, true);
-                                handled = true;
-                                break;
+                                return true;
                             }
                         }
                     }
-                    if (handled) return true;
+
                     if (originalMouseDown) return originalMouseDown.apply(this, arguments);
                     return false;
                 };
@@ -341,7 +403,7 @@ app.registerExtension({
                 const originalDblClick = node.onDblClick;
                 node.onDblClick = function (e, localPos, canvas) {
                     if (this.h4_preview_rect) {
-                        let r = this.h4_preview_rect;
+                        const r = this.h4_preview_rect;
                         if (localPos[0] > r[0] && localPos[0] < r[0] + r[2] &&
                             localPos[1] > r[1] && localPos[1] < r[1] + r[3]) {
                             if (this.h4_images && this.h4_images.length > 0) {
@@ -366,7 +428,7 @@ app.registerExtension({
                     w.callback = function () {
                         if (origCb) origCb.apply(this, arguments);
                         refreshLayout();
-                    }
+                    };
                 });
 
                 const loadModeWidgetFinal = node.widgets.find(w => w.name === "load_mode");
@@ -392,10 +454,10 @@ app.registerExtension({
                 if (onNodeCreated) onNodeCreated.apply(this, arguments);
                 const node = this;
                 node.is_h4_loader = true;
-                node.size[0] = 340;
+                node.size[0] = 440;
+                node.size[1] = node.computeSize()[1] + 100;
                 requestAnimationFrame(() => initNode(node));
             };
-
         }
     }
 });

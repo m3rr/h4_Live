@@ -659,7 +659,8 @@ class H4_CompleteLoader(H4_UniversalLoader):
     @classmethod
     def INPUT_TYPES(s):
         input_dir = folder_paths.get_input_directory()
-        files = ["none"] + [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+        valid_exts = ('.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif')
+        files = ["none"] + [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f)) and f.lower().endswith(valid_exts)]
         
         # Start with Universal Loader schema
         schema = H4_UniversalLoader.INPUT_TYPES()
@@ -704,7 +705,8 @@ class H4_MultiImgUpload:
     @classmethod
     def INPUT_TYPES(s):
         input_dir = folder_paths.get_input_directory()
-        files = ["none"] + [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+        valid_exts = ('.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif')
+        files = ["none"] + [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f)) and f.lower().endswith(valid_exts)]
         
         return {
             "required": {},

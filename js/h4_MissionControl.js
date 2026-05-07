@@ -568,20 +568,27 @@ app.registerExtension({
 
         // WebSocket Link
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const ws = new WebSocket(`${protocol}//${window.location.host}/ws?clientId=${mcState.wsClientId}`);
-        ws.onmessage = (e) => {
-            if (e.data instanceof Blob) {
-                if (mcState.previewObjectUrl) URL.revokeObjectURL(mcState.previewObjectUrl);
-                const url = URL.createObjectURL(e.data);
-                mcState.previewObjectUrl = url;
-                const img = document.getElementById("h4mc-job-preview");
-                if (img) img.src = url;
-            } else {
-                try { handleWSMessage(JSON.parse(e.data)); } catch (err) { }
-            }
+
+        const connectWS = () => {
+            const ws = new WebSocket(`${protocol}//${window.location.host}/ws?clientId=${mcState.wsClientId}`);
+            ws.onmessage = (e) => {
+                if (e.data instanceof Blob) {
+                    if (mcState.previewObjectUrl) URL.revokeObjectURL(mcState.previewObjectUrl);
+                    const url = URL.createObjectURL(e.data);
+                    mcState.previewObjectUrl = url;
+                    const img = document.getElementById("h4mc-job-preview");
+                    if (img) img.src = url;
+                } else {
+                    try { handleWSMessage(JSON.parse(e.data)); } catch (err) { }
+                }
+            };
+            ws.onopen = () => { mcState.wsState = 'connected'; fetchQueue(); fetchStats(); };
+            ws.onclose = () => {
+                mcState.wsState = 'disconnected';
+                setTimeout(connectWS, 5000);
+            };
         };
-        ws.onopen = () => { mcState.wsState = 'connected'; fetchQueue(); fetchStats(); };
-        ws.onclose = () => { mcState.wsState = 'disconnected'; setTimeout(() => window.location.reload(), 10000); };
+        connectWS();
 
         // Wireless Seed Broadcast Listener (Legacy Support)
         api.addEventListener("h4_broadcast_seed", (event) => {

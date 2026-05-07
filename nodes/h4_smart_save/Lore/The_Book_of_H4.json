@@ -65,12 +65,12 @@
       },
       "testing_mode": {
         "type": "BOOLEAN",
-        "description": "This just shows/hides the internal test generator parameters. Note: The node ALWAYS generates a test image (or latent) to show you the result. This toggle just lets you see the seed/steps knobs.",
+        "description": "Controls the internal test generator. When ON, the node runs a full KSampler generation using your merged model and displays the result in the TEST_IMAGE output — this is how you verify your merge looks good without wiring it into a full workflow. It also reveals the seed/steps/cfg/sampler/scheduler/prompt knobs so you can fine-tune the test. When OFF, the node skips test generation entirely and outputs a red 64x64 placeholder image and a dummy latent.",
         "example": "False (Hide the clutter)"
       },
       "interpolation_mode": {
         "type": "COMBO",
-        "description": "The mathematical formula I use to blend the weights. \n\n - **Weighted Average**: Standard base/ratio blend. \n - **Symmetric Average**: My preferred mode for 3-model merges. It balances Model 1's base against the invaders. \n - **Add Difference**: For 'Delta' merging (Checkpoint A + (Checkpoint B - Checkpoint C)).",
+        "description": "The mathematical formula used to blend the model weights. Five modes are available: \n\n - **Weighted Average**: Standard blend. Result = Base * (1-R) + Target * R. The workhorse for most merges. \n - **Symmetric Average**: Calculates a true proportional blend using both models' global+block weights. Formula: R = W_target / (W_base + W_target). Ideal for 3-model merges where you want Model 1's identity to survive. \n - **Add Difference**: Delta merging. Result = Base + (Target * R). Useful for injecting specific learned features from one model into another. \n - **Subtract**: Inverse delta. Result = Base - (Target * R). Removes traits from the base model. \n - **Add**: Direct addition. Result = Base + (Target * R). Same math as Add Difference but semantically distinct for clarity in complex pipelines.",
         "example": "Weighted Average (The reliable one)"
       },
       "decode_test_image": {
@@ -83,10 +83,35 @@
         "description": "The dimensions of the internal test generation. Default is 512 because it's fast, but for SDXL merges, you probably want 1024 or higher provided your GPU doesn't melt.",
         "example": "1024"
       },
-      "clip_source / vae_source": {
+      "clip_source": {
         "type": "COMBO",
-        "description": "Select exactly which model provides the CLIP and VAE. Often, a 'Merged' CLIP is what you want, but sticking to Model 1's VAE ensures color consistency.",
+        "description": "Select which model provides the CLIP text encoder for the merged output. Options: 'Merged' (blended CLIP from all models), 'Model 1', 'Model 2', or 'Model 3'. A merged CLIP often gives the best prompt adherence for a blended model, but if one model has a significantly better text encoder, pick that one.",
         "example": "Merged"
+      },
+      "vae_source": {
+        "type": "COMBO",
+        "description": "Select which model provides the VAE for decoding. Options: 'Model 1', 'Model 2', or 'Model 3'. Sticking to Model 1's VAE typically ensures the most consistent color reproduction since the base model's VAE was trained for its specific latent space.",
+        "example": "Model 1"
+      },
+      "ckpt_1 / ckpt_2 / ckpt_3": {
+        "type": "COMBO",
+        "description": "The checkpoint file selectors. Each slot loads a .safetensors or .ckpt file from your checkpoints folder. ckpt_1 is always visible (the base model). ckpt_2 and ckpt_3 appear dynamically based on your model_count setting. These are your raw ingredients — the models you are going to blend together.",
+        "example": "juggernautXL_v9.safetensors"
+      },
+      "model_override_1-3": {
+        "type": "MODEL",
+        "description": "Direct MODEL input slots that bypass checkpoint loading entirely. If you connect a MODEL here, it overrides the corresponding ckpt_N dropdown. This is critical for advanced pipelines where you've already loaded and modified a model upstream (e.g., applied LoRAs, patched attention, or run it through another merger). When a model_override is connected, the corresponding clip_override and vae_override slots become visible.",
+        "example": "(Wire from upstream LoRA Loader)"
+      },
+      "clip_override_1-3": {
+        "type": "CLIP",
+        "description": "Direct CLIP input slots. Only visible when the corresponding model_override_N is connected. Allows you to inject a specific text encoder that matches your overridden model, preventing CLIP/UNet architecture mismatches.",
+        "example": "(Wire from upstream CLIP Loader)"
+      },
+      "vae_override_1-3": {
+        "type": "VAE",
+        "description": "Direct VAE input slots. Only visible when the corresponding model_override_N is connected. Ensures the correct decoder is paired with the injected model.",
+        "example": "(Wire from upstream VAE Loader)"
       },
       "test_seed": {
         "type": "INT",
@@ -129,26 +154,48 @@
     "features": [
       {
         "name": "Smart Decode",
-        "description": "I put some brains in the decoder. If your image is gargantuan (>1024px), I automatically switch to 'Tiled' mode to save memory. Small image? Standard fast decode."
+        "description": "Intelligent VAE decoding. If your test image dimensions exceed 1024px on either axis, the node automatically switches to Tiled VAE mode (512px tiles) to prevent VRAM crashes. Smaller images use the faster standard decode path. If the first decode attempt fails, it automatically retries with the alternate method (tiled vs standard) before giving up."
       },
       {
         "name": "FP32 Fallback",
-        "description": "Ever get those dreaded black square outputs? Yeah, I hate them too. This node detects if the VAE crapped out (NaNs or zeros) and automatically retries the decode in full Float32 precision. It just works."
+        "description": "Automatic black-image recovery. After every VAE decode, the node inspects the output tensor for NaN values and near-zero maximums (< 0.0001). If the image is corrupted, it force-casts the latent samples to Float32 precision and retries the decode. This catches the common 'black square' problem caused by half-precision overflow in certain VAE/model combinations."
       },
       {
         "name": "Architecture Safety",
-        "description": "Trying to merge an SD1.5 model with an SDXL turbo model? That's illegal. And it creates garbage static. I check the architecture type before merging and scream at you in the console if they don't match."
+        "description": "Pre-merge compatibility validation. Before blending any two models, the node compares their internal architecture class names (e.g., 'SDXL' vs 'BaseModel'). If they don't match, it throws a clear ValueError explaining exactly which models are incompatible, preventing the creation of garbage static that wastes your time and GPU cycles."
+      },
+      {
+        "name": "Mad Science Lab Drawer",
+        "description": "When the 'Settings' toggle is ON, a dedicated DOM panel slides out from the left side of the node. This drawer contains: a Mode selector (mirroring the interpolation_mode widget), a Memory Guard toggle (mirroring memory_manager), and up to 3 accordion sections — one per active model. Each accordion expands to reveal 25 individual sliders: 1 Global Weight (MAIN), 12 Input Block weights (IN_0 through IN_11), 1 Middle Block weight (MID), and 12 Output Block weights (OUT_0 through OUT_11). The drawer scales with canvas zoom and tracks the node's position in real-time."
+      },
+      {
+        "name": "Progressive Input Disclosure",
+        "description": "The node's input slots are dynamically managed based on context. Override inputs (model_override, clip_override, vae_override) for each model slot only appear when relevant: the model_override slot is always visible for active models, but clip_override and vae_override only appear once their corresponding model_override is connected. This prevents input slot clutter and keeps the node face clean."
+      },
+      {
+        "name": "Widget Banishment",
+        "description": "All 75+ block weight sliders, the memory_manager toggle, and the interpolation_mode selector are banished from the node face entirely. They are hidden using a custom 'HIDDEN_BY_H4' type that forces zero-height rendering. These widgets remain alive in the backend for prompt serialization, but their visual presence is managed exclusively through the Mad Science Lab Drawer, keeping the node compact at approximately 320x220 pixels."
       }
     ],
     "tips": [
       "Use 'Symmetric Average' if you are merging 3 models and want Model 1's unique features to stand a fighting chance.",
       "Unlock 'Settings' to experiment. Lower Input blocks usually affect composition/shapes. Higher Output blocks affect fine details/textures/lighting.",
-      "If you seek pure speed, turn 'decode_test_image' OFF and use the 'TEST_LATENT' output."
+      "If you seek pure speed, turn 'decode_test_image' OFF and use the 'TEST_LATENT' output.",
+      "Use the model_override inputs to inject pre-modified models (with LoRAs already applied) directly into the merger, skipping the checkpoint load step entirely.",
+      "The 'Subtract' interpolation mode is useful for removing specific learned traits from a model. Try subtracting a 'cartoon' model from a 'realistic' one to push realism further.",
+      "Click the accordion headers in the Mad Science Lab to expand individual model sections. You don't need to open all three at once.",
+      "A red 64x64 placeholder in TEST_IMAGE means either testing_mode is OFF or the test generation failed. Check your console for the specific error.",
+      "A blue 64x64 placeholder means decode_test_image is OFF — your latent was generated successfully, it's just not being decoded to save VRAM."
     ],
     "tips_and_tricks": [
       "Use 'Symmetric Average' if you are merging 3 models and want Model 1's unique features to stand a fighting chance.",
       "Unlock 'Settings' to experiment. Lower Input blocks usually affect composition/shapes. Higher Output blocks affect fine details/textures/lighting.",
-      "If you seek pure speed, turn 'decode_test_image' OFF and use the 'TEST_LATENT' output."
+      "If you seek pure speed, turn 'decode_test_image' OFF and use the 'TEST_LATENT' output.",
+      "Use the model_override inputs to inject pre-modified models (with LoRAs already applied) directly into the merger, skipping the checkpoint load step entirely.",
+      "The 'Subtract' interpolation mode is useful for removing specific learned traits from a model. Try subtracting a 'cartoon' model from a 'realistic' one to push realism further.",
+      "Click the accordion headers in the Mad Science Lab to expand individual model sections. You don't need to open all three at once.",
+      "A red 64x64 placeholder in TEST_IMAGE means either testing_mode is OFF or the test generation failed. Check your console for the specific error.",
+      "A blue 64x64 placeholder means decode_test_image is OFF — your latent was generated successfully, it's just not being decoded to save VRAM."
     ]
   },
   "H4_Comparinator": {
@@ -158,23 +205,38 @@
     "inputs": {
       "image_a": {
         "type": "IMAGE",
-        "description": "The 'Primary' or 'Before' image. Usually your latest generation (Live Slot).",
+        "description": "The 'Primary' or 'Before' image. This is the control channel — usually your latest generation piped directly from your sampler or save node. It serves as the baseline for every comparison operation.",
         "example": "-"
       },
       "image_b": {
         "type": "IMAGE",
-        "description": "The 'Secondary' or 'After' image. If empty, the node automatically pulls from the Vault history.",
+        "description": "The 'Secondary' or 'After' image. This is your test channel. If left empty, the node automatically mirrors image_a into both slots so it never crashes from a missing input.",
         "example": "-"
       },
       "frozen_image": {
         "type": "IMAGE",
-        "description": "The 'Anchor'. Overrides Image B. Perfect for freezing a 'Gold Reference' you want to beat.",
+        "description": "The 'Anchor'. When connected, this completely overrides Image B. Perfect for locking a 'Gold Reference' that you want to compare all future generations against without it changing every queue.",
         "example": "-"
       },
       "save_mode": {
         "type": "BOOLEAN",
-        "description": "Flip to **💾 SAVE** to commit your comparison captures to disk. In **PREVIEW** mode, images are temporary and will eventually vanish into the Ether.",
+        "description": "The traffic light for your comparisons. **💾 SAVE**: Commits both images (and optionally a side-by-side composite) to your output directory with PNG metadata embedded. **PREVIEW**: Images are saved as temporary WEBP files for UI display only — they will be cleaned up automatically.",
         "example": "False"
+      },
+      "filename_prefix": {
+        "type": "STRING",
+        "description": "The naming prefix for saved comparison files. When save_mode is ON, files are written as '{prefix}_{timestamp}_A.png', '{prefix}_{timestamp}_B.png', and optionally '{prefix}_{timestamp}_VS.png' for the composite. Default is 'h4_Compare_'.",
+        "example": "h4_Compare_"
+      },
+      "metadata_text": {
+        "type": "STRING",
+        "description": "Custom metadata text embedded into the PNG 'Comment' field when saving. Use this to annotate what you were testing — 'CFG 7 vs CFG 12' or 'LoRA strength sweep'. This text persists in the file header permanently.",
+        "example": "Testing denoise at 0.4 vs 0.6"
+      },
+      "save_settings": {
+        "type": "STRING",
+        "description": "Advanced JSON configuration for save behavior. Accepts a JSON object with keys: 'save_a' (bool), 'save_b' (bool), 'save_comp' (bool — enables side-by-side composite), 'path' (subfolder), 'prefix' (filename prefix), 'save_wf' (embed workflow), 'save_meta' (embed metadata), 'save_prompt' (embed prompt). If empty, uses sane defaults.",
+        "example": "{\"save_comp\": true, \"path\": \"comparisons\"}"
       }
     },
     "outputs": {
@@ -197,17 +259,37 @@
       {
         "name": "Telemetry Drawer",
         "description": "A slide-up panel that reveals the DNA of the selected image. It separates 'Prompt Specs' (Models, VAEs, CLIPs, LoRAs) from 'Generation Settings' (Seed, CFG, Denoise) for easy reading."
+      },
+      {
+        "name": "Vault Integration",
+        "description": "Every comparison pair is automatically persisted to the Comparinator Vault on disk. The Vault stores image references, metadata, prompt data, and timestamps. History survives browser refreshes and server restarts. The node broadcasts updates via WebSocket ('h4.comparinator.update') for real-time UI synchronization."
+      },
+      {
+        "name": "Runtime Cache (Manual Save Buffer)",
+        "description": "A 10-entry FIFO deque per node instance keeps recent comparison pairs in memory for the Manual Save API. This allows you to retroactively save a comparison you liked without re-running the generation — the temp files are still warm in cache."
+      },
+      {
+        "name": "Side-by-Side Composite Save",
+        "description": "When save_settings includes 'save_comp: true', the node automatically stitches Image A and Image B into a single side-by-side PNG with automatic height normalization via Lanczos resampling. Perfect for sharing comparison results in a single file."
+      },
+      {
+        "name": "REST API Endpoints",
+        "description": "Three server-side API routes are registered: GET /h4/comparinator/history (retrieves Vault history), GET /h4/comparinator/image (serves Vault images with path-traversal protection), and POST /h4/comparinator/save_now (triggers manual save from the UI with custom settings and target selection)."
       }
     ],
     "tips": [
       "Use the 'Blink' mode (Spacebar) for high-frequency difference detection between A and B.",
       "Right-click the filmstrip to instantly clear all diagnostic selections and go back to lean mode.",
-      "The Sniper Scope background magnification is calculated at 1.5x of your magnifier zoom to provide the best 'hunting' experience."
+      "The Sniper Scope background magnification is calculated at 1.5x of your magnifier zoom to provide the best 'hunting' experience.",
+      "Use the save_settings JSON with 'save_comp: true' to generate a side-by-side stitched image for easy sharing.",
+      "The metadata_text field is embedded permanently in PNG headers — use it to document what you were testing."
     ],
     "tips_and_tricks": [
       "Use the 'Blink' mode (Spacebar) for high-frequency difference detection between A and B.",
       "Right-click the filmstrip to instantly clear all diagnostic selections and go back to lean mode.",
-      "The Sniper Scope background magnification is calculated at 1.5x of your magnifier zoom to provide the best 'hunting' experience."
+      "The Sniper Scope background magnification is calculated at 1.5x of your magnifier zoom to provide the best 'hunting' experience.",
+      "Use the save_settings JSON with 'save_comp: true' to generate a side-by-side stitched image for easy sharing.",
+      "The metadata_text field is embedded permanently in PNG headers — use it to document what you were testing."
     ]
   },
   "H4_SmartSave": {
@@ -254,6 +336,16 @@
         "type": "STRING",
         "description": "Weaponized metadata injection. Valid JSON here is embedded directly in the PNG header. Use it for tracking specific experiment IDs or custom parameter blocks.",
         "example": "{\"experiment_id\": \"H4-09\"}"
+      },
+      "metadata_mode": {
+        "type": "COMBO",
+        "description": "Controls what identity information is embedded into the PNG file header. Six tiers are available: \n - **None**: No metadata. Clean file. \n - **Clean (Author)**: Author tag only. \n - **Lite (Author+Model)**: Author + Model name. \n - **Lite+ (+Prompt)**: Author + Model + Comments. \n - **Full (Forensic)**: Everything. Author + Model + Comments + full forensic node data. \n - **Custom**: Uses the custom_json field as the identity payload instead.",
+        "example": "Lite (Author+Model)"
+      },
+      "json_mode": {
+        "type": "COMBO",
+        "description": "Controls the sidecar JSON file written alongside each image. Same tier options as metadata_mode. When set to 'Full (Forensic)', the sidecar includes a complete h4_forensics block containing every node's state from the workflow graph, plus h4_telemetry data extracted from the session manager. When set to 'Custom', the custom_json field content is stored as 'custom_dna' in the sidecar.",
+        "example": "Full (Forensic)"
       }
     },
     "features": [
@@ -292,6 +384,18 @@
       {
         "name": "Asset Synchronization (The RX)",
         "description": "Unified asset retrieval across Hover, Lightbox, and Canvas Background. By synchronizing every request with the preloader's unique timestamp hash, we ensure all elements hit the local browser cache, eliminating redundant backend traffic and ensuring instant tactile responsiveness."
+      },
+      {
+        "name": "SQLite Manifest Cache",
+        "description": "Every saved image is recorded in a local SQLite database (WAL mode for concurrency) with filename, subfolder, type, timestamp, and full sidecar JSON. This enables instant history queries without filesystem scanning. The database auto-creates on first run and includes a cold-boot sync that indexes existing h4_ files on startup."
+      },
+      {
+        "name": "Smart Counter (Anti-Overwrite)",
+        "description": "Before writing any file, the node scans the target directory for existing files matching the prefix pattern and calculates the next available counter value. This prevents generational overwrites even across server restarts or interrupted queues. Files are named as '{prefix}_{NNNN}.png' with zero-padded 4-digit counters."
+      },
+      {
+        "name": "REST API Endpoints",
+        "description": "Four server-side API routes: GET /h4/smart_save/history (paginated manifest query, default 5 items), GET /h4/smart_save/sidecar (retrieves the JSON sidecar for any saved image by filename), POST /h4/smart_save/cache_swap (stores undo state per node), and GET /h4/smart_save/cache_swap (retrieves undo state per node)."
       }
     ],
     "tips": [
@@ -299,14 +403,18 @@
       "Organization is king: Use slashes in the prefix to group your work by project or version.",
       "Use the JSON field to store structured data that you want to read back programmatically later.",
       "If the UI feels 'ghostly' or misaligned, just refresh. The Sovereignty protocols are complex and love a fresh boot.",
-      "Double-click headers to collapse/expand drawers instantly for a cleaner look."
+      "Double-click headers to collapse/expand drawers instantly for a cleaner look.",
+      "Use 'metadata_mode: Full (Forensic)' during experimentation and switch to 'Clean' for final exports to keep file headers lightweight.",
+      "The json_mode sidecar files are written alongside every image — they make batch processing and programmatic analysis trivial."
     ],
     "tips_and_tricks": [
       "Keep an eye on the [P] button on the node—it changes its glyph (📌 for Pinned, ↗ for Popout) and glows cyan when a panel mode is active.",
       "Organization is king: Use slashes in the prefix to group your work by project or version.",
       "Use the JSON field to store structured data that you want to read back programmatically later.",
       "If the UI feels 'ghostly' or misaligned, just refresh. The Sovereignty protocols are complex and love a fresh boot.",
-      "Double-click headers to collapse/expand drawers instantly for a cleaner look."
+      "Double-click headers to collapse/expand drawers instantly for a cleaner look.",
+      "Use 'metadata_mode: Full (Forensic)' during experimentation and switch to 'Clean' for final exports to keep file headers lightweight.",
+      "The json_mode sidecar files are written alongside every image — they make batch processing and programmatic analysis trivial."
     ]
   },
   "H4_Pythonipulator-inator": {
@@ -393,72 +501,106 @@
   },
   "H4_TrafficCop": {
     "title": "H4 Traffic Cop (Legacy Splitter)",
-    "description": "Standard Logic Gates in ComfyUI are kinda... fragile. This node acts as a specific 'Start vs Loop' splitter. It takes one input and sends it to the 'Start' output on Run 0, and the 'Loop' output on Run 1+. It's a legacy version of the Router logic, useful for simpler setups.",
+    "description": "Standard Logic Gates in ComfyUI are kinda... fragile. This node acts as a specific 'Start vs Loop' splitter. It takes one input and sends it to the 'Start' output on Run 0, and the 'Loop' output on Run 1+. It's a legacy version of the Router logic, useful for simpler setups. The node reads and increments the global h4 loop counter on each execution, and resets the counter when restart_on_true is toggled ON.",
     "usage": "Use this if you want to fork a single input into two different processing chains based on whether it's the first run or a loop.",
     "inputs": {
       "any_input": {
         "type": "ANY",
-        "description": "The item to be routed.",
+        "description": "The item to be routed. Accepts any ComfyUI type (IMAGE, LATENT, MODEL, STRING, etc.). The node validates that this input is not None and raises a ValueError if it is, preventing silent downstream failures.",
         "example": "-"
       },
       "restart_on_true": {
         "type": "BOOLEAN",
-        "description": "Force reset counter?",
+        "description": "Force reset the global loop counter to 0. When ON, the node calls reset_state() and treats the current execution as Run 0 regardless of previous count. When OFF, the node reads the current count and increments it for the next pass.",
         "example": "False"
       }
     },
     "outputs": {
-      "Run_Once_(Start)": "Active only on Loop 0.",
-      "Loop_(Continue)": "Active on Loop 1+."
+      "Run_Once_(Start)": "The input data, passed through on every execution. Logically 'active' on Run 0.",
+      "Loop_(Continue)": "The input data, passed through on every execution. Logically 'active' on Run 1+. Both outputs always receive data (Safe Passthrough) to prevent downstream Missing Input crashes."
     },
     "features": [
       {
-        "name": "Safe Mode",
-        "description": "It always sends data to prevent 'Missing Input' errors, but logically the workflow continues down the active path."
+        "name": "Safe Passthrough",
+        "description": "Both outputs always receive the input data regardless of which path is logically active. This prevents ComfyUI from throwing 'Missing Input' errors on the inactive path. The node sends (any_input, any_input) on every execution — downstream nodes on both paths will execute, but only the active path produces meaningful results."
+      },
+      {
+        "name": "Always-Dirty Execution",
+        "description": "IS_CHANGED returns float('nan'), forcing ComfyUI to re-execute this node on every queue regardless of whether inputs changed. This is essential for loop counter nodes that must always read the latest global state."
+      },
+      {
+        "name": "Universal Input Validation",
+        "description": "VALIDATE_INPUTS returns True for all input types, bypassing ComfyUI's strict type checking. This allows the node to accept ANY_TYPE connections without type mismatch errors."
       }
+    ],
+    "tips": [
+      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
+      "If a downstream node behaves strangely, inspect the exact type and shape of this node output.",
+      "Consider upgrading to H4_TrafficRouter for more control (denoise switching, lazy evaluation)."
     ],
     "tips_and_tricks": [
       "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
-      "If a downstream node behaves strangely, inspect the exact type and shape of this node output."
+      "If a downstream node behaves strangely, inspect the exact type and shape of this node output.",
+      "Consider upgrading to H4_TrafficRouter for more control (denoise switching, lazy evaluation)."
     ]
   },
   "H4_TrafficMerge": {
     "title": "H4 Traffic Merge (The Zipper)",
-    "description": "Okay, so you split your workflow into two paths. Now how do you bring them back together? With the Zipper. This node takes two inputs and intelligently selects the one that matches the current Loop Count phase. It also handles Denoise switching just like the Router.",
+    "description": "Okay, so you split your workflow into two paths. Now how do you bring them back together? With the Zipper. This node takes two inputs and intelligently selects the one that matches the current Loop Count phase. It also handles Denoise switching just like the Router. On Run 0, it selects run_once_input and memorizes its type. On Run 1+, it selects loop_input (or falls back to the Universal Buffer wirelessly) and enforces type safety against the memorized Run 0 type.",
     "inputs": {
       "first_denoise": {
         "type": "FLOAT",
-        "description": "Denoise for Run 0 (Start).",
+        "description": "Denoise value output when the node is in Run 0 (Start) phase. Typically 1.0 for full txt2img creativity on the first generation.",
         "example": "1.0"
       },
       "loop_denoise": {
         "type": "FLOAT",
-        "description": "Denoise for Run 1+ (Loop).",
+        "description": "Denoise value output when the node is in Run 1+ (Loop) phase. Typically 0.4-0.6 for img2img refinement.",
         "example": "0.5"
       },
       "restart_on_true": {
         "type": "BOOLEAN",
-        "description": "Reset signal. If True, resets count to 0.",
+        "description": "Reset signal. When True, resets the global loop counter to 0 and treats the current execution as Run 0.",
         "example": "False"
       },
       "run_once_input": {
         "type": "ANY",
-        "description": "Input A (Run 0). The starting point.",
+        "description": "[OPTIONAL] Input A (Run 0). The starting data for your first generation. Its type is memorized via orbit_set for type safety enforcement on subsequent runs.",
         "example": "-"
       },
       "loop_input": {
         "type": "ANY",
-        "description": "Input B (Loop 1+). WARNING: Use H4_ImageBuffer wireless mode! Wiring this directly often causes ComfyUI Cycle Errors.",
+        "description": "[OPTIONAL] Input B (Loop 1+). WARNING: Due to ComfyUI's graph validation, wiring this directly from a downstream node causes Cycle Errors. Leave this EMPTY and use H4_ImageBuffer in wireless mode instead. The node will automatically check the global buffer when this input is None.",
         "example": "-"
       }
     },
     "outputs": {
-      "Selected_Output": "The active data stream.",
-      "Denoise_Val": "The active denoise value."
+      "Selected_Output": "The active data stream — either run_once_input (Run 0) or loop_input/wireless buffer (Run 1+).",
+      "Denoise_Val": "The active denoise float — either first_denoise (Run 0) or loop_denoise (Run 1+)."
     },
+    "features": [
+      {
+        "name": "Wireless Fallback (Universal Buffer)",
+        "description": "When loop_input is None during Run 1+, the node automatically engages Wireless Mode: it calls get_buffered_image() to retrieve data stored by H4_ImageBuffer. If both wired and wireless sources are empty, it falls back to run_once_input as a last resort before raising a ValueError."
+      },
+      {
+        "name": "Type Safety Check (Memory-Based)",
+        "description": "On Run 0, the node memorizes the Python type name of run_once_input using orbit_set('setup_type_name'). On every subsequent run, it compares the incoming loop data type against this memory. If there is a mismatch (e.g., Run 0 was LATENT but Run 1 receives IMAGE), the node raises a detailed ValueError explaining exactly which types conflicted and how to fix it."
+      },
+      {
+        "name": "Proactive Cycle Warning",
+        "description": "VALIDATE_INPUTS checks if loop_input is wired and prints a console warning explaining the Cycle Error risk. The node accepts the input anyway (returns True) but alerts you before the graph validator catches the cycle."
+      }
+    ],
+    "tips": [
+      "NEVER wire loop_input directly from a downstream node. Use H4_ImageBuffer wirelessly.",
+      "If you see a TYPE MISMATCH error, check that your H4_ImageBuffer is capturing the same data type as your run_once_input.",
+      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow."
+    ],
     "tips_and_tricks": [
-      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
-      "If a downstream node behaves strangely, inspect the exact type and shape of this node output."
+      "NEVER wire loop_input directly from a downstream node. Use H4_ImageBuffer wirelessly.",
+      "If you see a TYPE MISMATCH error, check that your H4_ImageBuffer is capturing the same data type as your run_once_input.",
+      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow."
     ]
   },
   "H4_TrafficRouter": {
@@ -499,16 +641,30 @@
     "features": [
       {
         "name": "State Memory",
-        "description": "It remembers where it is. Run 0, Run 1, Run 50. It knows."
+        "description": "Reads and increments the global h4 loop counter on each execution. Run 0, Run 1, Run 50 — it always knows the current phase and routes accordingly."
       },
       {
         "name": "Auto-Denoise",
-        "description": "Automatically switches the denoise value fed to the KSampler based on the loop stage."
+        "description": "Automatically switches the denoise float output based on the loop stage: first_denoise for Run 0, loop_denoise for Run 1+. No manual switching required."
+      },
+      {
+        "name": "Lazy Evaluation (check_lazy_status)",
+        "description": "Implements ComfyUI's lazy evaluation protocol. Instead of demanding all inputs upfront, the node dynamically declares which inputs it needs based on the current loop count. On Run 0, it requests only first_run_in. On Run 1+, it requests only loop_run_in. This prevents unnecessary upstream node execution and saves computation time in large workflows."
+      },
+      {
+        "name": "Graceful Fallback",
+        "description": "If loop_run_in is missing during Run 1+, the node attempts to fall back to first_run_in before raising an error. This supports single-run-mode workflows where the loop path is intentionally disconnected."
       }
+    ],
+    "tips": [
+      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
+      "If a downstream node behaves strangely, inspect the exact type and shape of this node output.",
+      "This is the recommended replacement for the TrafficCop + TrafficMerge combo. One node, full control."
     ],
     "tips_and_tricks": [
       "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
-      "If a downstream node behaves strangely, inspect the exact type and shape of this node output."
+      "If a downstream node behaves strangely, inspect the exact type and shape of this node output.",
+      "This is the recommended replacement for the TrafficCop + TrafficMerge combo. One node, full control."
     ]
   },
   "H4_LoopIncrementer": {
@@ -518,23 +674,26 @@
     "inputs": {
       "pulse": {
         "type": "ANY",
-        "description": "The trigger signal (usually an Image).",
+        "description": "The trigger signal. Connect any output here (IMAGE, LATENT, etc.) to gate the increment — the counter only advances when this node actually executes, meaning the upstream generation completed successfully.",
         "example": "-"
       },
       "wireless_reset": {
         "type": "BOOLEAN",
-        "description": "If ON, it listens for a mental signal from the Wireless Reset Button. No cables needed.",
+        "description": "When ON, the node checks the orbit storage for a 'request_reset' flag set by H4_WirelessResetButton. If the flag is True, the counter resets to 0 and the flag is cleared. No physical wire connection to the reset button is needed.",
         "example": "True"
       }
     },
+    "outputs": {
+      "pass_through": "The pulse input data, passed through completely unchanged. This allows the node to be inserted inline without breaking the data flow."
+    },
     "tips_and_tricks": [
-      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
-      "If a downstream node behaves strangely, inspect the exact type and shape of this node output."
+      "Place this AFTER your KSampler or Save node so the counter only advances on successful generations.",
+      "Enable wireless_reset if you are using H4_WirelessResetButton elsewhere in the workflow."
     ]
   },
   "H4_WirelessResetButton": {
     "title": "H4 Wireless Reset Button",
-    "description": "It's a big red button. But virtual. And wireless. Sometimes your loop gets stuck or you just want to start fresh without reloading the workflow. Pressing (toggling) this sends a telepathic signal to the Loop Incrementer to reset the counter to 0.",
+    "description": "It's a big red button. But virtual. And wireless. Sometimes your loop gets stuck or you just want to start fresh without reloading the workflow. Toggling this sets a global 'request_reset' flag in orbit storage. The next time H4_LoopIncrementer (with wireless_reset enabled) or H4_MissionControl (in Active mode with wireless_reset enabled) executes, it reads this flag and resets the counter to 0.",
     "filters": [
       "Telepathy",
       "Magic"
@@ -542,35 +701,50 @@
     "inputs": {
       "trigger_reset": {
         "type": "BOOLEAN",
-        "description": "Toggle me. Do it.",
+        "description": "The big red button. When toggled ON, sets orbit_set('request_reset', True). The receiving node clears the flag after consuming it. When OFF, the node is idle and outputs 'Idle...'.",
         "example": "False"
       }
     },
+    "outputs": {
+      "reset_status": "A STRING status indicator. Returns '✅ RESET SENT' when the flag is active, or 'Idle...' when inactive. Connect to a Display node for visual confirmation."
+    },
     "tips_and_tricks": [
-      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
-      "If a downstream node behaves strangely, inspect the exact type and shape of this node output."
+      "Toggle this ON, queue once, then toggle it OFF. The reset signal is consumed on first read.",
+      "This node is an OUTPUT_NODE — it will always execute even without downstream connections."
     ]
   },
   "H4_ImageBuffer": {
-    "title": "H4 Universal Buffer (The black Hole)",
-    "description": "Loops in ComfyUI are hard because of 'execution order'. The graph wants to move forward, not backward. The Image Buffer cheats. It creates a pocket dimension (global variable) where it stores the image from the end of the loop. Then, the Traffic Router can teleport that image back to the start for the next run. It eliminates the dreaded '1-Cycle Lag' where your loop is always using old data.",
-    "usage": "Put this at the VERY END of your loop chain. It catches the result and holds it for the Router.",
+    "title": "H4 Universal Buffer (The Black Hole)",
+    "description": "Loops in ComfyUI are hard because of 'execution order'. The graph wants to move forward, not backward. The Image Buffer cheats. It creates a pocket dimension (global variable) where it stores data from the end of the loop. Then, the Traffic Merge/Router can teleport that data back to the start for the next run. It eliminates the dreaded '1-Cycle Lag' where your loop is always using old data. Despite its name, it accepts ANY data type — Images, Latents, Strings, Models, anything.",
+    "usage": "Put this at the VERY END of your loop chain. It catches the result and holds it for the Router. The node operates in two modes automatically: STORE (when image_in is connected) and RETRIEVE (when image_in is None — it returns the last buffered data).",
     "inputs": {
       "image_in": {
         "type": "ANY",
-        "description": "Whatever you want to send back to the start. Image, Latent, Text... it takes it all.",
+        "description": "[OPTIONAL] Whatever you want to send back to the start. Image, Latent, Text, Model — it accepts everything. When connected, the node operates in STORE mode: it writes the data to the global buffer and passes it through. When disconnected (None), it operates in RETRIEVE mode: it returns the last stored data from the buffer.",
         "example": "-"
       }
+    },
+    "outputs": {
+      "buffered_data": "The data being held. In STORE mode, this is the input data (pass-through). In RETRIEVE mode, this is the last buffered value. Returns None if the buffer is completely empty."
     },
     "features": [
       {
         "name": "Wireless Transmit",
-        "description": "It beams the data to the Traffic Router without a physical wire. Prevents 'Cycle Detected' graph errors."
+        "description": "The core mechanism. Data stored via buffer_image() is globally accessible via get_buffered_image(). H4_TrafficMerge and H4_TrafficRouter both check this buffer when their loop_input is empty, enabling wireless data transfer without physical wires that would cause ComfyUI Cycle Errors."
+      },
+      {
+        "name": "Dual-Mode Operation",
+        "description": "Automatically detects whether to STORE or RETRIEVE based on whether image_in is connected. STORE overwrites the global buffer with new data. RETRIEVE returns the last stored value. This dual-mode design means you can use multiple buffer nodes — one to write, one to read — if needed."
+      },
+      {
+        "name": "Debug Telemetry",
+        "description": "On every execution, the node prints the type, shape (for tensors), length (for lists), or value (for primitives) of the buffered data to the console. This makes it easy to verify the correct data is flowing through the loop."
       }
     ],
     "tips_and_tricks": [
-      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
-      "If a downstream node behaves strangely, inspect the exact type and shape of this node output."
+      "Place this AFTER your image output and BEFORE your loop end point.",
+      "The buffer is global and shared — only one buffer writes at a time. If you need multiple independent loops, use different routing strategies.",
+      "This node is an OUTPUT_NODE — it always executes even without downstream connections."
     ]
   },
   "H4_StateMonitor": {
@@ -654,48 +828,78 @@
       }
     },
     "outputs": {
-      "h4_pipe": "The Bundle. The precious.",
-      "model": "Passthrough.",
-      "vae": "Passthrough.",
-      "clip": "Passthrough.",
-      "positive": "Passthrough.",
-      "negative": "Passthrough.",
-      "latent": "Passthrough.",
-      "image": "Passthrough.",
-      "mask": "Passthrough.",
-      "any_A": "Passthrough.",
-      "any_B": "Passthrough."
+      "h4_pipe": "The H4_PIPE dictionary containing all connected inputs. This is the single-wire bundle that replaces 10+ individual connections.",
+      "model": "Direct passthrough of the MODEL from the pipe. Returns None if no model was connected.",
+      "vae": "Direct passthrough of the VAE from the pipe.",
+      "clip": "Direct passthrough of the CLIP from the pipe.",
+      "positive": "Direct passthrough of the positive CONDITIONING from the pipe.",
+      "negative": "Direct passthrough of the negative CONDITIONING from the pipe.",
+      "latent": "Direct passthrough of the LATENT from the pipe.",
+      "image": "Direct passthrough of the IMAGE from the pipe.",
+      "mask": "Direct passthrough of the MASK from the pipe.",
+      "any_A": "Direct passthrough of wildcard slot A.",
+      "any_B": "Direct passthrough of wildcard slot B."
     },
+    "features": [
+      {
+        "name": "Console Report",
+        "description": "On every execution, the Hub prints a formatted diagnostic report to the console showing every connected input with its type information: tensor shapes and devices for models/images, latent sample shapes for latent dictionaries, class names for standard objects, and list lengths for batches. Missing inputs are silently skipped."
+      },
+      {
+        "name": "Pipe Chaining",
+        "description": "Connect an existing H4_PIPE to the base_pipe input to extend it. The Hub copies all keys from the base pipe first, then overwrites with any new inputs you connect. This allows you to inject or replace individual components mid-workflow without re-wiring everything."
+      },
+      {
+        "name": "Graceful Error Handling",
+        "description": "If any exception occurs during processing, the Hub returns an empty pipe and 10 None values instead of crashing. This prevents a single bad connection from taking down your entire workflow."
+      }
+    ],
+    "tips": [
+      "Chain multiple Hubs together using base_pipe to build up your context incrementally.",
+      "Use the any_A and any_B slots for custom data types that don't have dedicated inputs (e.g., ControlNet conditions, custom dictionaries).",
+      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow."
+    ],
     "tips_and_tricks": [
-      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
-      "If a downstream node behaves strangely, inspect the exact type and shape of this node output."
+      "Chain multiple Hubs together using base_pipe to build up your context incrementally.",
+      "Use the any_A and any_B slots for custom data types that don't have dedicated inputs (e.g., ControlNet conditions, custom dictionaries).",
+      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow."
     ]
   },
   "H4_ContextUnpack": {
     "title": "H4 Context Unpack (The Receiver)",
-    "description": "The Receiver. It takes the single 'H4_PIPE' connection from the Mothership (Hub) and explodes it back out into its 10 individual components. Place this near your KSampler or Detailer nodes to get access to the models/conditions you bundled up earlier.",
+    "description": "The Receiver. It takes the single 'H4_PIPE' connection from the Mothership (Hub) and explodes it back out into its 10 individual components. Place this near your KSampler or Detailer nodes to get access to the models/conditions you bundled up earlier. If a key is missing from the pipe dictionary, that output returns None instead of crashing.",
     "inputs": {
       "h4_pipe": {
         "type": "H4_PIPE",
-        "description": "The Purple Wire. Connect this to the Hub's output.",
+        "description": "The Purple Wire. Connect this to the Hub's h4_pipe output. The node reads each key from the dictionary and routes the value to its corresponding output slot.",
         "example": "-"
       }
     },
     "outputs": {
-      "model": "The UNet.",
-      "vae": "The VAE.",
-      "clip": "The CLIP.",
-      "positive": "Positive Prompt Conditioning.",
-      "negative": "Negative Prompt Conditioning.",
-      "latent": "Latent Block.",
-      "image": "Pixel Images.",
-      "mask": "Masks.",
-      "any_A": "The extra slot A.",
-      "any_B": "The extra slot B."
+      "model": "The UNet model extracted from the pipe. None if not present in the pipe.",
+      "vae": "The VAE extracted from the pipe.",
+      "clip": "The CLIP model extracted from the pipe.",
+      "positive": "Positive Conditioning extracted from the pipe.",
+      "negative": "Negative Conditioning extracted from the pipe.",
+      "latent": "Latent data extracted from the pipe.",
+      "image": "Image tensor extracted from the pipe.",
+      "mask": "Mask tensor extracted from the pipe.",
+      "any_A": "Wildcard slot A data from the pipe.",
+      "any_B": "Wildcard slot B data from the pipe."
     },
+    "features": [
+      {
+        "name": "Graceful Null Handling",
+        "description": "If a key is missing from the pipe dictionary, the corresponding output returns None instead of raising an error. If a critical exception occurs during unpacking, all 10 outputs return None. This fail-soft behavior ensures downstream nodes receive predictable inputs."
+      }
+    ],
+    "tips": [
+      "Place this near your KSampler to unpack the context right where you need it.",
+      "You can use multiple Unpack nodes from the same pipe — each one reads independently."
+    ],
     "tips_and_tricks": [
-      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
-      "If a downstream node behaves strangely, inspect the exact type and shape of this node output."
+      "Place this near your KSampler to unpack the context right where you need it.",
+      "You can use multiple Unpack nodes from the same pipe — each one reads independently."
     ]
   },
   "H4_LatentSelector": {
@@ -1034,14 +1238,34 @@
       }
     },
     "outputs": {
-      "Scheduler_Val": "Passthrough.",
-      "Scheduler_Seed": "Passthrough.",
-      "Trigger_Pass": "Passthrough.",
-      "Dashboard_UI": "Connect this to a Text Display node to see a live report of Run Count, Seed, and Scheduler values."
+      "Scheduler_Val": "Direct passthrough of the scheduler_val float input. Connect this to your KSampler's denoise or CFG input for scheduled ramping.",
+      "Scheduler_Seed": "Direct passthrough of the scheduler_seed integer input. Connect this to your KSampler's seed input.",
+      "Trigger_Pass": "Direct passthrough of the trigger_in ANY input. Used for daisy-chain execution ordering.",
+      "Dashboard_UI": "A formatted STRING containing a live status report: current mode, run count, scheduler value, and current seed. Connect this to any text display node for a real-time flight dashboard."
     },
+    "features": [
+      {
+        "name": "Dual-Mode Operation",
+        "description": "In Active mode, the node increments the global loop counter on every execution and checks for wireless reset signals from orbit storage. In Passive mode, it only reads the current state without modifying it. Only ONE node in a workflow should be Active — multiple active drivers will cause double-counting."
+      },
+      {
+        "name": "Nuclear Debug Logging",
+        "description": "When debug_mode is ON, the node prints a comprehensive status block to the console on every execution: run count, mode, scheduler value, scheduler seed, and separator lines for easy visual scanning of console output."
+      },
+      {
+        "name": "Dashboard String Builder",
+        "description": "The Dashboard_UI output constructs a multi-line status report string including: mode, run count, scheduler value, and current seed. This string updates on every execution, giving you a real-time text-based HUD when connected to a display node."
+      }
+    ],
+    "tips": [
+      "Only ONE Mission Control node should be set to Active in your workflow.",
+      "Connect Dashboard_UI to H4_DisplayAny for a live status readout.",
+      "Use Passive mode on additional instances if you need to read the state elsewhere."
+    ],
     "tips_and_tricks": [
-      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
-      "If a downstream node behaves strangely, inspect the exact type and shape of this node output."
+      "Only ONE Mission Control node should be set to Active in your workflow.",
+      "Connect Dashboard_UI to H4_DisplayAny for a live status readout.",
+      "Use Passive mode on additional instances if you need to read the state elsewhere."
     ]
   },
   "H4_LinearScheduler": {
@@ -1080,21 +1304,38 @@
     "inputs": {
       "start_seed": {
         "type": "INT",
-        "description": "Your starting number. If you're using Incremental mode, this is where the counting begins.",
+        "description": "Your starting number. For Incremental mode, this is the base — the actual seed is start_seed + current_loop_count. For Fixed mode, this is always the output. For Random mode, this is ignored entirely. Supports the full 64-bit unsigned integer range (0 to 0xFFFFFFFFFFFFFFFF).",
         "example": "12345"
       },
       "mode": {
         "type": "COMBO",
-        "description": "Decide how the numbers change each run. \n\n **Incremental**: Adds the current run number to the start seed. \n **Fixed**: Never changes. \n **Random**: Picks a completely new number every time.",
+        "description": "Decide how the numbers change each run. \n\n **Incremental**: Adds the current run number to the start seed (deterministic sweep). \n **Fixed**: Never changes. Same seed every time for A/B testing. \n **Random**: Picks a completely new 64-bit random number every time using Python's random.randint.",
         "example": "Incremental"
+      },
+      "broadcast": {
+        "type": "BOOLEAN",
+        "description": "When ON, the node broadcasts the generated seed to ALL other nodes in the workflow via WebSocket (event: 'h4_broadcast_seed'). This allows you to synchronize seeds across multiple KSamplers or other seed-consuming nodes without wiring them all individually.",
+        "example": "False"
       }
     },
     "outputs": {
-      "Scheduled_Seed": "The calculated seed."
+      "Scheduled_Seed": "The calculated seed integer. In Incremental mode: start_seed + loop_count. In Fixed mode: start_seed. In Random mode: a new random 64-bit integer."
     },
+    "features": [
+      {
+        "name": "WebSocket Broadcast",
+        "description": "When broadcast is ON, the node sends a WebSocket message ('h4_broadcast_seed') containing the seed value and source node ID. Frontend listeners can use this to automatically update seed widgets across the entire workflow without physical wire connections."
+      }
+    ],
+    "tips": [
+      "Use Incremental mode for reproducible seed sweeps across loop iterations.",
+      "Use broadcast to synchronize seeds across multiple KSamplers in parallel branches.",
+      "Random mode forces IS_CHANGED to return NaN, ensuring it always re-executes."
+    ],
     "tips_and_tricks": [
-      "Wire this node in isolation first and confirm outputs before folding it into a larger workflow.",
-      "If a downstream node behaves strangely, inspect the exact type and shape of this node output."
+      "Use Incremental mode for reproducible seed sweeps across loop iterations.",
+      "Use broadcast to synchronize seeds across multiple KSamplers in parallel branches.",
+      "Random mode forces IS_CHANGED to return NaN, ensuring it always re-executes."
     ]
   },
   "H4_DebugErrorGenerator": {
