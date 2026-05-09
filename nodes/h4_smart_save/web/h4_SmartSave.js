@@ -148,6 +148,102 @@ if (!document.getElementById(styleId)) {
                 z-index: 4;
                 text-shadow: 0 0 5px rgba(0,242,255,0.5);
             }
+
+            /* --- SEMANTIC PANEL STYLES --- */
+            .h4-panel {
+                position: fixed; z-index: 100; display: none;
+                background: rgba(10,10,10,0.98); border: 1.5px solid #222; color: #00f2ff;
+                font-family: monospace; box-sizing: border-box;
+                overflow-y: auto; overflow-x: hidden;
+            }
+            .h4-panel-header {
+                margin: 12px; font-weight: 900; 
+                border-bottom: 1.5px solid #333; padding-bottom: 6px; font-size: 14px;
+                display: flex; justify-content: space-between; align-items: center;
+            }
+            .h4-panel-body {
+                padding: 0;
+            }
+            .h4-btn {
+                background: rgba(255,255,255,0.04); border: 1px solid #444; color: #666;
+                border-radius: 4px; padding: 3px 7px; font-size: 10px; cursor: pointer;
+                font-family: monospace; font-weight: bold;
+            }
+            .h4-btn.active {
+                background: rgba(0, 242, 255, 0.12); border-color: #00f2ff; color: #00f2ff;
+            }
+            .h4-input-group {
+                margin-bottom: 10px;
+                padding: 0 15px;
+            }
+            .h4-input-label {
+                font-size: 9px; color: #aaa; margin-bottom: 2px;
+            }
+            .h4-input {
+                width: 100%; background: #111; border: 1px solid #333; color: #fff;
+                padding: 6px; box-sizing: border-box;
+            }
+            .h4-input.h4-select {
+                color: #00f2ff;
+            }
+            .h4-card {
+                margin: 0 12px 12px 12px; background: rgba(20,20,20,0.55); border: 1px solid #222;
+                border-radius: 6px; overflow: hidden; cursor: pointer; position: relative;
+            }
+            .h4-card.h4-forensic {
+                background: rgba(36,28,8,0.45); border-color: #4a3a16;
+            }
+            .h4-card.h4-danger {
+                border-color: #ff3333;
+            }
+            .h4-card-header {
+                background: #222; color: #aaa; font-size: 10px; padding: 4px 8px;
+                display: flex; justify-content: space-between;
+            }
+            .h4-forensic .h4-card-header {
+                background: #2a220f; color: #ffd700;
+            }
+            .h4-danger .h4-card-header {
+                background: #2d1212; color: #ff3333;
+            }
+            .h4-card-id {
+                color: #555;
+            }
+            .h4-forensic .h4-card-id {
+                color: #6c5730;
+            }
+            .h4-card-body {
+                padding: 8px; max-height: 80px; overflow: hidden;
+            }
+            .h4-card-row {
+                display: flex; justify-content: space-between; gap: 10px; margin-bottom: 2px;
+                font-size: 10px; white-space: nowrap; overflow: hidden;
+            }
+            .h4-card-label {
+                color: #555; overflow: hidden; text-overflow: ellipsis;
+            }
+            .h4-forensic .h4-card-label {
+                color: #8e7a4f;
+            }
+            .h4-card-value {
+                color: #00f2ff; text-align: right; overflow: hidden; text-overflow: ellipsis;
+            }
+            .h4-forensic .h4-card-value {
+                color: #ffd700;
+            }
+            .h4-btn-swap {
+                width: 100%; padding: 4px; border: none; background: rgba(255,255,255,0.03);
+                color: #555; font-size: 9px; font-weight: bold; cursor: pointer; border-top: 1px solid #222;
+            }
+            .h4-forensic .h4-btn-swap {
+                color: #7c6838; border-color: #333;
+            }
+            .h4-btn-swap.active {
+                background: rgba(0, 242, 255, 0.12); color: #00f2ff;
+            }
+            .h4-forensic .h4-btn-swap.active {
+                background: rgba(255, 215, 0, 0.15); color: #ffd700;
+            }
         `;
     document.head.appendChild(s);
 }
@@ -192,6 +288,20 @@ function safeText(v) {
     if (v === null || v === undefined) return "";
     if (typeof v === "object") { try { return JSON.stringify(v); } catch { return String(v); } }
     return String(v);
+}
+
+// --- IMAGE FILE VALIDATION: Prevents non-image files from hitting the /view endpoint ---
+const VALID_IMG_EXTS = new Set(["png", "jpg", "jpeg", "webp", "gif", "avif", "bmp", "tiff"]);
+function isImageFile(filename) {
+    if (!filename || typeof filename !== "string") return false;
+    // Strip accidental " [output]" / " [input]" / " [temp]" suffix from concatenation artifacts
+    const clean = filename.replace(/\s*\[(?:output|input|temp)\]\s*/gi, "").trim();
+    const ext = clean.split(".").pop().toLowerCase();
+    return VALID_IMG_EXTS.has(ext);
+}
+function cleanFilename(filename) {
+    if (!filename) return filename;
+    return filename.replace(/\s*\[(?:output|input|temp)\]\s*/gi, "").trim();
 }
 
 function isModalOpen() {
@@ -274,12 +384,13 @@ function getGrid(node) {
 
 class SmartSaveUI {
     constructor(node) {
-        this.node = node; this.history = []; this.full_imgs = {}; this.selected_idx = -1; this.current_sidecar = null;
+        this.node = node; this.history = []; this.bitmap_cache = {}; this._bitmap_pending = new Set(); this.selected_idx = -1; this.current_sidecar = null;
         this.footer_anim = 0; this.params_anim = 0; this.meta_anim = 0; this.detail_anim = 0; this.custom_meta_anim = 0; this.viewer_anim = 0;
         this.show_params = false; this.show_meta = false; this.show_history = false; this.show_custom_meta = false; this.show_viewer = false;
         this.scroll_idx = 0; this._dirty_params = true; this._dirty_viewer = true; this._redrawTimer = null;
         this.show_lightbox = false; this.swapped_ids = new Set();
         this._historyInflight = false; this._sidecarInflight = false;
+        this._dom_dirty = true;  // Start dirty so first syncDOM runs
         this._lastHistorySignature = ""; this._lastSidecarSignature = "";
         this.pollTimer = null;
         this.backgroundPollTimer = null;
@@ -298,6 +409,7 @@ class SmartSaveUI {
     scheduleDraw() { if (this._redrawTimer) return; this._redrawTimer = setTimeout(() => { this._redrawTimer = null; this.node.setDirtyCanvas(true, true); }, 1); }
     markParamsDirty() { this._dirty_params = true; this.scheduleDraw(); }
     markViewerDirty() { this._dirty_viewer = true; this.scheduleDraw(); }
+    markDOMDirty() { this._dom_dirty = true; }
 
     // --- HISTORY RAIL LIFECYCLE: Open/close with automatic polling ---
     setHistoryOpen(open) {
@@ -362,6 +474,9 @@ class SmartSaveUI {
 
             if (sig !== this._lastHistorySignature) {
                 this._lastHistorySignature = sig;
+
+                // Purge non-image entries from server response (e.g. .json sidecars leaked into the DB)
+                data = data.filter(x => isImageFile(x.filename));
 
                 // Merge optimistic items that haven't been confirmed yet
                 const serverKeys = new Map(data.map(x => [`${x.filename}::${x.subfolder}::${x.type}`, x]));
@@ -537,6 +652,7 @@ class SmartSaveUI {
     setPanelMode(mode) {
         const prev = this.panelMode;
         this.panelMode = mode;
+        this.markDOMDirty();
 
         // --- LEAVING PINNED ---
         if (prev === 'pinned' && mode !== 'pinned') {
@@ -809,81 +925,48 @@ class SmartSaveUI {
         }
         const dr = this.node.__h4_core_drawer; if (!dr) return;
 
-        let headerHtml = `
-          <div style="
-            color:${COLORS.accent};
-            margin:15px 15px 8px 15px;
-            font-weight:900;
-            border-bottom:1px solid #333;
-            padding-bottom:8px;
-            font-size:14px;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-          ">
-            <span>h4 LIVE PARAMETERS</span>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <button class="h4-panel-pin-btn" title="Pin to screen edge (locks panel in place)"
-                style="
-                  background:${this.panelMode === 'pinned' ? COLORS.accentSoft : 'rgba(255,255,255,0.04)'};
-                  border:1px solid ${this.panelMode === 'pinned' ? COLORS.accent : '#444'};
-                  color:${this.panelMode === 'pinned' ? COLORS.accent : '#666'};
-                  border-radius:4px;
-                  padding:3px 7px;
-                  font-size:10px;
-                  cursor:pointer;
-                  font-family:monospace;
-                  font-weight:bold;
-                ">
-                ${this.panelMode === 'pinned' ? '📌 PINNED' : '📌 PIN'}
-              </button>
-              <button class="h4-panel-popout-btn" title="Pop out into its own window"
-                style="
-                  background:rgba(255,255,255,0.04);
-                  border:1px solid #444;
-                  color:#666;
-                  border-radius:4px;
-                  padding:3px 7px;
-                  font-size:10px;
-                  cursor:pointer;
-                  font-family:monospace;
-                  font-weight:bold;
-                ">
-                ↗ POP OUT
-              </button>
-            </div>
-          </div>
-        `;
+        if (dr.setTitle) dr.setTitle("h4 LIVE PARAMETERS", COLORS.accent);
 
-        let html = headerHtml;
+        const pinBtn = dr.querySelector('.h4-panel-pin-btn');
+        if (pinBtn) {
+            if (this.panelMode === 'pinned') {
+                pinBtn.classList.add('active');
+                pinBtn.textContent = '📌 PINNED';
+            } else {
+                pinBtn.classList.remove('active');
+                pinBtn.textContent = '📌 PIN';
+            }
+        }
+
+        let html = "";
         if (params.length === 0) html += `<div style="color:#555;margin:40px 20px;font-style:italic;">No upstream parameters found.</div>`;
         else params.forEach((p) => {
             const isSwapped = this.swapped_ids.has(String(p.id));
             const cardTip = `Click to see all the detailed settings for this ${safeText(p.title)} node.`;
             const swapTip = `Sync Settings - Force the nodes in your current workflow to match these exact settings.`;
 
-            html += `<div class="h4-param-card" data-node-id="${p.id}" data-hist="0" data-h4-tip="${cardTip.replace(/"/g, "&quot;")}" style="margin:0 12px 12px 12px;background:rgba(20,20,20,0.55);border:1px solid #222;border-radius:6px;overflow:hidden;cursor:pointer;position:relative;"><div style="background:#222;color:#aaa;font-size:10px;padding:4px 8px;display:flex;justify-content:space-between;"><span>${safeText(p.title)}</span><span style="color:#555;">ID ${p.id}</span></div><div style="padding:8px;max-height:80px;overflow:hidden;">${p.items.slice(0, 3).map((it) => `<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:2px;font-size:10px;white-space:nowrap;overflow:hidden;"><span style="color:#555;overflow:hidden;text-overflow:ellipsis;">${safeText(it.name)}</span><span style="color:${COLORS.accent};text-align:right;overflow:hidden;text-overflow:ellipsis;">${safeText(it.val)}</span></div>`).join("")}</div><button class="h4-swap-btn" data-node-id="${p.id}" data-h4-tip="${swapTip.replace(/"/g, "&quot;")}" style="width:100%;padding:4px;border:none;background:${isSwapped ? COLORS.accentSoft : "rgba(255,255,255,0.03)"};color:${isSwapped ? COLORS.accent : "#555"};font-size:9px;font-weight:bold;cursor:pointer;border-top:1px solid #222;">${isSwapped ? "SWAP BACK" : "SWAP"}</button></div>`;
+            html += `
+            <div class="h4-card" data-node-id="${p.id}" data-hist="0" data-h4-tip="${cardTip.replace(/"/g, "&quot;")}">
+                <div class="h4-card-header">
+                    <span class="h4-card-title">${safeText(p.title)}</span>
+                    <span class="h4-card-id">ID ${p.id}</span>
+                </div>
+                <div class="h4-card-body">
+                    ${p.items.slice(0, 3).map((it) => `
+                    <div class="h4-card-row">
+                        <span class="h4-card-label">${safeText(it.name)}</span>
+                        <span class="h4-card-value">${safeText(it.val)}</span>
+                    </div>`).join("")}
+                </div>
+                <button class="h4-btn-swap ${isSwapped ? "active" : ""}" data-node-id="${p.id}" data-h4-tip="${swapTip.replace(/"/g, "&quot;")}">
+                    ${isSwapped ? "SWAP BACK" : "SWAP"}
+                </button>
+            </div>`;
         });
-        dr.innerHTML = html;
-
-        const pinBtn = dr.querySelector('.h4-panel-pin-btn')
-        const popBtn = dr.querySelector('.h4-panel-popout-btn')
-        if (pinBtn) {
-            pinBtn.addEventListener('mousedown', (e) => {
-                e.stopPropagation()
-                if (this.panelMode === 'pinned') this.setPanelMode('docked')
-                else this.setPanelMode('pinned')
-            })
-        }
-        if (popBtn) {
-            popBtn.addEventListener('mousedown', (e) => {
-                e.stopPropagation()
-                this.setPanelMode('popout')
-            })
-        }
+        dr._body.innerHTML = html;
 
         this.bindParamCards(false);
-        if (this.panelMode === 'popout') this._pushToPopout()
+        if (this.panelMode === 'popout') this._pushToPopout();
     }
 
     updateParamsFromSidecar(sidecar) {
@@ -914,53 +997,20 @@ class SmartSaveUI {
         console.log(`[h4] Deep Discovery Result:`, { ids: Object.keys(forensics), totalKeys: Object.keys(sidecar || {}).length });
         this.discovered_forensics = forensics; // Store for binding coherency
 
-        let headerHtml = `
-          <div style="
-            color:${COLORS.forensic};
-            margin:15px 15px 8px 15px;
-            font-weight:900;
-            border-bottom:1.5px solid #333;
-            padding-bottom:8px;
-            font-size:14px;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-          ">
-            <span>h4 // FORENSICS</span>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <button class="h4-panel-pin-btn" title="Pin to screen edge (locks panel in place)"
-                style="
-                  background:${this.panelMode === 'pinned' ? COLORS.accentSoft : 'rgba(255,255,255,0.04)'};
-                  border:1px solid ${this.panelMode === 'pinned' ? COLORS.accent : '#444'};
-                  color:${this.panelMode === 'pinned' ? COLORS.accent : '#666'};
-                  border-radius:4px;
-                  padding:3px 7px;
-                  font-size:10px;
-                  cursor:pointer;
-                  font-family:monospace;
-                  font-weight:bold;
-                ">
-                ${this.panelMode === 'pinned' ? '📌 PINNED' : '📌 PIN'}
-              </button>
-              <button class="h4-panel-popout-btn" title="Pop out into its own window"
-                style="
-                  background:rgba(255,255,255,0.04);
-                  border:1px solid #444;
-                  color:#666;
-                  border-radius:4px;
-                  padding:3px 7px;
-                  font-size:10px;
-                  cursor:pointer;
-                  font-family:monospace;
-                  font-weight:bold;
-                ">
-                ↗ POP OUT
-              </button>
-            </div>
-          </div>
-        `;
+        if (dr.setTitle) dr.setTitle("h4 // FORENSICS", COLORS.forensic);
 
-        let html = headerHtml;
+        const pinBtn = dr.querySelector('.h4-panel-pin-btn');
+        if (pinBtn) {
+            if (this.panelMode === 'pinned') {
+                pinBtn.classList.add('active');
+                pinBtn.textContent = '📌 PINNED';
+            } else {
+                pinBtn.classList.remove('active');
+                pinBtn.textContent = '📌 PIN';
+            }
+        }
+
+        let html = "";
         const ids = Object.keys(forensics || {});
 
         if (ids.length === 0) {
@@ -976,29 +1026,30 @@ class SmartSaveUI {
                 const cardTip = `Click to see the historical settings for this ${safeText(title)} node.`;
                 const swapTip = `Sync Settings - Re-apply these exact historical settings to your current workflow.`;
 
-                html += `<div class="h4-param-card" data-node-id="${id}" data-hist="1" data-h4-tip="${cardTip.replace(/"/g, "&quot;")}" style="margin:0 12px 12px 12px;background:rgba(36,28,8,0.45);border:1px solid ${isGhost ? COLORS.danger : "#4a3a16"};border-radius:6px;overflow:hidden;cursor:pointer;position:relative;"><div style="background:${isGhost ? "#2d1212" : "#2a220f"};color:${isGhost ? COLORS.danger : COLORS.forensic};font-size:10px;padding:4px 8px;display:flex;justify-content:space-between;"><span>${safeText(title)} ${isGhost ? "!! MISSING" : ""}</span><span style="color:#6c5730;">ID ${id}</span></div><div style="padding:8px;max-height:80px;overflow:hidden;">${Object.entries(values).slice(0, 3).map(([k, v]) => `<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:2px;font-size:10px;white-space:nowrap;overflow:hidden;"><span style="color:#8e7a4f;overflow:hidden;text-overflow:ellipsis;">${safeText(k)}</span><span style="color:${COLORS.forensic};text-align:right;overflow:hidden;text-overflow:ellipsis;">${safeText(v)}</span></div>`).join("")}</div>${!isGhost ? `<button class="h4-swap-btn" data-node-id="${id}" data-hist="1" data-h4-tip="${swapTip.replace(/"/g, "&quot;")}" style="width:100%;padding:4px;border:none;background:${isSwapped ? "rgba(255,215,0,0.15)" : "rgba(255,255,255,0.03)"};color:${isSwapped ? COLORS.forensic : "#7c6838"};font-size:9px;font-weight:bold;cursor:pointer;border-top:1px solid #333;">${isSwapped ? "SWAP BACK" : "SWAP"}</button>` : ""}</div>`;
+                html += `
+                <div class="h4-card h4-forensic ${isGhost ? "h4-danger" : ""}" data-node-id="${id}" data-hist="1" data-h4-tip="${cardTip.replace(/"/g, "&quot;")}">
+                    <div class="h4-card-header">
+                        <span class="h4-card-title">${safeText(title)} ${isGhost ? "!! MISSING" : ""}</span>
+                        <span class="h4-card-id">ID ${id}</span>
+                    </div>
+                    <div class="h4-card-body">
+                        ${Object.entries(values).slice(0, 3).map(([k, v]) => `
+                        <div class="h4-card-row">
+                            <span class="h4-card-label">${safeText(k)}</span>
+                            <span class="h4-card-value">${safeText(v)}</span>
+                        </div>`).join("")}
+                    </div>
+                    ${!isGhost ? `
+                    <button class="h4-btn-swap ${isSwapped ? "active" : ""}" data-node-id="${id}" data-hist="1" data-h4-tip="${swapTip.replace(/"/g, "&quot;")}">
+                        ${isSwapped ? "SWAP BACK" : "SWAP"}
+                    </button>` : ""}
+                </div>`;
             });
         }
-        dr.innerHTML = html;
-
-        const pinBtn = dr.querySelector('.h4-panel-pin-btn')
-        const popBtn = dr.querySelector('.h4-panel-popout-btn')
-        if (pinBtn) {
-            pinBtn.addEventListener('mousedown', (e) => {
-                e.stopPropagation()
-                if (this.panelMode === 'pinned') this.setPanelMode('docked')
-                else this.setPanelMode('pinned')
-            })
-        }
-        if (popBtn) {
-            popBtn.addEventListener('mousedown', (e) => {
-                e.stopPropagation()
-                this.setPanelMode('popout')
-            })
-        }
+        dr._body.innerHTML = html;
 
         this.bindParamCards(true);
-        if (this.panelMode === 'popout') this._pushToPopout()
+        if (this.panelMode === 'popout') this._pushToPopout();
     }
 
     bindParamCards(isHist) {
@@ -1031,10 +1082,12 @@ class SmartSaveUI {
         // --- SELECTION TOGGLE: Click already active node to close (unless force refreshing) ---
         if (!forceRefresh && this._last_detailed_id === String(nodeId)) {
             this._last_detailed_id = null;
+            this.markDOMDirty();
             this.scheduleDraw(); return;
         }
 
         this._last_detailed_id = String(nodeId);
+        this.markDOMDirty();
         let title = "UNKNOWN"; const items = [];
         if (isHist && this.current_sidecar) {
             // Re-discover forensics from the specific image's sidecar
@@ -1055,10 +1108,11 @@ class SmartSaveUI {
             }
         }
         else { const n = app.graph.getNodeById(nodeId); if (n) { title = n.title || n.type || "LIVE NODE"; (n.widgets || []).forEach((w) => { if (w?.name && !w.name.startsWith("_") && w.type !== "button") items.push({ name: w.name, value: safeText(w.value) }); }); } }
-        let html = `<div style="color:${isHist ? COLORS.forensic : COLORS.accent};margin:15px;font-weight:900;border-bottom:1px solid #333;padding-bottom:8px;font-size:14px;">h4 // ${isHist ? "FORENSIC" : "DETAIL"} // ${nodeId}</div><div style="padding:0 15px 15px 15px;"><div style="color:#aaa;margin-bottom:12px;font-size:12px;">${safeText(title)}</div>`;
+        if (det.setTitle) det.setTitle(`h4 // ${isHist ? "FORENSIC" : "DETAIL"} // ${nodeId}`, isHist ? COLORS.forensic : COLORS.accent);
+        let html = `<div style="color:#aaa;margin-bottom:12px;font-size:12px;">${safeText(title)}</div>`;
         if (!items.length) html += `<div style="color:#555;font-style:italic;">No values available for this selection.</div>`;
         else items.forEach((it) => { html += `<div style="margin-bottom:8px;border-left:2px solid #333;padding-left:10px;"><div style="font-size:9px;color:#aaa;text-transform:uppercase;">${safeText(it.name)}</div><div style="color:${isHist ? COLORS.forensic : COLORS.accent};font-size:11px;word-break:break-word;">${safeText(it.value)}</div></div>`; });
-        html += `</div>`; det.innerHTML = html; if (!forceRefresh) this.detail_anim = 0; this.scheduleDraw();
+        det._body.innerHTML = html; if (!forceRefresh) this.detail_anim = 0; this.scheduleDraw();
     }
 
     updateHistoryRail() {
@@ -1073,7 +1127,8 @@ class SmartSaveUI {
 
         const visibleItems = this.history.slice(this.scroll_idx, this.scroll_idx + visibleCount);
         visibleItems.forEach((item, i) => {
-            const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}`);
+            if (!isImageFile(item.filename)) return; // Skip non-image entries (e.g. .json sidecars)
+            const url = api.apiURL(`/view?filename=${encodeURIComponent(cleanFilename(item.filename))}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}`);
             const idx = i + this.scroll_idx;
             const isSel = idx === this.selected_idx;
             const isTemp = item.type === "temp";
@@ -1116,6 +1171,7 @@ class SmartSaveUI {
             b.addEventListener("mousedown", (e) => {
                 e.stopPropagation();
                 this.selected_idx = itemIdx;
+                this.markDOMDirty();
                 this.fetchSidecar(this.selected_idx);
                 rail.querySelectorAll(".h4-hist-item").forEach(itemEl => {
                     const idx = parseInt(itemEl.getAttribute("data-idx"));
@@ -1130,17 +1186,15 @@ class SmartSaveUI {
                 e.stopPropagation(); e.preventDefault();
                 this.selected_idx = itemIdx;
                 this.show_lightbox = true;
+                this.markDOMDirty();
                 this.updateLightbox();
                 this.scheduleDraw();
             }, true);
             b.addEventListener("mouseenter", () => {
-                const hItem = this.history[itemIdx]; if (!hItem) return;
-                const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(hItem.filename)}&subfolder=${encodeURIComponent(hItem.subfolder)}&type=${encodeURIComponent(hItem.type)}`);
-                if (!this.full_imgs[fullUrl]) {
-                    const preload = new Image();
-                    preload.src = fullUrl;
-                    this.full_imgs[fullUrl] = preload;
-                }
+                const hItem = this.history[itemIdx]; if (!hItem || !isImageFile(hItem.filename)) return;
+                const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(cleanFilename(hItem.filename))}&subfolder=${encodeURIComponent(hItem.subfolder)}&type=${encodeURIComponent(hItem.type)}`);
+                // Preload into GPU bitmap cache on hover for instant display
+                this.getBitmap(fullUrl);
             });
         });
     }
@@ -1154,8 +1208,9 @@ class SmartSaveUI {
         const forensics = dna.h4_forensics || dna.nodes || dna.metadata || {};
         const telemetry = dna.h4_telemetry || dna.A || dna.B || {};
 
-        let html = `<div style="color:${titleColor};margin:20px;font-weight:900;border-bottom:1.5px solid #333;padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;"><span>h4 // FORENSIC DNA COMMAND</span><span style="color:#666;cursor:pointer;font-size:18px;" class="h4-viewer-close" title="Close Viewer">×</span></div>`;
-        html += `<div style="padding:0 25px 25px 25px;overflow-y:auto;height:calc(100% - 70px);" class="h4gridscroll">`;
+        if (viewer.setTitle) viewer.setTitle("h4 // FORENSIC DNA COMMAND", titleColor);
+        let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><span style="color:#666;cursor:pointer;font-size:18px;" class="h4-viewer-close" title="Close Viewer">×</span></div>`;
+        html += `<div style="padding:0 10px 10px 10px;">`;
 
         // --- SECTION: PIPELINE CORE ---
         html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:25px;">
@@ -1265,32 +1320,340 @@ class SmartSaveUI {
         html += `<div style="background:#030303;border:1px solid #1a1a1a;border-radius:8px;padding:20px;color:#00ff88;font-family:monospace;font-size:11px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;box-shadow:inset 0 0 20px rgba(0,0,0,0.5);line-height:1.4;">${safeText(JSON.stringify(dna, null, 2))}</div>`;
 
         html += `</div>`;
-        viewer.innerHTML = html;
+        viewer._body.innerHTML = html;
         const closeBtn = viewer.querySelector(".h4-viewer-close");
-        if (closeBtn) closeBtn.onclick = () => { this.show_viewer = false; this.scheduleDraw(); };
+        if (closeBtn) closeBtn.onclick = () => { this.show_viewer = false; this.markDOMDirty(); this.scheduleDraw(); };
+    }
+
+    // --- ADD THIS METHOD to SmartSaveUI ---
+    // Fetches all images in the same output subfolder as the currently viewed image.
+    // Called once when the lightbox opens. Results cached in this._lightboxFolderItems.
+
+    async fetchOutputFolder(subfolder, type) {
+        this._lightboxFolderLoading = true;
+        this._lightboxFolderItems = null;
+
+        try {
+            // ComfyUI's /api/v1/folder endpoint — returns all files in a folder
+            const url = api.apiURL(
+                `/h4/smart_save/list_folder?subfolder=${encodeURIComponent(subfolder)}&type=${encodeURIComponent(type)}`
+            );
+            const res = await api.fetchApi(url);
+            if (!res.ok) throw new Error(`Folder fetch failed: ${res.status}`);
+
+            const data = await res.json(); // expects: { files: [{filename, subfolder, type}, ...] }
+            // Filter to images only, sort by filename descending (newest first)
+            this._lightboxFolderItems = (data.files || [])
+                .filter(f => isImageFile(f.filename))
+                .sort((a, b) => b.filename.localeCompare(a.filename));
+
+            // Find the index of the currently open image in the folder list
+            const current = this.history[this.selected_idx];
+            if (current) {
+                const idx = this._lightboxFolderItems.findIndex(
+                    f => f.filename === current.filename
+                );
+                this._lightboxFolderIdx = idx >= 0 ? idx : 0;
+            } else {
+                this._lightboxFolderIdx = 0;
+            }
+
+        } catch (e) {
+            console.warn("[h4] Folder fetch fault — falling back to history items", e);
+            // Graceful fallback: use history as the traversal list
+            this._lightboxFolderItems = this.history.filter(h => isImageFile(h.filename));
+            const current = this.history[this.selected_idx];
+            this._lightboxFolderIdx = current
+                ? this._lightboxFolderItems.findIndex(f => f.filename === current.filename)
+                : 0;
+            if (this._lightboxFolderIdx < 0) this._lightboxFolderIdx = 0;
+        } finally {
+            this._lightboxFolderLoading = false;
+            this.updateLightbox(); // Re-render now that we have the folder data
+        }
     }
 
     updateLightbox() {
-        const lb = this.node.__h4_lightbox; if (!lb || !this.show_lightbox) return;
-        const curIdx = Math.max(0, this.selected_idx); const item = this.history[curIdx]; if (!item) return;
-        const ts = item.timestamp ? `&t=${item.timestamp}` : "";
-        const url = api.apiURL(`/view?filename=${encodeURIComponent(item.filename)}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}${ts}`);
-        lb.innerHTML = `<div class="h4-lb-bg" style="position:absolute;inset:0;background:rgba(0,0,0,0.92);cursor:zoom-out;"></div><div class="h4-lb-nav h4-lb-prev" title="Previous Image" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);font-size:60px;color:${COLORS.accent};cursor:pointer;z-index:10;user-select:none;">‹</div><div class="h4-lb-nav h4-lb-next" title="Next Image" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:60px;color:${COLORS.accent};cursor:pointer;z-index:10;user-select:none;">›</div><div style="position:absolute;inset:40px 100px;display:flex;align-items:center;justify-content:center;pointer-events:none;"><div class="h4-lb-spinner" style="position:absolute;color:${COLORS.accent};font-size:14px;font-family:monospace;opacity:0.6;">LOADING...</div><img class="h4-lb-img" src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 0 40px rgba(0,0,0,0.8);border:1px solid #333;opacity:0;transition:opacity 0.3s ease;" /></div><div class="h4-lb-close" title="Close Lightbox" style="position:absolute;top:20px;right:30px;font-size:40px;color:#666;cursor:pointer;z-index:20;">×</div><div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#aaa;font-size:12px;background:rgba(0,0,0,0.6);padding:8px 20px;border-radius:20px;border:1px solid #333;">${safeText(item.filename)} • ${curIdx + 1} / ${this.history.length}</div><style>.h4-lb-nav:hover { color:#fff !important; text-shadow:0 0 15px ${COLORS.accent}; } .h4-lb-close:hover { color:${COLORS.danger} !important; }</style>`;
-        // --- LIGHTBOX LOADING STATE: Fade in when image arrives, show spinner until then ---
-        const lbImg = lb.querySelector(".h4-lb-img");
-        const lbSpinner = lb.querySelector(".h4-lb-spinner");
-        if (lbImg) {
-            lbImg.onload = () => { lbImg.style.opacity = "1"; if (lbSpinner) lbSpinner.style.display = "none"; };
-            lbImg.onerror = () => { lbImg.style.opacity = "0.4"; if (lbSpinner) lbSpinner.textContent = "⚠ IMAGE FAILED TO LOAD"; };
+        const lb = this.node.__h4_lightbox;
+        if (!lb) return;
+
+        if (!this.show_lightbox) {
+            lb.style.display = "none";
+            lb.style.pointerEvents = "none";
+            lb.innerHTML = "";
+            return;
         }
-        lb.querySelector(".h4-lb-bg").onclick = () => { this.show_lightbox = false; this.scheduleDraw(); };
-        lb.querySelector(".h4-lb-close").onclick = () => { this.show_lightbox = false; this.scheduleDraw(); };
-        lb.querySelector(".h4-lb-prev").onclick = (e) => { e.stopPropagation(); this.selected_idx = Math.max(0, this.selected_idx - 1); this.fetchSidecar(this.selected_idx); this.updateLightbox(); this.scheduleDraw(); };
-        lb.querySelector(".h4-lb-next").onclick = (e) => { e.stopPropagation(); this.selected_idx = Math.min(this.history.length - 1, this.selected_idx + 1); this.fetchSidecar(this.selected_idx); this.updateLightbox(); this.scheduleDraw(); };
+
+        lb.style.display = "flex";
+        lb.style.pointerEvents = "auto";
+
+        const current = this.history[this.selected_idx];
+        if (!current || !isImageFile(current.filename)) {
+            lb.innerHTML = `
+                <div class="h4-lb-close" style="
+                    position:absolute;
+                    top:14px;
+                    right:18px;
+                    color:${COLORS.accent};
+                    font-size:22px;
+                    cursor:pointer;
+                    z-index:10001;
+                    line-height:1;
+                    font-weight:bold;
+                    pointer-events:auto !important;
+                ">✕</div>
+                <div style="
+                    color:${COLORS.dim};
+                    font-family:monospace;
+                    font-size:12px;
+                    pointer-events:none;
+                ">No preview image available.</div>
+            `;
+            lb.querySelector(".h4-lb-close")?.addEventListener("mousedown", (e) => {
+                e.stopPropagation();
+                this.show_lightbox = false;
+                this._lightboxFolderItems = null;
+                this._lightboxFolderLoading = false;
+                this._lightboxFolderIdx = 0;
+                this.markDOMDirty();
+                this.updateLightbox();
+            }, true);
+            return;
+        }
+
+        const needsFolderLoad = !this._lightboxFolderItems && !this._lightboxFolderLoading;
+        if (needsFolderLoad) {
+            this.fetchOutputFolder(current.subfolder, current.type);
+        }
+
+        let displayItem = current;
+        let folderIdx = this._lightboxFolderIdx ?? 0;
+        let folderTotal = null;
+
+        if (this._lightboxFolderItems?.length) {
+            folderTotal = this._lightboxFolderItems.length;
+            displayItem = this._lightboxFolderItems[folderIdx] ?? current;
+        }
+
+        const imgUrl = api.apiURL(
+            `/view?filename=${encodeURIComponent(cleanFilename(displayItem.filename))}&subfolder=${encodeURIComponent(displayItem.subfolder)}&type=${encodeURIComponent(displayItem.type)}`
+        );
+
+        const counterStr = folderTotal != null
+            ? `${folderIdx + 1} / ${folderTotal} in /${displayItem.subfolder || "output"}`
+            : `${this.selected_idx + 1} / ${this.history.length}`;
+
+        const loadingBanner = this._lightboxFolderLoading
+            ? `<div style="
+                position:absolute;
+                top:14px;
+                left:50%;
+                transform:translateX(-50%);
+                background:rgba(0,0,0,0.85);
+                border:1px solid ${COLORS.accent};
+                color:${COLORS.accent};
+                font-family:monospace;
+                font-size:11px;
+                font-weight:bold;
+                padding:6px 16px;
+                border-radius:20px;
+                letter-spacing:1px;
+                pointer-events:none;
+                z-index:10000;
+                white-space:nowrap;
+                box-shadow:0 0 16px rgba(0,242,255,0.2);
+              ">Loading output folder...</div>`
+            : "";
+
+        lb.innerHTML = `
+            ${loadingBanner}
+
+            <div class="h4-lb-close" style="
+                position:absolute;
+                top:14px;
+                right:18px;
+                color:${COLORS.accent};
+                font-size:22px;
+                cursor:pointer;
+                z-index:10001;
+                font-weight:bold;
+                line-height:1;
+                text-shadow:0 0 10px rgba(0,242,255,0.5);
+                pointer-events:auto !important;
+            ">✕</div>
+
+            <div style="
+                position:absolute;
+                top:14px;
+                left:18px;
+                color:${COLORS.dim};
+                font-family:monospace;
+                font-size:11px;
+                z-index:10000;
+                letter-spacing:0.5px;
+                pointer-events:none;
+            ">${safeText(counterStr)}</div>
+
+            <div style="
+                position:absolute;
+                bottom:18px;
+                left:50%;
+                transform:translateX(-50%);
+                color:#555;
+                font-family:monospace;
+                font-size:10px;
+                white-space:nowrap;
+                overflow:hidden;
+                text-overflow:ellipsis;
+                max-width:80%;
+                z-index:10000;
+                pointer-events:none;
+            ">${safeText(displayItem.filename)}</div>
+
+            <div class="h4-lb-prev" style="
+                position:absolute;
+                left:18px;
+                top:50%;
+                transform:translateY(-50%);
+                color:${COLORS.accent};
+                font-size:36px;
+                cursor:pointer;
+                user-select:none;
+                z-index:10001;
+                opacity:0.7;
+                text-shadow:0 0 14px rgba(0,242,255,0.4);
+                transition:opacity 0.15s;
+                pointer-events:auto !important;
+            ">‹</div>
+
+            <div class="h4-lb-next" style="
+                position:absolute;
+                right:18px;
+                top:50%;
+                transform:translateY(-50%);
+                color:${COLORS.accent};
+                font-size:36px;
+                cursor:pointer;
+                user-select:none;
+                z-index:10001;
+                opacity:0.7;
+                text-shadow:0 0 14px rgba(0,242,255,0.4);
+                transition:opacity 0.15s;
+                pointer-events:auto !important;
+            ">›</div>
+
+            <img src="${imgUrl}"
+                draggable="false"
+                style="
+                    max-width:90%;
+                    max-height:90%;
+                    object-fit:contain;
+                    border-radius:4px;
+                    pointer-events:none;
+                    box-shadow:0 0 40px rgba(0,0,0,0.8);
+                "
+            />
+        `;
+
+        lb.querySelector(".h4-lb-close")?.addEventListener("mousedown", (e) => {
+            e.stopPropagation();
+            this.show_lightbox = false;
+            this._lightboxFolderItems = null;
+            this._lightboxFolderLoading = false;
+            this._lightboxFolderIdx = 0;
+            this.markDOMDirty();
+            this.updateLightbox();
+        }, true);
+
+        lb.querySelector(".h4-lb-prev")?.addEventListener("mousedown", (e) => {
+            e.stopPropagation();
+            const list = this._lightboxFolderItems;
+            if (list && list.length > 1) {
+                this._lightboxFolderIdx = (folderIdx - 1 + list.length) % list.length;
+            } else {
+                this.selected_idx = Math.max(0, this.selected_idx - 1);
+            }
+            this.updateLightbox();
+        }, true);
+
+        lb.querySelector(".h4-lb-next")?.addEventListener("mousedown", (e) => {
+            e.stopPropagation();
+            const list = this._lightboxFolderItems;
+            if (list && list.length > 1) {
+                this._lightboxFolderIdx = (folderIdx + 1) % list.length;
+            } else {
+                this.selected_idx = Math.min(this.history.length - 1, this.selected_idx + 1);
+            }
+            this.updateLightbox();
+        }, true);
+
+        lb.onmousedown = (e) => {
+            if (e.target === lb) {
+                e.stopPropagation();
+                this.show_lightbox = false;
+                this._lightboxFolderItems = null;
+                this._lightboxFolderLoading = false;
+                this._lightboxFolderIdx = 0;
+                this.markDOMDirty();
+                this.updateLightbox();
+            }
+        };
+    }
+
+    // --- GPU BITMAP PIPELINE: Decode images off the main thread for instant canvas draws ---
+    getBitmap(url) {
+        if (this.bitmap_cache[url]) return this.bitmap_cache[url]; // GPU hit — zero cost
+        if (this._bitmap_pending.has(url)) return null;            // Already decoding
+
+        this._bitmap_pending.add(url);
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            createImageBitmap(img).then(bitmap => {
+                if (this.bitmap_cache[url]) this.bitmap_cache[url].close(); // Safety cleanup of stale bitmap
+                this.bitmap_cache[url] = bitmap;
+                this._bitmap_pending.delete(url);
+                if (this.node) this.node.setDirtyCanvas(true); // Single redraw when decode completes
+            }).catch(() => this._bitmap_pending.delete(url));
+        };
+        img.onerror = () => this._bitmap_pending.delete(url);
+        img.src = url;
+        return null; // Not ready yet — triggers redraw on load completion
+    }
+
+    clearBitmapCache() {
+        Object.values(this.bitmap_cache).forEach(b => { try { b?.close(); } catch(e) {} });
+        this.bitmap_cache = {};
+        this._bitmap_pending.clear();
     }
 
     syncDOM() {
         const node = this.node; if (!node || !node.graph) { activeNodes.delete(this); return; }
+
+        // --- ANIMATION STATE MACHINE: Runs FIRST so the gate can evaluate animation progress ---
+        // This is the single source of truth for animation progression.
+        this.params_anim = lerp(this.params_anim, this.show_params ? 1 : 0, ANIM_SPEED);
+        if (this.params_anim < 0.01) this.params_anim = 0;
+        this.meta_anim = lerp(this.meta_anim, this.show_meta ? 1 : 0, ANIM_SPEED);
+        if (this.meta_anim < 0.01) this.meta_anim = 0;
+        this.custom_meta_anim = lerp(this.custom_meta_anim, (this.show_meta && this.show_custom_meta) ? 1 : 0, ANIM_SPEED);
+        if (this.custom_meta_anim < 0.01) this.custom_meta_anim = 0;
+        this.footer_anim = lerp(this.footer_anim, this.show_history ? 1 : 0, ANIM_SPEED);
+        if (this.footer_anim < 0.01) this.footer_anim = 0;
+        this.viewer_anim = lerp(this.viewer_anim, this.show_viewer ? 1 : 0, ANIM_SPEED);
+        if (this.viewer_anim < 0.01) this.viewer_anim = 0;
+        this.detail_anim = lerp(this.detail_anim, this._last_detailed_id ? 1 : 0, ANIM_SPEED);
+        if (this.detail_anim < 0.01) this.detail_anim = 0;
+
+        // --- ANIMATION KERNEL: Keep drawing if transitions are active ---
+        const animStillMoving =
+            Math.abs(this.params_anim - (this.show_params ? 1 : 0)) > 0.005 ||
+            Math.abs(this.meta_anim - (this.show_meta ? 1 : 0)) > 0.005 ||
+            Math.abs(this.footer_anim - (this.show_history ? 1 : 0)) > 0.005 ||
+            Math.abs(this.viewer_anim - (this.show_viewer ? 1 : 0)) > 0.005 ||
+            Math.abs(this.detail_anim - (this._last_detailed_id ? 1 : 0)) > 0.005;
+
+        if (animStillMoving) this.scheduleDraw();
 
         // --- NUCLEAR BLOAT REMOVAL ---
         node.imgs = null;
@@ -1322,23 +1685,6 @@ class SmartSaveUI {
                 }
             });
         }
-
-        // --- ANIMATION STATE MACHINE: Runs here so drawer visibility never depends on onDrawForeground ---
-        // This is the single source of truth for animation progression.
-        this.params_anim = lerp(this.params_anim, this.show_params ? 1 : 0, ANIM_SPEED);
-        if (this.params_anim < 0.01) this.params_anim = 0;
-        this.meta_anim = lerp(this.meta_anim, this.show_meta ? 1 : 0, ANIM_SPEED);
-        if (this.meta_anim < 0.01) this.meta_anim = 0;
-        this.custom_meta_anim = lerp(this.custom_meta_anim, (this.show_meta && this.show_custom_meta) ? 1 : 0, ANIM_SPEED);
-        if (this.custom_meta_anim < 0.01) this.custom_meta_anim = 0;
-        this.footer_anim = lerp(this.footer_anim, this.show_history ? 1 : 0, ANIM_SPEED);
-        if (this.footer_anim < 0.01) this.footer_anim = 0;
-        this.viewer_anim = lerp(this.viewer_anim, this.show_viewer ? 1 : 0, ANIM_SPEED);
-        if (this.viewer_anim < 0.01) this.viewer_anim = 0;
-        this.detail_anim = lerp(this.detail_anim, this._last_detailed_id ? 1 : 0, ANIM_SPEED);
-        if (this.detail_anim < 0.01) this.detail_anim = 0;
-        const animStillMoving = Math.abs(this.params_anim - (this.show_params ? 1 : 0)) > 0.005 || Math.abs(this.meta_anim - (this.show_meta ? 1 : 0)) > 0.005 || Math.abs(this.footer_anim - (this.show_history ? 1 : 0)) > 0.005 || Math.abs(this.viewer_anim - (this.show_viewer ? 1 : 0)) > 0.005 || Math.abs(this.detail_anim - (this._last_detailed_id ? 1 : 0)) > 0.005;
-        if (animStillMoving) this.scheduleDraw();
 
         // --- DRAWER CONTENT POPULATION: Triggered here to stay synchronized with animation ---
         if (this.show_params) { if (this.current_sidecar) this.updateParamsFromSidecar(this.current_sidecar); else this.crawlWorkflow(); }
@@ -1449,13 +1795,23 @@ class SmartSaveUI {
         project(node.__h4_viewerdrawer, pts.drawer_viewer, this.show_viewer && hudVisible, this.viewer_anim, (this.viewer_anim < 0.5));
 
         // --- LIGHTBOX CONTAINMENT: Full-screen overlay only when explicitly activated ---
-        if (this.show_lightbox) {
-            if (!this.node.__h4_lightbox.parentNode) document.body.appendChild(this.node.__h4_lightbox);
-            Object.assign(this.node.__h4_lightbox.style, { display: "block", pointerEvents: "auto", width: "100%", height: "100%", inset: "0", zIndex: "10001" });
-        } else if (this.node.__h4_lightbox?.parentNode) {
-            Object.assign(this.node.__h4_lightbox.style, { display: "none", pointerEvents: "none", width: "0", height: "0" });
-            this.node.__h4_lightbox.remove();
+        if (!this.node.__h4_lightbox) {
+            this.node.__h4_lightbox = document.createElement("div");
+            this.node.__h4_lightbox.className = "h4-lightbox h4-hud-el";
+            this.node.__h4_lightbox.style.cssText = `
+                position:fixed;
+                inset:0;
+                background:rgba(0,0,0,0.95);
+                display:none;
+                align-items:center;
+                justify-content:center;
+                z-index:9999;
+                pointer-events:none;
+            `;
+            document.body.appendChild(this.node.__h4_lightbox);
         }
+        this.node.__h4_lightbox.style.display = this.show_lightbox ? "flex" : "none";
+        this.node.__h4_lightbox.style.pointerEvents = this.show_lightbox ? "auto" : "none";
     }
 }
 
@@ -1485,11 +1841,56 @@ function makeFloatingEl(tag, cls = "") {
     return el;
 }
 
-function kineticLoop() {
+function createPanelShell(className, titleText, titleColor = COLORS.accent, hasActions = false) {
+    const root = makeFloatingEl("div", `h4-panel ${className}`);
+    root.style.padding = "0";
+    
+    const header = document.createElement("div");
+    header.className = "h4-panel-header";
+    header.style.color = titleColor;
+    
+    let actionsHtml = "";
+    if (hasActions) {
+        actionsHtml = `
+            <div class="h4-panel-actions" style="display:flex;gap:6px;align-items:center;">
+                <button class="h4-panel-pin-btn h4-btn" title="Pin to screen edge (locks panel in place)">📌 PIN</button>
+                <button class="h4-panel-popout-btn h4-btn" title="Pop out into its own window">↗ POP OUT</button>
+            </div>
+        `;
+    }
+    
+    header.innerHTML = `<span class="h4-panel-title">${titleText}</span>${actionsHtml}`;
+    
+    const body = document.createElement("div");
+    body.className = "h4-panel-body";
+    
+    root.appendChild(header);
+    root.appendChild(body);
+    
+    root._header = header;
+    root._body = body;
+    root.setTitle = (text, color = COLORS.accent) => {
+        const titleEl = header.querySelector(".h4-panel-title");
+        if (titleEl) titleEl.textContent = text;
+        header.style.color = color;
+    };
+    
+    return root;
+}
+
+let _kineticLastTime = 0;
+const KINETIC_INTERVAL = 1000 / 30; // 30fps DOM sync — imperceptible to the eye, major CPU relief
+
+function kineticLoop(timestamp) {
+    requestAnimationFrame(kineticLoop); // Always re-queue at 60fps to maintain timing accuracy
+
+    if (timestamp - _kineticLastTime < KINETIC_INTERVAL) return; // Throttle DOM sync to 30fps
+    _kineticLastTime = timestamp;
+
     try {
         // Popout closed detection — fallback for when beforeunload message doesn't arrive
         activeNodes.forEach(ui => {
-            if (ui.panelMode === 'popout' && ui.popoutWin && ui.popoutWin.closed) {
+            if (ui.panelMode === 'popout' && ui.popoutWin?.closed) {
                 ui.panelMode = 'docked';
                 ui.popoutWin = null;
                 ui.popoutReady = false;
@@ -1498,16 +1899,18 @@ function kineticLoop() {
                     ui._popoutMessageHandler = null;
                 }
                 ui._dirty_params = true;
+                ui.markDOMDirty();
                 ui.scheduleDraw();
             }
         });
 
         activeNodes.forEach(ui => {
-            if (ui.node && ui.node.graph) ui.syncDOM();
+            if (ui.node?.graph) ui.syncDOM();
             else activeNodes.delete(ui);
         });
-    } catch (e) { console.error("[h4] Kinetic Loop Fault:", e); }
-    requestAnimationFrame(kineticLoop);
+    } catch (e) {
+        console.error("[h4] Kinetic Loop Fault:", e);
+    }
 }
 requestAnimationFrame(kineticLoop);
 
@@ -1530,16 +1933,35 @@ app.registerExtension({
             this.__h4_path.__h4_interactive = true; // Text input requires direct DOM interaction
             this.__h4_path.setAttribute("data-h4-tip", "Choose where on your computer you want to save your images.");
 
-            this.__h4_core_drawer = makeFloatingEl("div", "h4gridscroll h4-grid-drawer");
+            this.__h4_core_drawer = createPanelShell("h4gridscroll h4-grid-drawer", "h4 LIVE PARAMETERS", COLORS.accent, true);
             this.__h4_core_drawer.__h4_interactive = true; // Contains clickable param cards
-            this.__h4_detaildrawer = makeFloatingEl("div", "h4gridscroll h4-grid-details");
+            
+            // Set up static listeners for pin/popout on core drawer
+            const pinBtn = this.__h4_core_drawer.querySelector('.h4-panel-pin-btn');
+            const popBtn = this.__h4_core_drawer.querySelector('.h4-panel-popout-btn');
+            if (pinBtn) {
+                pinBtn.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    if (this.h4_ui.panelMode === 'pinned') this.h4_ui.setPanelMode('docked');
+                    else this.h4_ui.setPanelMode('pinned');
+                });
+            }
+            if (popBtn) {
+                popBtn.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    this.h4_ui.setPanelMode('popout');
+                });
+            }
+
+            this.__h4_detaildrawer = createPanelShell("h4gridscroll h4-grid-details", "h4 // DETAIL");
             this.__h4_detaildrawer.__h4_interactive = true; // Contains scrollable detail view
-            this.__h4_metadrawer = makeFloatingEl("div", "h4gridscroll h4-grid-meta");
+            this.__h4_metadrawer = createPanelShell("h4gridscroll h4-grid-meta", "h4 // META ENGINE");
             this.__h4_metadrawer.__h4_interactive = true; // Contains input fields and selects
-            this.__h4_customdrawer = makeFloatingEl("div", "h4gridscroll h4-grid-custom");
+            this.__h4_customdrawer = createPanelShell("h4gridscroll h4-grid-custom", "h4 // CUSTOM DNA", COLORS.forensic);
             this.__h4_customdrawer.__h4_interactive = true; // Contains textarea for custom JSON
-            this.__h4_viewerdrawer = makeFloatingEl("div", "h4gridscroll h4-grid-viewer");
+            this.__h4_viewerdrawer = createPanelShell("h4gridscroll h4-grid-viewer", "h4 // FORENSICS");
             this.__h4_viewerdrawer.__h4_interactive = true; // Contains close button and scrollable content
+            
             this.__h4_history_rail = makeFloatingEl("div", "h4-grid-history");
             this.__h4_history_rail.__h4_interactive = true; // Contains clickable thumbnails
             this.__h4_lightbox = makeFloatingEl("div", "h4-grid-lightbox");
@@ -1586,12 +2008,33 @@ app.registerExtension({
                     if (el && el.parentNode) el.remove();
                 });
             };
-            this.__h4_metadrawer.innerHTML = `<div style="color:${COLORS.accent};margin:12px;font-weight:900;border-bottom:1.5px solid #333;padding-bottom:6px;font-size:14px;">h4 // META ENGINE</div><div style="padding:0 15px 15px 15px;"><div style="font-size:9px;color:#aaa;margin-bottom:2px;">AUTHOR</div><input class="h4-meta-author" type="text" placeholder="h4" style="width:100%;background:#111;border:1px solid #333;color:#fff;padding:6px;margin-bottom:10px;box-sizing:border-box;" /><div style="font-size:9px;color:#aaa;margin-bottom:2px;">EMBED MODE</div><select class="h4-meta-mode" style="width:100%;background:#111;border:1px solid #333;color:${COLORS.accent};padding:6px;margin-bottom:10px;"></select><div style="font-size:9px;color:#aaa;margin-bottom:2px;">JSON MODE</div><select class="h4-json-mode" style="width:100%;background:#111;border:1px solid #333;color:${COLORS.accent};padding:6px;margin-bottom:10px;"></select><div style="font-size:9px;color:#aaa;margin-bottom:2px;">COMMENTS</div><textarea class="h4-meta-comments" style="width:100%;height:52px;background:#111;border:1px solid #333;color:#eee;font-family:monospace;font-size:11px;padding:6px;margin-bottom:15px;resize:none;box-sizing:border-box;" placeholder="h4 - [ Approved ] - (b'.')b"></textarea><button class="h4-viewer-btn" title="Preview the metadata that will be embedded in your output images." style="width:100%;padding:8px;background:rgba(0,242,255,0.05);border:1px solid ${COLORS.accent};color:${COLORS.accent};cursor:pointer;font-weight:bold;border-radius:4px;font-size:11px;">🔍 PREVIEW EMBEDDED METADATA</button></div>`;
-            this.__h4_customdrawer.innerHTML = `<div style="color:${COLORS.forensic};margin:12px;font-weight:900;border-bottom:1.5px solid #333;padding-bottom:6px;font-size:14px;">h4 // CUSTOM DNA</div><div style="padding:0 15px 15px 15px;"><div style="font-size:10px;color:${COLORS.forensic};margin-bottom:6px;font-style:italic;">Raw JSON Blueprint</div><textarea class="h4-meta-raw" style="width:100%;height:240px;background:#0a0a0a;border:1.5px solid ${COLORS.forensic};color:#fff;font-family:monospace;font-size:11px;padding:10px;resize:none;box-sizing:border-box;">{
-  "author": "h4",
-  "model_assigned": "Awesome Model of Awesomeness",
-  "comments": "h4 - [ Approved ] - (b'.')b"
-}</textarea></div>`;
+            this.__h4_metadrawer._body.innerHTML = `
+                <div class="h4-input-group">
+                    <div class="h4-input-label">AUTHOR</div>
+                    <input class="h4-meta-author h4-input" type="text" placeholder="h4" />
+                </div>
+                <div class="h4-input-group">
+                    <div class="h4-input-label">EMBED MODE</div>
+                    <select class="h4-meta-mode h4-input h4-select"></select>
+                </div>
+                <div class="h4-input-group">
+                    <div class="h4-input-label">JSON MODE</div>
+                    <select class="h4-json-mode h4-input h4-select"></select>
+                </div>
+                <div class="h4-input-group">
+                    <div class="h4-input-label">COMMENTS</div>
+                    <textarea class="h4-meta-comments h4-input" style="height:52px;resize:none;" placeholder="h4 - [ Approved ] - (b'.')b"></textarea>
+                </div>
+                <div class="h4-input-group">
+                    <button class="h4-viewer-btn" title="Preview the metadata that will be embedded in your output images." style="width:100%;padding:8px;background:rgba(0,242,255,0.05);border:1px solid ${COLORS.accent};color:${COLORS.accent};cursor:pointer;font-weight:bold;border-radius:4px;font-size:11px;">🔍 PREVIEW EMBEDDED METADATA</button>
+                </div>
+            `;
+            this.__h4_customdrawer._body.innerHTML = `
+                <div class="h4-input-group">
+                    <div class="h4-input-label" style="color:${COLORS.forensic};font-style:italic;">Raw JSON Blueprint</div>
+                    <textarea class="h4-meta-raw h4-input" style="height:240px;border-color:${COLORS.forensic};resize:none;">{\n  "author": "h4",\n  "model_assigned": "Awesome Model of Awesomeness",\n  "comments": "h4 - [ Approved ] - (b'.')b"\n}</textarea>
+                </div>
+            `;
             const previewBtn = this.__h4_metadrawer.querySelector(".h4-viewer-btn"); if (previewBtn) previewBtn.onclick = () => { this.h4_ui.markViewerDirty(); this.h4_ui.show_viewer = !this.h4_ui.show_viewer; this.setDirtyCanvas(true); };
             bindWidgets(); setTimeout(bindWidgets, 300); setTimeout(bindWidgets, 900);
 
@@ -1603,29 +2046,41 @@ app.registerExtension({
             if (this.h4_ui) {
                 this.h4_ui.stopPolling();
                 this.h4_ui.stopBackgroundPolling();
-                // NEW: Close popout if open
-                if (this.h4_ui.panelMode === 'popout') {
-                    this.h4_ui._closePopout();
-                }
-                // NEW: Remove canvas margin if pinned
-                if (this.h4_ui.panelMode === 'pinned') {
-                    this.h4_ui._applyCanvasMargin(0);
-                }
+                this.h4_ui.clearBitmapCache(); // Release GPU-decoded bitmaps to prevent VRAM leaks
+                if (this.h4_ui.panelMode === 'popout') this.h4_ui._closePopout();
+                if (this.h4_ui.panelMode === 'pinned') this.h4_ui._applyCanvasMargin(0);
                 activeNodes.delete(this.h4_ui);
             }
-            [this.__h4_prefix, this.__h4_path, this.__h4_core_drawer, this.__h4_detaildrawer, this.__h4_metadrawer, this.__h4_customdrawer, this.__h4_viewerdrawer, this.__h4_history_rail, this.__h4_lightbox].forEach(el => el?.remove());
+            [this.__h4_prefix, this.__h4_path, this.__h4_core_drawer, this.__h4_detaildrawer,
+             this.__h4_metadrawer, this.__h4_customdrawer, this.__h4_viewerdrawer,
+             this.__h4_history_rail, this.__h4_lightbox].forEach(el => el?.remove());
         };
         nodeType.prototype.onExecuted = function (message) {
             if (this.h4_ui) {
                 console.log("[h4] Execution Complete. Anchoring DNA to History Rail...");
+
+                // TIER 1 — immediate, lightweight (let backend know we're ready)
+                this.h4_ui.markParamsDirty();
+                this.setDirtyCanvas(true, true);
+
                 if (message.images && message.images.length > 0) {
-                    setTimeout(() => {
-                        const allImages = message.images;
+                    const allImages = message.images;
+
+                    // TIER 2 — deferred, medium weight (History Rail Injection)
+                    requestIdleCallback(() => {
                         // NUCLEAR: Per-execution session seed. Unique per generation,
                         // immune to browser cache collision across runs.
                         const sessionSeed = Date.now();
 
                         [...allImages].reverse().forEach(img => {
+                            // Guard: Reject non-image filenames from ever entering the history array
+                            if (!isImageFile(img.filename)) {
+                                console.warn(`[h4] Rejected non-image file from execution output: ${img.filename}`);
+                                return;
+                            }
+                            // Sanitize: Strip accidental type-suffix artifacts from filename
+                            img.filename = cleanFilename(img.filename);
+
                             const key = `${img.filename}::${img.subfolder}::${img.type}`;
                             const exists = this.h4_ui.history.some(h =>
                                 `${h.filename}::${h.subfolder}::${h.type}` === key
@@ -1637,9 +2092,6 @@ app.registerExtension({
                                 if (!this.h4_ui._pendingInjections) this.h4_ui._pendingInjections = [];
                                 this.h4_ui._pendingInjections.unshift(histItem);
                                 this.h4_ui.history.unshift(histItem);
-
-                                this.h4_ui.history = this.h4_ui.history.slice(0, 5);
-                                this.h4_ui.updateHistoryRail();
                             }
                         });
 
@@ -1647,15 +2099,23 @@ app.registerExtension({
                         this.h4_ui.selected_idx = 0;
                         this.h4_ui.scroll_idx = 0;
                         this.h4_ui.current_sidecar = allImages[0].sidecar || null;
-
-                        setTimeout(() => this.h4_ui.fetchHistory(true), 1500);
-
+                        this.h4_ui.markDOMDirty();
                         this.h4_ui.updateHistoryRail();
                         this.h4_ui.scheduleDraw();
-                    }, 100);
+                    }, { timeout: 1000 });
+
+                    // TIER 3 — lazy, heavy (Server sync and thumbnail decoding)
+                    requestIdleCallback(() => {
+                        this.h4_ui.fetchHistory(true);
+                        
+                        // Pre-fetch the latest image directly into the GPU bitmap cache
+                        const topImg = allImages[0];
+                        if (topImg && isImageFile(topImg.filename)) {
+                            const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(cleanFilename(topImg.filename))}&subfolder=${encodeURIComponent(topImg.subfolder)}&type=${encodeURIComponent(topImg.type)}`);
+                            this.h4_ui.getBitmap(fullUrl);
+                        }
+                    }, { timeout: 3000 });
                 }
-                this.h4_ui.markParamsDirty();
-                this.setDirtyCanvas(true, true);
             }
         };
         nodeType.prototype.onResize = function (size) { if (size[0] < MIN_SIZE[0]) size[0] = MIN_SIZE[0]; if (size[1] < MIN_SIZE[1]) size[1] = MIN_SIZE[1]; return size; };
@@ -1687,12 +2147,13 @@ app.registerExtension({
                         this.h4_ui.setPanelMode('docked');
                     } else {
                         this.h4_ui.show_params = !this.h4_ui.show_params;
+                        this.h4_ui.markDOMDirty();
                     }
                     this.setDirtyCanvas(true);
                     return true;
                 }
-                if (hit(pts.btn_m)) { this.h4_ui.show_meta = !this.h4_ui.show_meta; this.setDirtyCanvas(true); return true; }
-                if (hit(pts.btn_h)) { this.h4_ui.setHistoryOpen(!this.h4_ui.show_history); return true; }
+                if (hit(pts.btn_m)) { this.h4_ui.show_meta = !this.h4_ui.show_meta; this.h4_ui.markDOMDirty(); this.setDirtyCanvas(true); return true; }
+                if (hit(pts.btn_h)) { this.h4_ui.markDOMDirty(); this.h4_ui.setHistoryOpen(!this.h4_ui.show_history); return true; }
 
                 if (hit(pts.toggle_box)) {
                     if (this.__h4_save_mode_widget) {
@@ -1756,24 +2217,15 @@ app.registerExtension({
                 let activeImg = null;
                 if (ui.selected_idx >= 0 && ui.history[ui.selected_idx]) {
                     const item = ui.history[ui.selected_idx];
+                    if (isImageFile(item.filename)) {
                     const fullUrl = api.apiURL(
-                        `/view?filename=${encodeURIComponent(item.filename)}` +
+                        `/view?filename=${encodeURIComponent(cleanFilename(item.filename))}` +
                         `&subfolder=${encodeURIComponent(item.subfolder)}` +
                         `&type=${encodeURIComponent(item.type)}`
                     );
 
-                    // 1. Initiate full image load if not started
-                    if (!ui.full_imgs[fullUrl]) {
-                        const img = new Image();
-                        img.onload = () => { this.setDirtyCanvas(true); };
-                        img.src = fullUrl;
-                        ui.full_imgs[fullUrl] = img;
-                    }
-
-                    // 2. Select image to draw
-                    const fullImg = ui.full_imgs[fullUrl];
-                    if (fullImg && fullImg.complete && fullImg.naturalWidth > 0) {
-                        activeImg = fullImg;
+                    // GPU bitmap pipeline: instant if cached, async decode if not yet ready
+                    activeImg = ui.getBitmap(fullUrl);
                     }
                 } else if (this.__h4_live_imgs?.length) {
                     activeImg = this.__h4_live_imgs[0];

@@ -39,6 +39,17 @@ except ImportError:
 import shutil
 from aiohttp import web
 
+def clean_nan(obj):
+    """Recursively replace NaN/Inf with None so JSON serialization doesn't explode."""
+    if isinstance(obj, float):
+        if np.isnan(obj) or np.isinf(obj):
+            return None  # JSON null — safe, parseable
+        return obj
+    elif isinstance(obj, dict):
+        return {k: clean_nan(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_nan(v) for v in obj]
+    return obj
 
 class H4_Comparinator:
     """
@@ -320,7 +331,8 @@ class H4_Comparinator:
         }
         
         try:
-            PromptServer.instance.send_sync("h4.comparinator.update", ui_payload)
+            safe_payload = clean_nan(ui_payload)
+            PromptServer.instance.send_sync("h4.comparinator.update", safe_payload)
         except:
             pass
         

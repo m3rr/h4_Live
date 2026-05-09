@@ -292,7 +292,7 @@ class H4_SmartSave:
 
         if images is None or len(images) == 0:
             print("\n[H4_SmartSave] \ud83c\udfaf ABORT: No images detected on input. Verify your output link.")
-            return {"ui": {"images": []}, "result": (None,)}
+            return {"ui": {"h4_history": []}, "result": (None,)}
 
         full_output_dir, subfolder, filename = self._resolve_output(filename_prefix, save_mode, output_path)
 
@@ -370,7 +370,7 @@ class H4_SmartSave:
                 sidecar=sidecar_data
             )
 
-        return {"ui": {"images": results}, "result": (images,)}
+        return {"ui": {"h4_history": results}, "result": (images,)}
 
     def _build_sidecar(self, json_mode, metadata_mode, author, model_name, comments, custom_json, forensics_map, telemetry, prompt, extra_pnginfo):
         sidecar_data = {}
@@ -435,6 +435,33 @@ try:
 
         except Exception as e:
             print(f"[H4_SmartSave] History Registry Fault: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    @PromptServer.instance.routes.get("/h4/smart_save/list_folder")
+    async def get_smart_save_list_folder(request):
+        try:
+            subfolder = request.query.get("subfolder", "")
+            dir_type = request.query.get("type", "output")
+
+            root_dir = folder_paths.get_temp_directory() if dir_type == "temp" else folder_paths.get_output_directory()
+            target_dir = os.path.join(root_dir, subfolder) if subfolder else root_dir
+
+            if not os.path.exists(target_dir) or not os.path.isdir(target_dir):
+                return web.json_response({"files": []})
+
+            files = []
+            for f in os.listdir(target_dir):
+                if os.path.isfile(os.path.join(target_dir, f)):
+                    files.append({
+                        "filename": f,
+                        "subfolder": subfolder,
+                        "type": dir_type
+                    })
+
+            return web.json_response({"files": files})
+
+        except Exception as e:
+            print(f"[H4_SmartSave] List Folder Fault: {e}")
             return web.json_response({"error": str(e)}, status=500)
 
     @PromptServer.instance.routes.get("/h4/smart_save/sidecar")
