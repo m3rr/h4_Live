@@ -1795,8 +1795,7 @@ class SmartSaveUI {
         project(node.__h4_viewerdrawer, pts.drawer_viewer, this.show_viewer && hudVisible, this.viewer_anim, (this.viewer_anim < 0.5));
 
         // --- LIGHTBOX CONTAINMENT: Full-screen overlay only when explicitly activated ---
-        if (!this.node.__h4_lightbox) {
-            this.node.__h4_lightbox = document.createElement("div");
+        if (this.node.__h4_lightbox && !this.node.__h4_lightbox.parentNode) {
             this.node.__h4_lightbox.className = "h4-lightbox h4-hud-el";
             this.node.__h4_lightbox.style.cssText = `
                 position:fixed;

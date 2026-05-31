@@ -1553,6 +1553,18 @@ class SmartSaveUI {
                     box-shadow:0 0 40px rgba(0,0,0,0.8);
                 "
             />
+            <div style="
+                position:absolute;
+                bottom:18px;
+                left:18px;
+                width:80px;
+                height:80px;
+                background:rgba(255,255,255,0.05);
+                backdrop-filter:blur(5px);
+                border-radius:12px;
+                pointer-events:none;
+                z-index:10002;
+            "></div>
         `;
 
         lb.querySelector(".h4-lb-close")?.addEventListener("mousedown", (e) => {
@@ -1622,7 +1634,7 @@ class SmartSaveUI {
     }
 
     clearBitmapCache() {
-        Object.values(this.bitmap_cache).forEach(b => { try { b?.close(); } catch(e) {} });
+        Object.values(this.bitmap_cache).forEach(b => { try { b?.close(); } catch (e) { } });
         this.bitmap_cache = {};
         this._bitmap_pending.clear();
     }
@@ -1795,13 +1807,12 @@ class SmartSaveUI {
         project(node.__h4_viewerdrawer, pts.drawer_viewer, this.show_viewer && hudVisible, this.viewer_anim, (this.viewer_anim < 0.5));
 
         // --- LIGHTBOX CONTAINMENT: Full-screen overlay only when explicitly activated ---
-        if (!this.node.__h4_lightbox) {
-            this.node.__h4_lightbox = document.createElement("div");
+        if (this.node.__h4_lightbox && !this.node.__h4_lightbox.parentNode) {
             this.node.__h4_lightbox.className = "h4-lightbox h4-hud-el";
             this.node.__h4_lightbox.style.cssText = `
                 position:fixed;
                 inset:0;
-                background:rgba(0,0,0,0.95);
+                background:rgba(0,0,0,0.6);
                 display:none;
                 align-items:center;
                 justify-content:center;
@@ -1844,11 +1855,11 @@ function makeFloatingEl(tag, cls = "") {
 function createPanelShell(className, titleText, titleColor = COLORS.accent, hasActions = false) {
     const root = makeFloatingEl("div", `h4-panel ${className}`);
     root.style.padding = "0";
-    
+
     const header = document.createElement("div");
     header.className = "h4-panel-header";
     header.style.color = titleColor;
-    
+
     let actionsHtml = "";
     if (hasActions) {
         actionsHtml = `
@@ -1858,15 +1869,15 @@ function createPanelShell(className, titleText, titleColor = COLORS.accent, hasA
             </div>
         `;
     }
-    
+
     header.innerHTML = `<span class="h4-panel-title">${titleText}</span>${actionsHtml}`;
-    
+
     const body = document.createElement("div");
     body.className = "h4-panel-body";
-    
+
     root.appendChild(header);
     root.appendChild(body);
-    
+
     root._header = header;
     root._body = body;
     root.setTitle = (text, color = COLORS.accent) => {
@@ -1874,7 +1885,7 @@ function createPanelShell(className, titleText, titleColor = COLORS.accent, hasA
         if (titleEl) titleEl.textContent = text;
         header.style.color = color;
     };
-    
+
     return root;
 }
 
@@ -1935,7 +1946,7 @@ app.registerExtension({
 
             this.__h4_core_drawer = createPanelShell("h4gridscroll h4-grid-drawer", "h4 LIVE PARAMETERS", COLORS.accent, true);
             this.__h4_core_drawer.__h4_interactive = true; // Contains clickable param cards
-            
+
             // Set up static listeners for pin/popout on core drawer
             const pinBtn = this.__h4_core_drawer.querySelector('.h4-panel-pin-btn');
             const popBtn = this.__h4_core_drawer.querySelector('.h4-panel-popout-btn');
@@ -1961,7 +1972,7 @@ app.registerExtension({
             this.__h4_customdrawer.__h4_interactive = true; // Contains textarea for custom JSON
             this.__h4_viewerdrawer = createPanelShell("h4gridscroll h4-grid-viewer", "h4 // FORENSICS");
             this.__h4_viewerdrawer.__h4_interactive = true; // Contains close button and scrollable content
-            
+
             this.__h4_history_rail = makeFloatingEl("div", "h4-grid-history");
             this.__h4_history_rail.__h4_interactive = true; // Contains clickable thumbnails
             this.__h4_lightbox = makeFloatingEl("div", "h4-grid-lightbox");
@@ -2052,8 +2063,8 @@ app.registerExtension({
                 activeNodes.delete(this.h4_ui);
             }
             [this.__h4_prefix, this.__h4_path, this.__h4_core_drawer, this.__h4_detaildrawer,
-             this.__h4_metadrawer, this.__h4_customdrawer, this.__h4_viewerdrawer,
-             this.__h4_history_rail, this.__h4_lightbox].forEach(el => el?.remove());
+            this.__h4_metadrawer, this.__h4_customdrawer, this.__h4_viewerdrawer,
+            this.__h4_history_rail, this.__h4_lightbox].forEach(el => el?.remove());
         };
         nodeType.prototype.onExecuted = function (message) {
             if (this.h4_ui) {
@@ -2107,7 +2118,7 @@ app.registerExtension({
                     // TIER 3 — lazy, heavy (Server sync and thumbnail decoding)
                     requestIdleCallback(() => {
                         this.h4_ui.fetchHistory(true);
-                        
+
                         // Pre-fetch the latest image directly into the GPU bitmap cache
                         const topImg = allImages[0];
                         if (topImg && isImageFile(topImg.filename)) {
@@ -2218,14 +2229,14 @@ app.registerExtension({
                 if (ui.selected_idx >= 0 && ui.history[ui.selected_idx]) {
                     const item = ui.history[ui.selected_idx];
                     if (isImageFile(item.filename)) {
-                    const fullUrl = api.apiURL(
-                        `/view?filename=${encodeURIComponent(cleanFilename(item.filename))}` +
-                        `&subfolder=${encodeURIComponent(item.subfolder)}` +
-                        `&type=${encodeURIComponent(item.type)}`
-                    );
+                        const fullUrl = api.apiURL(
+                            `/view?filename=${encodeURIComponent(cleanFilename(item.filename))}` +
+                            `&subfolder=${encodeURIComponent(item.subfolder)}` +
+                            `&type=${encodeURIComponent(item.type)}`
+                        );
 
-                    // GPU bitmap pipeline: instant if cached, async decode if not yet ready
-                    activeImg = ui.getBitmap(fullUrl);
+                        // GPU bitmap pipeline: instant if cached, async decode if not yet ready
+                        activeImg = ui.getBitmap(fullUrl);
                     }
                 } else if (this.__h4_live_imgs?.length) {
                     activeImg = this.__h4_live_imgs[0];
