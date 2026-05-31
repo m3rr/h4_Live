@@ -469,7 +469,7 @@ class SmartSaveUI {
         try {
             const res = await api.fetchApi("/h4/smart_save/history");
             if (!res.ok) return;
-            const data = await res.json();
+            let data = await res.json();
             const sig = JSON.stringify(data.map((x) => [x.filename, x.subfolder, x.type, x.timestamp]));
 
             if (sig !== this._lastHistorySignature) {
@@ -1054,10 +1054,10 @@ class SmartSaveUI {
 
     bindParamCards(isHist) {
         const dr = this.node.__h4_core_drawer; if (!dr) return;
-        dr.querySelectorAll(".h4-param-card").forEach((c) => {
+        dr.querySelectorAll(".h4-card").forEach((c) => {
             const id = c.getAttribute("data-node-id"); const hist = c.getAttribute("data-hist") === "1";
             c.onclick = (e) => { e.stopPropagation(); this.show_params = true; this.showNodeDetails(id, hist); this.scheduleDraw(); };
-            const btn = c.querySelector(".h4-swap-btn");
+            const btn = c.querySelector(".h4-btn-swap");
             if (btn) btn.onclick = (e) => {
                 e.stopPropagation(); const isBack = this.swapped_ids.has(String(id));
                 btn.textContent = isBack ? "REVERTING..." : "SWAPPING...";
@@ -2063,8 +2063,8 @@ app.registerExtension({
                 this.h4_ui.markParamsDirty();
                 this.setDirtyCanvas(true, true);
 
-                if (message.images && message.images.length > 0) {
-                    const allImages = message.images;
+                if (message.h4_history && message.h4_history.length > 0) {
+                    const allImages = message.h4_history;
 
                     // TIER 2 — deferred, medium weight (History Rail Injection)
                     requestIdleCallback(() => {

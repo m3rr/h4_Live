@@ -63,3 +63,7 @@ research_notes/
 audit_results.txt
 fix_nodes_standalone.py
 
+# Sync & Management Tools
+tools/
+
+

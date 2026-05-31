@@ -1054,10 +1054,10 @@ class SmartSaveUI {
 
     bindParamCards(isHist) {
         const dr = this.node.__h4_core_drawer; if (!dr) return;
-        dr.querySelectorAll(".h4-param-card").forEach((c) => {
+        dr.querySelectorAll(".h4-card").forEach((c) => {
             const id = c.getAttribute("data-node-id"); const hist = c.getAttribute("data-hist") === "1";
             c.onclick = (e) => { e.stopPropagation(); this.show_params = true; this.showNodeDetails(id, hist); this.scheduleDraw(); };
-            const btn = c.querySelector(".h4-swap-btn");
+            const btn = c.querySelector(".h4-btn-swap");
             if (btn) btn.onclick = (e) => {
                 e.stopPropagation(); const isBack = this.swapped_ids.has(String(id));
                 btn.textContent = isBack ? "REVERTING..." : "SWAPPING...";
@@ -1335,7 +1335,10 @@ class SmartSaveUI {
 
         try {
             // ComfyUI's /api/v1/folder endpoint — returns all files in a folder
-            const res = await api.fetchApi(`/h4/smart_save/list_folder?subfolder=${encodeURIComponent(subfolder)}&type=${encodeURIComponent(type)}`);
+            const url = api.apiURL(
+                `/h4/smart_save/list_folder?subfolder=${encodeURIComponent(subfolder)}&type=${encodeURIComponent(type)}`
+            );
+            const res = await api.fetchApi(url);
             if (!res.ok) throw new Error(`Folder fetch failed: ${res.status}`);
 
             const data = await res.json(); // expects: { files: [{filename, subfolder, type}, ...] }
@@ -1961,7 +1964,9 @@ app.registerExtension({
             
             this.__h4_history_rail = makeFloatingEl("div", "h4-grid-history");
             this.__h4_history_rail.__h4_interactive = true; // Contains clickable thumbnails
-            
+            this.__h4_lightbox = makeFloatingEl("div", "h4-grid-lightbox");
+            this.__h4_lightbox.__h4_interactive = true; // Full overlay with nav buttons
+            Object.assign(this.__h4_lightbox.style, { width: "0", height: "0", zIndex: "10001", background: "rgba(0,0,0,0.95)" });
             const bindWidgets = () => {
                 if (!this.widgets) return false;
                 this.widgets.forEach(w => {
