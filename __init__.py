@@ -32,7 +32,7 @@ nuke_pycache(os.path.dirname(__file__))
 # --- GLOBALS & PROTECTED ASSETS ---
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
-__version__ = "11.0.3"
+__version__ = "11.0.4"
 WEB_DIRECTORY = "./js"
 
 # Files that stay in the root /js folder and are NEVER deleted by the harvester
