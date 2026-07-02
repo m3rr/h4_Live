@@ -29,7 +29,7 @@ class H4_ModelPruner:
         return {
             "required": {
                 "prune_mode": (["Raw File (Fast - Recommended)", "In-Memory (Passthrough)"], {"default": "Raw File (Fast - Recommended)"}),
-                "target_precision": (["float16", "bfloat16", "float32", "float8_e4m3fn", "float8_e5m2"], {"default": "float16"}),
+                "target_precision": (["auto", "float16", "bfloat16", "float32", "float8_e4m3fn", "float8_e5m2"], {"default": "auto"}),
                 "filename_prefix": ("STRING", {"default": "h4_Pruned_"}),
             },
             "optional": {
@@ -108,7 +108,7 @@ class H4_ModelPruner:
                 "float8_e4m3fn": getattr(torch, "float8_e4m3fn", None),
                 "float8_e5m2": getattr(torch, "float8_e5m2", None),
             }
-            target_dtype = dtype_map.get(target_precision, torch.float16)
+            target_dtype = None if target_precision == "auto" else dtype_map.get(target_precision, torch.float16)
 
             # 4. Filter keys and cast precision
             new_sd = {}
@@ -122,7 +122,7 @@ class H4_ModelPruner:
                     continue
                 
                 # Downcast to target precision
-                if v.is_floating_point() and v.dtype != target_dtype:
+                if target_dtype is not None and v.is_floating_point() and v.dtype != target_dtype:
                     v = v.to(dtype=target_dtype)
                     cast_count += 1
                 

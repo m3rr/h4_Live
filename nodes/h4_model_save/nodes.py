@@ -35,10 +35,10 @@ class H4_ModelSave:
                 "filename_prefix": ("STRING", {"default": "h4_Checkpoint_"}),
                 "save_meta": ("BOOLEAN", {"default": True}),
                 "save_dtype": (
-                    ["float16", "bfloat16", "float32", "float8_e4m3fn", "float8_e5m2"],
+                    ["auto", "float16", "bfloat16", "float32", "float8_e4m3fn", "float8_e5m2"],
                     {
-                        "default": "float16",
-                        "tooltip": "The precision to save the model in. float16/bfloat16 recommended for most uses. float8 requires recent PyTorch/GPU support."
+                        "default": "auto",
+                        "tooltip": "The precision to save the model in. 'auto' keeps original precision. float16/bfloat16 recommended for most uses. float8 requires recent PyTorch/GPU support."
                     }
                 ),
             },
@@ -90,10 +90,12 @@ class H4_ModelSave:
             "float8_e5m2": getattr(torch, "float8_e5m2", None),
         }
 
-        target_dtype = dtype_map.get(save_dtype)
-        if target_dtype is None:
-            print(f"[H4_ModelSave] Warning: {save_dtype} not supported by this PyTorch version. Falling back to float16.")
-            target_dtype = torch.float16
+        target_dtype = None
+        if save_dtype != "auto":
+            target_dtype = dtype_map.get(save_dtype)
+            if target_dtype is None:
+                print(f"[H4_ModelSave] Warning: {save_dtype} not supported by this PyTorch version. Falling back to float16.")
+                target_dtype = torch.float16
 
         # ──────────────────────────────────────────────────────────────────────
         # STEP 3: Resolve output path using ComfyUI's standard counter logic
@@ -164,19 +166,40 @@ class H4_ModelSave:
             comfy.model_management.load_models_gpu(load_models, force_full_load=True)
 
             # Get CLIP and VAE state dicts (raw, without architecture prefixes)
-            clip_sd = clip.get_sd() if clip is not None else None
-            vae_sd = vae.get_sd() if vae is not None else None
+            try:
+                clip_sd = clip.get_sd() if clip is not None else None
+            except AttributeError as e:
+                if "'NoneType' object has no attribute 'state_dict'" in str(e):
+                    print(f"[H4_ModelSave] Warning: CLIP wrapper is empty (no cond_stage_model/patcher). Skipping CLIP.")
+                    clip_sd = None
+                else:
+                    raise e
+                    
+            try:
+                vae_sd = vae.get_sd() if vae is not None else None
+            except AttributeError as e:
+                if "'NoneType' object has no attribute 'state_dict'" in str(e):
+                    print(f"[H4_ModelSave] Warning: VAE wrapper is empty (no first_stage_model). Skipping VAE.")
+                    vae_sd = None
+                else:
+                    raise e
 
             # Assemble the full checkpoint state dict with correct key prefixes
             # This is the CRITICAL call — ComfyUI's model_config handles all
             # architecture-specific key remapping internally
             # We patch around API mismatches: fallback to model.model if ModelPatcher doesn't have the method
-            if hasattr(model, "state_dict_for_saving"):
-                sd = model.state_dict_for_saving(clip_sd, vae_sd, clip_vision_state_dict=None)
-            elif hasattr(model, "model") and hasattr(model.model, "state_dict_for_saving"):
-                sd = model.model.state_dict_for_saving(clip_sd, vae_sd, clip_vision_state_dict=None)
-            else:
-                raise AttributeError("Neither model nor model.model has 'state_dict_for_saving'.")
+            try:
+                if hasattr(model, "state_dict_for_saving"):
+                    sd = model.state_dict_for_saving(clip_sd, vae_sd, clip_vision_state_dict=None)
+                elif hasattr(model, "model") and hasattr(model.model, "state_dict_for_saving"):
+                    sd = model.model.state_dict_for_saving(clip_sd, vae_sd, clip_vision_state_dict=None)
+                else:
+                    raise AttributeError("Neither model nor model.model has 'state_dict_for_saving'.")
+            except AttributeError as e:
+                if "'NoneType' object has no attribute 'state_dict'" in str(e):
+                    print(f"[H4_ModelSave] CRITICAL: A component inside the MODEL object is None. This often happens if the model was not properly loaded or initialized.")
+                    raise RuntimeError("H4_ModelSave failed: The model's internal architecture is missing a required component (NoneType has no state_dict). Ensure your UNET/Checkpoint is fully loaded.") from e
+                raise e
 
             total_keys = len(sd)
             sample_keys = list(sd.keys())[:5]
@@ -185,6 +208,8 @@ class H4_ModelSave:
 
         except Exception as e:
             print(f"[H4_ModelSave] Error assembling state dict: {e}")
+            import traceback
+            traceback.print_exc()
             raise e
 
         # ──────────────────────────────────────────────────────────────────────
@@ -199,7 +224,7 @@ class H4_ModelSave:
             for k in sd:
                 t = sd[k]
                 # Only cast floating-point tensors (skip integer embeddings, etc.)
-                if t.is_floating_point() and t.dtype != target_dtype:
+                if target_dtype is not None and t.is_floating_point() and t.dtype != target_dtype:
                     sd[k] = t.to(dtype=target_dtype)
                     cast_count += 1
                 # Ensure tensors are contiguous for safetensors serialization
