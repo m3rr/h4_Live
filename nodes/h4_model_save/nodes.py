@@ -170,7 +170,13 @@ class H4_ModelSave:
             # Assemble the full checkpoint state dict with correct key prefixes
             # This is the CRITICAL call — ComfyUI's model_config handles all
             # architecture-specific key remapping internally
-            sd = model.state_dict_for_saving(clip_sd, vae_sd, clip_vision_state_dict=None)
+            # We patch around API mismatches: fallback to model.model if ModelPatcher doesn't have the method
+            if hasattr(model, "state_dict_for_saving"):
+                sd = model.state_dict_for_saving(clip_sd, vae_sd, clip_vision_state_dict=None)
+            elif hasattr(model, "model") and hasattr(model.model, "state_dict_for_saving"):
+                sd = model.model.state_dict_for_saving(clip_sd, vae_sd, clip_vision_state_dict=None)
+            else:
+                raise AttributeError("Neither model nor model.model has 'state_dict_for_saving'.")
 
             total_keys = len(sd)
             sample_keys = list(sd.keys())[:5]
