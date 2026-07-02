@@ -1,0 +1,14 @@
+const { compressImage } = require('../web/h4_ImageCompressor');
+
+describe('Image Compressor Node', () => {
+    it('should compress an image without errors', async () => {
+        const inputImage = 'test-image.jpg';
+        const compressed = await compressImage(inputImage);
+        expect(compressed).toBeDefined();
+        expect(compressed).toBeInstanceOf(Buffer);
+    });
+
+    it('should handle invalid input gracefully', () => {
+        expect(() => compressImage(null)).toThrowError('Invalid image input');
+    });
+});

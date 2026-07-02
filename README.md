@@ -111,6 +111,7 @@ Below is the “in painful detail” breakdown of every QoL enhancement. This se
 - [H4_LoopIncrementer (The Clicker)](#h4_loopincrementer-the-clicker)
 - [H4_WirelessResetButton (The Red Button)](#h4_wirelessresetbutton-the-red-button)
 - [H4_ImageBuffer (The Anti-Lag)](#h4_imagebuffer-the-anti-lag)
+- [H4_ImageCompressor (The Compressor)](#h4_imagecompressor-the-compressor)
 
 ### Context and data bundling
 - [H4_ContextHub (The Mothership)](#h4_contexthub-the-mothership)

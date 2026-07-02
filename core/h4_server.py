@@ -258,5 +258,53 @@ def register_routes():
             return web.FileResponse(full_path)
         return web.Response(status=404)
 
+    # 9. Get Image Compressor History
+    @PromptServer.instance.routes.get("/h4/image_compressor/history")
+    async def get_compressor_history(request):
+        try:
+            # Locate saved files under ComfyUI output directory or custom h4 paths
+            output_dir = folder_paths.get_output_directory()
+            if isinstance(output_dir, list):
+                output_dir = output_dir[0]
+            
+            # Default target subdirectory
+            target_sub = "H4_Compressor"
+            target_dir = os.path.join(output_dir, target_sub)
+            
+            history_items = []
+            if os.path.exists(target_dir):
+                for f in os.listdir(target_dir):
+                    ext = f.split(".")[-1].lower()
+                    if ext in ["png", "jpg", "jpeg", "webp", "gif", "avif", "bmp", "tiff"]:
+                        f_path = os.path.join(target_dir, f)
+                        stat = os.stat(f_path)
+                        
+                        # Open image to inspect dimensions/format
+                        try:
+                            with Image.open(f_path) as img:
+                                width, height = img.size
+                                img_format = img.format or ext.upper()
+                        except:
+                            width, height = 0, 0
+                            img_format = ext.upper()
+                            
+                        history_items.append({
+                            "filename": f,
+                            "subfolder": target_sub,
+                            "type": "output",
+                            "timestamp": stat.st_mtime,
+                            "size_bytes": stat.st_size,
+                            "format": img_format,
+                            "width": width,
+                            "height": height
+                        })
+            
+            # Sort by newest first
+            history_items.sort(key=lambda x: x["timestamp"], reverse=True)
+            return web.json_response(history_items[:50])
+        except Exception as e:
+            print(f"[h4_server] Error fetching compressor history: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
 # Register on import
 register_routes()

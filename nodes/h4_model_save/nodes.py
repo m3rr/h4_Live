@@ -55,7 +55,8 @@ class H4_ModelSave:
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
 
-    RETURN_TYPES = ()
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("saved_model_path",)
     FUNCTION = "save"
     OUTPUT_NODE = True
     CATEGORY = "h4_ToolKit/Model Merging"
@@ -238,4 +239,4 @@ class H4_ModelSave:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-        return {}
+        return (output_path,)

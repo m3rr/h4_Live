@@ -747,6 +747,55 @@
       "This node is an OUTPUT_NODE — it always executes even without downstream connections."
     ]
   },
+  "H4_ImageCompressor": {
+    "title": "H4 Image Compressor (The Compressor)",
+    "description": "Compresses images on the fly using WebP, JPEG, or PNG with configurable quality. Can preview compressed result or save to disk. Ideal for reducing asset size before export.",
+    "usage": "Connect an IMAGE input, set quality and format, choose Preview or Save. Optionally specify filename prefix and output path.",
+    "inputs": {
+      "image": {
+        "type": "IMAGE",
+        "description": "Input image to compress."
+      },
+      "quality": {
+        "type": "INT",
+        "description": "Compression quality (1-100)."
+      },
+      "format": {
+        "type": "COMBO",
+        "description": "Output format: webp, jpeg, png."
+      },
+      "save_mode": {
+        "type": "COMBO",
+        "description": "Preview shows compressed image; Save writes to disk."
+      },
+      "filename_prefix": {
+        "type": "STRING",
+        "description": "Prefix for saved file names."
+      },
+      "output_path": {
+        "type": "STRING",
+        "description": "Directory to save files; defaults to ComfyUI output folder."
+      }
+    },
+    "outputs": {
+      "IMAGE": "Compressed image preview (tensor).",
+      "SIZE": "String indicating compressed size, e.g., '152KB' or '1.2MB'."
+    },
+    "features": [
+      {
+        "name": "Size Reporting",
+        "description": "Returns human‑readable file size after compression."
+      },
+      {
+        "name": "Flexible Formats",
+        "description": "Supports lossless PNG and lossy WebP/JPEG."
+      }
+    ],
+    "tips_and_tricks": [
+      "Higher quality yields larger files; lower quality reduces size dramatically.",
+      "Use Preview mode to compare before saving."
+    ]
+  },
   "H4_StateMonitor": {
     "title": "H4 State Monitor",
     "description": "Lost? Confused? Don't know if you're on Run 5 or Run 500? The State Monitor simply displays the current Loop Count as an integer. Wire it up to a display text node to keep track of your sanity.",
