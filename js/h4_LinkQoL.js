@@ -1,4 +1,4 @@
-// h4_LinkQoL.js - The Drawer (Civitai Bridge & Model Manager Frontend UI)
+// h4_LinkQoL.js - Civitai Bridge & Model Manager Frontend UI
 // ==============================================================================
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
@@ -7,7 +7,7 @@ app.registerExtension({
     name: "h4.LinkQoL",
     
     async setup() {
-        console.log("🔗 h4_Link_QoL: Initializing The Drawer...");
+        console.log("🔗 h4_Link_QoL: Initializing Civitai Bridge UI...");
         this.createDrawerDOM();
     },
 
@@ -152,29 +152,35 @@ app.registerExtension({
             }
             .h4-btn-dl { background: #98c379; color: #121218; }
             .h4-btn-inject { background: #61afef; color: #121218; }
-            #h4-drawer-toggle-btn {
+            #h4-civitai-toggle-btn {
                 position: fixed;
-                top: 12px;
-                right: 12px;
+                top: 5px;
+                right: 285px; /* Positioned directly to the LEFT of Kick-The-Grid button (220px) */
                 z-index: 9999;
-                background: rgba(18, 18, 24, 0.85);
-                backdrop-filter: blur(8px);
-                border: 1px solid rgba(255, 255, 255, 0.15);
                 color: #61afef;
-                padding: 6px 12px;
-                border-radius: 20px;
+                font-family: monospace;
+                font-weight: bold;
+                font-size: 13px;
                 cursor: pointer;
-                font-weight: 600;
-                font-size: 12px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                padding: 2px 8px;
+                background: rgba(0, 0, 0, 0.5);
+                border-radius: 4px;
+                border: 1px solid #333;
+                user-select: none;
+                transition: all 0.1s;
+            }
+            #h4-civitai-toggle-btn:hover {
+                border-color: #61afef;
+                background: rgba(97, 175, 239, 0.15);
             }
         `;
         document.head.appendChild(style);
 
-        // Toggle Button
-        const toggleBtn = document.createElement("button");
-        toggleBtn.id = "h4-drawer-toggle-btn";
-        toggleBtn.innerHTML = "🔗 Civitai Drawer";
+        // Toggle Button (Positioned to the LEFT of Kick-The-Grid button)
+        const toggleBtn = document.createElement("div");
+        toggleBtn.id = "h4-civitai-toggle-btn";
+        toggleBtn.innerHTML = "🔗 Civitai";
+        toggleBtn.title = "Open Civitai Model Bridge";
         toggleBtn.onclick = () => this.toggleDrawer();
         document.body.appendChild(toggleBtn);
 
@@ -183,7 +189,7 @@ app.registerExtension({
         panel.id = "h4-link-drawer-panel";
         panel.innerHTML = `
             <div class="h4-drawer-header">
-                <div class="h4-drawer-title">🔗 Civitai Bridge (The Drawer)</div>
+                <div class="h4-drawer-title">🔗 Civitai Bridge</div>
                 <button class="h4-drawer-close" id="h4-drawer-close-btn">&times;</button>
             </div>
             <div class="h4-drawer-search">
@@ -217,6 +223,18 @@ app.registerExtension({
                 this.performSearch();
             };
         });
+
+        // Respect Dashboard Setting
+        this.updateButtonVisibility();
+    },
+
+    updateButtonVisibility() {
+        const btn = document.getElementById("h4-civitai-toggle-btn");
+        if (!btn) return;
+        if (window.h4_Dashboard && window.h4_Dashboard.config) {
+            const enabled = window.h4_Dashboard.config.civitaiBridgeEnabled !== false;
+            btn.style.display = enabled ? "block" : "none";
+        }
     },
 
     toggleDrawer(open) {
@@ -285,7 +303,6 @@ app.registerExtension({
     },
 
     async downloadModel(url, filename, type, modelName, words) {
-        alert(`Starting download: ${filename}`);
         try {
             await fetch('/h4/link/download', {
                 method: 'POST',
@@ -298,13 +315,13 @@ app.registerExtension({
                     trigger_words: words || []
                 })
             });
+            alert(`Started download for '${filename}'`);
         } catch (e) {
             console.error("Download error:", e);
         }
     },
 
     injectIntoNode(filename) {
-        // Direct injection into currently selected node on canvas
         const selectedNodes = app.canvas.selected_nodes;
         if (selectedNodes && Object.keys(selectedNodes).length > 0) {
             for (const id in selectedNodes) {

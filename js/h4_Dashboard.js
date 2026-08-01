@@ -46,6 +46,9 @@ export const h4_Dashboard = {
         deadWeightEnabled: true,
         caffeineEnabled: false, // Default OFF
         kickItEnabled: false,   // Default OFF
+        civitaiBridgeEnabled: true,
+        civitaiAutoInject: true,
+        civitaiSidecars: true,
         smartSnapping: false,
         ioColoring: false,
 
@@ -332,6 +335,9 @@ export const h4_Dashboard = {
         this.addBool(container, "sovereignCoreEnabled", "H4 Node Aesthetic", "Enforces Sovereign H4 Branding across the canvas. Themes all compatible nodes with the signature cyan-and-black aesthetic for visual consistency.");
         this.addBool(container, "caffeineEnabled", "Caffeine Mode Button", "Adds the wake-lock override (Kirby Sleep) to the toolbar. Prevents the display from entering low-power states during long generation sequences.");
         this.addBool(container, "kickItEnabled", "Kick-The-Grid Button", "Installs the canvas defibrillator in the toolbar. Force-refreshes the LiteGraph rendering pipeline to resolve ghost artifacts or UI stutters.");
+        this.addBool(container, "civitaiBridgeEnabled", "Civitai Bridge Button", "Installs the Civitai Bridge button in the top toolbar to the left of Kick-The-Grid. Slide out the browser to search, preview, download, and inject models.");
+        this.addBool(container, "civitaiAutoInject", "Auto-Inject Model to Node", "Automatically populates the active model filename into selected LoRA/Checkpoint loader nodes upon download.");
+        this.addBool(container, "civitaiSidecars", "Create Metadata Sidecars", "Automatically extracts trigger words and model specifications into .txt and .json sidecars on download.");
         this.addBool(container, "showErrorPopup", "Red Screen of Death", "Replaces generic alerts with a high-fidelity forensic error modal. Provides detailed stack traces and system state snapshots upon execution failure.");
 
         // 4. EXPERIMENTAL
@@ -1537,6 +1543,9 @@ function _registerH4Settings() {
     addQoL("deadWeight", "Dead Weight Detector", "Deploys the DWD Kirby unit to the toolbar.", "deadWeightEnabled");
     addQoL("caffeine", "Caffeine Mode Button", "Adds wake-lock override button to toolbar.", "caffeineEnabled");
     addQoL("kickIt", "Kick-the-Grid Button", "Canvas defibrillator — force-refreshes LiteGraph renderer.", "kickItEnabled");
+    addQoL("civitaiBridge", "Civitai Bridge Button", "Installs Civitai Bridge button in toolbar to the left of Kick-The-Grid.", "civitaiBridgeEnabled");
+    addQoL("civitaiAutoInject", "Civitai Auto-Inject", "Auto-populates downloaded model names into canvas loader nodes.", "civitaiAutoInject");
+    addQoL("civitaiSidecars", "Civitai Metadata Sidecars", "Creates .txt and .json trigger word sidecars on model download.", "civitaiSidecars");
     addQoL("sovereignCore", "H4 Node Aesthetic", "Enforces H4 cyan-black branding on all compatible nodes.", "sovereignCoreEnabled");
     addQoL("errorPopup", "Red Screen of Death", "Replaces alerts with forensic error modal.", "showErrorPopup");
     addQoL("smartSnapping", "Node Snapping", "Sub-pixel magnetic alignment for nodes.", "smartSnapping");
