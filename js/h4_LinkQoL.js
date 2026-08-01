@@ -1,4 +1,4 @@
-// h4_LinkQoL.js - Civitai Bridge & Model Manager Frontend UI with Secondary Details Drawer
+// h4_LinkQoL.js - Civitai Bridge & Model Manager Frontend UI with Fullscreen Lightbox & Secondary Drawer Fixes
 // ==============================================================================
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
@@ -66,7 +66,7 @@ app.registerExtension({
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             }
             #h4-link-details-panel.open {
-                right: 400px; /* Slides out directly to the left of main drawer */
+                right: 400px;
             }
 
             .h4-drawer-header {
@@ -235,11 +235,11 @@ app.registerExtension({
                 box-shadow: 0 0 14px rgba(0, 242, 255, 0.5);
             }
 
-            /* Secondary Details Drawer Elements */
+            /* Secondary Details Drawer Elements (Enlarged) */
             .h4-carousel-container {
                 position: relative;
                 width: 100%;
-                height: 260px;
+                height: 360px;
                 background: #000;
                 border-radius: 8px;
                 overflow: hidden;
@@ -252,6 +252,7 @@ app.registerExtension({
                 width: 100%;
                 height: 100%;
                 object-fit: contain;
+                cursor: zoom-in;
             }
             .h4-carousel-btn {
                 position: absolute;
@@ -260,35 +261,35 @@ app.registerExtension({
                 background: rgba(0, 0, 0, 0.7);
                 color: #fff;
                 border: 1px solid rgba(255, 255, 255, 0.3);
-                width: 34px;
-                height: 34px;
+                width: 36px;
+                height: 36px;
                 border-radius: 50%;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 18px;
+                font-size: 20px;
                 font-weight: bold;
                 user-select: none;
                 z-index: 3;
                 transition: all 0.2s;
             }
             .h4-carousel-btn:hover { background: #61afef; color: #121218; border-color: #61afef; }
-            .h4-carousel-btn.prev { left: 8px; }
-            .h4-carousel-btn.next { right: 8px; }
+            .h4-carousel-btn.prev { left: 10px; }
+            .h4-carousel-btn.next { right: 10px; }
             .h4-thumb-strip {
                 display: flex;
-                gap: 6px;
+                gap: 8px;
                 overflow-x: auto;
-                padding: 6px 0;
+                padding: 8px 0;
             }
             .h4-strip-thumb {
-                width: 52px;
-                height: 52px;
+                width: 70px;
+                height: 70px;
                 object-fit: cover;
-                border-radius: 4px;
+                border-radius: 6px;
                 cursor: pointer;
-                opacity: 0.5;
+                opacity: 0.6;
                 border: 2px solid transparent;
                 transition: all 0.2s;
                 flex-shrink: 0;
@@ -296,6 +297,7 @@ app.registerExtension({
             .h4-strip-thumb.active, .h4-strip-thumb:hover {
                 opacity: 1;
                 border-color: #61afef;
+                transform: scale(1.05);
             }
             .h4-info-meta {
                 background: rgba(255, 255, 255, 0.03);
@@ -317,6 +319,81 @@ app.registerExtension({
                 font-family: monospace;
                 word-break: break-word;
             }
+
+            /* Fullscreen Lightbox Modal */
+            #h4-link-lightbox {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.94);
+                backdrop-filter: blur(20px);
+                z-index: 100010;
+                display: none;
+                flex-direction: column;
+                color: #fff;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                user-select: none;
+            }
+            #h4-link-lightbox.open {
+                display: flex;
+            }
+            .h4-lightbox-header {
+                padding: 16px 24px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                background: rgba(255, 255, 255, 0.04);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .h4-lightbox-counter {
+                font-size: 14px;
+                font-weight: 600;
+                color: #61afef;
+                font-family: monospace;
+            }
+            .h4-lightbox-close {
+                background: none;
+                border: none;
+                color: #aaa;
+                font-size: 28px;
+                cursor: pointer;
+                line-height: 1;
+            }
+            .h4-lightbox-close:hover { color: #fff; }
+            .h4-lightbox-body {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 20px;
+                position: relative;
+            }
+            #h4-lightbox-img {
+                max-width: 88vw;
+                max-height: 82vh;
+                object-fit: contain;
+                border-radius: 8px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            }
+            .h4-lightbox-nav {
+                background: rgba(0, 0, 0, 0.6);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: #fff;
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 24px;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+                z-index: 2;
+            }
+            .h4-lightbox-nav:hover { background: #61afef; color: #121218; border-color: #61afef; }
         `;
         document.head.appendChild(style);
 
@@ -365,8 +442,31 @@ app.registerExtension({
         `;
         document.body.appendChild(detailsPanel);
 
+        // Fullscreen Lightbox Modal DOM
+        const lightbox = document.createElement("div");
+        lightbox.id = "h4-link-lightbox";
+        lightbox.innerHTML = `
+            <div class="h4-lightbox-header">
+                <div class="h4-lightbox-counter" id="h4-lightbox-counter">1 / 1</div>
+                <button class="h4-lightbox-close" id="h4-lightbox-close-btn">&times;</button>
+            </div>
+            <div class="h4-lightbox-body">
+                <button class="h4-lightbox-nav prev" id="h4-lightbox-prev">&lsaquo;</button>
+                <img id="h4-lightbox-img" src="" alt="preview">
+                <button class="h4-lightbox-nav next" id="h4-lightbox-next">&rsaquo;</button>
+            </div>
+        `;
+        document.body.appendChild(lightbox);
+
+        // Close handlers
         document.getElementById("h4-drawer-close-btn").onclick = () => this.toggleDrawer(false);
         document.getElementById("h4-details-close-btn").onclick = () => this.toggleDetailsDrawer(false);
+        document.getElementById("h4-lightbox-close-btn").onclick = () => this.closeLightbox();
+        lightbox.onclick = (e) => {
+            if (e.target.id === "h4-link-lightbox" || e.target.className === "h4-lightbox-body") {
+                this.closeLightbox();
+            }
+        };
 
         // Search listeners
         const queryInput = document.getElementById("h4-drawer-query");
@@ -381,6 +481,16 @@ app.registerExtension({
                 t.classList.add("active");
                 this.performSearch();
             };
+        });
+
+        // Global Keyboard Handler for Lightbox
+        window.addEventListener("keydown", (e) => {
+            const lb = document.getElementById("h4-link-lightbox");
+            if (lb && lb.classList.contains("open")) {
+                if (e.key === "Escape") this.closeLightbox();
+                if (e.key === "ArrowLeft") this.stepLightbox(-1);
+                if (e.key === "ArrowRight") this.stepLightbox(1);
+            }
         });
 
         // Dynamic layout loops
@@ -437,18 +547,62 @@ app.registerExtension({
     toggleDetailsDrawer(open) {
         const detailsPanel = document.getElementById("h4-link-details-panel");
         if (!detailsPanel) return;
+        
         if (open === undefined) {
-            detailsPanel.classList.toggle("open");
-        } else if (open) {
+            open = !detailsPanel.classList.contains("open");
+        }
+        
+        if (open) {
             detailsPanel.classList.add("open");
-            if (window.innerWidth <= 840) {
-                detailsPanel.style.right = "0px";
-            } else {
-                detailsPanel.style.right = "400px";
-            }
+            detailsPanel.style.right = (window.innerWidth <= 840) ? "0px" : "400px";
         } else {
             detailsPanel.classList.remove("open");
+            detailsPanel.style.right = "-440px"; // Completely hides panel off-screen
         }
+    },
+
+    // Lightbox State
+    _lightboxImages: [],
+    _lightboxIndex: 0,
+
+    openLightbox(images, startIndex = 0) {
+        if (!images || images.length === 0) return;
+        this._lightboxImages = images;
+        this._lightboxIndex = startIndex;
+
+        const lb = document.getElementById("h4-link-lightbox");
+        if (!lb) return;
+
+        this.updateLightboxContent();
+        lb.classList.add("open");
+
+        const prevBtn = document.getElementById("h4-lightbox-prev");
+        if (prevBtn) prevBtn.onclick = (e) => { e.stopPropagation(); this.stepLightbox(-1); };
+
+        const nextBtn = document.getElementById("h4-lightbox-next");
+        if (nextBtn) nextBtn.onclick = (e) => { e.stopPropagation(); this.stepLightbox(1); };
+    },
+
+    stepLightbox(delta) {
+        if (this._lightboxImages.length === 0) return;
+        this._lightboxIndex = (this._lightboxIndex + delta + this._lightboxImages.length) % this._lightboxImages.length;
+        this.updateLightboxContent();
+    },
+
+    updateLightboxContent() {
+        const imgEl = document.getElementById("h4-lightbox-img");
+        const counterEl = document.getElementById("h4-lightbox-counter");
+        if (imgEl && this._lightboxImages[this._lightboxIndex]) {
+            imgEl.src = this._lightboxImages[this._lightboxIndex].url;
+        }
+        if (counterEl) {
+            counterEl.textContent = `${this._lightboxIndex + 1} / ${this._lightboxImages.length}`;
+        }
+    },
+
+    closeLightbox() {
+        const lb = document.getElementById("h4-link-lightbox");
+        if (lb) lb.classList.remove("open");
     },
 
     openDetailsDrawer(item, version) {
@@ -459,7 +613,6 @@ app.registerExtension({
 
             detailsTitle.innerHTML = `🔗 ${item.name || 'Model Specs'}`;
 
-            // Aggregate all images from the version and parent model versions
             let images = [];
             if (version && version.images && version.images.length > 0) {
                 images = version.images;
@@ -478,7 +631,7 @@ app.registerExtension({
 
             // Build HTML
             detailsBody.innerHTML = `
-                <div class="h4-carousel-container">
+                <div class="h4-carousel-container" title="Click to view full-screen Lightbox">
                     ${images.length > 1 ? `<button class="h4-carousel-btn prev" id="h4-carousel-prev">&lsaquo;</button>` : ''}
                     <img class="h4-carousel-img" id="h4-carousel-main" src="${images[0]?.url || ''}" alt="preview">
                     ${images.length > 1 ? `<button class="h4-carousel-btn next" id="h4-carousel-next">&rsaquo;</button>` : ''}
@@ -486,7 +639,7 @@ app.registerExtension({
 
                 ${images.length > 1 ? `
                     <div class="h4-thumb-strip" id="h4-carousel-strip">
-                        ${images.map((img, i) => `<img class="h4-strip-thumb ${i===0?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb">`).join('')}
+                        ${images.map((img, i) => `<img class="h4-strip-thumb ${i===0?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb" title="Click thumbnail for Lightbox">`).join('')}
                     </div>
                 ` : ''}
 
@@ -521,7 +674,7 @@ app.registerExtension({
                 </div>
             `;
 
-            // Carousel image switcher
+            // Carousel image switcher & Lightbox trigger
             const updateCarousel = (newIdx) => {
                 if (images.length === 0) return;
                 currentIndex = (newIdx + images.length) % images.length;
@@ -536,14 +689,28 @@ app.registerExtension({
             };
 
             const prevBtn = document.getElementById("h4-carousel-prev");
-            if (prevBtn) prevBtn.onclick = () => updateCarousel(currentIndex - 1);
+            if (prevBtn) prevBtn.onclick = (e) => { e.stopPropagation(); updateCarousel(currentIndex - 1); };
 
             const nextBtn = document.getElementById("h4-carousel-next");
-            if (nextBtn) nextBtn.onclick = () => updateCarousel(currentIndex + 1);
+            if (nextBtn) nextBtn.onclick = (e) => { e.stopPropagation(); updateCarousel(currentIndex + 1); };
+
+            // Clicking main preview image opens Fullscreen Lightbox!
+            const mainImg = document.getElementById("h4-carousel-main");
+            if (mainImg) {
+                mainImg.onclick = (e) => {
+                    e.stopPropagation();
+                    this.openLightbox(images, currentIndex);
+                };
+            }
 
             const stripThumbs = document.querySelectorAll(".h4-strip-thumb");
             stripThumbs.forEach(t => {
-                t.onclick = () => updateCarousel(parseInt(t.dataset.idx));
+                t.onclick = (e) => {
+                    e.stopPropagation();
+                    const idx = parseInt(t.dataset.idx);
+                    updateCarousel(idx);
+                    this.openLightbox(images, idx);
+                };
             });
 
             // Trigger words copy handler
@@ -581,7 +748,12 @@ app.registerExtension({
                                 if (strip) {
                                     strip.innerHTML = images.map((img, i) => `<img class="h4-strip-thumb ${i===currentIndex?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb">`).join('');
                                     document.querySelectorAll(".h4-strip-thumb").forEach(t => {
-                                        t.onclick = () => updateCarousel(parseInt(t.dataset.idx));
+                                        t.onclick = (e) => {
+                                            e.stopPropagation();
+                                            const idx = parseInt(t.dataset.idx);
+                                            updateCarousel(idx);
+                                            this.openLightbox(images, idx);
+                                        };
                                     });
                                 }
                             }
