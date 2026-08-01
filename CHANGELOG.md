@@ -14,8 +14,9 @@
 - **How It Was Implemented:**
   - **Backend API Gateway (`civitai_api.py`):** Asynchronous REST service querying `https://civitai.com/api/v1/models` with filter tags (`LORA`, `Checkpoint`, `VAE`). Integrated with ComfyUI's native `folder_paths` API to resolve target directories (`models/loras`, `models/checkpoints`, `models/vae`, `models/controlnet`).
   - **Background Downloader & Sidecars:** Built a non-blocking chunked streaming downloader (`1048576` byte buffer chunks) running on background executor threads with real-time byte counter telemetry (`/h4/link/status`). Automatically serializes `.txt` trigger word arrays and `.json` version manifests adjacent to downloaded models.
-  - **Dual-Drawer Glassmorphism UI (`js/h4_LinkQoL.js` & `nodes/h4_link_qol/web/h4_LinkQoL.js`):** Built slide-out DOM panels with `backdrop-filter: blur(12px)` and ultra-high `z-index: 100005`. Added dynamic real-time viewport positioning (`positionButton()`) to place the button strictly to the left of the Dead Weight Detector without overlap. Built an interactive carousel image gallery with thumbnail pagination and a one-click **Copy Trigger Words** button.
+  - **Dual-Drawer Glassmorphism UI (`js/h4_LinkQoL.js` & `nodes/h4_link_qol/web/h4_LinkQoL.js`):** Built slide-out DOM panels with `backdrop-filter: blur(12px)` and ultra-high `z-index: 100006`. Added dynamic real-time viewport positioning (`positionButton()`) to place the button strictly to the left of the Dead Weight Detector without overlap. Built an interactive carousel image gallery with thumbnail pagination, direct `/h4/link/details` REST API integration for deep showcase image fetching, HTML description sanitization, and a one-click **Copy Trigger Words** button.
   - **Canvas Node Parameter Injection:** Graph AST walker parsing `app.canvas.selected_nodes`, locating target widgets (`lora_name`, `model_name`, `active_model_name`), and mutating widget values in-place with `app.canvas.setDirty(true, true)`.
+  - **Default Configuration:** Configured all `h4_Link_QoL` options (`civitaiBridgeEnabled`, `civitaiAutoInject`, `civitaiSidecars`) to default as **ENABLED** (`true`).
 
 ---
 

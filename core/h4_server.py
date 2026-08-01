@@ -356,5 +356,18 @@ def register_routes():
         except Exception as e:
             return web.json_response({"error": str(e)}, status=500)
 
+    # 13. Link QoL: Civitai Model Details Endpoint
+    @PromptServer.instance.routes.get("/h4/link/details")
+    async def link_civitai_details(request):
+        try:
+            from ..nodes.h4_link_qol.civitai_api import fetch_model_details
+            model_id = request.query.get("id")
+            if not model_id:
+                return web.json_response({"success": False, "error": "Missing model id"}, status=400)
+            res = fetch_model_details(model_id)
+            return web.json_response(res)
+        except Exception as e:
+            return web.json_response({"success": False, "error": str(e)}, status=500)
+
 # Register on import
 register_routes()

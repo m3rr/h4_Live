@@ -32,7 +32,7 @@ app.registerExtension({
                 right: -420px;
                 width: 400px;
                 height: 100vh;
-                background: rgba(18, 18, 24, 0.95);
+                background: rgba(18, 18, 24, 0.96);
                 backdrop-filter: blur(12px);
                 border-left: 1px solid rgba(255, 255, 255, 0.1);
                 box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
@@ -51,14 +51,14 @@ app.registerExtension({
             #h4-link-details-panel {
                 position: fixed;
                 top: 0;
-                right: -840px;
+                right: -440px;
                 width: 420px;
                 height: 100vh;
-                background: rgba(14, 14, 20, 0.96);
+                background: rgba(14, 14, 20, 0.98);
                 backdrop-filter: blur(16px);
-                border-left: 1px solid rgba(255, 255, 255, 0.12);
-                box-shadow: -12px 0 35px rgba(0, 0, 0, 0.6);
-                z-index: 100004;
+                border-left: 1px solid rgba(97, 175, 239, 0.3);
+                box-shadow: -15px 0 40px rgba(0, 0, 0, 0.7);
+                z-index: 100006;
                 transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
                 display: flex;
                 flex-direction: column;
@@ -71,7 +71,7 @@ app.registerExtension({
 
             .h4-drawer-header {
                 padding: 16px;
-                background: rgba(255, 255, 255, 0.03);
+                background: rgba(255, 255, 255, 0.04);
                 border-bottom: 1px solid rgba(255, 255, 255, 0.08);
                 display: flex;
                 align-items: center;
@@ -84,14 +84,19 @@ app.registerExtension({
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 330px;
             }
             .h4-drawer-close {
                 cursor: pointer;
                 background: none;
                 border: none;
                 color: #888;
-                font-size: 22px;
+                font-size: 24px;
                 line-height: 1;
+                padding: 0 4px;
             }
             .h4-drawer-close:hover { color: #fff; }
             .h4-drawer-search {
@@ -131,7 +136,7 @@ app.registerExtension({
             .h4-drawer-body {
                 flex: 1;
                 overflow-y: auto;
-                padding: 12px 16px;
+                padding: 14px 16px;
                 display: flex;
                 flex-direction: column;
                 gap: 12px;
@@ -144,10 +149,11 @@ app.registerExtension({
                 display: flex;
                 gap: 10px;
                 align-items: flex-start;
-                transition: border-color 0.2s;
+                transition: all 0.2s;
             }
             .h4-model-card:hover {
                 border-color: rgba(97, 175, 239, 0.4);
+                background: rgba(255, 255, 255, 0.05);
             }
             .h4-model-thumb {
                 width: 75px;
@@ -156,10 +162,12 @@ app.registerExtension({
                 border-radius: 6px;
                 background: #1e1e24;
                 cursor: pointer;
-                transition: transform 0.2s;
+                transition: transform 0.2s, border-color 0.2s;
+                border: 2px solid transparent;
             }
             .h4-model-thumb:hover {
-                transform: scale(1.05);
+                transform: scale(1.06);
+                border-color: #61afef;
             }
             .h4-model-info {
                 flex: 1;
@@ -172,12 +180,14 @@ app.registerExtension({
                 font-weight: 600;
                 color: #fff;
                 cursor: pointer;
+                transition: color 0.15s;
             }
             .h4-model-name:hover { color: #61afef; }
             .h4-model-type {
                 font-size: 10px;
                 color: #98c379;
                 text-transform: uppercase;
+                letter-spacing: 0.5px;
             }
             .h4-btn-group {
                 display: flex;
@@ -191,7 +201,9 @@ app.registerExtension({
                 border-radius: 4px;
                 cursor: pointer;
                 font-weight: 600;
+                transition: opacity 0.15s;
             }
+            .h4-btn:hover { opacity: 0.85; }
             .h4-btn-dl { background: #98c379; color: #121218; }
             .h4-btn-inject { background: #61afef; color: #121218; }
             #h4-civitai-toggle-btn {
@@ -227,13 +239,14 @@ app.registerExtension({
             .h4-carousel-container {
                 position: relative;
                 width: 100%;
-                height: 250px;
+                height: 260px;
                 background: #000;
                 border-radius: 8px;
                 overflow: hidden;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                border: 1px solid rgba(255, 255, 255, 0.1);
             }
             .h4-carousel-img {
                 width: 100%;
@@ -244,22 +257,23 @@ app.registerExtension({
                 position: absolute;
                 top: 50%;
                 transform: translateY(-50%);
-                background: rgba(0, 0, 0, 0.6);
+                background: rgba(0, 0, 0, 0.7);
                 color: #fff;
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                width: 32px;
-                height: 32px;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                width: 34px;
+                height: 34px;
                 border-radius: 50%;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 16px;
+                font-size: 18px;
                 font-weight: bold;
                 user-select: none;
-                z-index: 2;
+                z-index: 3;
+                transition: all 0.2s;
             }
-            .h4-carousel-btn:hover { background: rgba(97, 175, 239, 0.8); color: #121218; }
+            .h4-carousel-btn:hover { background: #61afef; color: #121218; border-color: #61afef; }
             .h4-carousel-btn.prev { left: 8px; }
             .h4-carousel-btn.next { right: 8px; }
             .h4-thumb-strip {
@@ -269,22 +283,23 @@ app.registerExtension({
                 padding: 6px 0;
             }
             .h4-strip-thumb {
-                width: 48px;
-                height: 48px;
+                width: 52px;
+                height: 52px;
                 object-fit: cover;
                 border-radius: 4px;
                 cursor: pointer;
-                opacity: 0.6;
+                opacity: 0.5;
                 border: 2px solid transparent;
                 transition: all 0.2s;
+                flex-shrink: 0;
             }
             .h4-strip-thumb.active, .h4-strip-thumb:hover {
                 opacity: 1;
                 border-color: #61afef;
             }
             .h4-info-meta {
-                background: rgba(255, 255, 255, 0.02);
-                border: 1px solid rgba(255, 255, 255, 0.05);
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.06);
                 border-radius: 6px;
                 padding: 10px;
                 font-size: 12px;
@@ -293,8 +308,8 @@ app.registerExtension({
                 gap: 6px;
             }
             .h4-triggers-box {
-                background: rgba(0, 242, 255, 0.04);
-                border: 1px solid rgba(0, 242, 255, 0.15);
+                background: rgba(0, 242, 255, 0.05);
+                border: 1px solid rgba(0, 242, 255, 0.2);
                 border-radius: 6px;
                 padding: 8px;
                 font-size: 12px;
@@ -341,7 +356,7 @@ app.registerExtension({
         detailsPanel.id = "h4-link-details-panel";
         detailsPanel.innerHTML = `
             <div class="h4-drawer-header">
-                <div class="h4-drawer-title" id="h4-details-title">Model Specifications</div>
+                <div class="h4-drawer-title" id="h4-details-title">🔗 Model Specifications</div>
                 <button class="h4-drawer-close" id="h4-details-close-btn">&times;</button>
             </div>
             <div class="h4-drawer-body" id="h4-details-body">
@@ -426,114 +441,157 @@ app.registerExtension({
             detailsPanel.classList.toggle("open");
         } else if (open) {
             detailsPanel.classList.add("open");
+            if (window.innerWidth <= 840) {
+                detailsPanel.style.right = "0px";
+            } else {
+                detailsPanel.style.right = "400px";
+            }
         } else {
             detailsPanel.classList.remove("open");
         }
     },
 
     openDetailsDrawer(item, version) {
-        const detailsBody = document.getElementById("h4-details-body");
-        const detailsTitle = document.getElementById("h4-details-title");
-        if (!detailsBody || !detailsTitle) return;
+        try {
+            const detailsBody = document.getElementById("h4-details-body");
+            const detailsTitle = document.getElementById("h4-details-title");
+            if (!detailsBody || !detailsTitle) return;
 
-        detailsTitle.innerHTML = `🔗 ${item.name}`;
+            detailsTitle.innerHTML = `🔗 ${item.name || 'Model Specs'}`;
 
-        const images = (version && version.images) ? version.images : [];
-        let currentIndex = 0;
+            // Aggregate all images from the version and parent model versions
+            let images = [];
+            if (version && version.images && version.images.length > 0) {
+                images = version.images;
+            } else if (item.modelVersions) {
+                item.modelVersions.forEach(v => {
+                    if (v.images) images.push(...v.images);
+                });
+            }
 
-        const fileObj = (version.files && version.files[0]) || {};
-        const downloadUrl = fileObj.downloadUrl || "";
-        const filename = fileObj.name || `${item.name}.safetensors`;
-        const trainedWords = (version && version.trainedWords) ? version.trainedWords : [];
+            let currentIndex = 0;
+            const fileObj = (version && version.files && version.files[0]) || {};
+            const downloadUrl = fileObj.downloadUrl || "";
+            const filename = fileObj.name || `${item.name}.safetensors`;
+            const trainedWords = (version && version.trainedWords) ? version.trainedWords : [];
+            const safeDesc = (item.description || "No detailed description provided.").replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
 
-        // Build HTML
-        detailsBody.innerHTML = `
-            <div class="h4-carousel-container">
-                ${images.length > 1 ? `<button class="h4-carousel-btn prev" id="h4-carousel-prev">&lsaquo;</button>` : ''}
-                <img class="h4-carousel-img" id="h4-carousel-main" src="${images[0]?.url || ''}" alt="preview">
-                ${images.length > 1 ? `<button class="h4-carousel-btn next" id="h4-carousel-next">&rsaquo;</button>` : ''}
-            </div>
-
-            ${images.length > 1 ? `
-                <div class="h4-thumb-strip" id="h4-carousel-strip">
-                    ${images.map((img, i) => `<img class="h4-strip-thumb ${i===0?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb">`).join('')}
+            // Build HTML
+            detailsBody.innerHTML = `
+                <div class="h4-carousel-container">
+                    ${images.length > 1 ? `<button class="h4-carousel-btn prev" id="h4-carousel-prev">&lsaquo;</button>` : ''}
+                    <img class="h4-carousel-img" id="h4-carousel-main" src="${images[0]?.url || ''}" alt="preview">
+                    ${images.length > 1 ? `<button class="h4-carousel-btn next" id="h4-carousel-next">&rsaquo;</button>` : ''}
                 </div>
-            ` : ''}
 
-            <div class="h4-info-meta">
-                <div><strong>Base Model:</strong> ${version.baseModel || 'SD'}</div>
-                <div><strong>Type:</strong> ${item.type}</div>
-                <div><strong>Downloads:</strong> ${(item.stats && item.stats.downloadCount) || 0}</div>
-                <div><strong>Rating:</strong> ⭐ ${(item.stats && item.stats.rating) ? item.stats.rating.toFixed(1) : 'N/A'}</div>
-                <div><strong>Filename:</strong> <code style="color: #98c379;">${filename}</code></div>
-            </div>
-
-            ${trainedWords.length > 0 ? `
-                <div>
-                    <div style="font-size: 11px; font-weight: 600; color: #888; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-                        <span>TRIGGER WORDS</span>
-                        <button class="h4-btn" id="h4-copy-triggers" style="background: rgba(255,255,255,0.1); color: #fff; font-size: 10px; padding: 2px 6px;">Copy</button>
+                ${images.length > 1 ? `
+                    <div class="h4-thumb-strip" id="h4-carousel-strip">
+                        ${images.map((img, i) => `<img class="h4-strip-thumb ${i===0?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb">`).join('')}
                     </div>
-                    <div class="h4-triggers-box" id="h4-triggers-text">${trainedWords.join(', ')}</div>
+                ` : ''}
+
+                <div class="h4-info-meta">
+                    <div><strong>Base Model:</strong> ${version?.baseModel || 'SD'}</div>
+                    <div><strong>Type:</strong> ${item.type || 'LoRA'}</div>
+                    <div><strong>Downloads:</strong> ${(item.stats && item.stats.downloadCount) || 0}</div>
+                    <div><strong>Rating:</strong> ⭐ ${(item.stats && item.stats.rating) ? item.stats.rating.toFixed(1) : 'N/A'}</div>
+                    <div><strong>Filename:</strong> <code style="color: #98c379;">${filename}</code></div>
                 </div>
-            ` : ''}
 
-            <div class="h4-btn-group" style="margin-top: 8px;">
-                <button class="h4-btn h4-btn-dl" id="h4-details-dl-btn" style="flex: 1; padding: 8px; font-size: 12px;">Download Model</button>
-                <button class="h4-btn h4-btn-inject" id="h4-details-inject-btn" style="flex: 1; padding: 8px; font-size: 12px;">Load into Node</button>
-            </div>
+                ${trainedWords.length > 0 ? `
+                    <div>
+                        <div style="font-size: 11px; font-weight: 600; color: #888; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>TRIGGER WORDS</span>
+                            <button class="h4-btn" id="h4-copy-triggers" style="background: rgba(255,255,255,0.1); color: #fff; font-size: 10px; padding: 2px 6px;">Copy</button>
+                        </div>
+                        <div class="h4-triggers-box" id="h4-triggers-text">${trainedWords.join(', ')}</div>
+                    </div>
+                ` : ''}
 
-            <div style="margin-top: 10px;">
-                <div style="font-size: 11px; font-weight: 600; color: #888; margin-bottom: 4px;">DESCRIPTION</div>
-                <div style="font-size: 12px; color: #aaa; line-height: 1.4; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px;">
-                    ${item.description || 'No detailed description provided.'}
+                <div class="h4-btn-group" style="margin-top: 8px;">
+                    <button class="h4-btn h4-btn-dl" id="h4-details-dl-btn" style="flex: 1; padding: 8px; font-size: 12px;">Download Model</button>
+                    <button class="h4-btn h4-btn-inject" id="h4-details-inject-btn" style="flex: 1; padding: 8px; font-size: 12px;">Load into Node</button>
                 </div>
-            </div>
-        `;
 
-        // Carousel image switcher
-        const updateCarousel = (newIdx) => {
-            if (images.length === 0) return;
-            currentIndex = (newIdx + images.length) % images.length;
-            const mainImg = document.getElementById("h4-carousel-main");
-            if (mainImg) mainImg.src = images[currentIndex].url;
+                <div style="margin-top: 10px;">
+                    <div style="font-size: 11px; font-weight: 600; color: #888; margin-bottom: 4px;">DESCRIPTION</div>
+                    <div style="font-size: 12px; color: #aaa; line-height: 1.4; max-height: 180px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);">
+                        ${safeDesc}
+                    </div>
+                </div>
+            `;
+
+            // Carousel image switcher
+            const updateCarousel = (newIdx) => {
+                if (images.length === 0) return;
+                currentIndex = (newIdx + images.length) % images.length;
+                const mainImg = document.getElementById("h4-carousel-main");
+                if (mainImg) mainImg.src = images[currentIndex].url;
+
+                const stripThumbs = document.querySelectorAll(".h4-strip-thumb");
+                stripThumbs.forEach((t, i) => {
+                    if (i === currentIndex) t.classList.add("active");
+                    else t.classList.remove("active");
+                });
+            };
+
+            const prevBtn = document.getElementById("h4-carousel-prev");
+            if (prevBtn) prevBtn.onclick = () => updateCarousel(currentIndex - 1);
+
+            const nextBtn = document.getElementById("h4-carousel-next");
+            if (nextBtn) nextBtn.onclick = () => updateCarousel(currentIndex + 1);
 
             const stripThumbs = document.querySelectorAll(".h4-strip-thumb");
-            stripThumbs.forEach((t, i) => {
-                if (i === currentIndex) t.classList.add("active");
-                else t.classList.remove("active");
+            stripThumbs.forEach(t => {
+                t.onclick = () => updateCarousel(parseInt(t.dataset.idx));
             });
-        };
 
-        const prevBtn = document.getElementById("h4-carousel-prev");
-        if (prevBtn) prevBtn.onclick = () => updateCarousel(currentIndex - 1);
+            // Trigger words copy handler
+            const copyBtn = document.getElementById("h4-copy-triggers");
+            if (copyBtn) {
+                copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(trainedWords.join(', '));
+                    copyBtn.textContent = "Copied!";
+                    setTimeout(() => { copyBtn.textContent = "Copy"; }, 1500);
+                };
+            }
 
-        const nextBtn = document.getElementById("h4-carousel-next");
-        if (nextBtn) nextBtn.onclick = () => updateCarousel(currentIndex + 1);
+            // Action handlers
+            const dlBtn = document.getElementById("h4-details-dl-btn");
+            if (dlBtn) dlBtn.onclick = () => this.downloadModel(downloadUrl, filename, item.type, item.name, trainedWords);
 
-        const stripThumbs = document.querySelectorAll(".h4-strip-thumb");
-        stripThumbs.forEach(t => {
-            t.onclick = () => updateCarousel(parseInt(t.dataset.idx));
-        });
+            const injectBtn = document.getElementById("h4-details-inject-btn");
+            if (injectBtn) injectBtn.onclick = () => this.injectIntoNode(filename);
 
-        // Trigger words copy handler
-        const copyBtn = document.getElementById("h4-copy-triggers");
-        if (copyBtn) {
-            copyBtn.onclick = () => {
-                navigator.clipboard.writeText(trainedWords.join(', '));
-                copyBtn.textContent = "Copied!";
-                setTimeout(() => { copyBtn.textContent = "Copy"; }, 1500);
-            };
+            this.toggleDetailsDrawer(true);
+
+            // Fetch full model details via API for extra showcase images
+            if (item.id) {
+                fetch(`/h4/link/details?id=${item.id}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success && data.model && data.model.modelVersions) {
+                            const fullImages = [];
+                            data.model.modelVersions.forEach(v => {
+                                if (v.images) fullImages.push(...v.images);
+                            });
+                            if (fullImages.length > images.length) {
+                                images = fullImages;
+                                const strip = document.getElementById("h4-carousel-strip");
+                                if (strip) {
+                                    strip.innerHTML = images.map((img, i) => `<img class="h4-strip-thumb ${i===currentIndex?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb">`).join('');
+                                    document.querySelectorAll(".h4-strip-thumb").forEach(t => {
+                                        t.onclick = () => updateCarousel(parseInt(t.dataset.idx));
+                                    });
+                                }
+                            }
+                        }
+                    })
+                    .catch(e => console.log("Details fetch status:", e));
+            }
+        } catch (e) {
+            console.error("Error opening details drawer:", e);
         }
-
-        // Action handlers
-        const dlBtn = document.getElementById("h4-details-dl-btn");
-        if (dlBtn) dlBtn.onclick = () => this.downloadModel(downloadUrl, filename, item.type, item.name, trainedWords);
-
-        const injectBtn = document.getElementById("h4-details-inject-btn");
-        if (injectBtn) injectBtn.onclick = () => this.injectIntoNode(filename);
-
-        this.toggleDetailsDrawer(true);
     },
 
     async performSearch() {
@@ -572,19 +630,19 @@ app.registerExtension({
                         </div>
                     `;
 
-                    // Thumbnail & Name click triggers secondary details drawer
+                    // Click listeners for details drawer
                     const thumbImg = card.querySelector(".h4-model-thumb");
-                    thumbImg.onclick = () => this.openDetailsDrawer(item, latestVer);
+                    if (thumbImg) thumbImg.onclick = (e) => { e.stopPropagation(); this.openDetailsDrawer(item, latestVer); };
 
                     const titleEl = card.querySelector(".h4-model-name");
-                    titleEl.onclick = () => this.openDetailsDrawer(item, latestVer);
+                    if (titleEl) titleEl.onclick = (e) => { e.stopPropagation(); this.openDetailsDrawer(item, latestVer); };
 
                     // Button handlers
                     const dlBtn = card.querySelector(".h4-btn-dl");
-                    dlBtn.onclick = () => this.downloadModel(downloadUrl, filename, item.type, item.name, latestVer.trainedWords);
+                    if (dlBtn) dlBtn.onclick = (e) => { e.stopPropagation(); this.downloadModel(downloadUrl, filename, item.type, item.name, latestVer.trainedWords); };
 
                     const injectBtn = card.querySelector(".h4-btn-inject");
-                    injectBtn.onclick = () => this.injectIntoNode(filename);
+                    if (injectBtn) injectBtn.onclick = (e) => { e.stopPropagation(); this.injectIntoNode(filename); };
 
                     resultsContainer.appendChild(card);
                 });
