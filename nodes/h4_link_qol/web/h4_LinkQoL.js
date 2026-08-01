@@ -1,4 +1,4 @@
-// h4_LinkQoL.js - Civitai Bridge & Model Manager Frontend UI with Fullscreen Lightbox & Secondary Drawer Fixes
+// h4_LinkQoL.js - Civitai Bridge & Model Manager Frontend UI with Dynamic Aspect-Ratio Fitting & Large Thumbnails
 // ==============================================================================
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
@@ -47,12 +47,12 @@ app.registerExtension({
                 right: 0;
             }
 
-            /* Secondary Model Details Drawer */
+            /* Secondary Model Details Drawer (Wider for Large Images & Fitting Layouts) */
             #h4-link-details-panel {
                 position: fixed;
                 top: 0;
-                right: -440px;
-                width: 420px;
+                right: -500px;
+                width: 480px;
                 height: 100vh;
                 background: rgba(14, 14, 20, 0.98);
                 backdrop-filter: blur(16px);
@@ -87,7 +87,7 @@ app.registerExtension({
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                max-width: 330px;
+                max-width: 390px;
             }
             .h4-drawer-close {
                 cursor: pointer;
@@ -139,7 +139,7 @@ app.registerExtension({
                 padding: 14px 16px;
                 display: flex;
                 flex-direction: column;
-                gap: 12px;
+                gap: 14px;
             }
             .h4-model-card {
                 background: rgba(255, 255, 255, 0.03);
@@ -147,7 +147,7 @@ app.registerExtension({
                 border-radius: 8px;
                 padding: 10px;
                 display: flex;
-                gap: 10px;
+                gap: 12px;
                 align-items: flex-start;
                 transition: all 0.2s;
             }
@@ -156,8 +156,8 @@ app.registerExtension({
                 background: rgba(255, 255, 255, 0.05);
             }
             .h4-model-thumb {
-                width: 75px;
-                height: 75px;
+                width: 90px;
+                height: 90px;
                 object-fit: cover;
                 border-radius: 6px;
                 background: #1e1e24;
@@ -166,7 +166,7 @@ app.registerExtension({
                 border: 2px solid transparent;
             }
             .h4-model-thumb:hover {
-                transform: scale(1.06);
+                transform: scale(1.05);
                 border-color: #61afef;
             }
             .h4-model-info {
@@ -235,22 +235,27 @@ app.registerExtension({
                 box-shadow: 0 0 14px rgba(0, 242, 255, 0.5);
             }
 
-            /* Secondary Details Drawer Elements (Enlarged) */
+            /* Dynamic Aspect-Ratio Fitting Carousel & Large Thumbnails */
             .h4-carousel-container {
                 position: relative;
                 width: 100%;
-                height: 360px;
-                background: #000;
-                border-radius: 8px;
+                min-height: 280px;
+                max-height: 520px;
+                height: 380px;
+                background: #060608;
+                border-radius: 10px;
                 overflow: hidden;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             }
             .h4-carousel-img {
-                width: 100%;
-                height: 100%;
+                max-width: 100%;
+                max-height: 100%;
+                width: auto;
+                height: auto;
                 object-fit: contain;
                 cursor: zoom-in;
             }
@@ -258,17 +263,17 @@ app.registerExtension({
                 position: absolute;
                 top: 50%;
                 transform: translateY(-50%);
-                background: rgba(0, 0, 0, 0.7);
+                background: rgba(0, 0, 0, 0.75);
                 color: #fff;
                 border: 1px solid rgba(255, 255, 255, 0.3);
-                width: 36px;
-                height: 36px;
+                width: 38px;
+                height: 38px;
                 border-radius: 50%;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 20px;
+                font-size: 22px;
                 font-weight: bold;
                 user-select: none;
                 z-index: 3;
@@ -277,17 +282,19 @@ app.registerExtension({
             .h4-carousel-btn:hover { background: #61afef; color: #121218; border-color: #61afef; }
             .h4-carousel-btn.prev { left: 10px; }
             .h4-carousel-btn.next { right: 10px; }
+
+            /* Large Thumbnail Gallery Strip */
             .h4-thumb-strip {
                 display: flex;
-                gap: 8px;
+                gap: 10px;
                 overflow-x: auto;
-                padding: 8px 0;
+                padding: 6px 0;
             }
             .h4-strip-thumb {
-                width: 70px;
-                height: 70px;
+                width: 100px;
+                height: 100px;
                 object-fit: cover;
-                border-radius: 6px;
+                border-radius: 8px;
                 cursor: pointer;
                 opacity: 0.6;
                 border: 2px solid transparent;
@@ -298,12 +305,13 @@ app.registerExtension({
                 opacity: 1;
                 border-color: #61afef;
                 transform: scale(1.05);
+                box-shadow: 0 4px 12px rgba(97, 175, 239, 0.3);
             }
             .h4-info-meta {
                 background: rgba(255, 255, 255, 0.03);
                 border: 1px solid rgba(255, 255, 255, 0.06);
                 border-radius: 6px;
-                padding: 10px;
+                padding: 12px;
                 font-size: 12px;
                 display: flex;
                 flex-direction: column;
@@ -554,10 +562,10 @@ app.registerExtension({
         
         if (open) {
             detailsPanel.classList.add("open");
-            detailsPanel.style.right = (window.innerWidth <= 840) ? "0px" : "400px";
+            detailsPanel.style.right = (window.innerWidth <= 920) ? "0px" : "400px";
         } else {
             detailsPanel.classList.remove("open");
-            detailsPanel.style.right = "-440px"; // Completely hides panel off-screen
+            detailsPanel.style.right = "-500px"; // Completely hides panel off-screen
         }
     },
 
@@ -631,15 +639,16 @@ app.registerExtension({
 
             // Build HTML
             detailsBody.innerHTML = `
-                <div class="h4-carousel-container" title="Click to view full-screen Lightbox">
+                <div class="h4-carousel-container" title="Click image to open Fullscreen Lightbox">
                     ${images.length > 1 ? `<button class="h4-carousel-btn prev" id="h4-carousel-prev">&lsaquo;</button>` : ''}
                     <img class="h4-carousel-img" id="h4-carousel-main" src="${images[0]?.url || ''}" alt="preview">
                     ${images.length > 1 ? `<button class="h4-carousel-btn next" id="h4-carousel-next">&rsaquo;</button>` : ''}
                 </div>
 
                 ${images.length > 1 ? `
+                    <div style="font-size: 11px; font-weight: 600; color: #888; margin-top: 4px;">SHOWCASE GALLERY (${images.length} IMAGES)</div>
                     <div class="h4-thumb-strip" id="h4-carousel-strip">
-                        ${images.map((img, i) => `<img class="h4-strip-thumb ${i===0?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb" title="Click thumbnail for Lightbox">`).join('')}
+                        ${images.map((img, i) => `<img class="h4-strip-thumb ${i===0?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb" title="Click to view in Fullscreen Lightbox">`).join('')}
                     </div>
                 ` : ''}
 
@@ -662,8 +671,8 @@ app.registerExtension({
                 ` : ''}
 
                 <div class="h4-btn-group" style="margin-top: 8px;">
-                    <button class="h4-btn h4-btn-dl" id="h4-details-dl-btn" style="flex: 1; padding: 8px; font-size: 12px;">Download Model</button>
-                    <button class="h4-btn h4-btn-inject" id="h4-details-inject-btn" style="flex: 1; padding: 8px; font-size: 12px;">Load into Node</button>
+                    <button class="h4-btn h4-btn-dl" id="h4-details-dl-btn" style="flex: 1; padding: 10px; font-size: 12px;">Download Model</button>
+                    <button class="h4-btn h4-btn-inject" id="h4-details-inject-btn" style="flex: 1; padding: 10px; font-size: 12px;">Load into Node</button>
                 </div>
 
                 <div style="margin-top: 10px;">
@@ -674,19 +683,47 @@ app.registerExtension({
                 </div>
             `;
 
-            // Carousel image switcher & Lightbox trigger
+            // Dynamic Aspect-Ratio Fitting Carousel
             const updateCarousel = (newIdx) => {
                 if (images.length === 0) return;
                 currentIndex = (newIdx + images.length) % images.length;
                 const mainImg = document.getElementById("h4-carousel-main");
-                if (mainImg) mainImg.src = images[currentIndex].url;
+                const carouselBox = document.querySelector(".h4-carousel-container");
+
+                if (mainImg) {
+                    mainImg.src = images[currentIndex].url;
+                    mainImg.onload = () => {
+                        const nw = mainImg.naturalWidth || 1;
+                        const nh = mainImg.naturalHeight || 1;
+                        const ratio = nw / nh;
+                        if (carouselBox) {
+                            if (ratio < 0.85) {
+                                // Tall Portrait image (e.g. 512x768, 832x1216) -> grows tall
+                                carouselBox.style.height = "500px";
+                            } else if (ratio > 1.25) {
+                                // Wide Landscape image (e.g. 1216x832, 1024x576) -> fits wide frame
+                                carouselBox.style.height = "290px";
+                            } else {
+                                // Square or Standard image (e.g. 1024x1024) -> standard height
+                                carouselBox.style.height = "380px";
+                            }
+                        }
+                    };
+                }
 
                 const stripThumbs = document.querySelectorAll(".h4-strip-thumb");
                 stripThumbs.forEach((t, i) => {
-                    if (i === currentIndex) t.classList.add("active");
-                    else t.classList.remove("active");
+                    if (i === currentIndex) {
+                        t.classList.add("active");
+                        t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    } else {
+                        t.classList.remove("active");
+                    }
                 });
             };
+
+            // Trigger initial image aspect-ratio sizing
+            updateCarousel(0);
 
             const prevBtn = document.getElementById("h4-carousel-prev");
             if (prevBtn) prevBtn.onclick = (e) => { e.stopPropagation(); updateCarousel(currentIndex - 1); };
