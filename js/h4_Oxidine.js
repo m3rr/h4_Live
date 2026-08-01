@@ -3,8 +3,8 @@
 // Production Ready - Vue Title Shield v3 + Multi-Input/Output + Fast Blob
 // ============================================================================
 
-import { app } from "/scripts/app.js";
-import { api } from "/scripts/api.js";
+import { app } from "../../scripts/app.js";
+import { api } from "../../scripts/api.js";
 
 // Helper: enforce all anti-display flags on a node instance AFTER Vue hydration
 function enforceSilence(node) {

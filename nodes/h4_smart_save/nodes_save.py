@@ -75,7 +75,7 @@ class H4_ManifestCache:
                         try: os.remove(old_thumb)
                         except: pass
 
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(self.db_path, timeout=30.0)
             self._ensure_schema(conn)
             with conn:
                 conn.execute("""

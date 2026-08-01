@@ -37,31 +37,44 @@ WEB_DIRECTORY = "./js"
 
 # Files that stay in the root /js folder and are NEVER deleted by the harvester
 PROTECTED_JS = [
-    # Original names (keep for backward compat)
-    "h4BigBrother.js", "h4Dashboard.js", "h4Sidebar.js", "assets", 
-    "h4generation.js", "h4ParameterTracer.js", "h4LoreManager.js",
-    "h4Comparinator.js", "h4Switcheroo.js", "h4SmartSave.js", 
-    "h4MissionControl.js", "h4deadweight.js",
-    "h4SovereignCore.js", "h4themeoverrides.json",  
-    # Underscore variants — ACTUAL filenames on disk
-    "h4_Dashboard.js", "h4_Sidebar.js", "h4_Lore.js", "h4_BigBrother.js",
-    "h4_generation.js", "h4_ParameterTracer.js", "h4_LoreManager.js",
-    "h4_Comparinator.js", "h4_Switcheroo.js", "h4_SmartSave.js", 
-    "h4_MissionControl.js", "h4_deadweight.js", "h4_SovereignCore.js",
+    "assets", "h4_theme_overrides.json", "h4themeoverrides.json",
+    "h4_BigBrother.js", "h4BigBrother.js", "h4_Dashboard.js", "h4Dashboard.js",
+    "h4_Sidebar.js", "h4Sidebar.js", "h4_generation.js", "h4generation.js",
+    "h4_ParameterTracer.js", "h4ParameterTracer.js", "h4_LoreManager.js", "h4LoreManager.js",
+    "h4_Comparinator.js", "h4Comparinator.js", "h4_Switcheroo.js", "h4Switcheroo.js",
+    "h4_SmartSave.js", "h4SmartSave.js", "h4_MissionControl.js", "h4MissionControl.js",
+    "h4_dead_weight.js", "h4_deadweight.js", "h4deadweight.js", "h4_SovereignCore.js", "h4SovereignCore.js",
+    "h4_Lore.js", "h4_DisplayAny.js", "h4_DocuScribe.js", "h4_DoubleSampler.js",
+    "h4_ForgeMask.js", "h4_IdentityEngine.js", "h4_LatentSelector.js", "h4_Loaders.js",
+    "h4_Mutate.js", "h4_Oxidine.js", "h4_PixelPress.js", "h4_VisualTokenizer.js",
+    "h4_datastream.js", "h4_faceforge.js", "h4_gridinator.js", "h4_model_merger.js",
+    "h4_model_save.js", "h4_node_translator.js", "pythonipulator_inator.js", "h4_img_compress.js",
+    "h4_LinkQoL.js"
 ]
 
 def harvest_js_assets(nodes_dir, root_js_dir):
     """
     Synchronizes JS assets from individual node folders to the root WEB_DIRECTORY.
+    Dynamically preserves standalone root extension scripts.
     """
     try:
         if not os.path.exists(root_js_dir):
             os.makedirs(root_js_dir, exist_ok=True)
             _log(f"MOTHERSHIP: Created root JS directory at {root_js_dir}")
             
-        # 1. Clean stale node JS (ignore protected)
+        # Discover all valid JS assets across node web/ folders
+        managed_node_js = set()
+        if os.path.exists(nodes_dir):
+            for node_folder in os.listdir(nodes_dir):
+                if node_folder.startswith("__"): continue
+                web_path = os.path.join(nodes_dir, node_folder, "web")
+                if os.path.isdir(web_path):
+                    for item in os.listdir(web_path):
+                        managed_node_js.add(item)
+                        
+        # 1. Clean stale node JS only if it is no longer present in any node web folder AND not protected
         for item in os.listdir(root_js_dir):
-            if item not in PROTECTED_JS:
+            if item not in PROTECTED_JS and item not in managed_node_js and not item.endswith(".js"):
                 path = os.path.join(root_js_dir, item)
                 try:
                     if os.path.isdir(path):
@@ -71,7 +84,7 @@ def harvest_js_assets(nodes_dir, root_js_dir):
                 except Exception as e:
                     _log(f"MOTHERSHIP: [WARNING] Lock on {item} - skipping prune. {e}")
                     
-        # 2. Harvest fresh JS
+        # 2. Harvest fresh JS from nodes
         count = 0
         if not os.path.exists(nodes_dir):
             return False
@@ -91,7 +104,6 @@ def harvest_js_assets(nodes_dir, root_js_dir):
                         else:
                             shutil.copy2(src, dst)
                         count += 1
-                        # _log(f"  + Synced: {js_file} from {node_folder}")
                     except Exception as e:
                         _log(f"MOTHERSHIP: [ERROR] Failed to sync {js_file}: {e}")
 

@@ -19,12 +19,11 @@ app.registerExtension({
 
     // State Configuration
     _config: {
-        enabled: true,
-        qolMasterOverride: true,
+        enabled: false,
         monitorEnabled: false,
-        debugMode: false,
-        showErrorPopup: false,
-        showGrid: false,
+        debugMode: false,          // [h4 DEBUG PROTOCOL] NUCLEAR debug logging toggle
+        showErrorPopup: false,     // Show the Death Modal on execution errors
+        showGrid: false,           // Default to OFF
         wireColorSelect: "#00FF00",
         wireColorError: "#FF0000",
         gridColor: "rgba(255, 200, 0, 0.15)",
@@ -33,9 +32,7 @@ app.registerExtension({
         wireSpacing: 1.0,
         offsetX: 0,
         offsetY: 0,
-        wireOffsetY: 0,
-        caffeineEnabled: true,
-        kickItEnabled: true
+        wireOffsetY: 0
     },
 
     // Internal State
@@ -116,9 +113,6 @@ app.registerExtension({
                 this._state[key] = val;
                 // Trigger re-render or updates if needed
                 if (key === 'debugMode') this.updateDebugNodeVisibility();
-                if (['qolMasterOverride', 'caffeineEnabled', 'kickItEnabled'].includes(key)) {
-                    this.updateToolbarVisibility();
-                }
             }
         });
 
@@ -240,29 +234,15 @@ app.registerExtension({
 
         document.body.appendChild(btn);
 
-        // Initial visibility
-        this.updateToolbarVisibility();
-
         // --- KICK IT BUTTON (>_<)!! ---
-        this.setupKickItButton();
-    },
-
-    updateToolbarVisibility() {
-        const master = this._state.qolMasterOverride;
-
-        const cf = document.getElementById("h4-caffeine-toggle");
-        if (cf) cf.style.display = (master && this._state.caffeineEnabled) ? "block" : "none";
-
-        const ki = document.getElementById("h4-kick-it-toggle");
-        if (ki) ki.style.display = (master && this._state.kickItEnabled) ? "block" : "none";
+        this.setupKickItButton(btn);
     },
 
     // ==============================================================================
     // KICK IT BUTTON (>_<)!!... (Canvas Defibrillator)
     // ==============================================================================
-    setupKickItButton() {
+    setupKickItButton(caffeineBtn) {
         const btn = document.createElement("div");
-        btn.id = "h4-kick-it-toggle";
         btn.textContent = "(>_<)!!";
         btn.title = "Give the Grid a kick to refresh the canvas (Fixes frozen noodles)";
 
@@ -270,7 +250,7 @@ app.registerExtension({
         Object.assign(btn.style, {
             position: "fixed",
             top: "5px",
-            right: "220px",
+            right: "220px", // 140px (Caffeine) + ~80px
             zIndex: "9999",
             color: "#ffaa00",
             fontFamily: "monospace",
@@ -921,8 +901,8 @@ app.registerExtension({
         // Discombobulator Easter Egg Check
         this.handleDiscombobulatorGlitch();
 
-        // Check master switches
-        if (!this._state.qolMasterOverride || !this._state.enabled) return;
+        // Check master switch
+        if (!this._state.enabled) return;
 
         // Sync transforms with ComfyUI's internal camera
         const ds = app.canvas.ds;
@@ -943,7 +923,6 @@ app.registerExtension({
     // DISCOMBOBULATOR GLITCH EFFECTS (Rendered on Ghost Layer)
     // -------------------------------------------------------------------------
     handleDiscombobulatorGlitch() {
-        if (!this._state.qolMasterOverride) return;
         // Scan graph for the node occasionally (throttled by time)
         const now = performance.now();
         if (now - this._glitchState.lastGlitchTime > 1000) {

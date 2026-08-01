@@ -9,7 +9,26 @@ import comfy.utils
 import comfy.model_patcher
 import comfy.model_management
 import comfy.supported_models
-from comfy.model_detection import count_blocks
+try:
+    from comfy.model_detection import count_blocks
+except ImportError:
+    def count_blocks(state_dict_keys, template):
+        """Fallback layer/block count helper for modern ComfyUI releases."""
+        max_idx = -1
+        prefix = template.split("{}")[0]
+        suffix = template.split("{}")[1] if "{}" in template else ""
+        for k in state_dict_keys:
+            if k.startswith(prefix):
+                rest = k[len(prefix):]
+                if suffix:
+                    parts = rest.split(suffix)
+                    if parts[0].isdigit():
+                        max_idx = max(max_idx, int(parts[0]))
+                else:
+                    parts = rest.split(".")
+                    if parts[0].isdigit():
+                        max_idx = max(max_idx, int(parts[0]))
+        return max_idx + 1 if max_idx >= 0 else 0
 import os
 import node_helpers
 from PIL import Image, ImageOps

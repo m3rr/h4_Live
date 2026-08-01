@@ -43,9 +43,13 @@ def get_buffered_image():
     return _H4_IMAGE_BUFFER
 
 def _log(message: str):
-    """Internal helper for timestamped logging (Rule 11)."""
+    """Internal helper for timestamped logging (Rule 11). Safe for non-UTF8 consoles."""
     ts = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-    print(f"[h4_Live][CORE][{ts}] {message}")
+    msg = f"[h4_Live][CORE][{ts}] {message}"
+    try:
+        print(msg)
+    except UnicodeEncodeError:
+        print(msg.encode('ascii', errors='replace').decode('ascii'))
 
 def get_state():
     return _H4_GLOBAL_STATE

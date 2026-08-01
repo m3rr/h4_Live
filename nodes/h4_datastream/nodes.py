@@ -181,8 +181,9 @@ class H4_DataStream:
             total_count = len(files)
             
             if total_count == 0:
-                _log(f"[{node_id}] ❌ No images found in: {target}")
-                raise ValueError(f"No Valid Images found in {target}")
+                _log(f"[{node_id}] ⚠️ WARNING: No valid images found in {target}. Returning blank tensor.")
+                blank_tensor = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
+                return (blank_tensor, "empty_folder", 0, 0, True)
     
             # 3. Handle Index Clamping & Wrapping
             effective_index = current_index

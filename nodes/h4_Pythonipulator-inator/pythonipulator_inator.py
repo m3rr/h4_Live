@@ -10,8 +10,7 @@ from PIL import Image
 def check_dependencies():
     """
     Scans the environment for necessary image processing libraries.
-    Operation is silent unless a deployment is actually required, 
-    ensuring the Mothership audit table remains clean.
+    Non-blocking inspection to ensure Mothership startup remains instantaneous.
     """
     required = {
         "Pillow": "PIL",
@@ -20,16 +19,15 @@ def check_dependencies():
         "scikit-image": "skimage"
     }
     
+    missing = []
     for package, import_name in required.items():
         try:
             __import__(import_name)
         except ImportError:
-            print(f"[H4 Pythonipulator] CRITICAL: Dependency '{package}' missing. Initiating deployment...")
-            try:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-                print(f"[H4 Pythonipulator] Successfully installed {package}.")
-            except Exception as e:
-                print(f"[H4 Pythonipulator] FAILED to install {package}. Manual intervention may be required: {str(e)}")
+            missing.append(package)
+            
+    if missing:
+        print(f"[H4 Pythonipulator] [WARNING] Missing optional libraries: {', '.join(missing)}. Some advanced effects may require manual installation: pip install {' '.join(missing)}")
 
 # Execute check on load
 check_dependencies()

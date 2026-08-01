@@ -1,5 +1,5 @@
 
-import { app } from "/scripts/app.js";
+import { app } from "../../scripts/app.js";
 
 /**
  * 📜 H4 DocuScribe - Frontend

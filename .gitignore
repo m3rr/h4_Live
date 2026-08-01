@@ -65,5 +65,5 @@ fix_nodes_standalone.py
 
 # Sync & Management Tools
 tools/
-
-
+scratch/
+*.db

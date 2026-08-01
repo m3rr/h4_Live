@@ -87,7 +87,8 @@ def register_routes():
             if not name:
                 return web.json_response({"error": "Missing name"}, status=400)
                 
-            filepath = os.path.join(PRESET_DIR, f"{name}.json")
+            safe_name = "".join([c for c in name if c.isalpha() or c.isdigit() or c in (' ', '-', '_')]).strip()
+            filepath = os.path.join(PRESET_DIR, f"{safe_name}.json")
             
             if not os.path.exists(filepath):
                  return web.json_response({"error": "Preset not found"}, status=404)
@@ -110,7 +111,8 @@ def register_routes():
             if not name:
                 return web.json_response({"error": "Missing name"}, status=400)
                 
-            filepath = os.path.join(PRESET_DIR, f"{name}.json")
+            safe_name = "".join([c for c in name if c.isalpha() or c.isdigit() or c in (' ', '-', '_')]).strip()
+            filepath = os.path.join(PRESET_DIR, f"{safe_name}.json")
             
             if os.path.exists(filepath):
                 os.remove(filepath)
@@ -130,10 +132,10 @@ def register_routes():
             if not node_id:
                 return web.json_response({"error": "Missing node_id"}, status=400)
             
-            # Import here to avoid circular dependency at top level
-            from .h4_comparinator import H4_Comparinator
+            # Correct import path from nodes package
+            from ..nodes.h4_comparinator.nodes import H4_Comparinator
             
-            history = list(H4_Comparinator.HISTORY_CACHE.get(node_id, []))
+            history = list(H4_Comparinator.RUNTIME_CACHE.get(node_id, []))
             return web.json_response({"history": history})
             
         except Exception as e:
@@ -304,6 +306,54 @@ def register_routes():
             return web.json_response(history_items[:50])
         except Exception as e:
             print(f"[h4_server] Error fetching compressor history: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    # 10. Link QoL: Civitai Search Endpoint
+    @PromptServer.instance.routes.get("/h4/link/search")
+    async def link_civitai_search(request):
+        try:
+            from ..nodes.h4_link_qol.civitai_api import search_civitai
+            query = request.query.get("query", "")
+            model_type = request.query.get("type", "All")
+            base_model = request.query.get("baseModel", "All")
+            sort = request.query.get("sort", "Highest Rated")
+            page = int(request.query.get("page", 1))
+            
+            res = search_civitai(query=query, model_type=model_type, base_model=base_model, sort=sort, page=page)
+            return web.json_response(res)
+        except Exception as e:
+            return web.json_response({"success": False, "error": str(e)}, status=500)
+
+    # 11. Link QoL: Civitai Download Endpoint
+    @PromptServer.instance.routes.post("/h4/link/download")
+    async def link_civitai_download(request):
+        try:
+            from ..nodes.h4_link_qol.civitai_api import start_model_download
+            data = await request.json()
+            download_url = data.get("download_url")
+            filename = data.get("filename")
+            model_type = data.get("model_type", "LoRA")
+            model_name = data.get("model_name", "")
+            version_name = data.get("version_name", "")
+            trigger_words = data.get("trigger_words", [])
+            
+            if not download_url or not filename:
+                return web.json_response({"error": "Missing download_url or filename"}, status=400)
+                
+            task_id = start_model_download(download_url, filename, model_type, model_name, version_name, trigger_words)
+            return web.json_response({"success": True, "download_id": task_id})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
+    # 12. Link QoL: Civitai Download Status Endpoint
+    @PromptServer.instance.routes.get("/h4/link/status")
+    async def link_civitai_status(request):
+        try:
+            from ..nodes.h4_link_qol.civitai_api import get_download_status
+            download_id = request.query.get("download_id", None)
+            res = get_download_status(download_id)
+            return web.json_response(res)
+        except Exception as e:
             return web.json_response({"error": str(e)}, status=500)
 
 # Register on import

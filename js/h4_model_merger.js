@@ -1,4 +1,4 @@
-import { app } from "/scripts/app.js";
+import { app } from "../../scripts/app.js";
 
 // --- Tooltips Dictionary (The "Casual - Verbose" Guide) ---
 const TOOLTIPS = {

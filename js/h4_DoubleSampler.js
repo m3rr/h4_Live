@@ -1,4 +1,4 @@
-import { app } from "/scripts/app.js";
+import { app } from "../../scripts/app.js";
 
 /**
  * 🎨 H4 Double Sampler - Proven Pattern V16 (Toggle Fix)

@@ -397,6 +397,14 @@ class H4_ModelMerger:
              # Return dummy latent
              test_latent = {"samples": torch.zeros([1, 4, 8, 8])}
 
+        try:
+            import comfy.model_management
+            import gc
+            comfy.model_management.soft_empty_cache()
+            gc.collect()
+        except:
+            pass
+
         return (merged_model, merged_clip, merged_vae, test_latent, test_image)
 
     def merge_symmetric(self, base, target, idx_base, idx_target, kwargs, is_clip=False):

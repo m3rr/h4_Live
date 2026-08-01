@@ -1538,18 +1538,10 @@ class ComparinatorUI {
 
         this.layers.liveA.style.display = "block";
         this.layers.liveA.src = this.resolveImageUrl(main, 'a');
-        this.layers.liveA.style.width = "100%";
-        this.layers.liveA.style.height = "100%";
-        this.layers.liveA.style.left = "0%";
-        this.layers.liveA.style.top = "0%";
         this.layers.liveA.style.clipPath = `inset(0% ${100 - x}% 0% 0%)`;
 
         this.layers.liveB.style.display = "block";
         this.layers.liveB.src = ref ? this.resolveImageUrl(ref, 'b') : this.resolveImageUrl(main, 'b');
-        this.layers.liveB.style.width = "100%";
-        this.layers.liveB.style.height = "100%";
-        this.layers.liveB.style.left = "0%";
-        this.layers.liveB.style.top = "0%";
         this.layers.liveB.style.clipPath = `inset(0% 0% 0% ${x}%)`;
 
         this.sliderX.style.display = "block";
