@@ -155,19 +155,24 @@ app.registerExtension({
             #h4-civitai-toggle-btn {
                 position: fixed;
                 top: 5px;
-                right: 420px; /* Positioned directly to the LEFT of Dead Weight Detector (300px) */
+                right: 460px; /* Fallback: Left of DWD */
                 z-index: 9999;
                 color: #61afef;
                 font-family: monospace;
                 font-weight: bold;
                 font-size: 13px;
                 cursor: pointer;
-                padding: 2px 8px;
-                background: rgba(0, 0, 0, 0.5);
+                padding: 2px 10px;
+                background: rgba(0, 0, 0, 0.6);
                 border-radius: 4px;
                 border: 1px solid #333;
                 user-select: none;
                 transition: all 0.1s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 26px;
+                box-sizing: border-box;
             }
             #h4-civitai-toggle-btn:hover {
                 border-color: #61afef;
@@ -176,7 +181,7 @@ app.registerExtension({
         `;
         document.head.appendChild(style);
 
-        // Toggle Button (Positioned to the LEFT of Kick-The-Grid button)
+        // Toggle Button (Positioned to the LEFT of Dead Weight Detector)
         const toggleBtn = document.createElement("div");
         toggleBtn.id = "h4-civitai-toggle-btn";
         toggleBtn.innerHTML = "🔗 Civitai";
@@ -224,17 +229,38 @@ app.registerExtension({
             };
         });
 
+        // Dynamic layout positioning
+        this.positionButton();
+        window.addEventListener("resize", () => this.positionButton());
+        setInterval(() => this.positionButton(), 1000);
+
         // Respect Dashboard Setting
         this.updateButtonVisibility();
+    },
+
+    positionButton() {
+        const btn = document.getElementById("h4-civitai-toggle-btn");
+        if (!btn) return;
+        const dwdBtn = document.getElementById("h4-dwd-toggle");
+        if (dwdBtn) {
+            const rect = dwdBtn.getBoundingClientRect();
+            if (rect.left > 0) {
+                const rightOffset = window.innerWidth - rect.left + 10;
+                btn.style.right = `${Math.max(rightOffset, 450)}px`;
+                return;
+            }
+        }
+        btn.style.right = "460px";
     },
 
     updateButtonVisibility() {
         const btn = document.getElementById("h4-civitai-toggle-btn");
         if (!btn) return;
+        let enabled = true;
         if (window.h4_Dashboard && window.h4_Dashboard.config) {
-            const enabled = window.h4_Dashboard.config.civitaiBridgeEnabled !== false;
-            btn.style.display = enabled ? "block" : "none";
+            enabled = window.h4_Dashboard.config.civitaiBridgeEnabled !== false;
         }
+        btn.style.display = enabled ? "flex" : "none";
     },
 
     toggleDrawer(open) {
