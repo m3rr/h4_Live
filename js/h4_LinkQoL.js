@@ -155,7 +155,7 @@ app.registerExtension({
             #h4-civitai-toggle-btn {
                 position: fixed;
                 top: 5px;
-                right: 285px; /* Positioned directly to the LEFT of Kick-The-Grid button (220px) */
+                right: 420px; /* Positioned directly to the LEFT of Dead Weight Detector (300px) */
                 z-index: 9999;
                 color: #61afef;
                 font-family: monospace;
