@@ -6,14 +6,18 @@ A stateful, loop-friendly utility belt for ComfyUI, built to make workflows feel
 > [!IMPORTANT]
 > **STABILITY STATUS**: The core engine and high-impact nodes (especially **H4_SmartSave**) have been transitioned to **STABLE**. While the toolkit is now production-hardened, you may experience occasional lag in external HUD interfaces (History Rail, Comparinator) during heavy backend processing. Current development focus (**WIP**) is centered on the `H4_NodeTranslator` and the `H4_Pythonipulator-inator` kernel extension.
 
+> [!WARNING]
+> **CIVITAI API & NETWORK ADVISORY (`h4_Link_QoL`)**: The **Civitai Bridge (`h4_Link_QoL`)** module communicates directly with the official Civitai REST API (`civitai.com/api/v1`). Searching models, fetching thumbnails, or streaming downloads may occasionally experience rate-limiting (HTTP 429), request throttling, or connection timeouts. **Please note**: Any timeouts or rate limits are strictly governed by Civitai's external server infrastructure and bandwidth controls—they are NOT a bug or limitation of the `h4_Live` QoL toolkit engine.
+
 Join our community for support and updates:
 **Discord**: [https://discord.gg/hDCHn4aJe5](https://discord.gg/hDCHn4aJe5)
 
 ---
 
-## ⚡ TACTICAL PROGRESS REPORT (v10.1.0)
+## ⚡ TACTICAL PROGRESS REPORT (v10.2.0)
+- **H4_LinkQoL (Civitai Bridge)**: **NEW RELEASE**. High-performance model search, preview gallery carousel, automated trigger word sidecars, and direct canvas node injection.
 - **H4_SmartSave**: Promoted to **STABLE**. Optimized for surgical canvas sovereignty. Resolved thumbnail desync issues (Lag monitoring ongoing).
-- **H4_DeadWeightDetector (D.W.D)**: **NEW RELEASE**. Static graph hygiene engine active. Identify and purge unreachable nodes in real-time.
+- **H4_DeadWeightDetector (D.W.D)**: **STABLE RELEASE**. Static graph hygiene engine active. Identify and purge unreachable nodes in real-time.
 - **H4_NodeTranslator**: Current **WIP**. Multilingual prompt synthesis and graph-level node type mapping.
 - **H4_Pythonipulator-inator**: Current **WIP hardening**. Transitioning to a distributed image kernel with enhanced glitch and geometric primitives.
 
@@ -99,6 +103,24 @@ Below is the “in painful detail” breakdown of every QoL enhancement. This se
 **What you’ll notice:** a tactical Kirby `(v_v)` button in the toolbar.
 **What it’s for:** real-time graph hygiene. Identifies isolated, broken, or bypassed nodes that are wasting canvas space or compute cycles.
 
+#### 8) Civitai Bridge & Model Manager (h4_Link_QoL)
+##### 🟢 Plain English Overview (Simple Language)
+**What you’ll notice:** a **`🔗 Civitai`** button sitting in the top bar to the left of the Dead Weight Detector.
+**What it’s for:** browser-free model management directly inside ComfyUI!
+- **Search & Explore:** Search Civitai for any LoRA, Checkpoint, or VAE right inside ComfyUI without opening a browser tab.
+- **Example Gallery:** Click any thumbnail to slide out a secondary detail panel with a high-resolution image carousel showing showcase images and prompts.
+- **Copy Trigger Words:** One-click button to copy trained trigger words directly to your clipboard.
+- **Direct Downloads:** Downloads models straight to the correct folder (`models/loras`, `models/checkpoints`, `models/vae`) in the background while creating `.txt` trigger word and `.json` metadata sidecars.
+- **Load into Node:** Click **"Load into Node"** to push the downloaded model filename directly into your active loader node on the canvas.
+
+##### ⚙️ Dev Corner Specification (Technical Deep Dive)
+- **API Transport Protocol:** Asynchronous REST client querying `https://civitai.com/api/v1/models` with query parameter filtering (`types=LORA|Checkpoint|VAE`, `sort=Highest Rated|Most Downloaded`, `limit=20`).
+- **Target Storage Resolution:** Uses ComfyUI `folder_paths.get_folder_paths()` API to resolve real filesystem target directories dynamically (`models/loras`, `models/checkpoints`, `models/vae`, `models/controlnet`).
+- **Background Downloader Engine:** Asynchronous chunked HTTP stream writer (`1MB` chunk buffers) executing on background executor threads to preserve 60FPS UI responsiveness. Includes real-time byte counters and status telemetry exposed via `/h4/link/status`.
+- **Metadata Sidecar Serialization:** Automatically writes adjacent UTF-8 metadata sidecars upon download completion: `<model_name>.txt` containing comma-separated `trainedWords` arrays and `<model_name>.json` storing raw Civitai version payloads.
+- **Glassmorphic Dual-Drawer Frontend:** `#h4-link-drawer-panel` (`width: 400px`, `z-index: 100005`) and `#h4-link-details-panel` (`width: 420px`, `z-index: 100004`) rendered with CSS `backdrop-filter: blur(12px)` and dynamic viewport offset calculation (`window.innerWidth - dwdRect.left + 12`).
+- **Canvas Injection Pipeline:** Graph AST walker parsing `app.canvas.selected_nodes`, locating target widget parameters (`lora_name`, `model_name`, `active_model_name`), and mutating LiteGraph widget values in-place with `app.canvas.setDirty(true, true)`.
+
 ---
 
 ## Node index (jump to any node)
@@ -149,6 +171,7 @@ Below is the “in painful detail” breakdown of every QoL enhancement. This se
 - [H4_SaveFaceModel](#h4_savefacemodel)
 
 ### Loaders and file operations
+- [H4_LinkQoL (Civitai Bridge)](#h4_linkqol-the-civitai-bridge)
 - [H4_UniversalLoader (Skeleton Key)](#h4_universalloader-skeleton-key)
 - [H4_CompleteLoader (All-In-One)](#h4_completeloader-all-in-one)
 - [H4_MultiImgUpload (The Gallery)](#h4_multiimgupload-the-gallery)
@@ -249,6 +272,27 @@ Below is the “in painful detail” breakdown of every QoL enhancement. This se
 
 ---
 
+### H4_LinkQoL (The Civitai Bridge)
+**Status:** **STABLE RELEASE**.
+##### 🟢 Plain English Overview (Simple Language)
+**What it is:** The direct bridge between Civitai and ComfyUI. Eliminates switching back and forth between web browsers and model folders.
+**How to use it:**
+1. Click **`🔗 Civitai`** in the top bar to open the main search panel.
+2. Search models by keyword or tag (LoRA, Checkpoint, VAE).
+3. Click any thumbnail to slide out the **Model Specifications Drawer** to inspect full showcase images via the high-res carousel.
+4. Click **Download Model** to save it directly into your ComfyUI models folder while auto-generating trigger word sidecars (`.txt`).
+5. Select a LoRA/Loader node on your canvas and click **Load into Node** to push the model filename straight into the node.
+
+##### ⚙️ Dev Corner Specification (Technical Deep Dive)
+- **Node Signature:** `H4_LinkQoL` registered under category `h4/loaders` as `🔗 h4_Link (Civitai Bridge)`.
+- **Backend Architecture:** REST API gateway (`nodes/h4_link_qol/civitai_api.py`) exposing custom aiohttp routes (`/h4/link/search`, `/h4/link/download`, `/h4/link/status`).
+- **Dynamic Path Mapping:** Interoperates with `comfy.cmd.folder_paths` to resolve destination root dirs (`loras`, `checkpoints`, `vae`, `controlnet`, `unet`, `clip`).
+- **Concurrent Streaming Downloader:** Non-blocking async chunked HTTP stream writer (`1048576` byte buffer chunks) operating on daemon executor threads with atomic status updates (`percent`, `downloaded_bytes`, `total_bytes`).
+- **Sidecar Generator:** Serializes adjacent `.txt` trigger word arrays and `.json` version payloads into the target model directory.
+- **Frontend Architecture:** Dual slide-out panel layout (`#h4-link-drawer-panel` and `#h4-link-details-panel`) with dynamic real-time viewport positioning (`positionButton()`), ultra-high z-index (`100005`), and LiteGraph canvas node widget mutation (`loraWidget.value = filename`).
+
+---
+
 ### Face manipulation suite (h4_faceforge/)
 **H4_FaceForge**: Robust all-in-one face swap engine with occlusion-aware handling and micro-detail restoration.
 
@@ -259,10 +303,20 @@ Below is the “in painful detail” breakdown of every QoL enhancement. This se
 ### Frontend extensions (js/)
 **H4_BigBrother**: The QoL backbone. Provides node snapping, socket colorization, and enhanced error reporting.
 **H4_SovereignCore**: The aesthetic governor. Enforces the H4 visual identity across all custom UI elements.
+**H4_LinkQoL**: The Civitai bridge. Provides slide-out search drawer, secondary image carousel details drawer, trigger word copying, background downloader, and canvas loader injection.
 
 ---
 
 ## Version History & Changelog
+
+### v10.2.0 - THE CIVITAI BRIDGE & OVERHAUL PROTOCOL
+*   **H4_LinkQoL (v1.0.0)**: Released the official Civitai Bridge module. Features slide-out search drawer, secondary details drawer with image carousel, `.txt`/`.json` sidecar creation, and direct canvas node injection.
+*   **Windows Unicode Stream Safety**: Resolved `UnicodeEncodeError` console crashes when printing non-UTF8 characters on Windows standard output streams.
+*   **API Security & Path Traversal Safeguards**: Applied path sanitization to all preset and image endpoint parameters in `h4_server.py`.
+*   **JS Asset Harvester Protection**: Overhauled `harvest_js_assets()` to dynamically preserve existing extension scripts without accidental pruning.
+*   **ComfyUI Version Compatibility**: Added defensive `count_blocks` fallback implementation in `h4_loaders`.
+*   **Database Concurrency**: Hardened SQLite connection timeouts (30.0s) and WAL mode in `h4_smart_save` to eliminate `database is locked` errors.
+*   **VRAM & Memory Management**: Integrated soft cache flushing and garbage collection in `h4_model_merger`.
 
 ### v10.1.0 - THE HYGIENE PROTOCOL
 *   **Infrastructure Cleanup**: Executed the **'Clean House'** protocol, purging redundant binaries (node.zip) and scratch logic to optimize repository weight.

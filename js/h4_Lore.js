@@ -78,6 +78,12 @@ export const LORE = {
         "usage": "Toggle 'Wireless Sync' to follow the global Mission Control seed, or run it independently for local noise variations.",
         "tips": ["Right-click to copy the current seed to the clipboard for external documentation."]
     },
+    "H4_LinkQoL": {
+        "title": "H4 Link QoL // THE CIVITAI BRIDGE",
+        "description": "The direct browser-free gateway between Civitai and ComfyUI. Search for models, preview example image carousels, copy trained trigger words, download directly into designated model directories, and inject model filenames straight into active canvas loader nodes.\n\n🟢 PLAIN ENGLISH OVERVIEW:\nClick the '🔗 Civitai' button in the top bar to open the search panel. Search for any LoRA, Checkpoint, or VAE. Click a thumbnail to open the Model Specifications drawer with a high-res image carousel, trained trigger word copier, and direct download/injection controls.\n\n⚙️ DEV CORNER TECHNICAL SPECIFICATION:\nAsynchronous REST client querying civitai.com/api/v1/models with query parameter filtering. Direct integration with ComfyUI folder_paths API (loras, checkpoints, vae, controlnet). Non-blocking background chunked streaming downloader (1MB buffers) with real-time byte tracking and automated .txt trigger word and .json metadata sidecar creation. Dual glassmorphic UI drawers (#h4-link-drawer-panel, #h4-link-details-panel) with z-index 100005, dynamic viewport positioning, and LiteGraph node parameter injection.",
+        "usage": "Click '🔗 Civitai' in top bar to open search. Click any model thumbnail to slide out details and preview carousel. Click 'Download Model' or 'Load into Node' to inject directly.",
+        "tips": ["Civitai API response times and rate limits are governed by Civitai servers.", "Click 'Copy' on trigger words to copy all prompt keywords to clipboard.", "Selecting a LoRA node on canvas before clicking 'Load into Node' populates the widget instantly."]
+    },
     "H4_UniversalLoader": {
         "title": "H4 Universal Loader // THE PORTER",
         "description": "A high-speed gateway for all model types. The Porter detects if you are trying to load a Checkpoint, a LoRA, or a VAE and presents the correct selection menu. It features 'Tactile Caching'—remembering your favorite models for near-instant swaps.",
