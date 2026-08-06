@@ -73,7 +73,7 @@ def search_civitai(query="", model_type="All", base_model="All", sort="Highest R
     url = f"{CIVITAI_BASE_URL}/models?" + urllib.parse.urlencode(params)
     
     req = urllib.request.Request(url, headers={
-        "User-Agent": "h4_Live_ToolKit/11.0 (ComfyUI)",
+        "User-Agent": "h4_Live_ToolKit/11.2.7 (ComfyUI)",
         "Accept": "application/json"
     })
     
@@ -96,7 +96,7 @@ def fetch_model_details(model_id, api_key=None):
     """
     url = f"{CIVITAI_BASE_URL}/models/{model_id}"
     req = urllib.request.Request(url, headers={
-        "User-Agent": "h4_Live_ToolKit/11.0 (ComfyUI)",
+        "User-Agent": "h4_Live_ToolKit/11.2.7 (ComfyUI)",
         "Accept": "application/json"
     })
     if api_key and api_key.strip():
@@ -136,7 +136,7 @@ def start_model_download(download_url, filename, model_type, model_name="", vers
     def _worker():
         try:
             req = urllib.request.Request(download_url, headers={
-                "User-Agent": "h4_Live_ToolKit/11.0 (ComfyUI)"
+                "User-Agent": "h4_Live_ToolKit/11.2.7 (ComfyUI)"
             })
             if api_key and api_key.strip():
                 req.add_header("Authorization", f"Bearer {api_key.strip()}")

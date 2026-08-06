@@ -5,6 +5,12 @@
 
 ---
 
+## [v11.2.7] — 2026-08-06
+### 🚀 Release v11.2.7
+- **Version Bump & Registry Sync**: Synchronized system-wide version identifiers to `11.2.7` across `pyproject.toml`, `version.py`, `__init__.py`, and module API headers for ComfyUI Registry publish.
+
+---
+
 ## [v10.2.0] — 2026-08-01
 ### 🚀 Major Feature Release: `h4_Link_QoL` (The Civitai Bridge) & System Overhaul
 
