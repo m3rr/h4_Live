@@ -17,6 +17,7 @@ app.registerExtension({
     _pollTimer: null,
     _lightboxImages: [],
     _lightboxIndex: 0,
+    _modelInfoCache: {},
 
     async setup() {
         console.log("🔗 h4_Link_QoL: Initializing Civitai Bridge Engine v2.0...");
@@ -33,6 +34,71 @@ app.registerExtension({
                 if (keyInput) keyInput.value = this._apiKey;
             }
         });
+
+        // Global Event Delegation for Open Dropdown Menu Items (.litecontextmenu)
+        document.addEventListener("mousemove", (e) => {
+            const menuEntry = e.target.closest(".litemenu-entry");
+            if (menuEntry) {
+                const txt = menuEntry.textContent.trim();
+                if (txt && txt !== "None" && !txt.startsWith("---") && (txt.includes(".") || txt.includes("/") || txt.length > 3)) {
+                    this.showHoverTooltipForModelName(txt, e);
+                }
+            }
+        });
+
+        // Global Event Listener for Canvas Node Selected Model Widgets
+        const setupCanvasHover = () => {
+            if (app.canvas && app.canvas.canvas) {
+                app.canvas.canvas.addEventListener("mousemove", (e) => {
+                    if (document.querySelector(".litecontextmenu")) return;
+
+                    const canvas = app.canvas;
+                    if (!canvas || !canvas.graph || !canvas.graph_mouse) return;
+
+                    const gMouse = canvas.graph_mouse;
+                    const node = canvas.graph.getNodeOnPos(gMouse[0], gMouse[1]);
+
+                    if (node && node.widgets && node.widgets.length > 0) {
+                        const nodeX = node.pos[0];
+                        const nodeY = node.pos[1];
+                        const mouseX = gMouse[0] - nodeX;
+                        const mouseY = gMouse[1] - nodeY;
+
+                        let currentY = 30;
+
+                        for (const w of node.widgets) {
+                            const wHeight = w.computeSize ? w.computeSize(node.size[0])[1] : 24;
+                            const widgetY = w.last_y !== undefined ? w.last_y : currentY;
+
+                            if (mouseX >= 0 && mouseX <= node.size[0] && mouseY >= widgetY && mouseY <= widgetY + wHeight) {
+                                const isModelWidget = (
+                                    w.name === "ckpt_name" || 
+                                    w.name === "lora_name" || 
+                                    w.name === "model_name" || 
+                                    w.name === "vae_name" || 
+                                    w.name === "control_net_name" || 
+                                    w.name === "active_model_name"
+                                );
+
+                                if (isModelWidget && w.value && typeof w.value === "string") {
+                                    this.showHoverTooltipForModelName(w.value, e);
+                                    return;
+                                }
+                            }
+                            currentY += wHeight + 4;
+                        }
+                    }
+
+                    if (!e.target.closest("#h4-link-drawer-panel") && !e.target.closest("#h4-link-details-panel") && !e.target.closest(".litemenu-entry")) {
+                        this.hideHoverTooltip();
+                    }
+                });
+            } else {
+                setTimeout(setupCanvasHover, 500);
+            }
+        };
+
+        setupCanvasHover();
     },
 
     createDrawerDOM() {
@@ -858,6 +924,56 @@ app.registerExtension({
         }
     },
 
+    // Lookup model details by string/filename with client caching
+    async showHoverTooltipForModelName(modelName, e) {
+        if (!modelName || modelName === "None" || modelName.startsWith("---")) {
+            this.hideHoverTooltip();
+            return;
+        }
+
+        if (window.h4_Dashboard && window.h4_Dashboard.config && window.h4_Dashboard.config.civitaiHoverTooltip === false) {
+            return;
+        }
+
+        const cleanName = modelName.trim();
+        let cached = this._modelInfoCache[cleanName];
+
+        if (!cached) {
+            this._modelInfoCache[cleanName] = (async () => {
+                try {
+                    let url = `/h4/link/info?name=${encodeURIComponent(cleanName)}`;
+                    if (this._apiKey) url += `&api_key=${encodeURIComponent(this._apiKey)}`;
+                    const resp = await fetch(url);
+                    const data = await resp.json();
+                    return data.success ? data.info : null;
+                } catch (err) {
+                    return null;
+                }
+            })();
+        }
+
+        const info = await this._modelInfoCache[cleanName];
+        if (!info) return;
+
+        const mockItem = {
+            name: info.name,
+            type: info.type,
+            stats: {
+                rating: parseFloat(str(info.rating).replace(/[^0-9.]/g, "")) || 5.0,
+                downloadCount: info.downloadCount
+            },
+            description: info.description
+        };
+
+        const mockVersion = {
+            baseModel: info.baseModel,
+            trainedWords: info.triggerWords || [],
+            images: info.previewUrl ? [{ url: info.previewUrl }] : []
+        };
+
+        this.showHoverTooltip(mockItem, mockVersion, e);
+    },
+
     // Mouse-Tracking Hover Tooltip Overlay Methods
     showHoverTooltip(item, version, e) {
         if (window.h4_Dashboard && window.h4_Dashboard.config && window.h4_Dashboard.config.civitaiHoverTooltip === false) {
@@ -870,8 +986,8 @@ app.registerExtension({
         const trainedWords = (version.trainedWords && version.trainedWords.length > 0) ? version.trainedWords : [];
         const baseModel = version.baseModel || "SD";
         const type = item.type || "LoRA";
-        const rating = (item.stats && item.stats.rating) ? item.stats.rating.toFixed(1) : "N/A";
-        const downloads = (item.stats && item.stats.downloadCount) || 0;
+        const rating = (item.stats && item.stats.rating) ? String(item.stats.rating) : "5.0";
+        const downloads = (item.stats && item.stats.downloadCount) || "N/A";
         const rawDesc = (item.description || "").replace(/<[^>]*>?/gm, "").trim();
         const safeDesc = rawDesc.length > 160 ? rawDesc.substring(0, 160) + "..." : rawDesc;
 
@@ -882,7 +998,7 @@ app.registerExtension({
                 <div class="h4-tooltip-badges">
                     <span class="h4-badge h4-badge-type">${type}</span>
                     <span class="h4-badge h4-badge-base">${baseModel}</span>
-                    <span class="h4-badge">⭐ ${rating}</span>
+                    <span class="h4-badge">${rating.includes('⭐') ? rating : '⭐ ' + rating}</span>
                     <span class="h4-badge">📥 ${downloads}</span>
                 </div>
             </div>

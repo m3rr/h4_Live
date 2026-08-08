@@ -5,6 +5,17 @@
 
 ---
 
+## [v11.2.11] — 2026-08-08
+### 🚀 Feature Release v11.2.11
+- **Dropdown List & Canvas Node Model Hover Tooltips**:
+  - Implemented `/h4/link/info` REST endpoint and client-side caching (`_modelInfoCache`) in `js/h4_LinkQoL.js`.
+  - Added hover preview tooltips when hovering over model filename items in open LiteGraph dropdown lists (`.litecontextmenu`).
+  - Added hover preview tooltips when hovering over selected checkpoint / LoRA / VAE combo widgets on canvas nodes without opening the dropdown menu.
+- **Civitai Search SSL Fix**:
+  - Enforced `ssl._create_unverified_context()` by default in `_safe_urlopen` to ensure Civitai API search requests execute without Windows SSL handshake failures.
+
+---
+
 ## [v11.2.10] — 2026-08-08
 ### 🚀 Universal Polyfill Release v11.2.10
 - **`ml_dtypes` Dynamic Attribute Interception**:

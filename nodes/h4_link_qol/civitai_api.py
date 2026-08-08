@@ -18,20 +18,127 @@ CIVITAI_BASE_URL = "https://civitai.com/api/v1"
 
 def _safe_urlopen(req, timeout=15):
     """
-    Executes a urllib request with SSL cert verification fallback to unverified context
-    if strict CA verification fails (common on Windows/Cloudflare SSL chains).
+    Executes a urllib request with SSL cert verification fallback context.
     """
     try:
-        return urllib.request.urlopen(req, timeout=timeout)
+        ctx = ssl._create_unverified_context()
+        return urllib.request.urlopen(req, timeout=timeout, context=ctx)
     except Exception as err:
-        err_str = str(err)
-        if "CERTIFICATE_VERIFY_FAILED" in err_str or "SSL" in err_str or "certificate" in err_str.lower():
-            try:
-                ctx = ssl._create_unverified_context()
-                return urllib.request.urlopen(req, timeout=timeout, context=ctx)
-            except Exception:
-                raise err
-        raise err
+        return urllib.request.urlopen(req, timeout=timeout)
+
+def get_model_info_by_name(model_name, api_key=None):
+    """
+    Looks up model details and preview image for a local model filename or string name.
+    1. Scans ComfyUI model directories for local .preview.png, .png, .jpg, .json, .txt sidecars.
+    2. Fallbacks to searching Civitai for details if local sidecars don't exist.
+    """
+    if not model_name or not str(model_name).strip():
+        return {"success": False, "error": "Empty model name"}
+
+    clean_name = os.path.basename(str(model_name).strip())
+    name_no_ext = os.path.splitext(clean_name)[0]
+
+    # Search local folders
+    for category in ["checkpoints", "loras", "vae", "embeddings", "controlnet", "unet", "clip", "hypernetworks"]:
+        try:
+            paths = folder_paths.get_folder_paths(category)
+            if not paths:
+                continue
+            for base_dir in paths:
+                full_model_path = None
+                if hasattr(folder_paths, "get_full_path"):
+                    full_model_path = folder_paths.get_full_path(category, clean_name)
+                if not full_model_path:
+                    full_model_path = os.path.join(base_dir, clean_name)
+
+                base_no_ext = os.path.splitext(full_model_path)[0]
+
+                # Look for local preview image sidecar (.preview.png, .png, .jpg, .webp)
+                preview_url = None
+                for ext in [".preview.png", ".png", ".jpg", ".jpeg", ".webp"]:
+                    test_img = f"{base_no_ext}{ext}"
+                    if os.path.exists(test_img):
+                        rel_path = os.path.relpath(test_img, base_dir).replace("\\", "/")
+                        preview_url = f"/view?filename={urllib.parse.quote(rel_path)}&type=input&subfolder="
+                        break
+
+                # Look for local sidecar metadata (.json, .txt)
+                trigger_words = []
+                json_sidecar = f"{base_no_ext}.json"
+                txt_sidecar = f"{base_no_ext}.txt"
+
+                if os.path.exists(json_sidecar):
+                    try:
+                        with open(json_sidecar, "r", encoding="utf-8") as jf:
+                            jdata = json.load(jf)
+                            trigger_words = jdata.get("trigger_words", [])
+                    except Exception:
+                        pass
+
+                if not trigger_words and os.path.exists(txt_sidecar):
+                    try:
+                        with open(txt_sidecar, "r", encoding="utf-8") as tf:
+                            content = tf.read().strip()
+                            trigger_words = [w.strip() for w in content.split(",") if w.strip()]
+                    except Exception:
+                        pass
+
+                if preview_url or trigger_words:
+                    return {
+                        "success": True,
+                        "info": {
+                            "name": name_no_ext,
+                            "type": category.rstrip("s").upper(),
+                            "baseModel": "Local",
+                            "rating": "N/A",
+                            "downloadCount": "Local File",
+                            "triggerWords": trigger_words,
+                            "previewUrl": preview_url,
+                            "description": f"Local model located in models/{category}/{clean_name}"
+                        }
+                    }
+        except Exception:
+            continue
+
+    # Fallback: Query Civitai API for model details matching name_no_ext
+    civitai_res = search_civitai(query=name_no_ext, limit=1, api_key=api_key)
+    if civitai_res.get("success") and civitai_res.get("items"):
+        item = civitai_res["items"][0]
+        latestVer = (item.get("modelVersions") and item["modelVersions"][0]) or {}
+        img_url = (latestVer.get("images") and latestVer["images"][0].get("url")) or None
+        words = latestVer.get("trainedWords") or []
+        raw_desc = (item.get("description") or "").strip()
+        import re
+        safe_desc = re.sub(r'<[^>]*>?', '', raw_desc)
+
+        return {
+            "success": True,
+            "info": {
+                "name": item.get("name") or name_no_ext,
+                "type": item.get("type") or "MODEL",
+                "baseModel": latestVer.get("baseModel") or "SD",
+                "rating": f"⭐ {item.get('stats', {}).get('rating', 5.0):.1f}" if item.get("stats") else "5.0",
+                "downloadCount": item.get("stats", {}).get("downloadCount", 0),
+                "triggerWords": words,
+                "previewUrl": img_url,
+                "description": safe_desc
+            }
+        }
+
+    return {
+        "success": True,
+        "info": {
+            "name": name_no_ext,
+            "type": "MODEL",
+            "baseModel": "SD",
+            "rating": "N/A",
+            "downloadCount": "N/A",
+            "triggerWords": [],
+            "previewUrl": None,
+            "description": f"Model: {clean_name}"
+        }
+    }
+
 
 def get_cache_dir():
     """Returns local thumbnail and metadata cache path."""

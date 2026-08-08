@@ -413,6 +413,23 @@ def register_routes():
         except Exception as e:
             return web.json_response({"success": False, "error": str(e)}, status=500)
 
+    # 15. Link QoL: Single Model Info Lookup by Filename/Name
+    @PromptServer.instance.routes.get("/h4/link/info")
+    async def link_model_info(request):
+        try:
+            from ..nodes.h4_link_qol.civitai_api import get_model_info_by_name
+            name = request.query.get("name")
+            api_key = request.query.get("api_key", None)
+            if not name:
+                return web.json_response({"success": False, "error": "Missing name"}, status=400)
+
+            loop = asyncio.get_event_loop()
+            res = await loop.run_in_executor(None, lambda: get_model_info_by_name(name, api_key=api_key))
+            return web.json_response(res)
+        except Exception as e:
+            return web.json_response({"success": False, "error": str(e)}, status=500)
+
+
 # Register on import
 register_routes()
 
