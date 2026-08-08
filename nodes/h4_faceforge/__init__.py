@@ -3,6 +3,16 @@
 # Part of h4_Live ToolKit
 # ==============================================================================
 
+# --- ML_DTYPES ENVIRONMENT POLYFILL ---
+try:
+    import ml_dtypes
+    if not hasattr(ml_dtypes, "float4_e2m1fn"):
+        dummy_type = getattr(ml_dtypes, "float8_e4m3fn", None) or getattr(ml_dtypes, "int4", None) or object
+        setattr(ml_dtypes, "float4_e2m1fn", dummy_type)
+except Exception:
+    pass
+
+
 from .nodes_utility import H4_LoadFaceModel, H4_BuildFaceModel, H4_SaveFaceModel, H4_DualCLIPTextEncode
 from .nodes_faceforge import H4_FaceForge
 from .nodes_identity_engine import H4_IdentityEngine

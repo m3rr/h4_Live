@@ -10,6 +10,16 @@ import sys
 import importlib
 import logging
 
+# --- ML_DTYPES ENVIRONMENT POLYFILL ---
+try:
+    import ml_dtypes
+    if not hasattr(ml_dtypes, "float4_e2m1fn"):
+        dummy_type = getattr(ml_dtypes, "float8_e4m3fn", None) or getattr(ml_dtypes, "int4", None) or object
+        setattr(ml_dtypes, "float4_e2m1fn", dummy_type)
+except Exception:
+    pass
+
+
 # Ensure root directory is in sys.path so members can import correctly
 sys.path.append(os.path.dirname(__file__))
 

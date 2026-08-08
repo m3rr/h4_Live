@@ -5,6 +5,15 @@
 
 ---
 
+## [v11.2.9] — 2026-08-08
+### 🚀 Patch Release v11.2.9
+- **`ml_dtypes` Environment Polyfill**:
+  - Implemented automatic environment polyfill for `ml_dtypes.float4_e2m1fn` in `__init__.py` and `nodes/h4_faceforge/__init__.py` to eliminate `AttributeError: module 'ml_dtypes' has no attribute 'float4_e2m1fn'` crashes caused by legacy `ml_dtypes` packages in python environments.
+- **`h4_display_any` Decoupling**:
+  - Decoupled `h4_display_any` from `h4_faceforge.utils`, making its `tensor_to_pil` implementation local and self-contained so loading errors in external face dependencies never cascade into logic nodes.
+
+---
+
 ## [v11.2.8] — 2026-08-08
 ### 🚀 Major Feature & Audit Release v11.2.8
 - **Civitai Bridge Overhaul & SSL Fix (`h4_Link_QoL`)**:

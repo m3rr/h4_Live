@@ -4,7 +4,25 @@ import json
 import base64
 from io import BytesIO
 from PIL import Image
-from ..h4_faceforge.utils import tensor_to_pil
+
+def tensor_to_pil(img_tensor, batch_index: int = 0) -> Image.Image:
+    """Convert a ComfyUI IMAGE tensor (B, H, W, C) to PIL Image safely."""
+    try:
+        if hasattr(img_tensor, "cpu"):
+            img_tensor = img_tensor.cpu()
+        if hasattr(img_tensor, "numpy"):
+            img_np = img_tensor.numpy()
+        else:
+            img_np = np.array(img_tensor)
+
+        if len(img_np.shape) == 4:
+            img_np = img_np[batch_index]
+
+        img_np = np.clip(img_np * 255.0, 0, 255).astype(np.uint8)
+        return Image.fromarray(img_np)
+    except Exception:
+        return Image.new("RGB", (256, 256), color=(30, 30, 30))
+
 
 class AnyType(str):
     """A special class that is always equal in not equal comparisons. Credit to pythongosssss"""
