@@ -5,6 +5,14 @@
 
 ---
 
+## [v11.2.10] — 2026-08-08
+### 🚀 Universal Polyfill Release v11.2.10
+- **`ml_dtypes` Dynamic Attribute Interception**:
+  - Upgraded the `ml_dtypes` environment polyfill in `__init__.py` and `nodes/h4_faceforge/__init__.py` with dynamic `__getattr__` module interception.
+  - Resolves `AttributeError: module 'ml_dtypes' has no attribute 'float8_e8m0fnu'` and dynamically handles any missing legacy/future data type attributes (`float4_e2m1fn`, `float8_e8m0fnu`, `float8_e4m3fnuz`, etc.) requested by PyTorch, ONNXRuntime, or InsightFace without module load failures.
+
+---
+
 ## [v11.2.9] — 2026-08-08
 ### 🚀 Patch Release v11.2.9
 - **`ml_dtypes` Environment Polyfill**:

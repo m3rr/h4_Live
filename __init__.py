@@ -10,14 +10,31 @@ import sys
 import importlib
 import logging
 
-# --- ML_DTYPES ENVIRONMENT POLYFILL ---
+# --- ML_DTYPES UNIVERSAL ENVIRONMENT POLYFILL ---
 try:
     import ml_dtypes
-    if not hasattr(ml_dtypes, "float4_e2m1fn"):
-        dummy_type = getattr(ml_dtypes, "float8_e4m3fn", None) or getattr(ml_dtypes, "int4", None) or object
-        setattr(ml_dtypes, "float4_e2m1fn", dummy_type)
+    _fb_type = getattr(ml_dtypes, "float8_e4m3fn", None) or getattr(ml_dtypes, "int4", None) or object
+    for _attr in ["float4_e2m1fn", "float8_e8m0fnu", "float8_e4m3fnuz", "float8_e5m2fnuz", "float8_e4m3b11", "float8_e4m3fn", "float8_e5m2"]:
+        if not hasattr(ml_dtypes, _attr):
+            try:
+                setattr(ml_dtypes, _attr, _fb_type)
+            except Exception:
+                pass
+    _orig_getattr = getattr(ml_dtypes, "__getattr__", None)
+    def _ml_dtypes_safe_getattr(name):
+        if _orig_getattr:
+            try:
+                return _orig_getattr(name)
+            except AttributeError:
+                pass
+        return _fb_type
+    try:
+        setattr(ml_dtypes, "__getattr__", _ml_dtypes_safe_getattr)
+    except Exception:
+        pass
 except Exception:
     pass
+
 
 
 # Ensure root directory is in sys.path so members can import correctly
