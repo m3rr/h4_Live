@@ -320,13 +320,33 @@ function hideTip() {
 
 document.addEventListener("mouseover", (e) => {
     const target = e.target.closest("[data-h4-tip]");
-    if (target) showTip(target.getAttribute("data-h4-tip"), e);
+    if (target) {
+        showTip(target.getAttribute("data-h4-tip"), e);
+    } else {
+        hideTip();
+    }
 });
-document.addEventListener("mousemove", (e) => updateTipPos(e));
+document.addEventListener("mousemove", (e) => {
+    const target = e.target.closest("[data-h4-tip]");
+    if (!target) {
+        hideTip();
+    } else {
+        updateTipPos(e);
+    }
+});
 document.addEventListener("mouseout", (e) => {
     const target = e.target.closest("[data-h4-tip]");
-    if (target) hideTip();
+    if (!target) {
+        hideTip();
+    }
 });
+window.addEventListener("keyup", (e) => {
+    if (e.key === "Alt" || e.key === "Escape") {
+        hideTip();
+    }
+});
+window.addEventListener("blur", () => hideTip());
+
 
 const styleId = "h4-img-compressor-smart-skin-styles";
 if (!document.getElementById(styleId)) {

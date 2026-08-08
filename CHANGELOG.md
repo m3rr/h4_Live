@@ -5,6 +5,20 @@
 
 ---
 
+## [v11.2.8] — 2026-08-08
+### 🚀 Major Feature & Audit Release v11.2.8
+- **Civitai Bridge Overhaul & SSL Fix (`h4_Link_QoL`)**:
+  - Implemented `_safe_urlopen` helper with automatic SSL certificate verification fallback context to resolve Windows SSL handshake failures on Civitai API queries.
+  - Added session persistence for Civitai Bridge drawer state (`localStorage`), auto-restoring open state and executing model search on load.
+  - Built interactive Mouse-Tracking Model Hover Tooltip Overlay (`#h4-link-hover-tooltip`) with smart viewport boundary clamping, high-res previews, base model badges, rating/download metrics, trigger words, and descriptions.
+  - Non-blocking server architecture offloading Civitai API requests to background executor thread pools.
+  - Live Download Manager panel with real-time percentage, transfer size, speed, and download cancellation controls.
+  - API Key token support for accessing restricted/NSFW models.
+- **Sticky Cyberpunk Tooltip Bug Fix**:
+  - Resolved sticky `DRAG_IDENTIFYING` HUD tooltip in `h4_SmartSave.js` by removing global ALT key trigger and enforcing strict hover bounds listeners and Escape/keyup dismiss triggers across `h4_SmartSave.js` and `h4_img_compress.js`.
+
+---
+
 ## [v11.2.7] — 2026-08-06
 ### 🚀 Release v11.2.7
 - **Version Bump & Registry Sync**: Synchronized system-wide version identifiers to `11.2.7` across `pyproject.toml`, `version.py`, `__init__.py`, and module API headers for ComfyUI Registry publish.

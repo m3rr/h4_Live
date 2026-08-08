@@ -56,16 +56,37 @@ function hideTip() { if (tipDelay) clearTimeout(tipDelay); tipDelay = null; curr
 
 document.addEventListener("mouseover", (e) => {
     const target = e.target.closest("[data-h4-tip]");
-    if (target) showTip(target.getAttribute("data-h4-tip"), e);
+    if (target) {
+        showTip(target.getAttribute("data-h4-tip"), e);
+    } else {
+        hideTip();
+    }
 });
+
 document.addEventListener("mousemove", (e) => {
-    updateTipPos(e);
-    if (e.altKey) showTip("DRAG_IDENTIFYING", e);
+    const target = e.target.closest("[data-h4-tip]");
+    if (!target) {
+        hideTip();
+    } else {
+        updateTipPos(e);
+    }
 });
+
 document.addEventListener("mouseout", (e) => {
     const target = e.target.closest("[data-h4-tip]");
-    if (target) hideTip();
+    if (!target) {
+        hideTip();
+    }
 });
+
+window.addEventListener("keyup", (e) => {
+    if (e.key === "Alt" || e.key === "Escape") {
+        hideTip();
+    }
+});
+
+window.addEventListener("blur", () => hideTip());
+
 
 // --- FORENSIC AESTHETIC HARDENING ---
 const styleId = "h4-hud-global-styles";

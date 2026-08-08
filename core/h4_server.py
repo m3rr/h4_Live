@@ -308,7 +308,7 @@ def register_routes():
             print(f"[h4_server] Error fetching compressor history: {e}")
             return web.json_response({"error": str(e)}, status=500)
 
-    # 10. Link QoL: Civitai Search Endpoint
+    # 10. Link QoL: Civitai Search Endpoint (Non-Blocking Executor)
     @PromptServer.instance.routes.get("/h4/link/search")
     async def link_civitai_search(request):
         try:
@@ -318,8 +318,22 @@ def register_routes():
             base_model = request.query.get("baseModel", "All")
             sort = request.query.get("sort", "Highest Rated")
             page = int(request.query.get("page", 1))
+            nsfw = request.query.get("nsfw", "false")
+            api_key = request.query.get("api_key", None)
             
-            res = search_civitai(query=query, model_type=model_type, base_model=base_model, sort=sort, page=page)
+            loop = asyncio.get_event_loop()
+            res = await loop.run_in_executor(
+                None, 
+                lambda: search_civitai(
+                    query=query, 
+                    model_type=model_type, 
+                    base_model=base_model, 
+                    sort=sort, 
+                    page=page, 
+                    nsfw=nsfw, 
+                    api_key=api_key
+                )
+            )
             return web.json_response(res)
         except Exception as e:
             return web.json_response({"success": False, "error": str(e)}, status=500)
@@ -336,16 +350,43 @@ def register_routes():
             model_name = data.get("model_name", "")
             version_name = data.get("version_name", "")
             trigger_words = data.get("trigger_words", [])
+            preview_image_url = data.get("preview_image_url", None)
+            save_preview = data.get("save_preview", True)
+            api_key = data.get("api_key", None)
             
             if not download_url or not filename:
                 return web.json_response({"error": "Missing download_url or filename"}, status=400)
                 
-            task_id = start_model_download(download_url, filename, model_type, model_name, version_name, trigger_words)
+            task_id = start_model_download(
+                download_url=download_url, 
+                filename=filename, 
+                model_type=model_type, 
+                model_name=model_name, 
+                version_name=version_name, 
+                trigger_words=trigger_words,
+                preview_image_url=preview_image_url,
+                save_preview=save_preview,
+                api_key=api_key
+            )
             return web.json_response({"success": True, "download_id": task_id})
         except Exception as e:
             return web.json_response({"error": str(e)}, status=500)
 
-    # 12. Link QoL: Civitai Download Status Endpoint
+    # 12. Link QoL: Civitai Cancel Download Endpoint
+    @PromptServer.instance.routes.post("/h4/link/cancel_download")
+    async def link_civitai_cancel(request):
+        try:
+            from ..nodes.h4_link_qol.civitai_api import cancel_download
+            data = await request.json()
+            download_id = data.get("download_id")
+            if not download_id:
+                return web.json_response({"error": "Missing download_id"}, status=400)
+            res = cancel_download(download_id)
+            return web.json_response(res)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
+    # 13. Link QoL: Civitai Download Status Endpoint
     @PromptServer.instance.routes.get("/h4/link/status")
     async def link_civitai_status(request):
         try:
@@ -356,18 +397,22 @@ def register_routes():
         except Exception as e:
             return web.json_response({"error": str(e)}, status=500)
 
-    # 13. Link QoL: Civitai Model Details Endpoint
+    # 14. Link QoL: Civitai Model Details Endpoint (Non-Blocking Executor)
     @PromptServer.instance.routes.get("/h4/link/details")
     async def link_civitai_details(request):
         try:
             from ..nodes.h4_link_qol.civitai_api import fetch_model_details
             model_id = request.query.get("id")
+            api_key = request.query.get("api_key", None)
             if not model_id:
                 return web.json_response({"success": False, "error": "Missing model id"}, status=400)
-            res = fetch_model_details(model_id)
+            
+            loop = asyncio.get_event_loop()
+            res = await loop.run_in_executor(None, lambda: fetch_model_details(model_id, api_key=api_key))
             return web.json_response(res)
         except Exception as e:
             return web.json_response({"success": False, "error": str(e)}, status=500)
 
 # Register on import
 register_routes()
+

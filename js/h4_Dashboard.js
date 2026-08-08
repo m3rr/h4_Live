@@ -49,6 +49,9 @@ export const h4_Dashboard = {
         civitaiBridgeEnabled: true,
         civitaiAutoInject: true,
         civitaiSidecars: true,
+        civitaiPreviewSidecars: true,
+        civitaiHoverTooltip: true,
+        civitaiApiKey: "",
         smartSnapping: false,
         ioColoring: false,
 
@@ -338,6 +341,8 @@ export const h4_Dashboard = {
         this.addBool(container, "civitaiBridgeEnabled", "Civitai Bridge Button", "Installs the Civitai Bridge button in the top toolbar to the left of Kick-The-Grid. Slide out the browser to search, preview, download, and inject models.");
         this.addBool(container, "civitaiAutoInject", "Auto-Inject Model to Node", "Automatically populates the active model filename into selected LoRA/Checkpoint loader nodes upon download.");
         this.addBool(container, "civitaiSidecars", "Create Metadata Sidecars", "Automatically extracts trigger words and model specifications into .txt and .json sidecars on download.");
+        this.addBool(container, "civitaiPreviewSidecars", "Create Preview Image Sidecars", "Automatically downloads thumbnail images as .preview.png alongside downloaded models for ComfyUI dropdown cards.");
+        this.addBool(container, "civitaiHoverTooltip", "Hover Model Preview Tooltip", "Displays a mouse-tracking hover preview tooltip with image, trigger words, and specs when hovering over models.");
         this.addBool(container, "showErrorPopup", "Red Screen of Death", "Replaces generic alerts with a high-fidelity forensic error modal. Provides detailed stack traces and system state snapshots upon execution failure.");
 
         // 4. EXPERIMENTAL
@@ -1546,6 +1551,8 @@ function _registerH4Settings() {
     addQoL("civitaiBridge", "Civitai Bridge Button", "Installs Civitai Bridge button in toolbar to the left of Kick-The-Grid.", "civitaiBridgeEnabled");
     addQoL("civitaiAutoInject", "Civitai Auto-Inject", "Auto-populates downloaded model names into canvas loader nodes.", "civitaiAutoInject");
     addQoL("civitaiSidecars", "Civitai Metadata Sidecars", "Creates .txt and .json trigger word sidecars on model download.", "civitaiSidecars");
+    addQoL("civitaiPreviewSidecars", "Civitai Image Sidecars", "Downloads thumbnail images as .preview.png alongside models.", "civitaiPreviewSidecars");
+    addQoL("civitaiHoverTooltip", "Model Hover Preview Tooltip", "Displays mouse-tracking model preview tooltips on hover.", "civitaiHoverTooltip");
     addQoL("sovereignCore", "H4 Node Aesthetic", "Enforces H4 cyan-black branding on all compatible nodes.", "sovereignCoreEnabled");
     addQoL("errorPopup", "Red Screen of Death", "Replaces alerts with forensic error modal.", "showErrorPopup");
     addQoL("smartSnapping", "Node Snapping", "Sub-pixel magnetic alignment for nodes.", "smartSnapping");
