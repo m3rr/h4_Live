@@ -1230,7 +1230,12 @@ app.registerExtension({
             }
 
             const info = await this._modelInfoCache[cleanName];
-            if (!info || this._currentHoverName !== cleanName) return;
+            if (this._currentHoverName !== cleanName) return;
+            
+            if (!info) {
+                this.hideHoverTooltip();
+                return;
+            }
 
             const ratingVal = info.rating ? String(info.rating).replace(/[^0-9.]/g, "") : "5.0";
 
@@ -1238,9 +1243,11 @@ app.registerExtension({
                 modelId: info.modelId,
                 name: info.name || cleanName,
                 type: info.type || "MODEL",
+                creator: info.creator || null,
                 stats: {
                     rating: parseFloat(ratingVal) || 5.0,
-                    downloadCount: info.downloadCount || "N/A"
+                    downloadCount: info.downloadCount || "N/A",
+                    thumbsUpCount: info.thumbsUpCount || null
                 },
                 description: info.description || "",
                 filename: info.filename || cleanName,
