@@ -5,6 +5,15 @@
 
 ---
 
+## [v11.2.12] — 2026-08-08
+### 🚀 Documentation & Handoff Release v11.2.12
+- **System Architecture Handoff (`HANDOFF.md`)**:
+  - Created `HANDOFF.md` ledger containing full subsystem component maps, Civitai Bridge engine specifications, hover tooltip multi-context hooks, `ml_dtypes` polyfill docs, and developer verification procedures.
+- **Ledger Synchronization**:
+  - Synchronized system-wide version identifiers to `11.2.12` across `version.py`, `pyproject.toml`, `CHANGELOG.md`, and `HANDOFF.md`.
+
+---
+
 ## [v11.2.11] — 2026-08-08
 ### 🚀 Feature Release v11.2.11
 - **Dropdown List & Canvas Node Model Hover Tooltips**:
