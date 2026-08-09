@@ -368,11 +368,26 @@ def get_model_info_by_name(model_name, api_key=None):
                     }
                 }
 
-    # Fallback to online Civitai text search with first token query
+    # Fallback to online Civitai text search with strict token matching
     clean_lower = clean_name.lower()
     clean_no_ext = name_no_ext.lower()
-    words = [w for w in re.split(r'[\_\-\s]+', name_no_ext) if w and len(w) > 1 and w.lower() not in ('v1', 'v2', 'v3', 'v4', 'v5', 'safetensors', 'ckpt', 'sdxl', 'sd15', 'pruned', 'emaonly')]
-    first_token = words[0] if words else name_no_ext.replace("_", " ").replace("-", " ").strip()
+    
+    def _tokenize_smart(text):
+        text_clean = text.replace('.safetensors', '').replace('.ckpt', '').replace('.pt', '')
+        subwords = re.findall(r'[a-zA-Z]+|\d+', text_clean.lower())
+        res = []
+        for w in subwords:
+            if w.startswith('pony') and len(w) > 4:
+                res.extend(['pony', w[4:]])
+            elif w.endswith('xl') and len(w) > 2:
+                res.extend([w[:-2], 'xl'])
+            else:
+                res.append(w)
+        stop = {'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'safetensors', 'ckpt', 'pt', 'sd15', 'pruned', 'emaonly', 'fp16', 'model', 'lora'}
+        return [t for t in res if len(t) >= 2 and t not in stop]
+
+    query_tokens = _tokenize_smart(clean_name)
+    first_token = query_tokens[0] if query_tokens else name_no_ext.replace("_", " ").replace("-", " ").strip()
 
     civitai_res = search_civitai(query=first_token, limit=10, api_key=api_key)
     if civitai_res.get("success") and civitai_res.get("items"):
@@ -381,21 +396,23 @@ def get_model_info_by_name(model_name, api_key=None):
 
         for item in civitai_res["items"]:
             item_name_lower = item.get("name", "").lower()
+            
+            # 1. Check exact/substring file name matches in item versions
             for ver in item.get("modelVersions", []):
                 for f in ver.get("files", []):
                     f_name_lower = f.get("name", "").lower()
-                    if clean_lower in f_name_lower or clean_no_ext in f_name_lower:
+                    if f_name_lower == clean_lower or f_name_lower == clean_no_ext or clean_lower in f_name_lower or f_name_lower in clean_lower:
                         best_item = item
                         best_ver = ver
                         break
                 if best_ver: break
-
-            if not best_item:
-                if clean_no_ext in item_name_lower or any(w in item_name_lower for w in words):
-                    best_item = item
-                    best_ver = (item.get("modelVersions") and item["modelVersions"][0]) or {}
-                    break
             if best_item: break
+
+            # 2. Strict token match: ALL query tokens must be present in item title
+            if query_tokens and all(t in item_name_lower for t in query_tokens):
+                best_item = item
+                best_ver = (item.get("modelVersions") and item["modelVersions"][0]) or {}
+                break
 
         if best_item and best_ver:
             img_url = (best_ver.get("images") and best_ver["images"][0].get("url")) or None
