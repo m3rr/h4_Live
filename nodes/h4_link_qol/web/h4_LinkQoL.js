@@ -40,14 +40,14 @@ app.registerExtension({
         document.addEventListener("mousemove", (e) => {
             this._lastMouseEvent = e;
 
-            // 1. Check if mouse is hovering over an open LiteGraph context menu item (.litemenu-entry)
-            const menuEntry = e.target.closest(".litemenu-entry");
+            // 1. Check if mouse is hovering over an open LiteGraph context menu item
+            const menuEntry = e.target.closest(".litemenu-entry, .litecontextmenu div, .contextmenu-entry, .litegraph .litemenu-entry");
             if (menuEntry) {
                 let rawTxt = menuEntry.textContent ? menuEntry.textContent.trim() : "";
                 // Clean up prefixes/suffixes
-                rawTxt = rawTxt.replace(/^[\s\u2700-\u27BF\u1F300-\u1F9FF\u2600-\u26FF\u65e5\u2713\u2605\u25b6\u25ba\s>]+/, "").trim();
+                rawTxt = rawTxt.replace(/^[\s\u2700-\u27BF\u1F300-\u1F9FF\u2600-\u26FF\u65e5\u2713\u2605\u25b6\u25ba\s>►▸✓★•]+/, "").trim();
                 
-                if (rawTxt && rawTxt !== "None" && !rawTxt.startsWith("---") && (rawTxt.includes(".") || rawTxt.includes("/") || rawTxt.includes("\\") || rawTxt.length > 2)) {
+                if (rawTxt && rawTxt !== "None" && !rawTxt.startsWith("---") && (rawTxt.includes(".") || rawTxt.includes("/") || rawTxt.includes("\\") || rawTxt.length >= 2)) {
                     this.showHoverTooltipForModelName(rawTxt, e);
                     return;
                 }
@@ -60,7 +60,7 @@ app.registerExtension({
             }
 
             // 3. Check if an open context menu is present anywhere
-            if (document.querySelector(".litecontextmenu")) {
+            if (document.querySelector(".litecontextmenu, .litemenu")) {
                 if (!menuEntry) {
                     this.hideHoverTooltip();
                 }
@@ -72,7 +72,7 @@ app.registerExtension({
             if (app.canvas && app.canvas.canvas) {
                 app.canvas.canvas.addEventListener("mousemove", (e) => {
                     this._lastMouseEvent = e;
-                    if (document.querySelector(".litecontextmenu")) return;
+                    if (document.querySelector(".litecontextmenu, .litemenu")) return;
 
                     const canvas = app.canvas;
                     if (!canvas || !canvas.graph || !canvas.graph_mouse) return;
@@ -896,10 +896,14 @@ app.registerExtension({
         let enabled = true;
         if (window.h4_Dashboard && window.h4_Dashboard.config) {
             const master = window.h4_Dashboard.config.qolMasterOverride !== false;
+            const globalToggle = window.h4_Dashboard.config.civitaiGlobalToggle !== false;
             const bridge = window.h4_Dashboard.config.civitaiBridgeEnabled !== false;
-            enabled = master && bridge;
+            enabled = master && globalToggle && bridge;
         }
         btn.style.display = enabled ? "flex" : "none";
+        if (!enabled) {
+            this.hideHoverTooltip();
+        }
     },
 
     toggleDrawer(open) {
@@ -961,7 +965,7 @@ app.registerExtension({
         let cleanName = modelName.trim().replace(/^['"]|['"]$/g, "");
         if (cleanName.includes("/") || cleanName.includes("\\")) {
             const parts = cleanName.split(/[/\\]/);
-            cleanName = parts[parts.length - 1];
+            cleanName = parts[parts.length - 1].trim();
         }
 
         if (!cleanName || cleanName === "None" || cleanName.startsWith("---")) {

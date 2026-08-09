@@ -429,6 +429,21 @@ def register_routes():
         except Exception as e:
             return web.json_response({"success": False, "error": str(e)}, status=500)
 
+    # 16. Link QoL: Local Image View Endpoint
+    @PromptServer.instance.routes.get("/h4/link/view")
+    async def link_civitai_file_view(request):
+        try:
+            path = request.query.get("path", "")
+            if not path or not os.path.exists(path):
+                return web.Response(status=404)
+            ext = os.path.splitext(path)[1].lower()
+            if ext not in [".png", ".jpg", ".jpeg", ".webp", ".gif"]:
+                return web.Response(status=403)
+            return web.FileResponse(path)
+        except Exception as e:
+            return web.Response(status=500)
+
+
 
 # Register on import
 register_routes()

@@ -58,8 +58,7 @@ def get_model_info_by_name(model_name, api_key=None):
                 for ext in [".preview.png", ".png", ".jpg", ".jpeg", ".webp"]:
                     test_img = f"{base_no_ext}{ext}"
                     if os.path.exists(test_img):
-                        rel_path = os.path.relpath(test_img, base_dir).replace("\\", "/")
-                        preview_url = f"/view?filename={urllib.parse.quote(rel_path)}&type=input&subfolder="
+                        preview_url = f"/h4/link/view?path={urllib.parse.quote(os.path.abspath(test_img))}"
                         break
 
                 # Look for local sidecar metadata (.json, .txt)

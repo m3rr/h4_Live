@@ -46,6 +46,7 @@ export const h4_Dashboard = {
         deadWeightEnabled: true,
         caffeineEnabled: false, // Default OFF
         kickItEnabled: false,   // Default OFF
+        civitaiGlobalToggle: true,
         civitaiBridgeEnabled: true,
         civitaiAutoInject: true,
         civitaiSidecars: true,
@@ -317,9 +318,15 @@ export const h4_Dashboard = {
 
         // 1. MASTER GATE
         const masterBox = document.createElement("div");
-        masterBox.style.cssText = "background: rgba(0,242,255,0.05); border: 1px solid rgba(0,242,255,0.2); padding: 15px; margin-bottom: 20px; border-radius: 4px;";
+        masterBox.style.cssText = "background: rgba(0,242,255,0.05); border: 1px solid rgba(0,242,255,0.2); padding: 15px; margin-bottom: 12px; border-radius: 4px;";
         this.addBool(masterBox, "qolMasterOverride", "MASTER QoL OVERRIDE", "The primary jurisdiction gatekeeper. When disabled, all subordinate QoL enhancements are silenced and detached from the system.");
         container.appendChild(masterBox);
+
+        // 1B. GLOBAL CIVITAI BRIDGE MASTER TOGGLE
+        const civitaiMasterBox = document.createElement("div");
+        civitaiMasterBox.style.cssText = "background: rgba(97, 175, 239, 0.08); border: 1px solid rgba(97, 175, 239, 0.3); padding: 15px; margin-bottom: 20px; border-radius: 6px; box-shadow: 0 0 15px rgba(97, 175, 239, 0.15);";
+        this.addBool(civitaiMasterBox, "civitaiGlobalToggle", "GLOBAL CIVITAI BRIDGE MASTER TOGGLE", "Master control switch for all Civitai Bridge QoL features. When enabled, Civitai search, downloads, auto-inject, sidecars, and model hover preview tooltips are active system-wide.");
+        container.appendChild(civitaiMasterBox);
 
         const groupStyle = "color: #555; font-size: 10px; letter-spacing: 2px; margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 5px;";
 
@@ -1548,6 +1555,7 @@ function _registerH4Settings() {
     addQoL("deadWeight", "Dead Weight Detector", "Deploys the DWD Kirby unit to the toolbar.", "deadWeightEnabled");
     addQoL("caffeine", "Caffeine Mode Button", "Adds wake-lock override button to toolbar.", "caffeineEnabled");
     addQoL("kickIt", "Kick-the-Grid Button", "Canvas defibrillator — force-refreshes LiteGraph renderer.", "kickItEnabled");
+    addQoL("civitaiGlobalToggle", "Global Civitai Bridge Master Toggle", "Master control switch for all Civitai Bridge QoL features.", "civitaiGlobalToggle");
     addQoL("civitaiBridge", "Civitai Bridge Button", "Installs Civitai Bridge button in toolbar to the left of Kick-The-Grid.", "civitaiBridgeEnabled");
     addQoL("civitaiAutoInject", "Civitai Auto-Inject", "Auto-populates downloaded model names into canvas loader nodes.", "civitaiAutoInject");
     addQoL("civitaiSidecars", "Civitai Metadata Sidecars", "Creates .txt and .json trigger word sidecars on model download.", "civitaiSidecars");

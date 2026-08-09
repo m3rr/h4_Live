@@ -5,6 +5,18 @@
 
 ---
 
+## [v11.2.16] — 2026-08-09
+### 🚀 Feature Release v11.2.16
+- **Global Civitai Bridge Master Toggle**:
+  - Added `civitaiGlobalToggle: true` default configuration and placed the **GLOBAL CIVITAI BRIDGE MASTER TOGGLE** at the very top of the Quality of Life settings tab inside `js/h4_Dashboard.js`.
+  - Added `addQoL` setting registration for `civitaiGlobalToggle` in the native ComfyUI settings panel.
+- **Local Model Image View Endpoint (`/h4/link/view`)**:
+  - Implemented `@PromptServer.instance.routes.get("/h4/link/view")` in `core/h4_server.py` to serve local `.preview.png`, `.jpg`, `.webp` sidecar images directly from any model directory (`models/checkpoints`, `models/loras`, `models/vae`, etc.) with HTTP 200 responses.
+- **Expanded Context Menu Selectors**:
+  - Expanded event delegation selectors in `js/h4_LinkQoL.js` (`.litemenu-entry, .litecontextmenu div, .contextmenu-entry, .litegraph .litemenu-entry`) to guarantee 100% hover tooltip compatibility across all LiteGraph and ComfyUI menu versions.
+
+---
+
 ## [v11.2.15] — 2026-08-09
 ### 🚀 Overhaul Release v11.2.15
 - **Civitai API Type Mapping**:
