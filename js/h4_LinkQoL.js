@@ -819,7 +819,7 @@ app.registerExtension({
             </div>
             <div class="h4-lightbox-body">
                 <button class="h4-lightbox-nav prev" id="h4-lightbox-prev">&lsaquo;</button>
-                <img id="h4-lightbox-img" src="" alt="preview">
+                <img id="h4-lightbox-img" src="" alt="preview" referrerpolicy="no-referrer">
                 <button class="h4-lightbox-nav next" id="h4-lightbox-next">&rsaquo;</button>
             </div>
         `;
@@ -1320,7 +1320,7 @@ app.registerExtension({
 
             <!-- 1) Cover Image -->
             ${thumbUrl ? `
-                <img class="h4-tooltip-thumb" src="${thumbUrl}" alt="cover image" onerror="this.onerror=null; this.replaceWith(Object.assign(document.createElement('div'), {className:'h4-tooltip-thumb-missing', innerHTML:'<span>🖼️ Cover Image: <em class=\\'h4-val-missing\\'>Missing</em></span>'}));">
+                <img class="h4-tooltip-thumb" src="${thumbUrl}" alt="cover image" referrerpolicy="no-referrer" onerror="this.onerror=null; this.replaceWith(Object.assign(document.createElement('div'), {className:'h4-tooltip-thumb-missing', innerHTML:'<span>🖼️ Cover Image: <em class=\\'h4-val-missing\\'>Missing</em></span>'}));">
             ` : `
                 <div class="h4-tooltip-thumb-missing">
                     <span>🖼️ Cover Image: <em class="h4-val-missing">Missing</em></span>
@@ -1506,14 +1506,14 @@ app.registerExtension({
             detailsBody.innerHTML = `
                 <div class="h4-carousel-container" title="Click image to open Fullscreen Lightbox">
                     ${images.length > 1 ? `<button class="h4-carousel-btn prev" id="h4-carousel-prev">&lsaquo;</button>` : ''}
-                    <img class="h4-carousel-img" id="h4-carousel-main" src="${images[0]?.url || ''}" alt="preview">
+                    <img class="h4-carousel-img" id="h4-carousel-main" src="${images[0]?.url || ''}" alt="preview" referrerpolicy="no-referrer">
                     ${images.length > 1 ? `<button class="h4-carousel-btn next" id="h4-carousel-next">&rsaquo;</button>` : ''}
                 </div>
 
                 ${images.length > 1 ? `
                     <div style="font-size: 11px; font-weight: 600; color: #888; margin-top: 4px;">SHOWCASE GALLERY (${images.length} IMAGES)</div>
                     <div class="h4-thumb-strip" id="h4-carousel-strip">
-                        ${images.map((img, i) => `<img class="h4-strip-thumb ${i===0?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb" title="Click to view in Fullscreen Lightbox">`).join('')}
+                        ${images.map((img, i) => `<img class="h4-strip-thumb ${i===0?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb" referrerpolicy="no-referrer" title="Click to view in Fullscreen Lightbox">`).join('')}
                     </div>
                 ` : ''}
 
@@ -1643,7 +1643,7 @@ app.registerExtension({
                                 images = fullImages;
                                 const strip = document.getElementById("h4-carousel-strip");
                                 if (strip) {
-                                    strip.innerHTML = images.map((img, i) => `<img class="h4-strip-thumb ${i===currentIndex?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb">`).join('');
+                                    strip.innerHTML = images.map((img, i) => `<img class="h4-strip-thumb ${i===currentIndex?'active':''}" data-idx="${i}" src="${img.url}" alt="thumb" referrerpolicy="no-referrer">`).join('');
                                     document.querySelectorAll(".h4-strip-thumb").forEach(t => {
                                         t.onclick = (e) => {
                                             e.stopPropagation();
@@ -1704,7 +1704,7 @@ app.registerExtension({
                     const filename = fileObj.name || `${item.name}.safetensors`;
 
                     card.innerHTML = `
-                        <img class="h4-model-thumb" src="${thumbUrl}" alt="thumb" title="Click to view full details & example gallery">
+                        <img class="h4-model-thumb" src="${thumbUrl}" alt="thumb" referrerpolicy="no-referrer" title="Click to view full details & example gallery">
                         <div class="h4-model-info">
                             <div class="h4-model-name" title="${item.name}">${item.name}</div>
                             <div class="h4-model-type">${item.type} • ${latestVer.baseModel || 'SD'}</div>

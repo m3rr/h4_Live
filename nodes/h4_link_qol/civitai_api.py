@@ -482,77 +482,52 @@ def resolve_target_folder(model_type, base_model=None):
 
 def search_civitai(query="", model_type=None, base_model=None, base_models=None, sort="Highest Rated", period="AllTime", page=1, limit=20, nsfw=False, api_key=None, **kwargs):
     """
-    Queries Civitai REST API with multi-stage fallback search:
-    1. First tries query=... (REST API text search)
-    2. If query= fails or returns 503, tries tag=... (REST API tag search)
-    3. Filters items by search keywords cleanly
+    Queries Civitai REST API cleanly.
+    Note: Civitai API returns HTTP 503 if 'limit' > 10 when searching with 'query'.
+    Civitai API also returns HTTP 400 if 'page', 'sort', or 'period' are passed with 'query'.
     """
-    base_params = {
-        "limit": min(max(int(limit), 1), 100),
-    }
+    q_str = (query or "").strip()
+
+    params = {}
+    if q_str:
+        params["query"] = q_str
+        params["limit"] = min(int(limit), 10)
+    else:
+        params["limit"] = min(max(int(limit), 1), 100)
+        if sort and sort != "All": params["sort"] = sort
+        if period and period != "All": params["period"] = period
+        if page and int(page) > 1: params["page"] = int(page)
 
     if model_type and model_type != "All":
-        base_params["types"] = model_type
+        params["types"] = model_type
 
     bm_val = base_model or base_models
     if bm_val and bm_val != "All":
-        base_params["baseModels"] = bm_val
+        params["baseModels"] = bm_val
 
-    if nsfw is not None and nsfw != "All":
-        base_params["nsfw"] = "true" if str(nsfw).lower() in ("true", "1", "yes", "on") else "false"
+    if str(nsfw).lower() in ("true", "1", "yes", "on"):
+        params["nsfw"] = "true"
 
     if api_key and api_key.strip():
-        base_params["token"] = api_key.strip()
+        params["token"] = api_key.strip()
 
-    q_str = (query or "").strip()
-
-    def _fetch_from_civitai(extra_params):
-        p = dict(base_params)
-        p.update(extra_params)
-        url = f"{CIVITAI_BASE_URL}/models?" + urllib.parse.urlencode(p)
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Accept": "application/json"
-        })
-        try:
-            with _safe_urlopen(req, timeout=12) as response:
-                if response.status == 200:
-                    raw_body = response.read().decode('utf-8')
-                    data = json.loads(raw_body)
-                    if isinstance(data, dict) and "items" in data:
-                        return data.get("items", [])
-        except Exception:
-            pass
-        return None
+    url = f"{CIVITAI_BASE_URL}/models?" + urllib.parse.urlencode(params)
+    
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json"
+    })
 
     try:
-        items = None
-
-        if q_str:
-            # 1. Try REST API text query
-            items = _fetch_from_civitai({"query": q_str})
-
-            # 2. If query returned 503 or None, try REST API tag search
-            if items is None:
-                first_word = q_str.split()[0]
-                tag_items = _fetch_from_civitai({"tag": first_word})
-                if tag_items:
-                    q_words = [w.lower() for w in q_str.split()]
-                    filtered = [it for it in tag_items if any(w in it.get("name", "").lower() for w in q_words)]
-                    items = filtered if filtered else tag_items
-                else:
-                    items = []
-        else:
-            # Standard browsing / filtering without text query
-            p_extra = {}
-            if sort: p_extra["sort"] = sort
-            if period: p_extra["period"] = period
-            if page and page > 1: p_extra["page"] = page
-            items = _fetch_from_civitai(p_extra)
-
-        return {"success": True, "items": items or []}
+        with _safe_urlopen(req, timeout=12) as response:
+            if response.status == 200:
+                raw_body = response.read().decode('utf-8')
+                data = json.loads(raw_body)
+                return {"success": True, "items": data.get("items", []), "metadata": data.get("metadata", {})}
     except Exception as e:
-        return {"success": False, "error": str(e), "items": []}
+        print(f"[h4_LinkQoL] Civitai Search API Error for query '{q_str}': {e}")
+        
+    return {"success": False, "items": []}
 
 def fetch_model_details(model_id, api_key=None):
     """
