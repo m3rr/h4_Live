@@ -80,7 +80,7 @@ document.addEventListener("mouseout", (e) => {
 });
 
 window.addEventListener("keyup", (e) => {
-    if (e.key === "Alt" || e.key === "Escape") {
+    if (e.key === "Alt" || e.key === "Control" || e.key === "Meta" || e.key === "Escape") {
         hideTip();
     }
 });

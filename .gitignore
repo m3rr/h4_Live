@@ -69,4 +69,7 @@ scratch/
 *.db
 HANDOFF.md
 handoff.md
+copy_changed_files.py
+copy_changed_files.bat
+
 

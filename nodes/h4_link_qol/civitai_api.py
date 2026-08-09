@@ -23,20 +23,36 @@ def _safe_urlopen(req, timeout=15):
     try:
         ctx = ssl._create_unverified_context()
         return urllib.request.urlopen(req, timeout=timeout, context=ctx)
+    except urllib.error.HTTPError:
+        raise
     except Exception as err:
         return urllib.request.urlopen(req, timeout=timeout)
 
 def get_model_info_by_name(model_name, api_key=None):
     """
-    Looks up model details and preview image for a local model filename or string name.
-    1. Scans ComfyUI model directories for local .preview.png, .png, .jpg, .json, .txt sidecars.
-    2. Fallbacks to searching Civitai for details if local sidecars don't exist.
+    Looks up model details, version info, base model, trigger words, and preview image for a local model filename or string name.
+    1. Scans ComfyUI model directories for local .preview.png, .png, .jpg, .json, .civitai.info, .txt sidecars.
+    2. Fallbacks to searching Civitai for exact model details and version metadata if local sidecars are incomplete.
     """
     if not model_name or not str(model_name).strip():
         return {"success": False, "error": "Empty model name"}
 
     clean_name = os.path.basename(str(model_name).strip())
     name_no_ext = os.path.splitext(clean_name)[0]
+
+    local_found = False
+    local_info = {
+        "name": name_no_ext,
+        "versionName": "",
+        "type": "MODEL",
+        "baseModel": "",
+        "rating": "N/A",
+        "downloadCount": "N/A",
+        "triggerWords": [],
+        "previewUrl": None,
+        "description": "",
+        "filename": clean_name
+    }
 
     # Search local folders
     for category in ["checkpoints", "loras", "vae", "embeddings", "controlnet", "unet", "clip", "hypernetworks"]:
@@ -48,93 +64,127 @@ def get_model_info_by_name(model_name, api_key=None):
                 full_model_path = None
                 if hasattr(folder_paths, "get_full_path"):
                     full_model_path = folder_paths.get_full_path(category, clean_name)
-                if not full_model_path:
+                if not full_model_path or not os.path.exists(full_model_path):
                     full_model_path = os.path.join(base_dir, clean_name)
 
-                base_no_ext = os.path.splitext(full_model_path)[0]
+                if os.path.exists(full_model_path):
+                    local_found = True
+                    local_info["type"] = category.rstrip("s").upper()
+                    base_no_ext = os.path.splitext(full_model_path)[0]
 
-                # Look for local preview image sidecar (.preview.png, .png, .jpg, .webp)
-                preview_url = None
-                for ext in [".preview.png", ".png", ".jpg", ".jpeg", ".webp"]:
-                    test_img = f"{base_no_ext}{ext}"
-                    if os.path.exists(test_img):
-                        preview_url = f"/h4/link/view?path={urllib.parse.quote(os.path.abspath(test_img))}"
-                        break
+                    # Look for local preview image sidecar (.preview.png, .png, .jpg, .jpeg, .webp)
+                    for ext in [".preview.png", ".png", ".jpg", ".jpeg", ".webp"]:
+                        test_img = f"{base_no_ext}{ext}"
+                        if os.path.exists(test_img):
+                            local_info["previewUrl"] = f"/h4/link/view?path={urllib.parse.quote(os.path.abspath(test_img))}"
+                            break
 
-                # Look for local sidecar metadata (.json, .txt)
-                trigger_words = []
-                json_sidecar = f"{base_no_ext}.json"
-                txt_sidecar = f"{base_no_ext}.txt"
+                    # Look for local sidecar metadata (.json, .civitai.info, .txt)
+                    json_sidecar = f"{base_no_ext}.json"
+                    civitai_sidecar = f"{base_no_ext}.civitai.info"
+                    txt_sidecar = f"{base_no_ext}.txt"
 
-                if os.path.exists(json_sidecar):
-                    try:
-                        with open(json_sidecar, "r", encoding="utf-8") as jf:
-                            jdata = json.load(jf)
-                            trigger_words = jdata.get("trigger_words", [])
-                    except Exception:
-                        pass
+                    for s_file in [json_sidecar, civitai_sidecar]:
+                        if os.path.exists(s_file):
+                            try:
+                                with open(s_file, "r", encoding="utf-8") as jf:
+                                    jdata = json.load(jf)
+                                    if isinstance(jdata, dict):
+                                        if jdata.get("model_name"): local_info["name"] = jdata["model_name"]
+                                        if jdata.get("version_name"): local_info["versionName"] = jdata["version_name"]
+                                        if jdata.get("baseModel") or jdata.get("base_model"): local_info["baseModel"] = jdata.get("baseModel") or jdata.get("base_model")
+                                        if jdata.get("model_type"): local_info["type"] = str(jdata["model_type"]).upper()
+                                        if jdata.get("trigger_words"): local_info["triggerWords"] = jdata["trigger_words"]
+                                        if jdata.get("description"): local_info["description"] = jdata["description"]
+                            except Exception:
+                                pass
 
-                if not trigger_words and os.path.exists(txt_sidecar):
-                    try:
-                        with open(txt_sidecar, "r", encoding="utf-8") as tf:
-                            content = tf.read().strip()
-                            trigger_words = [w.strip() for w in content.split(",") if w.strip()]
-                    except Exception:
-                        pass
+                    if not local_info["triggerWords"] and os.path.exists(txt_sidecar):
+                        try:
+                            with open(txt_sidecar, "r", encoding="utf-8") as tf:
+                                content = tf.read().strip()
+                                local_info["triggerWords"] = [w.strip() for w in content.split(",") if w.strip()]
+                        except Exception:
+                            pass
 
-                if preview_url or trigger_words:
-                    return {
-                        "success": True,
-                        "info": {
-                            "name": name_no_ext,
-                            "type": category.rstrip("s").upper(),
-                            "baseModel": "Local",
-                            "rating": "N/A",
-                            "downloadCount": "Local File",
-                            "triggerWords": trigger_words,
-                            "previewUrl": preview_url,
-                            "description": f"Local model located in models/{category}/{clean_name}"
-                        }
-                    }
+                    # If sidecar provided full metadata (both name/triggerWords and baseModel), return immediately
+                    if local_info["baseModel"] and (local_info["triggerWords"] or local_info["previewUrl"]):
+                        if not local_info["description"]:
+                            local_info["description"] = f"Local model located in models/{category}/{clean_name}"
+                        return {"success": True, "info": local_info}
+                    break
+            if local_found:
+                break
         except Exception:
             continue
 
-    # Fallback: Query Civitai API for model details matching name_no_ext
-    civitai_res = search_civitai(query=name_no_ext, limit=1, api_key=api_key)
+    # Fallback / Metadata Enrichment: Query Civitai API for model details matching name_no_ext
+    civitai_res = search_civitai(query=name_no_ext, limit=5, api_key=api_key)
     if civitai_res.get("success") and civitai_res.get("items"):
-        item = civitai_res["items"][0]
-        latestVer = (item.get("modelVersions") and item["modelVersions"][0]) or {}
-        img_url = (latestVer.get("images") and latestVer["images"][0].get("url")) or None
-        words = latestVer.get("trainedWords") or []
-        raw_desc = (item.get("description") or "").strip()
+        best_item = None
+        best_ver = None
+
+        # Attempt exact filename or version match across items
+        clean_lower = clean_name.lower()
+        for item in civitai_res["items"]:
+            for ver in item.get("modelVersions", []):
+                for f in ver.get("files", []):
+                    if f.get("name", "").lower() == clean_lower:
+                        best_item = item
+                        best_ver = ver
+                        break
+                if best_ver: break
+            if best_item: break
+
+        if not best_item:
+            best_item = civitai_res["items"][0]
+            best_ver = (best_item.get("modelVersions") and best_item["modelVersions"][0]) or {}
+
+        img_url = (best_ver.get("images") and best_ver["images"][0].get("url")) or None
+        words = best_ver.get("trainedWords") or []
+        raw_desc = (best_item.get("description") or "").strip()
         import re
         safe_desc = re.sub(r'<[^>]*>?', '', raw_desc)
+        dl_count = best_item.get('stats', {}).get('downloadCount', 0)
+        rating_num = best_item.get('stats', {}).get('rating', 5.0)
 
         return {
             "success": True,
             "info": {
-                "name": item.get("name") or name_no_ext,
-                "type": item.get("type") or "MODEL",
-                "baseModel": latestVer.get("baseModel") or "SD",
-                "rating": f"⭐ {item.get('stats', {}).get('rating', 5.0):.1f}" if item.get("stats") else "5.0",
-                "downloadCount": item.get("stats", {}).get("downloadCount", 0),
-                "triggerWords": words,
-                "previewUrl": img_url,
-                "description": safe_desc
+                "name": best_item.get("name") or local_info["name"],
+                "versionName": best_ver.get("name") or local_info["versionName"],
+                "type": best_item.get("type") or local_info["type"],
+                "baseModel": best_ver.get("baseModel") or local_info["baseModel"] or "SD",
+                "rating": f"⭐ {rating_num:.1f}" if rating_num else "⭐ 5.0",
+                "downloadCount": f"{dl_count:,}" if isinstance(dl_count, int) else str(dl_count),
+                "triggerWords": words or local_info["triggerWords"],
+                "previewUrl": local_info["previewUrl"] or img_url,
+                "description": safe_desc or local_info["description"],
+                "filename": clean_name
             }
         }
+
+    # Return local info if Civitai API doesn't find a match
+    if local_found:
+        if not local_info["description"]:
+            local_info["description"] = f"Local model located in models/{local_info['type'].lower()}s/{clean_name}"
+        if not local_info["baseModel"]:
+            local_info["baseModel"] = "Local"
+        return {"success": True, "info": local_info}
 
     return {
         "success": True,
         "info": {
             "name": name_no_ext,
+            "versionName": "",
             "type": "MODEL",
             "baseModel": "SD",
             "rating": "N/A",
             "downloadCount": "N/A",
             "triggerWords": [],
             "previewUrl": None,
-            "description": f"Model: {clean_name}"
+            "description": f"Model: {clean_name}",
+            "filename": clean_name
         }
     }
 
@@ -189,12 +239,13 @@ def search_civitai(query="", model_type="All", base_model="All", sort="Highest R
     """
     params = {
         "limit": min(limit, 50),
-        "page": max(page, 1),
         "sort": sort,
     }
     
     if query and query.strip():
         params["query"] = query.strip()
+    else:
+        params["page"] = max(page, 1)
         
     if model_type and model_type != "All":
         m_upper = str(model_type).strip().upper()
@@ -240,6 +291,14 @@ def search_civitai(query="", model_type="All", base_model="All", sort="Highest R
                 return {"success": True, "items": data.get("items", []), "metadata": data.get("metadata", {})}
             else:
                 return {"success": False, "error": f"HTTP {response.status}", "items": []}
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = e.read().decode('utf-8')
+            err_json = json.loads(err_body)
+            msg = err_json.get("error") or err_json.get("message") or str(e)
+        except Exception:
+            msg = str(e)
+        return {"success": False, "error": msg, "items": []}
     except Exception as e:
         return {"success": False, "error": str(e), "items": []}
 

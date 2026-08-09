@@ -22,7 +22,7 @@ export const h4_Dashboard = {
     _cssText: null, // Cache for popout injection
     LORE: LORE,
 
-    // Configuration State (Security First - Defaults to OFF)
+    // Configuration State (Default State for QoL Suite: ON)
     config: {
         // Core
         enabled: true,
@@ -30,12 +30,12 @@ export const h4_Dashboard = {
         qolMasterOverride: true,
 
         // Monitor
-        monitorEnabled: false,
-        showErrorPopup: false,
+        monitorEnabled: true,
+        showErrorPopup: true,
 
         // Visual Assets
-        showGrid: false,
-        showWires: false,
+        showGrid: true,
+        showWires: true,
         wireStyle: "Circuit",
         wireSpacing: 1.0,
         wireColorSelect: "#00F2FF",
@@ -44,8 +44,8 @@ export const h4_Dashboard = {
 
         // UI Hygiene (QoL)
         deadWeightEnabled: true,
-        caffeineEnabled: false, // Default OFF
-        kickItEnabled: false,   // Default OFF
+        caffeineEnabled: true,
+        kickItEnabled: true,
         civitaiGlobalToggle: true,
         civitaiBridgeEnabled: true,
         civitaiAutoInject: true,
@@ -53,8 +53,8 @@ export const h4_Dashboard = {
         civitaiPreviewSidecars: true,
         civitaiHoverTooltip: true,
         civitaiApiKey: "",
-        smartSnapping: false,
-        ioColoring: false,
+        smartSnapping: true,
+        ioColoring: true,
 
         // Aesthetic Layer
         sovereignCoreEnabled: true,
@@ -1630,13 +1630,13 @@ function _registerH4Settings() {
     const S = app.ui.settings;
 
     // Helper to register a boolean setting that syncs with h4_Dashboard.config
-    function addQoL(id, label, tooltip, configKey) {
+    function addQoL(id, label, tooltip, configKey, defaultVal = true) {
         S.addSetting({
             id: `h4.qol.${id}`,
             name: label,
             tooltip: tooltip,
             type: "boolean",
-            defaultValue: false,
+            defaultValue: defaultVal,
             category: ["h4 QoL", "h4 QoL", label],
             onChange(value) {
                 if (window.h4_Dashboard) {

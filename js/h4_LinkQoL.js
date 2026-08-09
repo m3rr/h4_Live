@@ -954,9 +954,20 @@ app.registerExtension({
         }
     },
 
-    // Lookup model details by string/filename with client caching
-    async showHoverTooltipForModelName(modelName, e) {
+    _hoverTimer: null,
+    _currentHoverName: null,
+
+    // Lookup model details by string/filename with client caching & 1.5s hover delay
+    showHoverTooltipForModelName(modelName, e) {
         if (!modelName || typeof modelName !== "string") {
+            this.hideHoverTooltip();
+            return;
+        }
+
+        const evt = e || this._lastMouseEvent;
+
+        // Requirement 4: Prevent hover tooltip from ever displaying on Civitai Bridge drawer or details panel
+        if (evt && evt.target && evt.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn")) {
             this.hideHoverTooltip();
             return;
         }
@@ -974,47 +985,65 @@ app.registerExtension({
         }
 
         if (window.h4_Dashboard && window.h4_Dashboard.config && window.h4_Dashboard.config.civitaiHoverTooltip === false) {
+            this.hideHoverTooltip();
             return;
         }
 
-        let cached = this._modelInfoCache[cleanName];
-
-        if (!cached) {
-            this._modelInfoCache[cleanName] = (async () => {
-                try {
-                    let url = `/h4/link/info?name=${encodeURIComponent(cleanName)}`;
-                    if (this._apiKey) url += `&api_key=${encodeURIComponent(this._apiKey)}`;
-                    const resp = await fetch(url);
-                    const data = await resp.json();
-                    return data.success ? data.info : null;
-                } catch (err) {
-                    return null;
-                }
-            })();
+        // If mouse is continuing to hover over the same model name, update position without resetting 1.5s timer
+        if (this._currentHoverName === cleanName && this._hoverTimer) {
+            this.updateHoverTooltipPosition(evt);
+            return;
         }
 
-        const info = await this._modelInfoCache[cleanName];
-        if (!info) return;
+        // Cancel previous pending hover timer & clear old tooltip immediately to prevent showing stale model data
+        this.hideHoverTooltip();
+        this._currentHoverName = cleanName;
 
-        const ratingVal = info.rating ? String(info.rating).replace(/[^0-9.]/g, "") : "5.0";
+        // Requirement 6: Hover wait time set to 1.5 seconds (1500 ms)
+        this._hoverTimer = setTimeout(async () => {
+            if (this._currentHoverName !== cleanName) return;
 
-        const mockItem = {
-            name: info.name || cleanName,
-            type: info.type || "MODEL",
-            stats: {
-                rating: parseFloat(ratingVal) || 5.0,
-                downloadCount: info.downloadCount || "N/A"
-            },
-            description: info.description || `Model: ${cleanName}`
-        };
+            let cached = this._modelInfoCache[cleanName];
+            if (!cached) {
+                this._modelInfoCache[cleanName] = (async () => {
+                    try {
+                        let url = `/h4/link/info?name=${encodeURIComponent(cleanName)}`;
+                        if (this._apiKey) url += `&api_key=${encodeURIComponent(this._apiKey)}`;
+                        const resp = await fetch(url);
+                        const data = await resp.json();
+                        return data.success ? data.info : null;
+                    } catch (err) {
+                        return null;
+                    }
+                })();
+            }
 
-        const mockVersion = {
-            baseModel: info.baseModel || "SD",
-            trainedWords: info.triggerWords || [],
-            images: info.previewUrl ? [{ url: info.previewUrl }] : []
-        };
+            const info = await this._modelInfoCache[cleanName];
+            if (!info || this._currentHoverName !== cleanName) return;
 
-        this.showHoverTooltip(mockItem, mockVersion, e || this._lastMouseEvent);
+            const ratingVal = info.rating ? String(info.rating).replace(/[^0-9.]/g, "") : "5.0";
+
+            const mockItem = {
+                name: info.name || cleanName,
+                type: info.type || "MODEL",
+                stats: {
+                    rating: parseFloat(ratingVal) || 5.0,
+                    downloadCount: info.downloadCount || "N/A"
+                },
+                description: info.description || `Model: ${cleanName}`,
+                filename: info.filename || cleanName
+            };
+
+            const mockVersion = {
+                versionName: info.versionName || "",
+                baseModel: info.baseModel || "SD",
+                trainedWords: info.triggerWords || [],
+                images: info.previewUrl ? [{ url: info.previewUrl }] : [],
+                filename: info.filename || cleanName
+            };
+
+            this.showHoverTooltip(mockItem, mockVersion, this._lastMouseEvent || evt);
+        }, 1500);
     },
 
     // Mouse-Tracking Hover Tooltip Overlay Methods
@@ -1022,44 +1051,56 @@ app.registerExtension({
         if (window.h4_Dashboard && window.h4_Dashboard.config && window.h4_Dashboard.config.civitaiHoverTooltip === false) {
             return;
         }
+
+        const evt = e || this._lastMouseEvent;
+
+        // Requirement 4: Prevent hover tooltip from ever displaying inside Civitai Bridge drawer
+        if (evt && evt.target && evt.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn")) {
+            this.hideHoverTooltip();
+            return;
+        }
+
         const tooltip = document.getElementById("h4-link-hover-tooltip");
         if (!tooltip) return;
 
         const thumbUrl = (version.images && version.images[0]?.url) || "";
         const trainedWords = (version.trainedWords && version.trainedWords.length > 0) ? version.trainedWords : [];
         const baseModel = version.baseModel || "SD";
+        const verName = version.versionName || version.name || "";
         const type = item.type || "LoRA";
         const rating = (item.stats && item.stats.rating) ? String(item.stats.rating) : "5.0";
         const downloads = (item.stats && item.stats.downloadCount) || "N/A";
+        const filename = version.filename || item.filename || "";
         const rawDesc = (item.description || "").replace(/<[^>]*>?/gm, "").trim();
-        const safeDesc = rawDesc.length > 160 ? rawDesc.substring(0, 160) + "..." : rawDesc;
+        const safeDesc = rawDesc.length > 180 ? rawDesc.substring(0, 180) + "..." : rawDesc;
 
         tooltip.innerHTML = `
             ${thumbUrl ? `<img class="h4-tooltip-thumb" src="${thumbUrl}" alt="preview">` : ''}
             <div class="h4-tooltip-meta">
-                <div class="h4-tooltip-title">${item.name}</div>
+                <div class="h4-tooltip-title">${item.name} ${verName ? `<span style="font-size:11px; font-weight:400; color:#61afef; margin-left:4px;">[${verName}]</span>` : ''}</div>
                 <div class="h4-tooltip-badges">
                     <span class="h4-badge h4-badge-type">${type}</span>
                     <span class="h4-badge h4-badge-base">${baseModel}</span>
                     <span class="h4-badge">${rating.includes('⭐') ? rating : '⭐ ' + rating}</span>
                     <span class="h4-badge">📥 ${downloads}</span>
                 </div>
+                ${filename ? `<div style="font-size: 10px; font-family: monospace; color: #888; margin-top: 3px; word-break: break-all;">📄 ${filename}</div>` : ''}
             </div>
             ${trainedWords.length > 0 ? `
-                <div>
-                    <div style="font-size: 10px; font-weight: 600; color: #888; margin-bottom: 2px;">TRIGGER WORDS</div>
+                <div style="margin-top: 6px;">
+                    <div style="font-size: 10px; font-weight: 700; color: #61afef; letter-spacing: 0.5px; margin-bottom: 3px;">🔑 TRIGGER WORDS</div>
                     <div class="h4-tooltip-triggers">${trainedWords.join(', ')}</div>
                 </div>
             ` : ''}
             ${safeDesc ? `
-                <div style="font-size: 11px; color: #aaa; line-height: 1.3; max-height: 50px; overflow: hidden; text-overflow: ellipsis;">
+                <div style="margin-top: 6px; font-size: 11px; color: #aaa; line-height: 1.35; max-height: 60px; overflow: hidden; text-overflow: ellipsis; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 4px;">
                     ${safeDesc}
                 </div>
             ` : ''}
         `;
 
         tooltip.classList.add("active");
-        this.updateHoverTooltipPosition(e || this._lastMouseEvent);
+        this.updateHoverTooltipPosition(evt);
     },
 
     updateHoverTooltipPosition(e) {
@@ -1092,6 +1133,11 @@ app.registerExtension({
     },
 
     hideHoverTooltip() {
+        if (this._hoverTimer) {
+            clearTimeout(this._hoverTimer);
+            this._hoverTimer = null;
+        }
+        this._currentHoverName = null;
         const tooltip = document.getElementById("h4-link-hover-tooltip");
         if (tooltip) tooltip.classList.remove("active");
     },
@@ -1375,10 +1421,7 @@ app.registerExtension({
                         </div>
                     `;
 
-                    // Hover Mouse-Tracking Tooltip Listeners
-                    card.addEventListener("mouseenter", (e) => this.showHoverTooltip(item, latestVer, e));
-                    card.addEventListener("mousemove", (e) => this.updateHoverTooltipPosition(e));
-                    card.addEventListener("mouseleave", () => this.hideHoverTooltip());
+
 
                     const thumbImg = card.querySelector(".h4-model-thumb");
                     if (thumbImg) thumbImg.onclick = (e) => { e.stopPropagation(); this.openDetailsDrawer(item, latestVer); };
