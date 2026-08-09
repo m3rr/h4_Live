@@ -36,16 +36,28 @@ app.registerExtension({
             }
         });
 
-        // Track all mouse moves across the entire document
-        document.addEventListener("mousemove", (e) => {
+        // Track mouse movement & CTRL key trigger across the entire document
+        const handleDocumentHover = (e) => {
             this._lastMouseEvent = e;
 
-            // 1. Check if mouse is hovering over an open LiteGraph context menu item
-            const menuEntry = e.target.closest(".litemenu-entry, .litecontextmenu div, .contextmenu-entry, .litegraph .litemenu-entry");
+            // 1. Check if hovering inside Civitai drawer panel, details panel, or toggle button
+            if (e.target && e.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn")) {
+                this.hideHoverTooltip();
+                return;
+            }
+
+            // 2. Requirement 4: Must hold CTRL key to trigger tooltip
+            if (!e.ctrlKey) {
+                this.hideHoverTooltip();
+                return;
+            }
+
+            // 3. Check if mouse is hovering over an open LiteGraph or ComfyUI context menu list item
+            const menuEntry = e.target.closest(".litemenu-entry, .litecontextmenu div, .contextmenu-entry, .litegraph .litemenu-entry, .comfy-menu-item, .comfy-context-menu div, .comfy-list-item");
             if (menuEntry) {
                 let rawTxt = menuEntry.textContent ? menuEntry.textContent.trim() : "";
-                // Clean up prefixes/suffixes
-                rawTxt = rawTxt.replace(/^[\s\u2700-\u27BF\u1F300-\u1F9FF\u2600-\u26FF\u65e5\u2713\u2605\u25b6\u25ba\s>►▸✓★•]+/, "").trim();
+                // Clean up leading non-alphanumeric symbols cleanly without breaking filename characters
+                rawTxt = rawTxt.replace(/^[^\w\d\.\-\_\/\\]+/, "").trim();
                 
                 if (rawTxt && rawTxt !== "None" && !rawTxt.startsWith("---") && (rawTxt.includes(".") || rawTxt.includes("/") || rawTxt.includes("\\") || rawTxt.length >= 2)) {
                     this.showHoverTooltipForModelName(rawTxt, e);
@@ -53,26 +65,42 @@ app.registerExtension({
                 }
             }
 
-            // 2. Check if hovering inside Civitai drawer panel or details panel or active model card
-            const inDrawer = e.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn");
-            if (inDrawer) {
-                return;
-            }
-
-            // 3. Check if an open context menu is present anywhere
-            if (document.querySelector(".litecontextmenu, .litemenu")) {
+            // 4. Check if an open context menu is present anywhere
+            if (document.querySelector(".litecontextmenu, .litemenu, .comfy-context-menu")) {
                 if (!menuEntry) {
                     this.hideHoverTooltip();
                 }
             }
+        };
+
+        document.addEventListener("mousemove", handleDocumentHover);
+
+        // Cancel hover trigger immediately on CTRL key release or window blur
+        window.addEventListener("keyup", (e) => {
+            if (e.key === "Control" || e.key === "Ctrl" || e.key === "Escape") {
+                this.hideHoverTooltip();
+            }
         });
+        window.addEventListener("blur", () => this.hideHoverTooltip());
 
         // Global Event Listener for Canvas Node Selected Model Widgets
         const setupCanvasHover = () => {
             if (app.canvas && app.canvas.canvas) {
                 app.canvas.canvas.addEventListener("mousemove", (e) => {
                     this._lastMouseEvent = e;
-                    if (document.querySelector(".litecontextmenu, .litemenu")) return;
+
+                    if (e.target && e.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn")) {
+                        this.hideHoverTooltip();
+                        return;
+                    }
+
+                    // Requirement 4: Must hold CTRL key while hovering
+                    if (!e.ctrlKey) {
+                        this.hideHoverTooltip();
+                        return;
+                    }
+
+                    if (document.querySelector(".litecontextmenu, .litemenu, .comfy-context-menu")) return;
 
                     const canvas = app.canvas;
                     if (!canvas || !canvas.graph || !canvas.graph_mouse) return;
@@ -115,9 +143,7 @@ app.registerExtension({
                         }
                     }
 
-                    if (!e.target.closest("#h4-link-drawer-panel") && !e.target.closest("#h4-link-details-panel") && !e.target.closest(".litemenu-entry")) {
-                        this.hideHoverTooltip();
-                    }
+                    this.hideHoverTooltip();
                 });
             } else {
                 setTimeout(setupCanvasHover, 500);
@@ -966,14 +992,22 @@ app.registerExtension({
 
         const evt = e || this._lastMouseEvent;
 
+        // Requirement 4: Must hold CTRL key while hovering over list items to trigger tooltip
+        if (!evt || !evt.ctrlKey) {
+            this.hideHoverTooltip();
+            return;
+        }
+
         // Requirement 4: Prevent hover tooltip from ever displaying on Civitai Bridge drawer or details panel
         if (evt && evt.target && evt.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn")) {
             this.hideHoverTooltip();
             return;
         }
 
-        // Clean model filename / string
+        // Clean model filename / string: strip leading non-alphanumeric characters while preserving full model filename
         let cleanName = modelName.trim().replace(/^['"]|['"]$/g, "");
+        cleanName = cleanName.replace(/^[^\w\d\.\-\_\/\\]+/, "").trim();
+
         if (cleanName.includes("/") || cleanName.includes("\\")) {
             const parts = cleanName.split(/[/\\]/);
             cleanName = parts[parts.length - 1].trim();
@@ -989,7 +1023,7 @@ app.registerExtension({
             return;
         }
 
-        // If mouse is continuing to hover over the same model name, update position without resetting 1.5s timer
+        // If mouse is continuing to hover over the same model name with CTRL held, update position without resetting timer
         if (this._currentHoverName === cleanName && this._hoverTimer) {
             this.updateHoverTooltipPosition(evt);
             return;
@@ -999,9 +1033,10 @@ app.registerExtension({
         this.hideHoverTooltip();
         this._currentHoverName = cleanName;
 
-        // Requirement 6: Hover wait time set to 1.5 seconds (1500 ms)
+        // Requirement 4: CTRL + Hover trigger wait time set to 1.0 second (1000 ms)
         this._hoverTimer = setTimeout(async () => {
             if (this._currentHoverName !== cleanName) return;
+            if (this._lastMouseEvent && !this._lastMouseEvent.ctrlKey) return;
 
             let cached = this._modelInfoCache[cleanName];
             if (!cached) {

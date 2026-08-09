@@ -28,6 +28,57 @@ def _safe_urlopen(req, timeout=15):
     except Exception as err:
         return urllib.request.urlopen(req, timeout=timeout)
 
+def _infer_model_metadata(filename, category=None):
+    """
+    Intelligently infers base model, model type, and formatted name from filename string.
+    """
+    clean_name = os.path.basename(filename)
+    name_no_ext = os.path.splitext(clean_name)[0]
+    
+    # Format pretty name (replace underscores with spaces)
+    import re
+    clean_base = re.sub(r'^[^\w\d\.\-\_]+', '', name_no_ext).strip()
+    pretty_name = clean_base.replace("_", " ").replace("-", " ").strip()
+    
+    # Infer Type
+    m_type = "CHECKPOINT"
+    if category:
+        m_type = category.rstrip("s").upper()
+    else:
+        fn_lower = filename.lower()
+        if "lora" in fn_lower or "locon" in fn_lower or "slider" in fn_lower:
+            m_type = "LORA"
+        elif "vae" in fn_lower:
+            m_type = "VAE"
+        elif "control" in fn_lower:
+            m_type = "CONTROLNET"
+        elif "unet" in fn_lower:
+            m_type = "UNET"
+        elif "embedding" in fn_lower or "textual" in fn_lower:
+            m_type = "EMBEDDING"
+
+    # Infer Base Model
+    fn_upper = filename.upper()
+    base_model = "SD 1.5"
+    if "ILLUSTRIOUS" in fn_upper or "ILLUS" in fn_upper:
+        base_model = "Illustrious"
+    elif "PONY" in fn_upper:
+        base_model = "Pony"
+    elif "FLUX" in fn_upper:
+        base_model = "Flux.1 D"
+    elif "SDXL" in fn_upper or "XL" in fn_upper or "DRAWNXL" in fn_upper:
+        base_model = "SDXL 1.0"
+    elif "SD3" in fn_upper or "SD3.5" in fn_upper:
+        base_model = "SD3.5"
+    elif "CASCADE" in fn_upper:
+        base_model = "Cascade"
+    elif "HUNYUAN" in fn_upper:
+        base_model = "Hunyuan"
+    elif "SD2" in fn_upper or "SD2.1" in fn_upper:
+        base_model = "SD 2.1"
+
+    return pretty_name or name_no_ext, m_type, base_model
+
 def get_model_info_by_name(model_name, api_key=None):
     """
     Looks up model details, version info, base model, trigger words, and preview image for a local model filename or string name.
@@ -37,35 +88,43 @@ def get_model_info_by_name(model_name, api_key=None):
     if not model_name or not str(model_name).strip():
         return {"success": False, "error": "Empty model name"}
 
-    clean_name = os.path.basename(str(model_name).strip())
+    raw_path = str(model_name).strip().replace("\\", "/")
+    clean_name = os.path.basename(raw_path)
+    import re
+    clean_name = re.sub(r'^[^\w\d\.\-\_]+', '', clean_name).strip()
+    if not clean_name:
+        clean_name = os.path.basename(raw_path)
     name_no_ext = os.path.splitext(clean_name)[0]
+
+    pretty_name, inferred_type, inferred_base = _infer_model_metadata(clean_name)
 
     local_found = False
     local_info = {
-        "name": name_no_ext,
+        "name": pretty_name,
         "versionName": "",
-        "type": "MODEL",
-        "baseModel": "",
+        "type": inferred_type,
+        "baseModel": inferred_base,
         "rating": "N/A",
         "downloadCount": "N/A",
         "triggerWords": [],
         "previewUrl": None,
-        "description": "",
+        "description": f"Model: {clean_name}",
         "filename": clean_name
     }
 
-    # Search local folders
+    # Search local ComfyUI model directories
     for category in ["checkpoints", "loras", "vae", "embeddings", "controlnet", "unet", "clip", "hypernetworks"]:
         try:
             paths = folder_paths.get_folder_paths(category)
             if not paths:
                 continue
             for base_dir in paths:
-                full_model_path = None
-                if hasattr(folder_paths, "get_full_path"):
-                    full_model_path = folder_paths.get_full_path(category, clean_name)
-                if not full_model_path or not os.path.exists(full_model_path):
-                    full_model_path = os.path.join(base_dir, clean_name)
+                full_model_path = os.path.join(base_dir, raw_path)
+                if not os.path.exists(full_model_path):
+                    if hasattr(folder_paths, "get_full_path"):
+                        full_model_path = folder_paths.get_full_path(category, clean_name)
+                    if not full_model_path or not os.path.exists(full_model_path):
+                        full_model_path = os.path.join(base_dir, clean_name)
 
                 if os.path.exists(full_model_path):
                     local_found = True
@@ -73,7 +132,7 @@ def get_model_info_by_name(model_name, api_key=None):
                     base_no_ext = os.path.splitext(full_model_path)[0]
 
                     # Look for local preview image sidecar (.preview.png, .png, .jpg, .jpeg, .webp)
-                    for ext in [".preview.png", ".png", ".jpg", ".jpeg", ".webp"]:
+                    for ext in [".preview.png", ".preview.jpg", ".preview.webp", ".preview.jpeg", ".png", ".jpg", ".jpeg", ".webp"]:
                         test_img = f"{base_no_ext}{ext}"
                         if os.path.exists(test_img):
                             local_info["previewUrl"] = f"/h4/link/view?path={urllib.parse.quote(os.path.abspath(test_img))}"
@@ -90,12 +149,24 @@ def get_model_info_by_name(model_name, api_key=None):
                                 with open(s_file, "r", encoding="utf-8") as jf:
                                     jdata = json.load(jf)
                                     if isinstance(jdata, dict):
-                                        if jdata.get("model_name"): local_info["name"] = jdata["model_name"]
-                                        if jdata.get("version_name"): local_info["versionName"] = jdata["version_name"]
-                                        if jdata.get("baseModel") or jdata.get("base_model"): local_info["baseModel"] = jdata.get("baseModel") or jdata.get("base_model")
-                                        if jdata.get("model_type"): local_info["type"] = str(jdata["model_type"]).upper()
-                                        if jdata.get("trigger_words"): local_info["triggerWords"] = jdata["trigger_words"]
-                                        if jdata.get("description"): local_info["description"] = jdata["description"]
+                                        model_obj = jdata.get("model") if isinstance(jdata.get("model"), dict) else jdata
+                                        if jdata.get("model_name") or model_obj.get("name"):
+                                            local_info["name"] = jdata.get("model_name") or model_obj.get("name")
+                                        if jdata.get("version_name") or jdata.get("name"):
+                                            local_info["versionName"] = jdata.get("version_name") or jdata.get("name")
+                                        if jdata.get("baseModel") or jdata.get("base_model"):
+                                            local_info["baseModel"] = jdata.get("baseModel") or jdata.get("base_model")
+                                        if jdata.get("model_type") or model_obj.get("type"):
+                                            local_info["type"] = str(jdata.get("model_type") or model_obj.get("type")).upper()
+                                        if jdata.get("trigger_words") or jdata.get("trainedWords"):
+                                            local_info["triggerWords"] = jdata.get("trigger_words") or jdata.get("trainedWords")
+                                        if jdata.get("description"):
+                                            local_info["description"] = jdata["description"]
+                                        if jdata.get("images") and isinstance(jdata["images"], list) and len(jdata["images"]) > 0:
+                                            first_img = jdata["images"][0]
+                                            img_u = first_img.get("url") if isinstance(first_img, dict) else str(first_img)
+                                            if img_u and not local_info["previewUrl"]:
+                                                local_info["previewUrl"] = img_u
                             except Exception:
                                 pass
 
@@ -107,7 +178,6 @@ def get_model_info_by_name(model_name, api_key=None):
                         except Exception:
                             pass
 
-                    # If sidecar provided full metadata (both name/triggerWords and baseModel), return immediately
                     if local_info["baseModel"] and (local_info["triggerWords"] or local_info["previewUrl"]):
                         if not local_info["description"]:
                             local_info["description"] = f"Local model located in models/{category}/{clean_name}"
@@ -118,14 +188,14 @@ def get_model_info_by_name(model_name, api_key=None):
         except Exception:
             continue
 
-    # Fallback / Metadata Enrichment: Query Civitai API for model details matching name_no_ext
-    civitai_res = search_civitai(query=name_no_ext, limit=5, api_key=api_key)
+    # Clean query for online search: replace underscores and dashes with spaces
+    search_q = name_no_ext.replace("_", " ").replace("-", " ").strip()
+    civitai_res = search_civitai(query=search_q, limit=5, api_key=api_key)
     if civitai_res.get("success") and civitai_res.get("items"):
         best_item = None
         best_ver = None
-
-        # Attempt exact filename or version match across items
         clean_lower = clean_name.lower()
+
         for item in civitai_res["items"]:
             for ver in item.get("modelVersions", []):
                 for f in ver.get("files", []):
@@ -143,7 +213,6 @@ def get_model_info_by_name(model_name, api_key=None):
         img_url = (best_ver.get("images") and best_ver["images"][0].get("url")) or None
         words = best_ver.get("trainedWords") or []
         raw_desc = (best_item.get("description") or "").strip()
-        import re
         safe_desc = re.sub(r'<[^>]*>?', '', raw_desc)
         dl_count = best_item.get('stats', {}).get('downloadCount', 0)
         rating_num = best_item.get('stats', {}).get('rating', 5.0)
@@ -154,7 +223,7 @@ def get_model_info_by_name(model_name, api_key=None):
                 "name": best_item.get("name") or local_info["name"],
                 "versionName": best_ver.get("name") or local_info["versionName"],
                 "type": best_item.get("type") or local_info["type"],
-                "baseModel": best_ver.get("baseModel") or local_info["baseModel"] or "SD",
+                "baseModel": best_ver.get("baseModel") or local_info["baseModel"],
                 "rating": f"⭐ {rating_num:.1f}" if rating_num else "⭐ 5.0",
                 "downloadCount": f"{dl_count:,}" if isinstance(dl_count, int) else str(dl_count),
                 "triggerWords": words or local_info["triggerWords"],
@@ -164,28 +233,9 @@ def get_model_info_by_name(model_name, api_key=None):
             }
         }
 
-    # Return local info if Civitai API doesn't find a match
-    if local_found:
-        if not local_info["description"]:
-            local_info["description"] = f"Local model located in models/{local_info['type'].lower()}s/{clean_name}"
-        if not local_info["baseModel"]:
-            local_info["baseModel"] = "Local"
-        return {"success": True, "info": local_info}
-
     return {
         "success": True,
-        "info": {
-            "name": name_no_ext,
-            "versionName": "",
-            "type": "MODEL",
-            "baseModel": "SD",
-            "rating": "N/A",
-            "downloadCount": "N/A",
-            "triggerWords": [],
-            "previewUrl": None,
-            "description": f"Model: {clean_name}",
-            "filename": clean_name
-        }
+        "info": local_info
     }
 
 
