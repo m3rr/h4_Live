@@ -434,8 +434,12 @@ def register_routes():
     @PromptServer.instance.routes.get("/h4/link/view")
     async def link_civitai_file_view(request):
         try:
-            path = request.query.get("path", "")
-            if not path or not os.path.exists(path):
+            raw_path = request.query.get("path", "")
+            if not raw_path:
+                return web.Response(status=404)
+            path = urllib.parse.unquote(raw_path).strip('\'"')
+            path = os.path.abspath(path)
+            if not os.path.exists(path):
                 return web.Response(status=404)
             ext = os.path.splitext(path)[1].lower()
             if ext not in [".png", ".jpg", ".jpeg", ".webp", ".gif"]:

@@ -484,7 +484,7 @@ def search_civitai(query="", model_type=None, base_model=None, base_models=None,
     }
 
     if query and query.strip():
-        params["query"] = query.strip()
+        params["search"] = query.strip()
     else:
         if sort: params["sort"] = sort
         if period: params["period"] = period

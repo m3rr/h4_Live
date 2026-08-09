@@ -1296,7 +1296,7 @@ app.registerExtension({
 
         const modelId = item.modelId || version.modelId;
         const nameVal = item.name || version.name || "Missing";
-        const thumbUrl = (version.images && version.images[0]?.url) || item.previewUrl || version.previewUrl || "";
+        const thumbUrl = version.previewUrl || item.previewUrl || (version.images && version.images[0]?.url) || (item.images && item.images[0]?.url) || "";
         const trainedWords = (version.trainedWords && version.trainedWords.length > 0) ? version.trainedWords : (item.triggerWords || []);
         const baseModel = version.baseModel || "SD";
         const verName = version.versionName || version.name || "";
@@ -1320,7 +1320,7 @@ app.registerExtension({
 
             <!-- 1) Cover Image -->
             ${thumbUrl ? `
-                <img class="h4-tooltip-thumb" src="${thumbUrl}" alt="cover image">
+                <img class="h4-tooltip-thumb" src="${thumbUrl}" alt="cover image" onerror="this.onerror=null; this.replaceWith(Object.assign(document.createElement('div'), {className:'h4-tooltip-thumb-missing', innerHTML:'<span>🖼️ Cover Image: <em class=\\'h4-val-missing\\'>Missing</em></span>'}));">
             ` : `
                 <div class="h4-tooltip-thumb-missing">
                     <span>🖼️ Cover Image: <em class="h4-val-missing">Missing</em></span>
