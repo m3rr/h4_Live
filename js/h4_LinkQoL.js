@@ -36,114 +36,47 @@ app.registerExtension({
             }
         });
 
-        // Track mouse movement & CTRL key trigger across the entire document
-        const handleDocumentHover = (e) => {
-            this._lastMouseEvent = e;
-
-            // 1. Check if hovering inside Civitai drawer panel, details panel, or toggle button
-            if (e.target && e.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn")) {
-                this.hideHoverTooltip();
-                return;
-            }
-
-            // 2. Requirement 4: Must hold CTRL key to trigger tooltip
-            if (!e.ctrlKey) {
-                this.hideHoverTooltip();
-                return;
-            }
-
-            // 3. Check if mouse is hovering over an open LiteGraph or ComfyUI context menu list item
-            const menuEntry = e.target.closest(".litemenu-entry, .litecontextmenu div, .contextmenu-entry, .litegraph .litemenu-entry, .comfy-menu-item, .comfy-context-menu div, .comfy-list-item");
-            if (menuEntry) {
-                let rawTxt = menuEntry.textContent ? menuEntry.textContent.trim() : "";
-                // Clean up leading non-alphanumeric symbols cleanly without breaking filename characters
-                rawTxt = rawTxt.replace(/^[^\w\d\.\-\_\/\\]+/, "").trim();
-                
-                if (rawTxt && rawTxt !== "None" && !rawTxt.startsWith("---") && (rawTxt.includes(".") || rawTxt.includes("/") || rawTxt.includes("\\") || rawTxt.length >= 2)) {
-                    this.showHoverTooltipForModelName(rawTxt, e);
-                    return;
-                }
-            }
-
-            // 4. Check if an open context menu is present anywhere
-            if (document.querySelector(".litecontextmenu, .litemenu, .comfy-context-menu")) {
-                if (!menuEntry) {
-                    this.hideHoverTooltip();
-                }
-            }
-        };
-
-        document.addEventListener("mousemove", handleDocumentHover);
-
-        // Cancel hover trigger immediately on CTRL key release or window blur
-        window.addEventListener("keyup", (e) => {
-            if (e.key === "Control" || e.key === "Ctrl" || e.key === "Escape") {
-                this.hideHoverTooltip();
+        // Universal CTRL Trigger & Cyberpunk CIVITAI_SCANNER Handler
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "Control" || e.ctrlKey) {
+                this.startCtrlHoldTimer(e);
             }
         });
-        window.addEventListener("blur", () => this.hideHoverTooltip());
 
-        // Global Event Listener for Canvas Node Selected Model Widgets
+        window.addEventListener("keyup", (e) => {
+            if (e.key === "Control" || e.key === "Ctrl" || e.key === "Escape") {
+                this.stopCtrlHoldTimer();
+            }
+        });
+
+        window.addEventListener("blur", () => this.stopCtrlHoldTimer());
+
+        document.addEventListener("mousemove", (e) => {
+            this._lastMouseEvent = e;
+
+            if (e.ctrlKey) {
+                this.startCtrlHoldTimer(e);
+                if (this._scannerActive) {
+                    this.checkHoverScanner(e);
+                }
+            } else {
+                this.stopCtrlHoldTimer();
+            }
+        });
+
         const setupCanvasHover = () => {
             if (app.canvas && app.canvas.canvas) {
                 app.canvas.canvas.addEventListener("mousemove", (e) => {
                     this._lastMouseEvent = e;
 
-                    if (e.target && e.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn")) {
-                        this.hideHoverTooltip();
-                        return;
-                    }
-
-                    // Requirement 4: Must hold CTRL key while hovering
-                    if (!e.ctrlKey) {
-                        this.hideHoverTooltip();
-                        return;
-                    }
-
-                    if (document.querySelector(".litecontextmenu, .litemenu, .comfy-context-menu")) return;
-
-                    const canvas = app.canvas;
-                    if (!canvas || !canvas.graph || !canvas.graph_mouse) return;
-
-                    const gMouse = canvas.graph_mouse;
-                    const node = canvas.graph.getNodeOnPos(gMouse[0], gMouse[1]);
-
-                    if (node && node.widgets && node.widgets.length > 0) {
-                        const nodeX = node.pos[0];
-                        const nodeY = node.pos[1];
-                        const mouseX = gMouse[0] - nodeX;
-                        const mouseY = gMouse[1] - nodeY;
-
-                        let currentY = node.widgets_start_y || 30;
-
-                        for (const w of node.widgets) {
-                            const wHeight = w.computeSize ? w.computeSize(node.size[0])[1] : (w.height || 24);
-                            const widgetY = w.last_y !== undefined ? w.last_y : currentY;
-
-                            if (mouseX >= 0 && mouseX <= node.size[0] && mouseY >= widgetY && mouseY <= widgetY + wHeight) {
-                                const wName = (w.name || "").toLowerCase();
-                                const isModelWidget = (
-                                    wName.includes("ckpt") || 
-                                    wName.includes("lora") || 
-                                    wName.includes("model") || 
-                                    wName.includes("vae") || 
-                                    wName.includes("control") || 
-                                    wName.includes("unet") || 
-                                    wName.includes("clip") || 
-                                    wName.includes("embedding") ||
-                                    (w.type === "combo" && w.value && typeof w.value === "string" && (w.value.endsWith(".safetensors") || w.value.endsWith(".ckpt") || w.value.endsWith(".pt")))
-                                );
-
-                                if (isModelWidget && w.value && typeof w.value === "string") {
-                                    this.showHoverTooltipForModelName(w.value, e);
-                                    return;
-                                }
-                            }
-                            currentY += wHeight + 4;
+                    if (e.ctrlKey) {
+                        this.startCtrlHoldTimer(e);
+                        if (this._scannerActive) {
+                            this.checkHoverScanner(e);
                         }
+                    } else {
+                        this.stopCtrlHoldTimer();
                     }
-
-                    this.hideHoverTooltip();
                 });
             } else {
                 setTimeout(setupCanvasHover, 500);
@@ -204,6 +137,48 @@ app.registerExtension({
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             }
             #h4-link-details-panel.open { right: 420px; }
+
+            /* Cyberpunk Floating Civitai Scanner Badge */
+            #h4-civitai-scanner-badge {
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 100030;
+                display: none;
+                pointer-events: none;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 12px;
+                background: rgba(10, 14, 23, 0.94);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(0, 240, 255, 0.8);
+                border-radius: 6px;
+                box-shadow: 0 0 20px rgba(0, 240, 255, 0.45), inset 0 0 12px rgba(255, 0, 128, 0.35);
+                font-family: 'Consolas', 'Courier New', monospace;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 1.5px;
+                color: #00f0ff;
+                text-transform: uppercase;
+                user-select: none;
+                transition: opacity 0.15s ease-out;
+            }
+            #h4-civitai-scanner-badge.active {
+                display: flex;
+            }
+            #h4-civitai-scanner-badge .h4-scanner-pulse {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #ff007f;
+                box-shadow: 0 0 8px #ff007f, 0 0 14px #ff007f;
+                animation: h4-scanner-ping 1.2s infinite ease-in-out;
+            }
+            @keyframes h4-scanner-ping {
+                0% { transform: scale(0.8); opacity: 0.7; box-shadow: 0 0 4px #ff007f; }
+                50% { transform: scale(1.3); opacity: 1.0; box-shadow: 0 0 12px #ff007f, 0 0 20px #00f0ff; }
+                100% { transform: scale(0.8); opacity: 0.7; box-shadow: 0 0 4px #ff007f; }
+            }
 
             /* Mouse-Tracking Model Hover Tooltip Overlay */
             #h4-link-hover-tooltip {
@@ -980,11 +955,135 @@ app.registerExtension({
         }
     },
 
+    _ctrlHoldTimer: null,
+    _scannerActive: false,
     _hoverTimer: null,
     _currentHoverName: null,
 
-    // Lookup model details by string/filename with client caching & 1.5s hover delay
-    showHoverTooltipForModelName(modelName, e) {
+    showScannerBadge(e) {
+        let badge = document.getElementById("h4-civitai-scanner-badge");
+        if (!badge) return;
+        badge.classList.add("active");
+        this.updateScannerBadgePosition(e);
+    },
+
+    updateScannerBadgePosition(e) {
+        const badge = document.getElementById("h4-civitai-scanner-badge");
+        if (!badge || !badge.classList.contains("active")) return;
+        const evt = e || this._lastMouseEvent;
+        if (!evt) return;
+
+        const offsetX = 18;
+        const offsetY = 18;
+        let x = evt.clientX + offsetX;
+        let y = evt.clientY + offsetY;
+
+        const rect = badge.getBoundingClientRect();
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
+
+        if (x + rect.width > winW - 10) x = evt.clientX - rect.width - 10;
+        if (y + rect.height > winH - 10) y = evt.clientY - rect.height - 10;
+
+        badge.style.left = `${Math.max(5, x)}px`;
+        badge.style.top = `${Math.max(5, y)}px`;
+    },
+
+    hideScannerBadge() {
+        const badge = document.getElementById("h4-civitai-scanner-badge");
+        if (badge) badge.classList.remove("active");
+    },
+
+    startCtrlHoldTimer(e) {
+        if (this._ctrlHoldTimer || this._scannerActive) return;
+        this._ctrlHoldTimer = setTimeout(() => {
+            this._scannerActive = true;
+            this.showScannerBadge(this._lastMouseEvent || e);
+            this.checkHoverScanner(this._lastMouseEvent || e);
+        }, 500); // 0.5s hold time
+    },
+
+    stopCtrlHoldTimer() {
+        if (this._ctrlHoldTimer) {
+            clearTimeout(this._ctrlHoldTimer);
+            this._ctrlHoldTimer = null;
+        }
+        this._scannerActive = false;
+        this.hideScannerBadge();
+        this.hideHoverTooltip();
+    },
+
+    checkHoverScanner(e) {
+        const evt = e || this._lastMouseEvent;
+        if (!evt || !this._scannerActive) return;
+
+        this.updateScannerBadgePosition(evt);
+
+        // Exclude Civitai Bridge drawer
+        if (evt.target && evt.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn")) {
+            this.hideHoverTooltip();
+            return;
+        }
+
+        // 1. Check open context menu list entries
+        const menuEntry = evt.target.closest(".litemenu-entry, .litecontextmenu div, .contextmenu-entry, .litegraph .litemenu-entry, .comfy-menu-item, .comfy-context-menu div, .comfy-list-item");
+        if (menuEntry) {
+            let rawTxt = menuEntry.textContent ? menuEntry.textContent.trim() : "";
+            rawTxt = rawTxt.replace(/^[^\w\d\.\-\_\/\\]+/, "").trim();
+            if (rawTxt && rawTxt !== "None" && !rawTxt.startsWith("---") && (rawTxt.includes(".") || rawTxt.includes("/") || rawTxt.includes("\\") || rawTxt.length >= 2)) {
+                this.showHoverTooltipForModelName(rawTxt, evt, true);
+                return;
+            }
+        }
+
+        // 2. Check canvas node combo widgets
+        if (!document.querySelector(".litecontextmenu, .litemenu, .comfy-context-menu")) {
+            const canvas = app.canvas;
+            if (canvas && canvas.graph && canvas.graph_mouse) {
+                const gMouse = canvas.graph_mouse;
+                const node = canvas.graph.getNodeOnPos(gMouse[0], gMouse[1]);
+                if (node && node.widgets && node.widgets.length > 0) {
+                    const nodeX = node.pos[0];
+                    const nodeY = node.pos[1];
+                    const mouseX = gMouse[0] - nodeX;
+                    const mouseY = gMouse[1] - nodeY;
+
+                    let currentY = node.widgets_start_y || 30;
+
+                    for (const w of node.widgets) {
+                        const wHeight = w.computeSize ? w.computeSize(node.size[0])[1] : (w.height || 24);
+                        const widgetY = w.last_y !== undefined ? w.last_y : currentY;
+
+                        if (mouseX >= 0 && mouseX <= node.size[0] && mouseY >= widgetY && mouseY <= widgetY + wHeight) {
+                            const wName = (w.name || "").toLowerCase();
+                            const isModelWidget = (
+                                wName.includes("ckpt") || 
+                                wName.includes("lora") || 
+                                wName.includes("model") || 
+                                wName.includes("vae") || 
+                                wName.includes("control") || 
+                                wName.includes("unet") || 
+                                wName.includes("clip") || 
+                                wName.includes("embedding") ||
+                                (w.type === "combo" && w.value && typeof w.value === "string" && (w.value.endsWith(".safetensors") || w.value.endsWith(".ckpt") || w.value.endsWith(".pt")))
+                            );
+
+                            if (isModelWidget && w.value && typeof w.value === "string") {
+                                this.showHoverTooltipForModelName(w.value, evt, true);
+                                return;
+                            }
+                        }
+                        currentY += wHeight + 4;
+                    }
+                }
+            }
+        }
+
+        this.hideHoverTooltip();
+    },
+
+    // Lookup model details by string/filename with client caching
+    showHoverTooltipForModelName(modelName, e, instant = false) {
         if (!modelName || typeof modelName !== "string") {
             this.hideHoverTooltip();
             return;
@@ -992,19 +1091,16 @@ app.registerExtension({
 
         const evt = e || this._lastMouseEvent;
 
-        // Requirement 4: Must hold CTRL key while hovering over list items to trigger tooltip
         if (!evt || !evt.ctrlKey) {
             this.hideHoverTooltip();
             return;
         }
 
-        // Requirement 4: Prevent hover tooltip from ever displaying on Civitai Bridge drawer or details panel
         if (evt && evt.target && evt.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn")) {
             this.hideHoverTooltip();
             return;
         }
 
-        // Clean model filename / string: strip leading non-alphanumeric characters while preserving full model filename
         let cleanName = modelName.trim().replace(/^['"]|['"]$/g, "");
         cleanName = cleanName.replace(/^[^\w\d\.\-\_\/\\]+/, "").trim();
 
@@ -1023,18 +1119,15 @@ app.registerExtension({
             return;
         }
 
-        // If mouse is continuing to hover over the same model name with CTRL held, update position without resetting timer
-        if (this._currentHoverName === cleanName && this._hoverTimer) {
+        if (this._currentHoverName === cleanName && (this._hoverTimer || instant)) {
             this.updateHoverTooltipPosition(evt);
             return;
         }
 
-        // Cancel previous pending hover timer & clear old tooltip immediately to prevent showing stale model data
         this.hideHoverTooltip();
         this._currentHoverName = cleanName;
 
-        // Requirement 4: CTRL + Hover trigger wait time set to 1.0 second (1000 ms)
-        this._hoverTimer = setTimeout(async () => {
+        const loadAndShow = async () => {
             if (this._currentHoverName !== cleanName) return;
             if (this._lastMouseEvent && !this._lastMouseEvent.ctrlKey) return;
 
@@ -1078,7 +1171,13 @@ app.registerExtension({
             };
 
             this.showHoverTooltip(mockItem, mockVersion, this._lastMouseEvent || evt);
-        }, 1500);
+        };
+
+        if (instant || this._scannerActive) {
+            loadAndShow();
+        } else {
+            this._hoverTimer = setTimeout(loadAndShow, 500);
+        }
     },
 
     // Mouse-Tracking Hover Tooltip Overlay Methods
