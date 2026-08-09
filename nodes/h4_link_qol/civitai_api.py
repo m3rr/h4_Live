@@ -375,56 +375,62 @@ def get_model_info_by_name(model_name, api_key=None):
         best_item = None
         best_ver = None
         clean_lower = clean_name.lower()
+        search_words = [w for w in clean_lower.replace("_", " ").replace("-", " ").split() if len(w) > 2]
 
         for item in civitai_res["items"]:
+            item_name_lower = item.get("name", "").lower()
             for ver in item.get("modelVersions", []):
                 for f in ver.get("files", []):
-                    if f.get("name", "").lower() == clean_lower:
+                    f_name_lower = f.get("name", "").lower()
+                    if f_name_lower == clean_lower or clean_lower in f_name_lower:
                         best_item = item
                         best_ver = ver
                         break
                 if best_ver: break
+
+            if not best_item and search_words:
+                if any(w in item_name_lower for w in search_words):
+                    best_item = item
+                    best_ver = (item.get("modelVersions") and item["modelVersions"][0]) or {}
+                    break
             if best_item: break
 
-        if not best_item:
-            best_item = civitai_res["items"][0]
-            best_ver = (best_item.get("modelVersions") and best_item["modelVersions"][0]) or {}
+        if best_item and best_ver:
+            img_url = (best_ver.get("images") and best_ver["images"][0].get("url")) or None
+            words = best_ver.get("trainedWords") or []
+            raw_desc = (best_item.get("description") or "").strip()
+            safe_desc = re.sub(r'<[^>]*>?', '', raw_desc)
+            dl_count = best_item.get('stats', {}).get('downloadCount', 0)
+            rating_num = best_item.get('stats', {}).get('rating', 5.0)
 
-        img_url = (best_ver.get("images") and best_ver["images"][0].get("url")) or None
-        words = best_ver.get("trainedWords") or []
-        raw_desc = (best_item.get("description") or "").strip()
-        safe_desc = re.sub(r'<[^>]*>?', '', raw_desc)
-        dl_count = best_item.get('stats', {}).get('downloadCount', 0)
-        rating_num = best_item.get('stats', {}).get('rating', 5.0)
+            model_id = best_item.get("id")
+            versions_list = [v.get("name") for v in best_item.get("modelVersions", []) if v.get("name")]
 
-        model_id = best_item.get("id")
-        versions_list = [v.get("name") for v in best_item.get("modelVersions", []) if v.get("name")]
+            files = best_ver.get("files") or []
+            f_size_str = "N/A"
+            if files and isinstance(files[0], dict) and files[0].get("sizeKB"):
+                s_mb = files[0]["sizeKB"] / 1024.0
+                f_size_str = f"{s_mb/1024.0:.2f} GB" if s_mb >= 1000 else f"{s_mb:.1f} MB"
 
-        files = best_ver.get("files") or []
-        f_size_str = "N/A"
-        if files and isinstance(files[0], dict) and files[0].get("sizeKB"):
-            s_mb = files[0]["sizeKB"] / 1024.0
-            f_size_str = f"{s_mb/1024.0:.2f} GB" if s_mb >= 1000 else f"{s_mb:.1f} MB"
-
-        return {
-            "success": True,
-            "info": {
-                "modelId": model_id,
-                "modelVersionId": best_ver.get("id"),
-                "name": best_item.get("name") or local_info["name"],
-                "versionName": best_ver.get("name") or local_info["versionName"],
-                "versionsAvailable": versions_list,
-                "fileSize": f_size_str,
-                "type": best_item.get("type") or local_info["type"],
-                "baseModel": best_ver.get("baseModel") or local_info["baseModel"],
-                "rating": f"⭐ {rating_num:.1f}" if rating_num else "⭐ 5.0",
-                "downloadCount": f"{dl_count:,}" if isinstance(dl_count, int) else str(dl_count),
-                "triggerWords": words or local_info["triggerWords"],
-                "previewUrl": local_info["previewUrl"] or img_url,
-                "description": safe_desc or local_info["description"],
-                "filename": clean_name
+            return {
+                "success": True,
+                "info": {
+                    "modelId": model_id,
+                    "modelVersionId": best_ver.get("id"),
+                    "name": best_item.get("name") or local_info["name"],
+                    "versionName": best_ver.get("name") or local_info["versionName"],
+                    "versionsAvailable": versions_list,
+                    "fileSize": f_size_str,
+                    "type": best_item.get("type") or local_info["type"],
+                    "baseModel": best_ver.get("baseModel") or local_info["baseModel"],
+                    "rating": f"⭐ {rating_num:.1f}" if rating_num else "⭐ 5.0",
+                    "downloadCount": f"{dl_count:,}" if isinstance(dl_count, int) else str(dl_count),
+                    "triggerWords": words or local_info["triggerWords"],
+                    "previewUrl": local_info["previewUrl"] or img_url,
+                    "description": safe_desc or local_info["description"],
+                    "filename": clean_name
+                }
             }
-        }
 
     return {
         "success": True,
@@ -476,58 +482,75 @@ def resolve_target_folder(model_type, base_model=None):
 
 def search_civitai(query="", model_type=None, base_model=None, base_models=None, sort="Highest Rated", period="AllTime", page=1, limit=20, nsfw=False, api_key=None, **kwargs):
     """
-    Queries Civitai REST API with parameter sanitization.
-    Note: Civitai API forbids combining 'page' with 'query'.
+    Queries Civitai REST API with multi-stage fallback search:
+    1. First tries query=... (REST API text search)
+    2. If query= fails or returns 503, tries tag=... (REST API tag search)
+    3. Filters items by search keywords cleanly
     """
-    params = {
+    base_params = {
         "limit": min(max(int(limit), 1), 100),
     }
 
-    if query and query.strip():
-        params["search"] = query.strip()
-    else:
-        if sort: params["sort"] = sort
-        if period: params["period"] = period
-        if page and page > 1: params["page"] = page
-
     if model_type and model_type != "All":
-        params["types"] = model_type
+        base_params["types"] = model_type
 
     bm_val = base_model or base_models
     if bm_val and bm_val != "All":
-        params["baseModels"] = bm_val
+        base_params["baseModels"] = bm_val
 
     if nsfw is not None and nsfw != "All":
-        params["nsfw"] = "true" if str(nsfw).lower() in ("true", "1", "yes", "on") else "false"
+        base_params["nsfw"] = "true" if str(nsfw).lower() in ("true", "1", "yes", "on") else "false"
 
     if api_key and api_key.strip():
-        params["token"] = api_key.strip()
+        base_params["token"] = api_key.strip()
 
-    url = f"{CIVITAI_BASE_URL}/models?" + urllib.parse.urlencode(params)
-    
-    req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 h4_Live_ToolKit/11.2.7",
-        "Accept": "application/json"
-    })
-    
-    try:
-        with _safe_urlopen(req, timeout=12) as response:
-            if response.status == 200:
-                raw_body = response.read().decode('utf-8')
-                data = json.loads(raw_body)
-                return {"success": True, "items": data.get("items", []), "metadata": data.get("metadata", {})}
-            else:
-                return {"success": False, "error": f"HTTP {response.status}", "items": []}
-    except urllib.error.HTTPError as e:
-        msg = f"HTTP Error {e.code}: {e.reason}"
+    q_str = (query or "").strip()
+
+    def _fetch_from_civitai(extra_params):
+        p = dict(base_params)
+        p.update(extra_params)
+        url = f"{CIVITAI_BASE_URL}/models?" + urllib.parse.urlencode(p)
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "application/json"
+        })
         try:
-            err_payload = e.read().decode('utf-8')
-            err_json = json.loads(err_payload)
-            if isinstance(err_json, dict) and err_json.get("error"):
-                msg = f"HTTP Error {e.code}: {err_json['error']}"
+            with _safe_urlopen(req, timeout=12) as response:
+                if response.status == 200:
+                    raw_body = response.read().decode('utf-8')
+                    data = json.loads(raw_body)
+                    if isinstance(data, dict) and "items" in data:
+                        return data.get("items", [])
         except Exception:
             pass
-        return {"success": False, "error": msg, "items": []}
+        return None
+
+    try:
+        items = None
+
+        if q_str:
+            # 1. Try REST API text query
+            items = _fetch_from_civitai({"query": q_str})
+
+            # 2. If query returned 503 or None, try REST API tag search
+            if items is None:
+                first_word = q_str.split()[0]
+                tag_items = _fetch_from_civitai({"tag": first_word})
+                if tag_items:
+                    q_words = [w.lower() for w in q_str.split()]
+                    filtered = [it for it in tag_items if any(w in it.get("name", "").lower() for w in q_words)]
+                    items = filtered if filtered else tag_items
+                else:
+                    items = []
+        else:
+            # Standard browsing / filtering without text query
+            p_extra = {}
+            if sort: p_extra["sort"] = sort
+            if period: p_extra["period"] = period
+            if page and page > 1: p_extra["page"] = page
+            items = _fetch_from_civitai(p_extra)
+
+        return {"success": True, "items": items or []}
     except Exception as e:
         return {"success": False, "error": str(e), "items": []}
 
