@@ -1307,7 +1307,9 @@ app.registerExtension({
         const fileSize = version.fileSize || item.fileSize || "";
         const versionsAvailable = (version.versionsAvailable && version.versionsAvailable.length > 0) ? version.versionsAvailable : (item.versionsAvailable || []);
         const rawDesc = (item.description || "").replace(/<[^>]*>?/gm, "").trim();
-        const safeDesc = rawDesc.length > 220 ? rawDesc.substring(0, 220) + "..." : rawDesc;
+        const creator = item.creator || (item.user && item.user.username) || version.creator || null;
+        const thumbsUp = (item.stats && item.stats.thumbsUpCount) ? item.stats.thumbsUpCount : ((item.stats && item.stats.favoriteCount) ? item.stats.favoriteCount : null);
+        const safeDesc = rawDesc.length > 260 ? rawDesc.substring(0, 260) + "..." : rawDesc;
         const civitaiUrl = modelId ? `https://civitai.com/models/${modelId}` : null;
 
         tooltip.innerHTML = `
@@ -1320,15 +1322,15 @@ app.registerExtension({
 
             <!-- 1) Cover Image -->
             ${thumbUrl ? `
-                <img class="h4-tooltip-thumb" src="${thumbUrl}" alt="cover image" referrerpolicy="no-referrer" onerror="this.onerror=null; this.replaceWith(Object.assign(document.createElement('div'), {className:'h4-tooltip-thumb-missing', innerHTML:'<span>🖼️ Cover Image: <em class=\\'h4-val-missing\\'>Missing</em></span>'}));">
+                <img class="h4-tooltip-thumb" src="${thumbUrl}" alt="cover image" referrerpolicy="no-referrer" onerror="this.onerror=null; this.replaceWith(Object.assign(document.createElement('div'), {className:'h4-tooltip-thumb-missing', innerHTML:'<span>🖼️ Cover Image: <em class=\\'h4-val-missing\\'>Missing / Offline</em></span>'}));">
             ` : `
                 <div class="h4-tooltip-thumb-missing">
-                    <span>🖼️ Cover Image: <em class="h4-val-missing">Missing</em></span>
+                    <span>🖼️ Cover Image: <em class="h4-val-missing">Missing / Offline</em></span>
                 </div>
             `}
             
             <div class="h4-tooltip-meta">
-                <!-- 2) Name -->
+                <!-- 2) Name & Creator -->
                 <div class="h4-tooltip-title">
                     ${civitaiUrl ? `<a href="${civitaiUrl}" target="_blank" class="h4-model-link" title="Click to open model page on Civitai">${nameVal} ↗</a>` : `<span>${nameVal}</span>`}
                     ${verName ? `<span style="font-size:11px; font-weight:400; color:#61afef; margin-left:4px;">[${verName}]</span>` : ''}
@@ -1339,17 +1341,24 @@ app.registerExtension({
                     <span class="h4-badge h4-badge-base">${baseModel}</span>
                     <span class="h4-badge">${rating.includes('⭐') ? rating : '⭐ ' + rating}</span>
                     <span class="h4-badge">📥 ${downloads}</span>
+                    ${thumbsUp ? `<span class="h4-badge" style="border-color: rgba(235, 111, 146, 0.4); color: #eb6f92;">👍 ${thumbsUp}</span>` : ''}
                 </div>
 
-                <!-- 3) Weights / File Size & Filename -->
-                <div style="font-size: 11px; color: #abb2bf; margin-top: 4px; display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap;">
-                    <span>⚖️ Weight / Size: ${fileSize && fileSize !== "N/A" ? `<strong class="h4-val-highlight">${fileSize}</strong>` : `<em class="h4-val-missing">Missing</em>`}</span>
-                    ${filename ? `<span style="font-family: monospace; color: #888;">📄 ${filename}</span>` : ''}
+                <!-- 3) Creator & File Size & Filename -->
+                <div style="font-size: 11px; color: #abb2bf; margin-top: 5px; display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap;">
+                    <span>⚖️ Size: ${fileSize && fileSize !== "N/A" ? `<strong class="h4-val-highlight">${fileSize}</strong>` : `<em class="h4-val-missing">Missing</em>`}</span>
+                    <span>👤 Creator: ${creator ? `<strong style="color:#61afef;">@${creator}</strong>` : `<em class="h4-val-missing">Missing</em>`}</span>
                 </div>
+
+                ${filename ? `
+                    <div style="font-size: 10px; font-family: monospace; color: #888; margin-top: 3px; word-break: break-all;">
+                        📄 File: <span style="color: #98c379;">${filename}</span>
+                    </div>
+                ` : ''}
 
                 <!-- 4) Versions Available -->
-                <div style="font-size: 11px; color: #d19a66; margin-top: 4px; display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
-                    <span>📦 Versions Available:</span>
+                <div style="font-size: 11px; color: #d19a66; margin-top: 5px; display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+                    <span>📦 Versions:</span>
                     ${versionsAvailable.length > 0 ? `
                         ${versionsAvailable.slice(0, 5).map(v => `<span style="background: rgba(209, 154, 102, 0.15); border: 1px solid rgba(209, 154, 102, 0.3); border-radius: 3px; padding: 1px 4px; font-size: 10px;">${v}</span>`).join('')}
                         ${versionsAvailable.length > 5 ? `<span style="font-size:9px; color:#888;">+${versionsAvailable.length - 5} more</span>` : ''}
@@ -1357,24 +1366,29 @@ app.registerExtension({
                 </div>
             </div>
 
-            <!-- 5) Trigger Words -->
-            <div style="margin-top: 4px;">
-                <div style="font-size: 10px; font-weight: 700; color: #00f0ff; letter-spacing: 0.5px; margin-bottom: 2px;">🔑 TRIGGER WORDS</div>
+            <!-- 5) Trigger Words with Quick Copy -->
+            <div style="margin-top: 6px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #00f0ff; letter-spacing: 0.5px;">🔑 TRIGGER WORDS</span>
+                    ${trainedWords.length > 0 ? `
+                        <button style="background: rgba(0, 240, 255, 0.12); border: 1px solid rgba(0, 240, 255, 0.35); color: #00f0ff; border-radius: 3px; font-size: 9px; padding: 1px 6px; cursor: pointer;" onclick="navigator.clipboard.writeText('${trainedWords.join(', ').replace(/'/g, "\\'")}'); this.textContent='COPIED!'; setTimeout(()=>this.textContent='COPY', 1200);">📋 COPY</button>
+                    ` : ''}
+                </div>
                 ${trainedWords.length > 0 ? `
                     <div class="h4-tooltip-triggers">${trainedWords.join(', ')}</div>
                 ` : `<div style="font-size: 11px;"><em class="h4-val-missing">Missing</em></div>`}
             </div>
 
             <!-- 6) Opening Portion of Description -->
-            <div style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px;">
-                <div style="font-size: 10px; font-weight: 700; color: #aaa; letter-spacing: 0.5px; margin-bottom: 2px;">📝 DESCRIPTION</div>
+            <div style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 5px;">
+                <div style="font-size: 10px; font-weight: 700; color: #aaa; letter-spacing: 0.5px; margin-bottom: 3px;">📝 DESCRIPTION</div>
                 ${safeDesc ? `
-                    <div style="font-size: 11px; color: #bbb; line-height: 1.35; max-height: 70px; overflow: hidden; text-overflow: ellipsis;">${safeDesc}</div>
+                    <div style="font-size: 11px; color: #bbb; line-height: 1.35; max-height: 75px; overflow: hidden; text-overflow: ellipsis;">${safeDesc}</div>
                 ` : `<div style="font-size: 11px;"><em class="h4-val-missing">Missing</em></div>`}
             </div>
 
             <!-- 7) Pin & Browser Link Hint -->
-            <div style="font-size: 9px; color: #666; text-align: right; margin-top: 4px;">
+            <div style="font-size: 9px; color: #666; text-align: right; margin-top: 5px;">
                 ${this._altPinned ? '📌 PINNED - Click model name to open page' : '[ Hold ALT to Pin & Open Civitai Page ↗ ]'}
             </div>
         `;

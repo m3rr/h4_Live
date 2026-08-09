@@ -368,28 +368,30 @@ def get_model_info_by_name(model_name, api_key=None):
                     }
                 }
 
-    # Fallback to online Civitai text search
-    search_q = name_no_ext.replace("_", " ").replace("-", " ").strip()
-    civitai_res = search_civitai(query=search_q, limit=5, api_key=api_key)
+    # Fallback to online Civitai text search with first token query
+    clean_lower = clean_name.lower()
+    clean_no_ext = name_no_ext.lower()
+    words = [w for w in re.split(r'[\_\-\s]+', name_no_ext) if w and len(w) > 1 and w.lower() not in ('v1', 'v2', 'v3', 'v4', 'v5', 'safetensors', 'ckpt', 'sdxl', 'sd15', 'pruned', 'emaonly')]
+    first_token = words[0] if words else name_no_ext.replace("_", " ").replace("-", " ").strip()
+
+    civitai_res = search_civitai(query=first_token, limit=10, api_key=api_key)
     if civitai_res.get("success") and civitai_res.get("items"):
         best_item = None
         best_ver = None
-        clean_lower = clean_name.lower()
-        search_words = [w for w in clean_lower.replace("_", " ").replace("-", " ").split() if len(w) > 2]
 
         for item in civitai_res["items"]:
             item_name_lower = item.get("name", "").lower()
             for ver in item.get("modelVersions", []):
                 for f in ver.get("files", []):
                     f_name_lower = f.get("name", "").lower()
-                    if f_name_lower == clean_lower or clean_lower in f_name_lower:
+                    if clean_lower in f_name_lower or clean_no_ext in f_name_lower:
                         best_item = item
                         best_ver = ver
                         break
                 if best_ver: break
 
-            if not best_item and search_words:
-                if any(w in item_name_lower for w in search_words):
+            if not best_item:
+                if clean_no_ext in item_name_lower or any(w in item_name_lower for w in words):
                     best_item = item
                     best_ver = (item.get("modelVersions") and item["modelVersions"][0]) or {}
                     break
@@ -397,11 +399,14 @@ def get_model_info_by_name(model_name, api_key=None):
 
         if best_item and best_ver:
             img_url = (best_ver.get("images") and best_ver["images"][0].get("url")) or None
-            words = best_ver.get("trainedWords") or []
+            words_list = best_ver.get("trainedWords") or []
             raw_desc = (best_item.get("description") or "").strip()
             safe_desc = re.sub(r'<[^>]*>?', '', raw_desc)
-            dl_count = best_item.get('stats', {}).get('downloadCount', 0)
-            rating_num = best_item.get('stats', {}).get('rating', 5.0)
+            creator_uname = (best_item.get("user") or {}).get("username")
+            stats = best_item.get('stats', {})
+            dl_count = stats.get('downloadCount', 0)
+            rating_num = stats.get('rating', 5.0)
+            thumbs_up = stats.get('thumbsUpCount') or stats.get('favoriteCount')
 
             model_id = best_item.get("id")
             versions_list = [v.get("name") for v in best_item.get("modelVersions", []) if v.get("name")]
@@ -418,14 +423,16 @@ def get_model_info_by_name(model_name, api_key=None):
                     "modelId": model_id,
                     "modelVersionId": best_ver.get("id"),
                     "name": best_item.get("name") or local_info["name"],
+                    "creator": creator_uname,
                     "versionName": best_ver.get("name") or local_info["versionName"],
                     "versionsAvailable": versions_list,
-                    "fileSize": f_size_str,
+                    "fileSize": f_size_str if f_size_str != "N/A" else local_info["fileSize"],
                     "type": best_item.get("type") or local_info["type"],
                     "baseModel": best_ver.get("baseModel") or local_info["baseModel"],
                     "rating": f"⭐ {rating_num:.1f}" if rating_num else "⭐ 5.0",
                     "downloadCount": f"{dl_count:,}" if isinstance(dl_count, int) else str(dl_count),
-                    "triggerWords": words or local_info["triggerWords"],
+                    "thumbsUpCount": f"{thumbs_up:,}" if isinstance(thumbs_up, int) else thumbs_up,
+                    "triggerWords": words_list or local_info["triggerWords"],
                     "previewUrl": local_info["previewUrl"] or img_url,
                     "description": safe_desc or local_info["description"],
                     "filename": clean_name
