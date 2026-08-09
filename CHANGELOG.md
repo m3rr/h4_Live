@@ -5,6 +5,16 @@
 
 ---
 
+## [v11.2.13] — 2026-08-09
+### 🚀 Fix Release v11.2.13
+- **JS ReferenceError Fix in `showHoverTooltipForModelName`**:
+  - Replaced Python syntax `str(info.rating)` with `String(info.rating)` in `js/h4_LinkQoL.js` to eliminate unhandled `ReferenceError` exception during mousemove event execution.
+  - Restored model hover preview tooltips when hovering over items in open LiteGraph dropdown lists (`.litecontextmenu`) and canvas model widgets (`Load Checkpoint`, `Load Lora`, etc.).
+- **Civitai Search UI Retry Control**:
+  - Added UI retry control and explicit error details in `performSearch()` for seamless recovery if network requests encounter temporary API glitches.
+
+---
+
 ## [v11.2.12] — 2026-08-08
 ### 🚀 Documentation & Handoff Release v11.2.12
 - **System Architecture Handoff (`HANDOFF.md`)**:

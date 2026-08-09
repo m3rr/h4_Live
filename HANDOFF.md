@@ -1,5 +1,5 @@
 # 🤝 h4_Live ToolKit — System Handoff & Technical Architecture Ledger
-> **Current Version**: `11.2.12`  
+> **Current Version**: `11.2.13`  
 > **Status**: Production Hardened - Forensic Core  
 > **Repository**: [https://github.com/m3rr/h4_Live](https://github.com/m3rr/h4_Live)
 

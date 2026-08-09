@@ -39,8 +39,8 @@ app.registerExtension({
         document.addEventListener("mousemove", (e) => {
             const menuEntry = e.target.closest(".litemenu-entry");
             if (menuEntry) {
-                const txt = menuEntry.textContent.trim();
-                if (txt && txt !== "None" && !txt.startsWith("---") && (txt.includes(".") || txt.includes("/") || txt.length > 3)) {
+                const txt = menuEntry.textContent ? menuEntry.textContent.trim() : "";
+                if (txt && txt !== "None" && !txt.startsWith("---") && (txt.includes(".") || txt.includes("/") || txt.includes("\\") || txt.length > 3)) {
                     this.showHoverTooltipForModelName(txt, e);
                 }
             }
@@ -64,20 +64,24 @@ app.registerExtension({
                         const mouseX = gMouse[0] - nodeX;
                         const mouseY = gMouse[1] - nodeY;
 
-                        let currentY = 30;
+                        let currentY = node.widgets_start_y || 30;
 
                         for (const w of node.widgets) {
-                            const wHeight = w.computeSize ? w.computeSize(node.size[0])[1] : 24;
+                            const wHeight = w.computeSize ? w.computeSize(node.size[0])[1] : (w.height || 24);
                             const widgetY = w.last_y !== undefined ? w.last_y : currentY;
 
                             if (mouseX >= 0 && mouseX <= node.size[0] && mouseY >= widgetY && mouseY <= widgetY + wHeight) {
+                                const wName = (w.name || "").toLowerCase();
                                 const isModelWidget = (
-                                    w.name === "ckpt_name" || 
-                                    w.name === "lora_name" || 
-                                    w.name === "model_name" || 
-                                    w.name === "vae_name" || 
-                                    w.name === "control_net_name" || 
-                                    w.name === "active_model_name"
+                                    wName.includes("ckpt") || 
+                                    wName.includes("lora") || 
+                                    wName.includes("model") || 
+                                    wName.includes("vae") || 
+                                    wName.includes("control") || 
+                                    wName.includes("unet") || 
+                                    wName.includes("clip") || 
+                                    wName.includes("embedding") ||
+                                    (w.type === "combo" && w.value && typeof w.value === "string" && (w.value.endsWith(".safetensors") || w.value.endsWith(".ckpt") || w.value.endsWith(".pt")))
                                 );
 
                                 if (isModelWidget && w.value && typeof w.value === "string") {
@@ -926,7 +930,13 @@ app.registerExtension({
 
     // Lookup model details by string/filename with client caching
     async showHoverTooltipForModelName(modelName, e) {
-        if (!modelName || modelName === "None" || modelName.startsWith("---")) {
+        if (!modelName || typeof modelName !== "string") {
+            this.hideHoverTooltip();
+            return;
+        }
+
+        const cleanName = modelName.trim().replace(/^['"]|['"]$/g, "");
+        if (!cleanName || cleanName === "None" || cleanName.startsWith("---")) {
             this.hideHoverTooltip();
             return;
         }
@@ -935,7 +945,6 @@ app.registerExtension({
             return;
         }
 
-        const cleanName = modelName.trim();
         let cached = this._modelInfoCache[cleanName];
 
         if (!cached) {
@@ -955,11 +964,13 @@ app.registerExtension({
         const info = await this._modelInfoCache[cleanName];
         if (!info) return;
 
+        const ratingVal = info.rating ? String(info.rating).replace(/[^0-9.]/g, "") : "5.0";
+
         const mockItem = {
             name: info.name,
             type: info.type,
             stats: {
-                rating: parseFloat(str(info.rating).replace(/[^0-9.]/g, "")) || 5.0,
+                rating: parseFloat(ratingVal) || 5.0,
                 downloadCount: info.downloadCount
             },
             description: info.description
@@ -1361,13 +1372,27 @@ app.registerExtension({
             } else {
                 if (!append) {
                     const errMsg = (data && data.error) ? `Error: ${data.error}` : "No models found matching query.";
-                    resultsContainer.innerHTML = `<div style="color: #e06c75; font-size: 12px; text-align: center; margin-top: 20px;">${errMsg}</div>`;
+                    resultsContainer.innerHTML = `
+                        <div style="color: #e06c75; font-size: 12px; text-align: center; margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                            <span>${errMsg}</span>
+                            <button class="h4-btn h4-btn-secondary" id="h4-search-retry-btn" style="padding: 6px 14px;">🔄 Retry Search</button>
+                        </div>
+                    `;
+                    const retryBtn = document.getElementById("h4-search-retry-btn");
+                    if (retryBtn) retryBtn.onclick = () => this.performSearch();
                 }
             }
         } catch (e) {
             console.error("[h4_LinkQoL] Perform search exception:", e);
             if (!append) {
-                resultsContainer.innerHTML = `<div style="color: #e06c75; font-size: 12px; text-align: center; margin-top: 20px;">API Request Error: ${e.message}</div>`;
+                resultsContainer.innerHTML = `
+                    <div style="color: #e06c75; font-size: 12px; text-align: center; margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                        <span>API Request Error: ${e.message}</span>
+                        <button class="h4-btn h4-btn-secondary" id="h4-search-retry-btn" style="padding: 6px 14px;">🔄 Retry Search</button>
+                    </div>
+                `;
+                const retryBtn = document.getElementById("h4-search-retry-btn");
+                if (retryBtn) retryBtn.onclick = () => this.performSearch();
             }
         }
     },
