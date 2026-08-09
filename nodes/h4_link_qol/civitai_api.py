@@ -198,10 +198,21 @@ def search_civitai(query="", model_type="All", base_model="All", sort="Highest R
         params["query"] = query.strip()
         
     if model_type and model_type != "All":
-        params["types"] = model_type
-        
-    if base_model and base_model != "All":
-        params["baseModel"] = base_model
+        m_upper = str(model_type).strip().upper()
+        if "LORA" in m_upper or "LOCON" in m_upper:
+            params["types"] = "LORA"
+        elif "CHECKPOINT" in m_upper or "MODEL" in m_upper:
+            params["types"] = "Checkpoint"
+        elif "VAE" in m_upper:
+            params["types"] = "VAE"
+        elif "CONTROL" in m_upper:
+            params["types"] = "ControlNet"
+        elif "EMBEDDING" in m_upper or "TEXTUAL" in m_upper:
+            params["types"] = "TextualInversion"
+        elif "UNET" in m_upper:
+            params["types"] = "UNet"
+        else:
+            params["types"] = model_type
 
     if nsfw is not None and nsfw != "All":
         params["nsfw"] = "true" if str(nsfw).lower() in ("true", "1", "yes", "on") else "false"

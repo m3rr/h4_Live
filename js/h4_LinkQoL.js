@@ -18,6 +18,7 @@ app.registerExtension({
     _lightboxImages: [],
     _lightboxIndex: 0,
     _modelInfoCache: {},
+    _lastMouseEvent: null,
 
     async setup() {
         console.log("🔗 h4_Link_QoL: Initializing Civitai Bridge Engine v2.0...");
@@ -35,13 +36,33 @@ app.registerExtension({
             }
         });
 
-        // Global Event Delegation for Open Dropdown Menu Items (.litecontextmenu)
+        // Track all mouse moves across the entire document
         document.addEventListener("mousemove", (e) => {
+            this._lastMouseEvent = e;
+
+            // 1. Check if mouse is hovering over an open LiteGraph context menu item (.litemenu-entry)
             const menuEntry = e.target.closest(".litemenu-entry");
             if (menuEntry) {
-                const txt = menuEntry.textContent ? menuEntry.textContent.trim() : "";
-                if (txt && txt !== "None" && !txt.startsWith("---") && (txt.includes(".") || txt.includes("/") || txt.includes("\\") || txt.length > 3)) {
-                    this.showHoverTooltipForModelName(txt, e);
+                let rawTxt = menuEntry.textContent ? menuEntry.textContent.trim() : "";
+                // Clean up prefixes/suffixes
+                rawTxt = rawTxt.replace(/^[\s\u2700-\u27BF\u1F300-\u1F9FF\u2600-\u26FF\u65e5\u2713\u2605\u25b6\u25ba\s>]+/, "").trim();
+                
+                if (rawTxt && rawTxt !== "None" && !rawTxt.startsWith("---") && (rawTxt.includes(".") || rawTxt.includes("/") || rawTxt.includes("\\") || rawTxt.length > 2)) {
+                    this.showHoverTooltipForModelName(rawTxt, e);
+                    return;
+                }
+            }
+
+            // 2. Check if hovering inside Civitai drawer panel or details panel or active model card
+            const inDrawer = e.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn");
+            if (inDrawer) {
+                return;
+            }
+
+            // 3. Check if an open context menu is present anywhere
+            if (document.querySelector(".litecontextmenu")) {
+                if (!menuEntry) {
+                    this.hideHoverTooltip();
                 }
             }
         });
@@ -50,6 +71,7 @@ app.registerExtension({
         const setupCanvasHover = () => {
             if (app.canvas && app.canvas.canvas) {
                 app.canvas.canvas.addEventListener("mousemove", (e) => {
+                    this._lastMouseEvent = e;
                     if (document.querySelector(".litecontextmenu")) return;
 
                     const canvas = app.canvas;
@@ -767,7 +789,7 @@ app.registerExtension({
         // API Key Listener
         const apiKeyInput = document.getElementById("h4-drawer-apikey");
         apiKeyInput.addEventListener("change", () => {
-            this._apiKey = apiKeyInput.value.strip ? apiKeyInput.value.strip() : apiKeyInput.value;
+            this._apiKey = apiKeyInput.value.trim ? apiKeyInput.value.trim() : apiKeyInput.value;
             if (window.h4_Dashboard && window.h4_Dashboard.config) {
                 window.h4_Dashboard.config.civitaiApiKey = this._apiKey;
                 if (typeof window.h4_Dashboard.saveConfig === "function") {
@@ -935,7 +957,13 @@ app.registerExtension({
             return;
         }
 
-        const cleanName = modelName.trim().replace(/^['"]|['"]$/g, "");
+        // Clean model filename / string
+        let cleanName = modelName.trim().replace(/^['"]|['"]$/g, "");
+        if (cleanName.includes("/") || cleanName.includes("\\")) {
+            const parts = cleanName.split(/[/\\]/);
+            cleanName = parts[parts.length - 1];
+        }
+
         if (!cleanName || cleanName === "None" || cleanName.startsWith("---")) {
             this.hideHoverTooltip();
             return;
@@ -967,22 +995,22 @@ app.registerExtension({
         const ratingVal = info.rating ? String(info.rating).replace(/[^0-9.]/g, "") : "5.0";
 
         const mockItem = {
-            name: info.name,
-            type: info.type,
+            name: info.name || cleanName,
+            type: info.type || "MODEL",
             stats: {
                 rating: parseFloat(ratingVal) || 5.0,
-                downloadCount: info.downloadCount
+                downloadCount: info.downloadCount || "N/A"
             },
-            description: info.description
+            description: info.description || `Model: ${cleanName}`
         };
 
         const mockVersion = {
-            baseModel: info.baseModel,
+            baseModel: info.baseModel || "SD",
             trainedWords: info.triggerWords || [],
             images: info.previewUrl ? [{ url: info.previewUrl }] : []
         };
 
-        this.showHoverTooltip(mockItem, mockVersion, e);
+        this.showHoverTooltip(mockItem, mockVersion, e || this._lastMouseEvent);
     },
 
     // Mouse-Tracking Hover Tooltip Overlay Methods
@@ -1027,26 +1055,29 @@ app.registerExtension({
         `;
 
         tooltip.classList.add("active");
-        this.updateHoverTooltipPosition(e);
+        this.updateHoverTooltipPosition(e || this._lastMouseEvent);
     },
 
     updateHoverTooltipPosition(e) {
         const tooltip = document.getElementById("h4-link-hover-tooltip");
         if (!tooltip || !tooltip.classList.contains("active")) return;
 
+        const evt = e || this._lastMouseEvent;
+        if (!evt) return;
+
         const tooltipWidth = 320;
-        const tooltipHeight = tooltip.offsetHeight || 340;
+        const tooltipHeight = tooltip.offsetHeight || 200;
         const padding = 15;
 
-        let posX = e.clientX + padding;
-        let posY = e.clientY + padding;
+        let posX = evt.clientX + padding;
+        let posY = evt.clientY + padding;
 
         if (posX + tooltipWidth > window.innerWidth - 10) {
-            posX = e.clientX - tooltipWidth - padding;
+            posX = evt.clientX - tooltipWidth - padding;
         }
 
         if (posY + tooltipHeight > window.innerHeight - 10) {
-            posY = e.clientY - tooltipHeight - padding;
+            posY = evt.clientY - tooltipHeight - padding;
         }
 
         posX = Math.max(10, Math.min(posX, window.innerWidth - tooltipWidth - 10));
@@ -1305,9 +1336,12 @@ app.registerExtension({
             url += `&api_key=${encodeURIComponent(this._apiKey)}`;
         }
 
+        console.log(`[h4_LinkQoL] Requesting Civitai Search: ${url}`);
+
         try {
             const resp = await fetch(url);
             const data = await resp.json();
+            console.log(`[h4_LinkQoL] Civitai Search Result:`, data);
 
             if (data.success && Array.isArray(data.items) && data.items.length > 0) {
                 if (!append) resultsContainer.innerHTML = "";
@@ -1371,7 +1405,7 @@ app.registerExtension({
                 }
             } else {
                 if (!append) {
-                    const errMsg = (data && data.error) ? `Error: ${data.error}` : "No models found matching query.";
+                    const errMsg = (data && data.error) ? `Error: ${data.error}` : `No models found for Type: ${this._activeType}, Base: ${this._activeBaseModel}`;
                     resultsContainer.innerHTML = `
                         <div style="color: #e06c75; font-size: 12px; text-align: center; margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
                             <span>${errMsg}</span>

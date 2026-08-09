@@ -5,6 +5,19 @@
 
 ---
 
+## [v11.2.15] — 2026-08-09
+### 🚀 Overhaul Release v11.2.15
+- **Civitai API Type Mapping**:
+  - Implemented automatic enum string mapping in `search_civitai` inside `nodes/h4_link_qol/civitai_api.py` (`LORA`, `Checkpoint`, `VAE`, `ControlNet`, `TextualInversion`, `UNet`).
+- **Continuous Mouse Event Tracking & String Sanitization**:
+  - Added global `this._lastMouseEvent` tracking across `document.addEventListener("mousemove")` in `js/h4_LinkQoL.js`.
+  - Added string cleaning for subfolder paths (`Pony/model.safetensors`), quotes, and LiteGraph menu symbols (`>`) so hovering over items in open `.litecontextmenu` lists always triggers tooltip display.
+  - Ensured local models without Civitai thumbnails still display a sleek cyberpunk preview card with file location, base model, and model type badges.
+- **JS Asset Synchronization**:
+  - Synchronized `js/h4_LinkQoL.js` and `nodes/h4_link_qol/web/h4_LinkQoL.js`.
+
+---
+
 ## [v11.2.14] — 2026-08-09
 ### 🚀 Maintenance Release v11.2.14
 - **Git Ignore Sanitization**:

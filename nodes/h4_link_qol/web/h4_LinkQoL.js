@@ -1,4 +1,4 @@
-// h4_LinkQoL.js - Civitai Bridge & Model Manager Frontend UI with Dynamic Aspect-Ratio Fitting & Large Thumbnails
+// h4_LinkQoL.js - Civitai Bridge & Model Manager Frontend UI
 // ==============================================================================
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
@@ -6,8 +6,22 @@ import { api } from "../../scripts/api.js";
 app.registerExtension({
     name: "h4.LinkQoL",
     
+    // Internal State
+    _currentPage: 1,
+    _activeType: "All",
+    _activeBaseModel: "All",
+    _activeSort: "Highest Rated",
+    _activeNSFW: false,
+    _apiKey: "",
+    _activeDownloads: {},
+    _pollTimer: null,
+    _lightboxImages: [],
+    _lightboxIndex: 0,
+    _modelInfoCache: {},
+    _lastMouseEvent: null,
+
     async setup() {
-        console.log("🔗 h4_Link_QoL: Initializing Civitai Bridge UI...");
+        console.log("🔗 h4_Link_QoL: Initializing Civitai Bridge Engine v2.0...");
         this.createDrawerDOM();
 
         window.addEventListener("h4_config_update", (e) => {
@@ -15,11 +29,111 @@ app.registerExtension({
             if (key === "qolMasterOverride" || key === "civitaiBridgeEnabled") {
                 this.updateButtonVisibility();
             }
+            if (key === "civitaiApiKey") {
+                this._apiKey = val || "";
+                const keyInput = document.getElementById("h4-drawer-apikey");
+                if (keyInput) keyInput.value = this._apiKey;
+            }
         });
+
+        // Track all mouse moves across the entire document
+        document.addEventListener("mousemove", (e) => {
+            this._lastMouseEvent = e;
+
+            // 1. Check if mouse is hovering over an open LiteGraph context menu item (.litemenu-entry)
+            const menuEntry = e.target.closest(".litemenu-entry");
+            if (menuEntry) {
+                let rawTxt = menuEntry.textContent ? menuEntry.textContent.trim() : "";
+                // Clean up prefixes/suffixes
+                rawTxt = rawTxt.replace(/^[\s\u2700-\u27BF\u1F300-\u1F9FF\u2600-\u26FF\u65e5\u2713\u2605\u25b6\u25ba\s>]+/, "").trim();
+                
+                if (rawTxt && rawTxt !== "None" && !rawTxt.startsWith("---") && (rawTxt.includes(".") || rawTxt.includes("/") || rawTxt.includes("\\") || rawTxt.length > 2)) {
+                    this.showHoverTooltipForModelName(rawTxt, e);
+                    return;
+                }
+            }
+
+            // 2. Check if hovering inside Civitai drawer panel or details panel or active model card
+            const inDrawer = e.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn");
+            if (inDrawer) {
+                return;
+            }
+
+            // 3. Check if an open context menu is present anywhere
+            if (document.querySelector(".litecontextmenu")) {
+                if (!menuEntry) {
+                    this.hideHoverTooltip();
+                }
+            }
+        });
+
+        // Global Event Listener for Canvas Node Selected Model Widgets
+        const setupCanvasHover = () => {
+            if (app.canvas && app.canvas.canvas) {
+                app.canvas.canvas.addEventListener("mousemove", (e) => {
+                    this._lastMouseEvent = e;
+                    if (document.querySelector(".litecontextmenu")) return;
+
+                    const canvas = app.canvas;
+                    if (!canvas || !canvas.graph || !canvas.graph_mouse) return;
+
+                    const gMouse = canvas.graph_mouse;
+                    const node = canvas.graph.getNodeOnPos(gMouse[0], gMouse[1]);
+
+                    if (node && node.widgets && node.widgets.length > 0) {
+                        const nodeX = node.pos[0];
+                        const nodeY = node.pos[1];
+                        const mouseX = gMouse[0] - nodeX;
+                        const mouseY = gMouse[1] - nodeY;
+
+                        let currentY = node.widgets_start_y || 30;
+
+                        for (const w of node.widgets) {
+                            const wHeight = w.computeSize ? w.computeSize(node.size[0])[1] : (w.height || 24);
+                            const widgetY = w.last_y !== undefined ? w.last_y : currentY;
+
+                            if (mouseX >= 0 && mouseX <= node.size[0] && mouseY >= widgetY && mouseY <= widgetY + wHeight) {
+                                const wName = (w.name || "").toLowerCase();
+                                const isModelWidget = (
+                                    wName.includes("ckpt") || 
+                                    wName.includes("lora") || 
+                                    wName.includes("model") || 
+                                    wName.includes("vae") || 
+                                    wName.includes("control") || 
+                                    wName.includes("unet") || 
+                                    wName.includes("clip") || 
+                                    wName.includes("embedding") ||
+                                    (w.type === "combo" && w.value && typeof w.value === "string" && (w.value.endsWith(".safetensors") || w.value.endsWith(".ckpt") || w.value.endsWith(".pt")))
+                                );
+
+                                if (isModelWidget && w.value && typeof w.value === "string") {
+                                    this.showHoverTooltipForModelName(w.value, e);
+                                    return;
+                                }
+                            }
+                            currentY += wHeight + 4;
+                        }
+                    }
+
+                    if (!e.target.closest("#h4-link-drawer-panel") && !e.target.closest("#h4-link-details-panel") && !e.target.closest(".litemenu-entry")) {
+                        this.hideHoverTooltip();
+                    }
+                });
+            } else {
+                setTimeout(setupCanvasHover, 500);
+            }
+        };
+
+        setupCanvasHover();
     },
 
     createDrawerDOM() {
         if (document.getElementById("h4-link-drawer-panel")) return;
+
+        // Load saved API Key from Dashboard config if available
+        if (window.h4_Dashboard && window.h4_Dashboard.config) {
+            this._apiKey = window.h4_Dashboard.config.civitaiApiKey || "";
+        }
 
         // Styles
         const style = document.createElement("style");
@@ -29,13 +143,13 @@ app.registerExtension({
             #h4-link-drawer-panel {
                 position: fixed;
                 top: 0;
-                right: -420px;
-                width: 400px;
+                right: -440px;
+                width: 420px;
                 height: 100vh;
-                background: rgba(18, 18, 24, 0.96);
-                backdrop-filter: blur(12px);
+                background: rgba(18, 18, 24, 0.97);
+                backdrop-filter: blur(14px);
                 border-left: 1px solid rgba(255, 255, 255, 0.1);
-                box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+                box-shadow: -10px 0 30px rgba(0, 0, 0, 0.6);
                 z-index: 100005;
                 transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
                 display: flex;
@@ -43,11 +157,9 @@ app.registerExtension({
                 color: #e0e0e0;
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             }
-            #h4-link-drawer-panel.open {
-                right: 0;
-            }
+            #h4-link-drawer-panel.open { right: 0; }
 
-            /* Secondary Model Details Drawer (Wider for Large Images & Fitting Layouts) */
+            /* Secondary Model Details Drawer */
             #h4-link-details-panel {
                 position: fixed;
                 top: 0;
@@ -65,17 +177,91 @@ app.registerExtension({
                 color: #e0e0e0;
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             }
-            #h4-link-details-panel.open {
-                right: 400px;
+            #h4-link-details-panel.open { right: 420px; }
+
+            /* Mouse-Tracking Model Hover Tooltip Overlay */
+            #h4-link-hover-tooltip {
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 100020;
+                pointer-events: none;
+                display: none;
+                width: 320px;
+                background: rgba(14, 14, 20, 0.96);
+                backdrop-filter: blur(16px);
+                border: 1px solid rgba(97, 175, 239, 0.4);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(97, 175, 239, 0.2);
+                border-radius: 10px;
+                padding: 12px;
+                color: #e0e0e0;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 12px;
+                box-sizing: border-box;
+                opacity: 0;
+                transition: opacity 0.15s ease-out;
+            }
+            #h4-link-hover-tooltip.active {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                opacity: 1;
+            }
+            .h4-tooltip-thumb {
+                width: 100%;
+                height: 180px;
+                object-fit: cover;
+                border-radius: 6px;
+                background: #0d0d12;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .h4-tooltip-meta {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .h4-tooltip-title {
+                font-weight: 700;
+                color: #61afef;
+                font-size: 13px;
+                line-height: 1.2;
+            }
+            .h4-tooltip-badges {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+                flex-wrap: wrap;
+                font-size: 10px;
+            }
+            .h4-badge {
+                padding: 2px 6px;
+                border-radius: 4px;
+                background: rgba(255, 255, 255, 0.08);
+                font-weight: 600;
+            }
+            .h4-badge-type { background: rgba(152, 195, 121, 0.2); color: #98c379; }
+            .h4-badge-base { background: rgba(97, 175, 239, 0.2); color: #61afef; }
+            .h4-tooltip-triggers {
+                background: rgba(0, 242, 255, 0.05);
+                border: 1px solid rgba(0, 242, 255, 0.2);
+                border-radius: 4px;
+                padding: 6px 8px;
+                font-size: 11px;
+                color: #00f2ff;
+                font-family: monospace;
+                word-break: break-word;
+                max-height: 60px;
+                overflow-y: auto;
             }
 
             .h4-drawer-header {
-                padding: 16px;
+                padding: 14px 16px;
                 background: rgba(255, 255, 255, 0.04);
                 border-bottom: 1px solid rgba(255, 255, 255, 0.08);
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
+                gap: 8px;
             }
             .h4-drawer-title {
                 font-size: 15px;
@@ -87,7 +273,7 @@ app.registerExtension({
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                max-width: 390px;
+                max-width: 260px;
             }
             .h4-drawer-close {
                 cursor: pointer;
@@ -99,11 +285,14 @@ app.registerExtension({
                 padding: 0 4px;
             }
             .h4-drawer-close:hover { color: #fff; }
+
             .h4-drawer-search {
                 padding: 12px 16px;
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
+                background: rgba(0, 0, 0, 0.2);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             }
             .h4-drawer-input {
                 width: 100%;
@@ -115,24 +304,57 @@ app.registerExtension({
                 font-size: 13px;
                 box-sizing: border-box;
             }
+            .h4-drawer-input:focus {
+                border-color: #61afef;
+                outline: none;
+            }
+
+            .h4-drawer-filter-bar {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+            }
+            .h4-drawer-select {
+                flex: 1;
+                background: rgba(0, 0, 0, 0.5);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                color: #e0e0e0;
+                font-size: 11px;
+                padding: 4px 6px;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+
             .h4-drawer-tags {
                 display: flex;
                 gap: 6px;
                 flex-wrap: wrap;
             }
             .h4-tag-pill {
-                font-size: 11px;
+                font-size: 10px;
                 padding: 3px 8px;
                 border-radius: 12px;
                 background: rgba(255, 255, 255, 0.08);
                 cursor: pointer;
                 user-select: none;
+                transition: all 0.15s;
             }
             .h4-tag-pill.active {
                 background: #61afef;
                 color: #121218;
                 font-weight: 600;
             }
+            .h4-tag-pill.nsfw {
+                background: rgba(224, 108, 117, 0.2);
+                color: #e06c75;
+                border: 1px solid rgba(224, 108, 117, 0.4);
+            }
+            .h4-tag-pill.nsfw.active {
+                background: #e06c75;
+                color: #fff;
+                font-weight: 700;
+            }
+
             .h4-drawer-body {
                 flex: 1;
                 overflow-y: auto;
@@ -141,6 +363,7 @@ app.registerExtension({
                 flex-direction: column;
                 gap: 14px;
             }
+
             .h4-model-card {
                 background: rgba(255, 255, 255, 0.03);
                 border: 1px solid rgba(255, 255, 255, 0.06);
@@ -164,6 +387,7 @@ app.registerExtension({
                 cursor: pointer;
                 transition: transform 0.2s, border-color 0.2s;
                 border: 2px solid transparent;
+                flex-shrink: 0;
             }
             .h4-model-thumb:hover {
                 transform: scale(1.05);
@@ -174,6 +398,7 @@ app.registerExtension({
                 display: flex;
                 flex-direction: column;
                 gap: 4px;
+                min-width: 0;
             }
             .h4-model-name {
                 font-size: 13px;
@@ -181,6 +406,9 @@ app.registerExtension({
                 color: #fff;
                 cursor: pointer;
                 transition: color 0.15s;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
             .h4-model-name:hover { color: #61afef; }
             .h4-model-type {
@@ -206,6 +434,8 @@ app.registerExtension({
             .h4-btn:hover { opacity: 0.85; }
             .h4-btn-dl { background: #98c379; color: #121218; }
             .h4-btn-inject { background: #61afef; color: #121218; }
+            .h4-btn-secondary { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
             #h4-civitai-toggle-btn {
                 position: fixed;
                 top: 5px;
@@ -235,7 +465,74 @@ app.registerExtension({
                 box-shadow: 0 0 14px rgba(0, 242, 255, 0.5);
             }
 
-            /* Dynamic Aspect-Ratio Fitting Carousel & Large Thumbnails */
+            /* Live Download Manager Footer Drawer */
+            #h4-dl-manager-panel {
+                background: rgba(10, 10, 14, 0.95);
+                border-top: 1px solid rgba(97, 175, 239, 0.3);
+                padding: 10px 14px;
+                max-height: 180px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .h4-dl-header {
+                font-size: 11px;
+                font-weight: 700;
+                color: #00f2ff;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                letter-spacing: 0.5px;
+            }
+            .h4-dl-item {
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 6px;
+                padding: 8px 10px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .h4-dl-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                font-size: 11px;
+            }
+            .h4-dl-name {
+                font-weight: 600;
+                color: #fff;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 250px;
+            }
+            .h4-dl-bar-bg {
+                width: 100%;
+                height: 6px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 3px;
+                overflow: hidden;
+            }
+            .h4-dl-bar-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #61afef, #00f2ff);
+                width: 0%;
+                transition: width 0.3s;
+            }
+            .h4-dl-status-badge {
+                font-size: 9px;
+                padding: 1px 5px;
+                border-radius: 3px;
+                font-weight: 700;
+            }
+            .h4-dl-status-badge.DOWNLOADING { background: rgba(0, 242, 255, 0.2); color: #00f2ff; }
+            .h4-dl-status-badge.COMPLETE { background: rgba(152, 195, 121, 0.2); color: #98c379; }
+            .h4-dl-status-badge.FAILED { background: rgba(224, 108, 117, 0.2); color: #e06c75; }
+            .h4-dl-status-badge.CANCELLED { background: rgba(229, 192, 123, 0.2); color: #e5c07b; }
+
+            /* Showcase Gallery Carousel & Lightbox */
             .h4-carousel-container {
                 position: relative;
                 width: 100%;
@@ -283,7 +580,6 @@ app.registerExtension({
             .h4-carousel-btn.prev { left: 10px; }
             .h4-carousel-btn.next { right: 10px; }
 
-            /* Large Thumbnail Gallery Strip */
             .h4-thumb-strip {
                 display: flex;
                 gap: 10px;
@@ -307,6 +603,7 @@ app.registerExtension({
                 transform: scale(1.05);
                 box-shadow: 0 4px 12px rgba(97, 175, 239, 0.3);
             }
+
             .h4-info-meta {
                 background: rgba(255, 255, 255, 0.03);
                 border: 1px solid rgba(255, 255, 255, 0.06);
@@ -328,7 +625,6 @@ app.registerExtension({
                 word-break: break-word;
             }
 
-            /* Fullscreen Lightbox Modal */
             #h4-link-lightbox {
                 position: fixed;
                 top: 0;
@@ -344,9 +640,7 @@ app.registerExtension({
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 user-select: none;
             }
-            #h4-link-lightbox.open {
-                display: flex;
-            }
+            #h4-link-lightbox.open { display: flex; }
             .h4-lightbox-header {
                 padding: 16px 24px;
                 display: flex;
@@ -355,36 +649,11 @@ app.registerExtension({
                 background: rgba(255, 255, 255, 0.04);
                 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             }
-            .h4-lightbox-counter {
-                font-size: 14px;
-                font-weight: 600;
-                color: #61afef;
-                font-family: monospace;
-            }
-            .h4-lightbox-close {
-                background: none;
-                border: none;
-                color: #aaa;
-                font-size: 28px;
-                cursor: pointer;
-                line-height: 1;
-            }
+            .h4-lightbox-counter { font-size: 14px; font-weight: 600; color: #61afef; font-family: monospace; }
+            .h4-lightbox-close { background: none; border: none; color: #aaa; font-size: 28px; cursor: pointer; line-height: 1; }
             .h4-lightbox-close:hover { color: #fff; }
-            .h4-lightbox-body {
-                flex: 1;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding: 20px;
-                position: relative;
-            }
-            #h4-lightbox-img {
-                max-width: 88vw;
-                max-height: 82vh;
-                object-fit: contain;
-                border-radius: 8px;
-                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
-            }
+            .h4-lightbox-body { flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 20px; position: relative; }
+            #h4-lightbox-img { max-width: 88vw; max-height: 82vh; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8); }
             .h4-lightbox-nav {
                 background: rgba(0, 0, 0, 0.6);
                 border: 1px solid rgba(255, 255, 255, 0.3);
@@ -413,25 +682,66 @@ app.registerExtension({
         toggleBtn.onclick = () => this.toggleDrawer();
         document.body.appendChild(toggleBtn);
 
+        // Mouse-Tracking Hover Tooltip DOM
+        const tooltip = document.createElement("div");
+        tooltip.id = "h4-link-hover-tooltip";
+        document.body.appendChild(tooltip);
+
         // Main Search Panel DOM
         const panel = document.createElement("div");
         panel.id = "h4-link-drawer-panel";
         panel.innerHTML = `
             <div class="h4-drawer-header">
                 <div class="h4-drawer-title">🔗 Civitai Bridge</div>
-                <button class="h4-drawer-close" id="h4-drawer-close-btn">&times;</button>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <input type="password" id="h4-drawer-apikey" class="h4-drawer-input" style="width: 110px; font-size: 10px; padding: 3px 6px;" placeholder="API Token..." value="${this._apiKey}" title="Civitai API Key for restricted models & higher rate limits">
+                    <button class="h4-drawer-close" id="h4-drawer-close-btn">&times;</button>
+                </div>
             </div>
             <div class="h4-drawer-search">
                 <input type="text" class="h4-drawer-input" id="h4-drawer-query" placeholder="Search models (e.g. Cyberpunk, Anime, Detailer)...">
+                
+                <div class="h4-drawer-filter-bar">
+                    <select id="h4-filter-basemodel" class="h4-drawer-select" title="Filter by Base Model">
+                        <option value="All">All Base Models</option>
+                        <option value="SD 1.5">SD 1.5</option>
+                        <option value="SDXL 1.0">SDXL 1.0</option>
+                        <option value="Pony">Pony</option>
+                        <option value="FLUX.1">FLUX.1</option>
+                        <option value="SD 3">SD 3</option>
+                        <option value="Illustrious">Illustrious</option>
+                    </select>
+
+                    <select id="h4-filter-sort" class="h4-drawer-select" title="Sort Order">
+                        <option value="Highest Rated">Highest Rated</option>
+                        <option value="Most Downloaded">Most Downloaded</option>
+                        <option value="Newest">Newest</option>
+                    </select>
+                </div>
+
                 <div class="h4-drawer-tags" id="h4-drawer-tags">
                     <span class="h4-tag-pill active" data-type="All">All</span>
                     <span class="h4-tag-pill" data-type="LORA">LoRA</span>
                     <span class="h4-tag-pill" data-type="Checkpoint">Checkpoint</span>
                     <span class="h4-tag-pill" data-type="VAE">VAE</span>
+                    <span class="h4-tag-pill" data-type="TextualInversion">Embeddings</span>
+                    <span class="h4-tag-pill" data-type="ControlNet">ControlNet</span>
+                    <span class="h4-tag-pill" data-type="UNet">UNet</span>
+                    <span class="h4-tag-pill nsfw" id="h4-tag-nsfw">🔞 NSFW: OFF</span>
                 </div>
             </div>
+
             <div class="h4-drawer-body" id="h4-drawer-results">
                 <div style="color: #666; font-size: 12px; text-align: center; margin-top: 20px;">Type a query above to search Civitai...</div>
+            </div>
+
+            <!-- Live Download Manager Panel Footer -->
+            <div id="h4-dl-manager-panel" style="display: none;">
+                <div class="h4-dl-header">
+                    <span>⚡ ACTIVE DOWNLOADS</span>
+                    <span id="h4-dl-count" style="color: #61afef;">0</span>
+                </div>
+                <div id="h4-dl-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
             </div>
         `;
         document.body.appendChild(panel);
@@ -476,17 +786,57 @@ app.registerExtension({
             }
         };
 
+        // API Key Listener
+        const apiKeyInput = document.getElementById("h4-drawer-apikey");
+        apiKeyInput.addEventListener("change", () => {
+            this._apiKey = apiKeyInput.value.trim ? apiKeyInput.value.trim() : apiKeyInput.value;
+            if (window.h4_Dashboard && window.h4_Dashboard.config) {
+                window.h4_Dashboard.config.civitaiApiKey = this._apiKey;
+                if (typeof window.h4_Dashboard.saveConfig === "function") {
+                    window.h4_Dashboard.saveConfig();
+                }
+            }
+        });
+
         // Search listeners
         const queryInput = document.getElementById("h4-drawer-query");
         queryInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") this.performSearch();
+            if (e.key === "Enter") {
+                this._currentPage = 1;
+                this.performSearch();
+            }
         });
 
-        const tags = document.querySelectorAll(".h4-tag-pill");
+        const baseModelSelect = document.getElementById("h4-filter-basemodel");
+        baseModelSelect.onchange = () => {
+            this._activeBaseModel = baseModelSelect.value;
+            this._currentPage = 1;
+            this.performSearch();
+        };
+
+        const sortSelect = document.getElementById("h4-filter-sort");
+        sortSelect.onchange = () => {
+            this._activeSort = sortSelect.value;
+            this._currentPage = 1;
+            this.performSearch();
+        };
+
+        const nsfwBtn = document.getElementById("h4-tag-nsfw");
+        nsfwBtn.onclick = () => {
+            this._activeNSFW = !this._activeNSFW;
+            nsfwBtn.classList.toggle("active", this._activeNSFW);
+            nsfwBtn.textContent = this._activeNSFW ? "🔞 NSFW: ON" : "🔞 NSFW: OFF";
+            this._currentPage = 1;
+            this.performSearch();
+        };
+
+        const tags = document.querySelectorAll(".h4-tag-pill:not(.nsfw)");
         tags.forEach(t => {
             t.onclick = () => {
                 tags.forEach(x => x.classList.remove("active"));
                 t.classList.add("active");
+                this._activeType = t.dataset.type || "All";
+                this._currentPage = 1;
                 this.performSearch();
             };
         });
@@ -508,6 +858,20 @@ app.registerExtension({
             this.positionButton();
             this.updateButtonVisibility();
         }, 500);
+
+        // Initial download status check
+        this.pollDownloadStatus();
+
+        // Restore drawer open state if persisted from previous session
+        try {
+            const savedOpen = localStorage.getItem("h4_civitai_drawer_open");
+            if (savedOpen === "true") {
+                this.toggleDrawer(true);
+                this.performSearch();
+            }
+        } catch (err) {
+            console.error("[h4_LinkQoL] Error restoring drawer state:", err);
+        }
     },
 
     positionButton() {
@@ -519,7 +883,7 @@ app.registerExtension({
             const rect = dwdBtn.getBoundingClientRect();
             if (rect.left > 0) {
                 const rightOffset = window.innerWidth - rect.left + 12;
-                btn.style.right = `${Math.max(rightOffset, 440)}px`;
+                btn.style.right = `${Math.max(rightOffset, 460)}px`;
                 return;
             }
         }
@@ -541,15 +905,32 @@ app.registerExtension({
     toggleDrawer(open) {
         const panel = document.getElementById("h4-link-drawer-panel");
         if (!panel) return;
+
+        let isOpen = false;
         if (open === undefined) {
-            const isOpen = panel.classList.toggle("open");
-            if (!isOpen) this.toggleDetailsDrawer(false);
+            isOpen = panel.classList.toggle("open");
         } else if (open) {
             panel.classList.add("open");
+            isOpen = true;
         } else {
             panel.classList.remove("open");
-            this.toggleDetailsDrawer(false);
+            isOpen = false;
         }
+
+        if (!isOpen) {
+            this.toggleDetailsDrawer(false);
+            this.hideHoverTooltip();
+        } else {
+            // Trigger search if drawer body is unpopulated or has default placeholder
+            const results = document.getElementById("h4-drawer-results");
+            if (results && results.children.length <= 1) {
+                this.performSearch();
+            }
+        }
+
+        try {
+            localStorage.setItem("h4_civitai_drawer_open", isOpen ? "true" : "false");
+        } catch (e) {}
     },
 
     toggleDetailsDrawer(open) {
@@ -562,16 +943,154 @@ app.registerExtension({
         
         if (open) {
             detailsPanel.classList.add("open");
-            detailsPanel.style.right = (window.innerWidth <= 920) ? "0px" : "400px";
+            detailsPanel.style.right = (window.innerWidth <= 920) ? "0px" : "420px";
         } else {
             detailsPanel.classList.remove("open");
-            detailsPanel.style.right = "-500px"; // Completely hides panel off-screen
+            detailsPanel.style.right = "-500px";
         }
     },
 
-    // Lightbox State
-    _lightboxImages: [],
-    _lightboxIndex: 0,
+    // Lookup model details by string/filename with client caching
+    async showHoverTooltipForModelName(modelName, e) {
+        if (!modelName || typeof modelName !== "string") {
+            this.hideHoverTooltip();
+            return;
+        }
+
+        // Clean model filename / string
+        let cleanName = modelName.trim().replace(/^['"]|['"]$/g, "");
+        if (cleanName.includes("/") || cleanName.includes("\\")) {
+            const parts = cleanName.split(/[/\\]/);
+            cleanName = parts[parts.length - 1];
+        }
+
+        if (!cleanName || cleanName === "None" || cleanName.startsWith("---")) {
+            this.hideHoverTooltip();
+            return;
+        }
+
+        if (window.h4_Dashboard && window.h4_Dashboard.config && window.h4_Dashboard.config.civitaiHoverTooltip === false) {
+            return;
+        }
+
+        let cached = this._modelInfoCache[cleanName];
+
+        if (!cached) {
+            this._modelInfoCache[cleanName] = (async () => {
+                try {
+                    let url = `/h4/link/info?name=${encodeURIComponent(cleanName)}`;
+                    if (this._apiKey) url += `&api_key=${encodeURIComponent(this._apiKey)}`;
+                    const resp = await fetch(url);
+                    const data = await resp.json();
+                    return data.success ? data.info : null;
+                } catch (err) {
+                    return null;
+                }
+            })();
+        }
+
+        const info = await this._modelInfoCache[cleanName];
+        if (!info) return;
+
+        const ratingVal = info.rating ? String(info.rating).replace(/[^0-9.]/g, "") : "5.0";
+
+        const mockItem = {
+            name: info.name || cleanName,
+            type: info.type || "MODEL",
+            stats: {
+                rating: parseFloat(ratingVal) || 5.0,
+                downloadCount: info.downloadCount || "N/A"
+            },
+            description: info.description || `Model: ${cleanName}`
+        };
+
+        const mockVersion = {
+            baseModel: info.baseModel || "SD",
+            trainedWords: info.triggerWords || [],
+            images: info.previewUrl ? [{ url: info.previewUrl }] : []
+        };
+
+        this.showHoverTooltip(mockItem, mockVersion, e || this._lastMouseEvent);
+    },
+
+    // Mouse-Tracking Hover Tooltip Overlay Methods
+    showHoverTooltip(item, version, e) {
+        if (window.h4_Dashboard && window.h4_Dashboard.config && window.h4_Dashboard.config.civitaiHoverTooltip === false) {
+            return;
+        }
+        const tooltip = document.getElementById("h4-link-hover-tooltip");
+        if (!tooltip) return;
+
+        const thumbUrl = (version.images && version.images[0]?.url) || "";
+        const trainedWords = (version.trainedWords && version.trainedWords.length > 0) ? version.trainedWords : [];
+        const baseModel = version.baseModel || "SD";
+        const type = item.type || "LoRA";
+        const rating = (item.stats && item.stats.rating) ? String(item.stats.rating) : "5.0";
+        const downloads = (item.stats && item.stats.downloadCount) || "N/A";
+        const rawDesc = (item.description || "").replace(/<[^>]*>?/gm, "").trim();
+        const safeDesc = rawDesc.length > 160 ? rawDesc.substring(0, 160) + "..." : rawDesc;
+
+        tooltip.innerHTML = `
+            ${thumbUrl ? `<img class="h4-tooltip-thumb" src="${thumbUrl}" alt="preview">` : ''}
+            <div class="h4-tooltip-meta">
+                <div class="h4-tooltip-title">${item.name}</div>
+                <div class="h4-tooltip-badges">
+                    <span class="h4-badge h4-badge-type">${type}</span>
+                    <span class="h4-badge h4-badge-base">${baseModel}</span>
+                    <span class="h4-badge">${rating.includes('⭐') ? rating : '⭐ ' + rating}</span>
+                    <span class="h4-badge">📥 ${downloads}</span>
+                </div>
+            </div>
+            ${trainedWords.length > 0 ? `
+                <div>
+                    <div style="font-size: 10px; font-weight: 600; color: #888; margin-bottom: 2px;">TRIGGER WORDS</div>
+                    <div class="h4-tooltip-triggers">${trainedWords.join(', ')}</div>
+                </div>
+            ` : ''}
+            ${safeDesc ? `
+                <div style="font-size: 11px; color: #aaa; line-height: 1.3; max-height: 50px; overflow: hidden; text-overflow: ellipsis;">
+                    ${safeDesc}
+                </div>
+            ` : ''}
+        `;
+
+        tooltip.classList.add("active");
+        this.updateHoverTooltipPosition(e || this._lastMouseEvent);
+    },
+
+    updateHoverTooltipPosition(e) {
+        const tooltip = document.getElementById("h4-link-hover-tooltip");
+        if (!tooltip || !tooltip.classList.contains("active")) return;
+
+        const evt = e || this._lastMouseEvent;
+        if (!evt) return;
+
+        const tooltipWidth = 320;
+        const tooltipHeight = tooltip.offsetHeight || 200;
+        const padding = 15;
+
+        let posX = evt.clientX + padding;
+        let posY = evt.clientY + padding;
+
+        if (posX + tooltipWidth > window.innerWidth - 10) {
+            posX = evt.clientX - tooltipWidth - padding;
+        }
+
+        if (posY + tooltipHeight > window.innerHeight - 10) {
+            posY = evt.clientY - tooltipHeight - padding;
+        }
+
+        posX = Math.max(10, Math.min(posX, window.innerWidth - tooltipWidth - 10));
+        posY = Math.max(10, Math.min(posY, window.innerHeight - tooltipHeight - 10));
+
+        tooltip.style.left = `${posX}px`;
+        tooltip.style.top = `${posY}px`;
+    },
+
+    hideHoverTooltip() {
+        const tooltip = document.getElementById("h4-link-hover-tooltip");
+        if (tooltip) tooltip.classList.remove("active");
+    },
 
     openLightbox(images, startIndex = 0) {
         if (!images || images.length === 0) return;
@@ -615,6 +1134,7 @@ app.registerExtension({
 
     openDetailsDrawer(item, version) {
         try {
+            this.hideHoverTooltip();
             const detailsBody = document.getElementById("h4-details-body");
             const detailsTitle = document.getElementById("h4-details-title");
             if (!detailsBody || !detailsTitle) return;
@@ -635,6 +1155,7 @@ app.registerExtension({
             const downloadUrl = fileObj.downloadUrl || "";
             const filename = fileObj.name || `${item.name}.safetensors`;
             const trainedWords = (version && version.trainedWords) ? version.trainedWords : [];
+            const previewUrl = images[0]?.url || "";
             const safeDesc = (item.description || "No detailed description provided.").replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
 
             // Build HTML
@@ -698,13 +1219,10 @@ app.registerExtension({
                         const ratio = nw / nh;
                         if (carouselBox) {
                             if (ratio < 0.85) {
-                                // Tall Portrait image (e.g. 512x768, 832x1216) -> grows tall
                                 carouselBox.style.height = "500px";
                             } else if (ratio > 1.25) {
-                                // Wide Landscape image (e.g. 1216x832, 1024x576) -> fits wide frame
                                 carouselBox.style.height = "290px";
                             } else {
-                                // Square or Standard image (e.g. 1024x1024) -> standard height
                                 carouselBox.style.height = "380px";
                             }
                         }
@@ -722,7 +1240,6 @@ app.registerExtension({
                 });
             };
 
-            // Trigger initial image aspect-ratio sizing
             updateCarousel(0);
 
             const prevBtn = document.getElementById("h4-carousel-prev");
@@ -731,7 +1248,6 @@ app.registerExtension({
             const nextBtn = document.getElementById("h4-carousel-next");
             if (nextBtn) nextBtn.onclick = (e) => { e.stopPropagation(); updateCarousel(currentIndex + 1); };
 
-            // Clicking main preview image opens Fullscreen Lightbox!
             const mainImg = document.getElementById("h4-carousel-main");
             if (mainImg) {
                 mainImg.onclick = (e) => {
@@ -750,7 +1266,6 @@ app.registerExtension({
                 };
             });
 
-            // Trigger words copy handler
             const copyBtn = document.getElementById("h4-copy-triggers");
             if (copyBtn) {
                 copyBtn.onclick = () => {
@@ -760,18 +1275,19 @@ app.registerExtension({
                 };
             }
 
-            // Action handlers
             const dlBtn = document.getElementById("h4-details-dl-btn");
-            if (dlBtn) dlBtn.onclick = () => this.downloadModel(downloadUrl, filename, item.type, item.name, trainedWords);
+            if (dlBtn) dlBtn.onclick = () => this.downloadModel(downloadUrl, filename, item.type, item.name, trainedWords, previewUrl);
 
             const injectBtn = document.getElementById("h4-details-inject-btn");
-            if (injectBtn) injectBtn.onclick = () => this.injectIntoNode(filename);
+            if (injectBtn) injectBtn.onclick = () => this.injectIntoNode(filename, trainedWords);
 
             this.toggleDetailsDrawer(true);
 
-            // Fetch full model details via API for extra showcase images
+            // Fetch full details via API if needed
             if (item.id) {
-                fetch(`/h4/link/details?id=${item.id}`)
+                let detailsUrl = `/h4/link/details?id=${item.id}`;
+                if (this._apiKey) detailsUrl += `&api_key=${encodeURIComponent(this._apiKey)}`;
+                fetch(detailsUrl)
                     .then(r => r.json())
                     .then(data => {
                         if (data.success && data.model && data.model.modelVersions) {
@@ -803,20 +1319,36 @@ app.registerExtension({
         }
     },
 
-    async performSearch() {
-        const query = document.getElementById("h4-drawer-query").value;
-        const activeTag = document.querySelector(".h4-tag-pill.active");
-        const type = activeTag ? activeTag.dataset.type : "All";
+    async performSearch(append = false) {
+        const queryInput = document.getElementById("h4-drawer-query");
+        const query = queryInput ? queryInput.value : "";
         const resultsContainer = document.getElementById("h4-drawer-results");
 
-        resultsContainer.innerHTML = `<div style="color: #888; font-size: 12px; text-align: center; margin-top: 20px;">Searching Civitai API...</div>`;
+        if (!resultsContainer) return;
+
+        if (!append) {
+            this._currentPage = 1;
+            resultsContainer.innerHTML = `<div style="color: #888; font-size: 12px; text-align: center; margin-top: 20px;">Searching Civitai API...</div>`;
+        }
+
+        let url = `/h4/link/search?query=${encodeURIComponent(query)}&type=${encodeURIComponent(this._activeType)}&baseModel=${encodeURIComponent(this._activeBaseModel)}&sort=${encodeURIComponent(this._activeSort)}&page=${this._currentPage}&nsfw=${this._activeNSFW}`;
+        if (this._apiKey) {
+            url += `&api_key=${encodeURIComponent(this._apiKey)}`;
+        }
+
+        console.log(`[h4_LinkQoL] Requesting Civitai Search: ${url}`);
 
         try {
-            const resp = await fetch(`/h4/link/search?query=${encodeURIComponent(query)}&type=${encodeURIComponent(type)}`);
+            const resp = await fetch(url);
             const data = await resp.json();
+            console.log(`[h4_LinkQoL] Civitai Search Result:`, data);
 
-            if (data.success && data.items.length > 0) {
-                resultsContainer.innerHTML = "";
+            if (data.success && Array.isArray(data.items) && data.items.length > 0) {
+                if (!append) resultsContainer.innerHTML = "";
+
+                const oldMoreBtn = document.getElementById("h4-load-more-btn");
+                if (oldMoreBtn) oldMoreBtn.remove();
+
                 data.items.forEach(item => {
                     const card = document.createElement("div");
                     card.className = "h4-model-card";
@@ -830,42 +1362,83 @@ app.registerExtension({
                     card.innerHTML = `
                         <img class="h4-model-thumb" src="${thumbUrl}" alt="thumb" title="Click to view full details & example gallery">
                         <div class="h4-model-info">
-                            <div class="h4-model-name">${item.name}</div>
+                            <div class="h4-model-name" title="${item.name}">${item.name}</div>
                             <div class="h4-model-type">${item.type} • ${latestVer.baseModel || 'SD'}</div>
                             <div class="h4-btn-group">
-                                <button class="h4-btn h4-btn-dl" data-dl="${downloadUrl}" data-file="${filename}" data-type="${item.type}">Download</button>
+                                <button class="h4-btn h4-btn-dl" data-dl="${downloadUrl}" data-file="${filename}">Download</button>
                                 <button class="h4-btn h4-btn-inject" data-file="${filename}">Load into Node</button>
                             </div>
                         </div>
                     `;
 
-                    // Click listeners for details drawer
+                    // Hover Mouse-Tracking Tooltip Listeners
+                    card.addEventListener("mouseenter", (e) => this.showHoverTooltip(item, latestVer, e));
+                    card.addEventListener("mousemove", (e) => this.updateHoverTooltipPosition(e));
+                    card.addEventListener("mouseleave", () => this.hideHoverTooltip());
+
                     const thumbImg = card.querySelector(".h4-model-thumb");
                     if (thumbImg) thumbImg.onclick = (e) => { e.stopPropagation(); this.openDetailsDrawer(item, latestVer); };
 
                     const titleEl = card.querySelector(".h4-model-name");
                     if (titleEl) titleEl.onclick = (e) => { e.stopPropagation(); this.openDetailsDrawer(item, latestVer); };
 
-                    // Button handlers
                     const dlBtn = card.querySelector(".h4-btn-dl");
-                    if (dlBtn) dlBtn.onclick = (e) => { e.stopPropagation(); this.downloadModel(downloadUrl, filename, item.type, item.name, latestVer.trainedWords); };
+                    if (dlBtn) dlBtn.onclick = (e) => { e.stopPropagation(); this.downloadModel(downloadUrl, filename, item.type, item.name, latestVer.trainedWords, thumbUrl); };
 
                     const injectBtn = card.querySelector(".h4-btn-inject");
-                    if (injectBtn) injectBtn.onclick = (e) => { e.stopPropagation(); this.injectIntoNode(filename); };
+                    if (injectBtn) injectBtn.onclick = (e) => { e.stopPropagation(); this.injectIntoNode(filename, latestVer.trainedWords); };
 
                     resultsContainer.appendChild(card);
                 });
+
+                if (data.metadata && data.metadata.nextPage) {
+                    const moreBtn = document.createElement("button");
+                    moreBtn.id = "h4-load-more-btn";
+                    moreBtn.className = "h4-btn h4-btn-secondary";
+                    moreBtn.style.cssText = "width: 100%; padding: 10px; margin-top: 10px; font-size: 12px; font-weight: 600;";
+                    moreBtn.textContent = `Load More Results (Page ${this._currentPage + 1})...`;
+                    moreBtn.onclick = () => {
+                        this._currentPage += 1;
+                        this.performSearch(true);
+                    };
+                    resultsContainer.appendChild(moreBtn);
+                }
             } else {
-                resultsContainer.innerHTML = `<div style="color: #e06c75; font-size: 12px; text-align: center; margin-top: 20px;">No models found.</div>`;
+                if (!append) {
+                    const errMsg = (data && data.error) ? `Error: ${data.error}` : `No models found for Type: ${this._activeType}, Base: ${this._activeBaseModel}`;
+                    resultsContainer.innerHTML = `
+                        <div style="color: #e06c75; font-size: 12px; text-align: center; margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                            <span>${errMsg}</span>
+                            <button class="h4-btn h4-btn-secondary" id="h4-search-retry-btn" style="padding: 6px 14px;">🔄 Retry Search</button>
+                        </div>
+                    `;
+                    const retryBtn = document.getElementById("h4-search-retry-btn");
+                    if (retryBtn) retryBtn.onclick = () => this.performSearch();
+                }
             }
         } catch (e) {
-            resultsContainer.innerHTML = `<div style="color: #e06c75; font-size: 12px; text-align: center; margin-top: 20px;">API Error: ${e.message}</div>`;
+            console.error("[h4_LinkQoL] Perform search exception:", e);
+            if (!append) {
+                resultsContainer.innerHTML = `
+                    <div style="color: #e06c75; font-size: 12px; text-align: center; margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                        <span>API Request Error: ${e.message}</span>
+                        <button class="h4-btn h4-btn-secondary" id="h4-search-retry-btn" style="padding: 6px 14px;">🔄 Retry Search</button>
+                    </div>
+                `;
+                const retryBtn = document.getElementById("h4-search-retry-btn");
+                if (retryBtn) retryBtn.onclick = () => this.performSearch();
+            }
         }
     },
 
-    async downloadModel(url, filename, type, modelName, words) {
+    async downloadModel(url, filename, type, modelName, words, previewUrl) {
+        let savePreview = true;
+        if (window.h4_Dashboard && window.h4_Dashboard.config) {
+            savePreview = window.h4_Dashboard.config.civitaiPreviewSidecars !== false;
+        }
+
         try {
-            await fetch('/h4/link/download', {
+            const resp = await fetch('/h4/link/download', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -873,22 +1446,158 @@ app.registerExtension({
                     filename: filename,
                     model_type: type,
                     model_name: modelName,
-                    trigger_words: words || []
+                    trigger_words: words || [],
+                    preview_image_url: previewUrl || null,
+                    save_preview: savePreview,
+                    api_key: this._apiKey || null
                 })
             });
-            alert(`Started download for '${filename}'`);
+            const res = await resp.json();
+            if (res.success && res.download_id) {
+                this.startStatusPolling();
+            } else if (res.error) {
+                alert(`Download error: ${res.error}`);
+            }
         } catch (e) {
-            console.error("Download error:", e);
+            console.error("Download trigger error:", e);
         }
     },
 
-    injectIntoNode(filename) {
+    async cancelDownload(downloadId) {
+        try {
+            await fetch('/h4/link/cancel_download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ download_id: downloadId })
+            });
+            this.pollDownloadStatus();
+        } catch (e) {
+            console.error("Cancel download error:", e);
+        }
+    },
+
+    startStatusPolling() {
+        if (!this._pollTimer) {
+            this.pollDownloadStatus();
+            this._pollTimer = setInterval(() => this.pollDownloadStatus(), 1000);
+        }
+    },
+
+    async pollDownloadStatus() {
+        try {
+            const resp = await fetch('/h4/link/status');
+            const downloads = await resp.json();
+
+            const managerPanel = document.getElementById("h4-dl-manager-panel");
+            const dlList = document.getElementById("h4-dl-list");
+            const countEl = document.getElementById("h4-dl-count");
+
+            if (!managerPanel || !dlList) return;
+
+            if (!Array.isArray(downloads) || downloads.length === 0) {
+                managerPanel.style.display = "none";
+                if (this._pollTimer) {
+                    clearInterval(this._pollTimer);
+                    this._pollTimer = null;
+                }
+                return;
+            }
+
+            managerPanel.style.display = "flex";
+            if (countEl) countEl.textContent = downloads.length;
+
+            let activeCount = 0;
+            dlList.innerHTML = "";
+
+            downloads.forEach(dl => {
+                if (dl.status === "DOWNLOADING") activeCount++;
+
+                const sizeMb = (dl.bytes_downloaded / (1024 * 1024)).toFixed(1);
+                const totalMb = (dl.total_bytes / (1024 * 1024)).toFixed(1);
+                const sizeText = dl.total_bytes > 0 ? `${sizeMb} MB / ${totalMb} MB` : `${sizeMb} MB`;
+                const pct = dl.progress_percent || 0.0;
+
+                const item = document.createElement("div");
+                item.className = "h4-dl-item";
+                item.innerHTML = `
+                    <div class="h4-dl-row">
+                        <span class="h4-dl-name" title="${dl.filename}">${dl.filename}</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="h4-dl-status-badge ${dl.status}">${dl.status}</span>
+                            ${dl.status === "DOWNLOADING" ? `<button class="h4-drawer-close" style="font-size: 14px;" data-cancel="${dl.id}">&times;</button>` : ''}
+                        </div>
+                    </div>
+                    <div class="h4-dl-bar-bg">
+                        <div class="h4-dl-bar-fill" style="width: ${pct}%;"></div>
+                    </div>
+                    <div class="h4-dl-row" style="font-size: 10px; color: #888;">
+                        <span>${pct.toFixed(1)}%</span>
+                        <span>${sizeText}</span>
+                    </div>
+                `;
+
+                const cancelBtn = item.querySelector("[data-cancel]");
+                if (cancelBtn) {
+                    cancelBtn.onclick = () => this.cancelDownload(dl.id);
+                }
+
+                dlList.appendChild(item);
+
+                // Auto-Inject on Download Complete if enabled
+                if (dl.status === "COMPLETE" && !dl._autoInjected) {
+                    dl._autoInjected = true;
+                    if (window.h4_Dashboard && window.h4_Dashboard.config && window.h4_Dashboard.config.civitaiAutoInject !== false) {
+                        this.injectIntoNode(dl.filename);
+                    }
+                }
+            });
+
+            if (activeCount === 0 && this._pollTimer) {
+                setTimeout(() => {
+                    if (this._pollTimer) {
+                        clearInterval(this._pollTimer);
+                        this._pollTimer = null;
+                    }
+                }, 5000);
+            }
+        } catch (e) {
+            console.error("Poll status error:", e);
+        }
+    },
+
+    injectIntoNode(filename, triggerWords) {
         const selectedNodes = app.canvas.selected_nodes;
+
         if (selectedNodes && Object.keys(selectedNodes).length > 0) {
             for (const id in selectedNodes) {
                 const node = selectedNodes[id];
+                
+                // 1. Check if node is H4_LinkQoL node
+                if (node.type === "H4_LinkQoL" || (node.title && node.title.includes("Civitai Bridge"))) {
+                    const modelWidget = node.widgets?.find(w => w.name === "active_model_name");
+                    const triggerWidget = node.widgets?.find(w => w.name === "trigger_words");
+
+                    if (modelWidget) {
+                        modelWidget.value = filename;
+                    }
+                    if (triggerWidget && triggerWords && triggerWords.length > 0) {
+                        triggerWidget.value = Array.isArray(triggerWords) ? triggerWords.join(", ") : triggerWords;
+                    }
+                    app.canvas.setDirty(true, true);
+                    alert(`Injected '${filename}' into H4 Link QoL node!`);
+                    return;
+                }
+
+                // 2. Standard ComfyUI model loader nodes
                 if (node.widgets) {
-                    const loraWidget = node.widgets.find(w => w.name === "lora_name" || w.name === "model_name" || w.name === "active_model_name");
+                    const loraWidget = node.widgets.find(w => 
+                        w.name === "lora_name" || 
+                        w.name === "ckpt_name" || 
+                        w.name === "model_name" || 
+                        w.name === "vae_name" || 
+                        w.name === "control_net_name" || 
+                        w.name === "active_model_name"
+                    );
                     if (loraWidget) {
                         loraWidget.value = filename;
                         app.canvas.setDirty(true, true);
@@ -898,6 +1607,7 @@ app.registerExtension({
                 }
             }
         }
+
         alert(`Model '${filename}' selected! Select a LoRA/Loader node on the canvas and click 'Load into Node' again.`);
     }
 });
