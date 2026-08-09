@@ -36,30 +36,47 @@ app.registerExtension({
             }
         });
 
-        // Universal CTRL Trigger & Cyberpunk CIVITAI_SCANNER Handler
+        // Universal CTRL Trigger & Cyberpunk CIVITAI_SCANNER + Requirement 7 ALT Pin Handler
         window.addEventListener("keydown", (e) => {
             if (e.key === "Control" || e.ctrlKey) {
                 this.startCtrlHoldTimer(e);
             }
-        });
-
-        window.addEventListener("keyup", (e) => {
-            if (e.key === "Control" || e.key === "Ctrl" || e.key === "Escape") {
-                this.stopCtrlHoldTimer();
+            if ((e.key === "Alt" || e.altKey) && (this._scannerActive || (this._lastItem && document.getElementById("h4-link-hover-tooltip")?.classList.contains("active")))) {
+                this.pinTooltip();
             }
         });
 
-        window.addEventListener("blur", () => this.stopCtrlHoldTimer());
+        window.addEventListener("keyup", (e) => {
+            if (e.key === "Alt") {
+                this.unpinTooltip();
+                if (!e.ctrlKey) {
+                    this.stopCtrlHoldTimer();
+                }
+            }
+            if (e.key === "Control" || e.key === "Ctrl" || e.key === "Escape") {
+                if (!this._altPinned) {
+                    this.stopCtrlHoldTimer();
+                } else if (e.key === "Escape") {
+                    this.unpinTooltip();
+                    this.stopCtrlHoldTimer();
+                }
+            }
+        });
+
+        window.addEventListener("blur", () => {
+            this.unpinTooltip();
+            this.stopCtrlHoldTimer();
+        });
 
         document.addEventListener("mousemove", (e) => {
             this._lastMouseEvent = e;
 
             if (e.ctrlKey) {
                 this.startCtrlHoldTimer(e);
-                if (this._scannerActive) {
+                if (this._scannerActive && !this._altPinned) {
                     this.checkHoverScanner(e);
                 }
-            } else {
+            } else if (!this._altPinned) {
                 this.stopCtrlHoldTimer();
             }
         });
@@ -71,10 +88,10 @@ app.registerExtension({
 
                     if (e.ctrlKey) {
                         this.startCtrlHoldTimer(e);
-                        if (this._scannerActive) {
+                        if (this._scannerActive && !this._altPinned) {
                             this.checkHoverScanner(e);
                         }
-                    } else {
+                    } else if (!this._altPinned) {
                         this.stopCtrlHoldTimer();
                     }
                 });
@@ -959,6 +976,31 @@ app.registerExtension({
     _scannerActive: false,
     _hoverTimer: null,
     _currentHoverName: null,
+    _altPinned: false,
+    _lastItem: null,
+    _lastVersion: null,
+
+    pinTooltip() {
+        if (!this._lastItem) return;
+        this._altPinned = true;
+        const tooltip = document.getElementById("h4-link-hover-tooltip");
+        if (tooltip) {
+            tooltip.classList.add("pinned");
+            tooltip.style.pointerEvents = "auto";
+        }
+        if (this._lastItem && this._lastVersion) {
+            this.showHoverTooltip(this._lastItem, this._lastVersion, this._lastMouseEvent);
+        }
+    },
+
+    unpinTooltip() {
+        this._altPinned = false;
+        const tooltip = document.getElementById("h4-link-hover-tooltip");
+        if (tooltip) {
+            tooltip.classList.remove("pinned");
+            tooltip.style.pointerEvents = "none";
+        }
+    },
 
     showScannerBadge(e) {
         let badge = document.getElementById("h4-civitai-scanner-badge");
@@ -1004,6 +1046,7 @@ app.registerExtension({
     },
 
     stopCtrlHoldTimer() {
+        if (this._altPinned) return;
         if (this._ctrlHoldTimer) {
             clearTimeout(this._ctrlHoldTimer);
             this._ctrlHoldTimer = null;
@@ -1015,7 +1058,7 @@ app.registerExtension({
 
     checkHoverScanner(e) {
         const evt = e || this._lastMouseEvent;
-        if (!evt || !this._scannerActive) return;
+        if (!evt || !this._scannerActive || this._altPinned) return;
 
         this.updateScannerBadgePosition(evt);
 
@@ -1084,6 +1127,7 @@ app.registerExtension({
 
     // Lookup model details by string/filename with client caching
     showHoverTooltipForModelName(modelName, e, instant = false) {
+        if (this._altPinned) return;
         if (!modelName || typeof modelName !== "string") {
             this.hideHoverTooltip();
             return;
@@ -1129,7 +1173,7 @@ app.registerExtension({
 
         const loadAndShow = async () => {
             if (this._currentHoverName !== cleanName) return;
-            if (this._lastMouseEvent && !this._lastMouseEvent.ctrlKey) return;
+            if (this._lastMouseEvent && !this._lastMouseEvent.ctrlKey && !this._altPinned) return;
 
             let cached = this._modelInfoCache[cleanName];
             if (!cached) {
@@ -1152,6 +1196,7 @@ app.registerExtension({
             const ratingVal = info.rating ? String(info.rating).replace(/[^0-9.]/g, "") : "5.0";
 
             const mockItem = {
+                modelId: info.modelId,
                 name: info.name || cleanName,
                 type: info.type || "MODEL",
                 stats: {
@@ -1163,10 +1208,13 @@ app.registerExtension({
             };
 
             const mockVersion = {
+                modelId: info.modelId,
                 versionName: info.versionName || "",
                 baseModel: info.baseModel || "SD",
                 trainedWords: info.triggerWords || [],
                 images: info.previewUrl ? [{ url: info.previewUrl }] : [],
+                fileSize: info.fileSize || "N/A",
+                versionsAvailable: info.versionsAvailable || [],
                 filename: info.filename || cleanName
             };
 
@@ -1188,8 +1236,7 @@ app.registerExtension({
 
         const evt = e || this._lastMouseEvent;
 
-        // Requirement 4: Prevent hover tooltip from ever displaying inside Civitai Bridge drawer
-        if (evt && evt.target && evt.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn")) {
+        if (evt && evt.target && evt.target.closest("#h4-link-drawer-panel, #h4-link-details-panel, .h4-model-card, #h4-civitai-toggle-btn") && !this._altPinned) {
             this.hideHoverTooltip();
             return;
         }
@@ -1197,55 +1244,106 @@ app.registerExtension({
         const tooltip = document.getElementById("h4-link-hover-tooltip");
         if (!tooltip) return;
 
+        this._lastItem = item;
+        this._lastVersion = version;
+
+        const modelId = item.modelId || version.modelId;
         const thumbUrl = (version.images && version.images[0]?.url) || "";
         const trainedWords = (version.trainedWords && version.trainedWords.length > 0) ? version.trainedWords : [];
         const baseModel = version.baseModel || "SD";
         const verName = version.versionName || version.name || "";
-        const type = item.type || "LoRA";
+        const type = item.type || "MODEL";
         const rating = (item.stats && item.stats.rating) ? String(item.stats.rating) : "5.0";
         const downloads = (item.stats && item.stats.downloadCount) || "N/A";
         const filename = version.filename || item.filename || "";
+        const fileSize = version.fileSize || item.fileSize || "N/A";
+        const versionsAvailable = version.versionsAvailable || item.versionsAvailable || [];
         const rawDesc = (item.description || "").replace(/<[^>]*>?/gm, "").trim();
         const safeDesc = rawDesc.length > 180 ? rawDesc.substring(0, 180) + "..." : rawDesc;
+        const civitaiUrl = modelId ? `https://civitai.com/models/${modelId}` : null;
 
         tooltip.innerHTML = `
+            ${this._altPinned ? `
+                <div class="h4-tooltip-pinned-badge">
+                    <span>📌 PINNED [ ALT HELD ]</span>
+                    <span style="font-size:10px; color:#aaa; cursor:pointer;" onclick="window.h4_LinkQoL.unpinTooltip(); window.h4_LinkQoL.hideHoverTooltip();">&times; UNPIN</span>
+                </div>
+            ` : ''}
+            <!-- 1) Cover image -->
             ${thumbUrl ? `<img class="h4-tooltip-thumb" src="${thumbUrl}" alt="preview">` : ''}
+            
             <div class="h4-tooltip-meta">
-                <div class="h4-tooltip-title">${item.name} ${verName ? `<span style="font-size:11px; font-weight:400; color:#61afef; margin-left:4px;">[${verName}]</span>` : ''}</div>
+                <!-- 2) Name -->
+                <div class="h4-tooltip-title">
+                    ${civitaiUrl ? `<a href="${civitaiUrl}" target="_blank" class="h4-model-link" title="Click to open model page on Civitai">${item.name} ↗</a>` : `<span>${item.name}</span>`}
+                    ${verName ? `<span style="font-size:11px; font-weight:400; color:#61afef; margin-left:4px;">[${verName}]</span>` : ''}
+                </div>
+
                 <div class="h4-tooltip-badges">
                     <span class="h4-badge h4-badge-type">${type}</span>
                     <span class="h4-badge h4-badge-base">${baseModel}</span>
                     <span class="h4-badge">${rating.includes('⭐') ? rating : '⭐ ' + rating}</span>
                     <span class="h4-badge">📥 ${downloads}</span>
                 </div>
-                ${filename ? `<div style="font-size: 10px; font-family: monospace; color: #888; margin-top: 3px; word-break: break-all;">📄 ${filename}</div>` : ''}
+
+                <!-- 3) Weights / File Size & Filename -->
+                <div class="h4-tooltip-weight" style="font-size: 11px; color: #abb2bf; margin-top: 2px; display: flex; align-items: center; justify-content: space-between;">
+                    <span>⚖️ Weight/Size: <strong>${fileSize}</strong></span>
+                    ${filename ? `<span style="font-family: monospace; color: #888;">📄 ${filename}</span>` : ''}
+                </div>
+
+                <!-- 4) Versions Available -->
+                ${versionsAvailable.length > 0 ? `
+                    <div class="h4-tooltip-versions" style="font-size: 11px; color: #d19a66; margin-top: 3px; display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+                        <span>📦 Versions:</span>
+                        ${versionsAvailable.slice(0, 4).map(v => `<span style="background: rgba(209, 154, 102, 0.15); border: 1px solid rgba(209, 154, 102, 0.3); border-radius: 3px; padding: 1px 4px; font-size: 10px;">${v}</span>`).join('')}
+                        ${versionsAvailable.length > 4 ? `<span style="font-size:9px; color:#888;">+${versionsAvailable.length - 4} more</span>` : ''}
+                    </div>
+                ` : ''}
             </div>
+
+            <!-- 5) Trigger Words -->
             ${trainedWords.length > 0 ? `
-                <div style="margin-top: 6px;">
-                    <div style="font-size: 10px; font-weight: 700; color: #61afef; letter-spacing: 0.5px; margin-bottom: 3px;">🔑 TRIGGER WORDS</div>
+                <div style="margin-top: 4px;">
+                    <div style="font-size: 10px; font-weight: 700; color: #00f0ff; letter-spacing: 0.5px; margin-bottom: 2px;">🔑 TRIGGER WORDS</div>
                     <div class="h4-tooltip-triggers">${trainedWords.join(', ')}</div>
                 </div>
             ` : ''}
+
+            <!-- 6) Opening Portion of Description -->
             ${safeDesc ? `
-                <div style="margin-top: 6px; font-size: 11px; color: #aaa; line-height: 1.35; max-height: 60px; overflow: hidden; text-overflow: ellipsis; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 4px;">
+                <div style="margin-top: 4px; font-size: 11px; color: #aaa; line-height: 1.35; max-height: 60px; overflow: hidden; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px;">
                     ${safeDesc}
                 </div>
             ` : ''}
+
+            <!-- 7) Pin & Browser Link Hint -->
+            <div style="font-size: 9px; color: #666; text-align: right; margin-top: 2px;">
+                ${this._altPinned ? '📌 PINNED - Click model name to open page' : '[ Hold ALT to Pin & Open Civitai Page ↗ ]'}
+            </div>
         `;
 
         tooltip.classList.add("active");
+        if (this._altPinned) {
+            tooltip.classList.add("pinned");
+            tooltip.style.pointerEvents = "auto";
+        } else {
+            tooltip.classList.remove("pinned");
+            tooltip.style.pointerEvents = "none";
+        }
         this.updateHoverTooltipPosition(evt);
     },
 
     updateHoverTooltipPosition(e) {
         const tooltip = document.getElementById("h4-link-hover-tooltip");
         if (!tooltip || !tooltip.classList.contains("active")) return;
+        if (this._altPinned) return; // Freeze position when pinned!
 
         const evt = e || this._lastMouseEvent;
         if (!evt) return;
 
-        const tooltipWidth = 320;
-        const tooltipHeight = tooltip.offsetHeight || 200;
+        const tooltipWidth = 340;
+        const tooltipHeight = tooltip.offsetHeight || 220;
         const padding = 15;
 
         let posX = evt.clientX + padding;
@@ -1267,13 +1365,19 @@ app.registerExtension({
     },
 
     hideHoverTooltip() {
+        if (this._altPinned) return; // Keep pinned card open!
         if (this._hoverTimer) {
             clearTimeout(this._hoverTimer);
             this._hoverTimer = null;
         }
         this._currentHoverName = null;
+        this._lastItem = null;
+        this._lastVersion = null;
         const tooltip = document.getElementById("h4-link-hover-tooltip");
-        if (tooltip) tooltip.classList.remove("active");
+        if (tooltip) {
+            tooltip.classList.remove("active");
+            tooltip.classList.remove("pinned");
+        }
     },
 
     openLightbox(images, startIndex = 0) {

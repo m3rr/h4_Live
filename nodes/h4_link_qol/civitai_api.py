@@ -311,6 +311,13 @@ def get_model_info_by_name(model_name, api_key=None):
 
     # Civitai Helper Method: Hash Lookup via /by-hash/{hash}
     if full_model_file_path and os.path.exists(full_model_file_path):
+        try:
+            b_size = os.path.getsize(full_model_file_path)
+            mb_size = b_size / (1024 * 1024)
+            file_size_str = f"{mb_size / 1024:.2f} GB" if mb_size >= 1000 else f"{mb_size:.1f} MB"
+        except Exception:
+            file_size_str = "N/A"
+
         sha256_val, autov2_val = calculate_file_sha256(full_model_file_path)
         lookup_hash = autov2_val or sha256_val
         if lookup_hash:
@@ -318,6 +325,14 @@ def get_model_info_by_name(model_name, api_key=None):
             if hash_res.get("success") and hash_res.get("data"):
                 ver_data = hash_res["data"]
                 model_obj = ver_data.get("model") or {}
+                model_id = ver_data.get("modelId") or model_obj.get("id")
+                version_id = ver_data.get("id")
+                versions_list = []
+                if isinstance(model_obj.get("modelVersions"), list):
+                    versions_list = [v.get("name") for v in model_obj["modelVersions"] if isinstance(v, dict) and v.get("name")]
+                if not versions_list and ver_data.get("name"):
+                    versions_list = [ver_data["name"]]
+
                 images = ver_data.get("images") or []
                 img_url = images[0].get("url") if images and isinstance(images[0], dict) else None
                 dl_count = model_obj.get("stats", {}).get("downloadCount", 0)
@@ -336,8 +351,12 @@ def get_model_info_by_name(model_name, api_key=None):
                 return {
                     "success": True,
                     "info": {
+                        "modelId": model_id,
+                        "modelVersionId": version_id,
                         "name": model_obj.get("name") or local_info["name"],
                         "versionName": ver_data.get("name") or local_info["versionName"],
+                        "versionsAvailable": versions_list,
+                        "fileSize": file_size_str,
                         "type": str(model_obj.get("type") or local_info["type"]).upper(),
                         "baseModel": ver_data.get("baseModel") or local_info["baseModel"],
                         "rating": f"⭐ {rating_num:.1f}" if rating_num else "⭐ 5.0",
@@ -378,11 +397,24 @@ def get_model_info_by_name(model_name, api_key=None):
         dl_count = best_item.get('stats', {}).get('downloadCount', 0)
         rating_num = best_item.get('stats', {}).get('rating', 5.0)
 
+        model_id = best_item.get("id")
+        versions_list = [v.get("name") for v in best_item.get("modelVersions", []) if v.get("name")]
+
+        files = best_ver.get("files") or []
+        f_size_str = "N/A"
+        if files and isinstance(files[0], dict) and files[0].get("sizeKB"):
+            s_mb = files[0]["sizeKB"] / 1024.0
+            f_size_str = f"{s_mb/1024.0:.2f} GB" if s_mb >= 1000 else f"{s_mb:.1f} MB"
+
         return {
             "success": True,
             "info": {
+                "modelId": model_id,
+                "modelVersionId": best_ver.get("id"),
                 "name": best_item.get("name") or local_info["name"],
                 "versionName": best_ver.get("name") or local_info["versionName"],
+                "versionsAvailable": versions_list,
+                "fileSize": f_size_str,
                 "type": best_item.get("type") or local_info["type"],
                 "baseModel": best_ver.get("baseModel") or local_info["baseModel"],
                 "rating": f"⭐ {rating_num:.1f}" if rating_num else "⭐ 5.0",
