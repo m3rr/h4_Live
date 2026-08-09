@@ -368,36 +368,38 @@ def get_model_info_by_name(model_name, api_key=None):
                     }
                 }
 
-    # Fallback to online Civitai text search with strict token & file matching
+    # Fallback to online Civitai text search with smart query building & 2-stage strict validation
     clean_lower = clean_name.lower()
     clean_no_ext = name_no_ext.lower()
     
-    def _tokenize_smart(text):
-        text_clean = text.replace('.safetensors', '').replace('.ckpt', '').replace('.pt', '')
-        subwords = re.findall(r'[a-zA-Z]+|\d+', text_clean.lower())
-        res = []
-        for w in subwords:
-            if w.startswith('pony') and len(w) > 4:
-                res.extend(['pony', w[4:]])
-            elif w.endswith('xl') and len(w) > 2:
-                res.extend([w[:-2], 'xl'])
-            else:
-                res.append(w)
-        stop = {'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'safetensors', 'ckpt', 'pt', 'sd15', 'pruned', 'emaonly', 'fp16', 'model', 'lora'}
-        return [t for t in res if len(t) >= 2 and t not in stop]
+    # 1. CamelCase & Symbol Tokenization
+    s = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', name_no_ext)
+    s = re.sub(r'([a-zA-Z])(\d)', r'\1 \2', s)
+    s = re.sub(r'(\d)([a-zA-Z])', r'\1 \2', s)
+    full_words = re.sub(r'[\_\-\.\s]+', ' ', s).strip()
+    
+    tokens = [w for w in full_words.split() if w.lower() not in ('safetensors', 'ckpt', 'pt')]
+    core_title_query = ' '.join(tokens[:4]) if tokens else full_words
 
-    query_tokens = _tokenize_smart(clean_name)
-    first_token = query_tokens[0] if query_tokens else name_no_ext.replace("_", " ").replace("-", " ").strip()
+    queries = []
+    for q in [core_title_query, full_words, name_no_ext.replace('_', ' ').replace('-', ' ')]:
+        if q and q not in queries:
+            queries.append(q)
 
-    civitai_res = search_civitai(query=first_token, limit=10, api_key=api_key)
-    if civitai_res.get("success") and civitai_res.get("items"):
-        best_item = None
-        best_ver = None
+    best_item = None
+    best_ver = None
+
+    for q in queries:
+        civitai_res = search_civitai(query=q, limit=10, api_key=api_key)
+        if not civitai_res.get("success") or not civitai_res.get("items"):
+            continue
+
+        query_words = [w.lower() for w in q.split() if len(w) > 1 and w.lower() not in ('v', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', '1', '2', '3')]
 
         for item in civitai_res["items"]:
             item_name_lower = item.get("name", "").lower()
-            
-            # 1. Strict exact file name match in item versions (0% false positives)
+
+            # Stage A: Exact file name match in item versions (100% deterministic)
             for ver in item.get("modelVersions", []):
                 for f in ver.get("files", []):
                     f_name_lower = f.get("name", "").lower()
@@ -409,14 +411,16 @@ def get_model_info_by_name(model_name, api_key=None):
                 if best_ver: break
             if best_item: break
 
-            # 2. Strict token match: ALL query tokens must be present in item title
-            cand_tokens = _tokenize_smart(item_name_lower)
-            if query_tokens and all(t in item_name_lower or t in cand_tokens for t in query_tokens):
+            # Stage B: Exact all-word match (ALL non-trivial query words present in model title)
+            if query_words and all(w in item_name_lower for w in query_words):
                 best_item = item
                 best_ver = (item.get("modelVersions") and item["modelVersions"][0]) or {}
                 break
 
         if best_item and best_ver:
+            break
+
+    if best_item and best_ver:
             img_url = (best_ver.get("images") and best_ver["images"][0].get("url")) or None
             words_list = best_ver.get("trainedWords") or []
             raw_desc = (best_item.get("description") or "").strip()
