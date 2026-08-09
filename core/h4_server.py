@@ -7,6 +7,7 @@ import os
 import json
 import time
 import folder_paths
+import asyncio
 from server import PromptServer
 from aiohttp import web
 from PIL import Image, ImageOps

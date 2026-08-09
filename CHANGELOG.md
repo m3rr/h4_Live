@@ -5,6 +5,14 @@
 
 ---
 
+## [v11.2.19] — 2026-08-09
+### 🚀 Bug Fix Release v11.2.19
+- **Fixed `NameError: name 'asyncio' is not defined` in Backend REST Gateway**:
+  - Added missing `import asyncio` to top imports of `core/h4_server.py`.
+  - Resolves `NameError` on `/h4/link/search` and `/h4/link/info` REST routes when executing asynchronous background Civitai queries and real-time API Key tests.
+
+---
+
 ## [v11.2.18] — 2026-08-09
 ### 🚀 Restoration & Sub-Menu Feature Release v11.2.18
 - **Restored Exact Original Settings UI & Layout**:
