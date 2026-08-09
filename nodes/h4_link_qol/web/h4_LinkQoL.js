@@ -197,7 +197,7 @@ app.registerExtension({
                 100% { transform: scale(0.8); opacity: 0.7; box-shadow: 0 0 4px #ff007f; }
             }
 
-            /* Mouse-Tracking Model Hover Tooltip Overlay */
+            /* Mouse-Tracking Model Hover Tooltip / Dynamic Card Overlay */
             #h4-link-hover-tooltip {
                 position: fixed;
                 top: 0;
@@ -205,13 +205,16 @@ app.registerExtension({
                 z-index: 100020;
                 pointer-events: none;
                 display: none;
-                width: 320px;
-                background: rgba(14, 14, 20, 0.96);
-                backdrop-filter: blur(16px);
-                border: 1px solid rgba(97, 175, 239, 0.4);
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(97, 175, 239, 0.2);
+                width: 360px;
+                max-width: 90vw;
+                max-height: 85vh;
+                overflow-y: auto;
+                background: rgba(12, 14, 22, 0.96);
+                backdrop-filter: blur(18px);
+                border: 1px solid rgba(0, 240, 255, 0.5);
+                box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85), 0 0 20px rgba(0, 240, 255, 0.25);
                 border-radius: 10px;
-                padding: 12px;
+                padding: 14px;
                 color: #e0e0e0;
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 font-size: 12px;
@@ -222,16 +225,44 @@ app.registerExtension({
             #h4-link-hover-tooltip.active {
                 display: flex;
                 flex-direction: column;
-                gap: 8px;
+                gap: 10px;
                 opacity: 1;
+            }
+            #h4-link-hover-tooltip.pinned {
+                pointer-events: auto !important;
+                border: 1px solid #e5c07b !important;
+                box-shadow: 0 0 35px rgba(229, 192, 123, 0.5), inset 0 0 15px rgba(0, 240, 255, 0.3) !important;
             }
             .h4-tooltip-thumb {
                 width: 100%;
-                height: 180px;
+                max-height: 240px;
                 object-fit: cover;
-                border-radius: 6px;
+                border-radius: 8px;
                 background: #0d0d12;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            }
+            .h4-tooltip-thumb-missing {
+                width: 100%;
+                height: 70px;
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px dashed rgba(220, 90, 90, 0.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #e06c75;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            .h4-val-missing {
+                color: #e06c75 !important;
+                font-style: italic !important;
+                font-weight: 500 !important;
+            }
+            .h4-val-highlight {
+                color: #98c379 !important;
+                font-weight: 700 !important;
             }
             .h4-tooltip-meta {
                 display: flex;
@@ -1004,7 +1035,15 @@ app.registerExtension({
 
     showScannerBadge(e) {
         let badge = document.getElementById("h4-civitai-scanner-badge");
-        if (!badge) return;
+        if (!badge) {
+            badge = document.createElement("div");
+            badge.id = "h4-civitai-scanner-badge";
+            badge.innerHTML = `
+                <span class="h4-scanner-pulse"></span>
+                <span class="h4-scanner-text">⚡ CIVITAI_SCANNER</span>
+            `;
+            document.body.appendChild(badge);
+        }
         badge.classList.add("active");
         this.updateScannerBadgePosition(e);
     },
@@ -1203,8 +1242,11 @@ app.registerExtension({
                     rating: parseFloat(ratingVal) || 5.0,
                     downloadCount: info.downloadCount || "N/A"
                 },
-                description: info.description || `Model: ${cleanName}`,
-                filename: info.filename || cleanName
+                description: info.description || "",
+                filename: info.filename || cleanName,
+                fileSize: info.fileSize,
+                versionsAvailable: info.versionsAvailable,
+                previewUrl: info.previewUrl
             };
 
             const mockVersion = {
@@ -1213,8 +1255,9 @@ app.registerExtension({
                 baseModel: info.baseModel || "SD",
                 trainedWords: info.triggerWords || [],
                 images: info.previewUrl ? [{ url: info.previewUrl }] : [],
-                fileSize: info.fileSize || "N/A",
-                versionsAvailable: info.versionsAvailable || [],
+                previewUrl: info.previewUrl,
+                fileSize: info.fileSize,
+                versionsAvailable: info.versionsAvailable,
                 filename: info.filename || cleanName
             };
 
@@ -1241,25 +1284,30 @@ app.registerExtension({
             return;
         }
 
-        const tooltip = document.getElementById("h4-link-hover-tooltip");
-        if (!tooltip) return;
+        let tooltip = document.getElementById("h4-link-hover-tooltip");
+        if (!tooltip) {
+            tooltip = document.createElement("div");
+            tooltip.id = "h4-link-hover-tooltip";
+            document.body.appendChild(tooltip);
+        }
 
         this._lastItem = item;
         this._lastVersion = version;
 
         const modelId = item.modelId || version.modelId;
-        const thumbUrl = (version.images && version.images[0]?.url) || "";
-        const trainedWords = (version.trainedWords && version.trainedWords.length > 0) ? version.trainedWords : [];
+        const nameVal = item.name || version.name || "Missing";
+        const thumbUrl = (version.images && version.images[0]?.url) || item.previewUrl || version.previewUrl || "";
+        const trainedWords = (version.trainedWords && version.trainedWords.length > 0) ? version.trainedWords : (item.triggerWords || []);
         const baseModel = version.baseModel || "SD";
         const verName = version.versionName || version.name || "";
         const type = item.type || "MODEL";
         const rating = (item.stats && item.stats.rating) ? String(item.stats.rating) : "5.0";
         const downloads = (item.stats && item.stats.downloadCount) || "N/A";
         const filename = version.filename || item.filename || "";
-        const fileSize = version.fileSize || item.fileSize || "N/A";
-        const versionsAvailable = version.versionsAvailable || item.versionsAvailable || [];
+        const fileSize = version.fileSize || item.fileSize || "";
+        const versionsAvailable = (version.versionsAvailable && version.versionsAvailable.length > 0) ? version.versionsAvailable : (item.versionsAvailable || []);
         const rawDesc = (item.description || "").replace(/<[^>]*>?/gm, "").trim();
-        const safeDesc = rawDesc.length > 180 ? rawDesc.substring(0, 180) + "..." : rawDesc;
+        const safeDesc = rawDesc.length > 220 ? rawDesc.substring(0, 220) + "..." : rawDesc;
         const civitaiUrl = modelId ? `https://civitai.com/models/${modelId}` : null;
 
         tooltip.innerHTML = `
@@ -1269,13 +1317,20 @@ app.registerExtension({
                     <span style="font-size:10px; color:#aaa; cursor:pointer;" onclick="window.h4_LinkQoL.unpinTooltip(); window.h4_LinkQoL.hideHoverTooltip();">&times; UNPIN</span>
                 </div>
             ` : ''}
-            <!-- 1) Cover image -->
-            ${thumbUrl ? `<img class="h4-tooltip-thumb" src="${thumbUrl}" alt="preview">` : ''}
+
+            <!-- 1) Cover Image -->
+            ${thumbUrl ? `
+                <img class="h4-tooltip-thumb" src="${thumbUrl}" alt="cover image">
+            ` : `
+                <div class="h4-tooltip-thumb-missing">
+                    <span>🖼️ Cover Image: <em class="h4-val-missing">Missing</em></span>
+                </div>
+            `}
             
             <div class="h4-tooltip-meta">
                 <!-- 2) Name -->
                 <div class="h4-tooltip-title">
-                    ${civitaiUrl ? `<a href="${civitaiUrl}" target="_blank" class="h4-model-link" title="Click to open model page on Civitai">${item.name} ↗</a>` : `<span>${item.name}</span>`}
+                    ${civitaiUrl ? `<a href="${civitaiUrl}" target="_blank" class="h4-model-link" title="Click to open model page on Civitai">${nameVal} ↗</a>` : `<span>${nameVal}</span>`}
                     ${verName ? `<span style="font-size:11px; font-weight:400; color:#61afef; margin-left:4px;">[${verName}]</span>` : ''}
                 </div>
 
@@ -1287,38 +1342,39 @@ app.registerExtension({
                 </div>
 
                 <!-- 3) Weights / File Size & Filename -->
-                <div class="h4-tooltip-weight" style="font-size: 11px; color: #abb2bf; margin-top: 2px; display: flex; align-items: center; justify-content: space-between;">
-                    <span>⚖️ Weight/Size: <strong>${fileSize}</strong></span>
+                <div style="font-size: 11px; color: #abb2bf; margin-top: 4px; display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap;">
+                    <span>⚖️ Weight / Size: ${fileSize && fileSize !== "N/A" ? `<strong class="h4-val-highlight">${fileSize}</strong>` : `<em class="h4-val-missing">Missing</em>`}</span>
                     ${filename ? `<span style="font-family: monospace; color: #888;">📄 ${filename}</span>` : ''}
                 </div>
 
                 <!-- 4) Versions Available -->
-                ${versionsAvailable.length > 0 ? `
-                    <div class="h4-tooltip-versions" style="font-size: 11px; color: #d19a66; margin-top: 3px; display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
-                        <span>📦 Versions:</span>
-                        ${versionsAvailable.slice(0, 4).map(v => `<span style="background: rgba(209, 154, 102, 0.15); border: 1px solid rgba(209, 154, 102, 0.3); border-radius: 3px; padding: 1px 4px; font-size: 10px;">${v}</span>`).join('')}
-                        ${versionsAvailable.length > 4 ? `<span style="font-size:9px; color:#888;">+${versionsAvailable.length - 4} more</span>` : ''}
-                    </div>
-                ` : ''}
+                <div style="font-size: 11px; color: #d19a66; margin-top: 4px; display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+                    <span>📦 Versions Available:</span>
+                    ${versionsAvailable.length > 0 ? `
+                        ${versionsAvailable.slice(0, 5).map(v => `<span style="background: rgba(209, 154, 102, 0.15); border: 1px solid rgba(209, 154, 102, 0.3); border-radius: 3px; padding: 1px 4px; font-size: 10px;">${v}</span>`).join('')}
+                        ${versionsAvailable.length > 5 ? `<span style="font-size:9px; color:#888;">+${versionsAvailable.length - 5} more</span>` : ''}
+                    ` : `<em class="h4-val-missing">Missing</em>`}
+                </div>
             </div>
 
             <!-- 5) Trigger Words -->
-            ${trainedWords.length > 0 ? `
-                <div style="margin-top: 4px;">
-                    <div style="font-size: 10px; font-weight: 700; color: #00f0ff; letter-spacing: 0.5px; margin-bottom: 2px;">🔑 TRIGGER WORDS</div>
+            <div style="margin-top: 4px;">
+                <div style="font-size: 10px; font-weight: 700; color: #00f0ff; letter-spacing: 0.5px; margin-bottom: 2px;">🔑 TRIGGER WORDS</div>
+                ${trainedWords.length > 0 ? `
                     <div class="h4-tooltip-triggers">${trainedWords.join(', ')}</div>
-                </div>
-            ` : ''}
+                ` : `<div style="font-size: 11px;"><em class="h4-val-missing">Missing</em></div>`}
+            </div>
 
             <!-- 6) Opening Portion of Description -->
-            ${safeDesc ? `
-                <div style="margin-top: 4px; font-size: 11px; color: #aaa; line-height: 1.35; max-height: 60px; overflow: hidden; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px;">
-                    ${safeDesc}
-                </div>
-            ` : ''}
+            <div style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px;">
+                <div style="font-size: 10px; font-weight: 700; color: #aaa; letter-spacing: 0.5px; margin-bottom: 2px;">📝 DESCRIPTION</div>
+                ${safeDesc ? `
+                    <div style="font-size: 11px; color: #bbb; line-height: 1.35; max-height: 70px; overflow: hidden; text-overflow: ellipsis;">${safeDesc}</div>
+                ` : `<div style="font-size: 11px;"><em class="h4-val-missing">Missing</em></div>`}
+            </div>
 
             <!-- 7) Pin & Browser Link Hint -->
-            <div style="font-size: 9px; color: #666; text-align: right; margin-top: 2px;">
+            <div style="font-size: 9px; color: #666; text-align: right; margin-top: 4px;">
                 ${this._altPinned ? '📌 PINNED - Click model name to open page' : '[ Hold ALT to Pin & Open Civitai Page ↗ ]'}
             </div>
         `;
