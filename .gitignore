@@ -67,3 +67,6 @@ fix_nodes_standalone.py
 tools/
 scratch/
 *.db
+HANDOFF.md
+handoff.md
+
