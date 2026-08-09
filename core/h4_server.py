@@ -446,6 +446,18 @@ def register_routes():
 
 
 
+    # 17. Link QoL: Civitai Helper Batch Model Directory Scanner
+    @PromptServer.instance.routes.get("/h4/link/scan")
+    async def link_civitai_scan(request):
+        try:
+            from ..nodes.h4_link_qol.civitai_api import scan_and_sync_local_models
+            api_key = request.query.get("api_key", None)
+            loop = asyncio.get_event_loop()
+            res = await loop.run_in_executor(None, lambda: scan_and_sync_local_models(api_key=api_key))
+            return web.json_response(res)
+        except Exception as e:
+            return web.json_response({"success": False, "error": str(e)}, status=500)
+
 # Register on import
 register_routes()
 

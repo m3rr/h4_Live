@@ -1,4 +1,4 @@
-# h4_link_qol/civitai_api.py - Backend API Service for Civitai Integration
+# h4_link_qol/civitai_api.py - Backend API Service for Civitai Integration & Civitai Helper Engine
 # ==============================================================================
 import os
 import json
@@ -7,6 +7,8 @@ import urllib.request
 import urllib.parse
 import threading
 import ssl
+import hashlib
+import re
 import folder_paths
 import asyncio
 
@@ -15,6 +17,28 @@ _ACTIVE_DOWNLOADS = {}
 _CACHE_LOCK = threading.Lock()
 
 CIVITAI_BASE_URL = "https://civitai.com/api/v1"
+
+# --- Persistent Hash Cache (Assimilated from Civitai Helper) ---
+HASH_CACHE_FILE = os.path.join(os.path.dirname(__file__), "civitai_hash_cache.json")
+_HASH_CACHE = {}
+
+def _load_hash_cache():
+    global _HASH_CACHE
+    if os.path.exists(HASH_CACHE_FILE):
+        try:
+            with open(HASH_CACHE_FILE, "r", encoding="utf-8") as f:
+                _HASH_CACHE = json.load(f)
+        except Exception:
+            _HASH_CACHE = {}
+
+def _save_hash_cache():
+    try:
+        with open(HASH_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(_HASH_CACHE, f, indent=2)
+    except Exception:
+        pass
+
+_load_hash_cache()
 
 def _safe_urlopen(req, timeout=15):
     """
@@ -28,6 +52,100 @@ def _safe_urlopen(req, timeout=15):
     except Exception as err:
         return urllib.request.urlopen(req, timeout=timeout)
 
+def calculate_file_sha256(filepath):
+    """
+    Assimilated from Civitai Helper:
+    Computes full SHA256 and 10-char AutoV2 hash for a local model file with disk-persistent caching.
+    """
+    if not os.path.exists(filepath):
+        return None, None
+        
+    mtime = os.path.getmtime(filepath)
+    cache_key = os.path.abspath(filepath)
+    
+    if cache_key in _HASH_CACHE:
+        entry = _HASH_CACHE[cache_key]
+        if isinstance(entry, dict) and entry.get("mtime") == mtime:
+            return entry.get("sha256"), entry.get("autov2")
+            
+    sha256_hash = hashlib.sha256()
+    try:
+        with open(filepath, "rb") as f:
+            while chunk := f.read(65536):
+                sha256_hash.update(chunk)
+        full_sha256 = sha256_hash.hexdigest().upper()
+        autov2 = full_sha256[:10]
+        
+        _HASH_CACHE[cache_key] = {
+            "mtime": mtime,
+            "sha256": full_sha256,
+            "autov2": autov2
+        }
+        _save_hash_cache()
+        return full_sha256, autov2
+    except Exception:
+        return None, None
+
+def fetch_model_version_by_hash(hash_val, api_key=None):
+    """
+    Assimilated from Civitai Helper:
+    Retrieves exact model version metadata directly from Civitai API using SHA256 / AutoV2 hash.
+    """
+    if not hash_val:
+        return {"success": False, "error": "Missing model hash"}
+
+    url = f"{CIVITAI_BASE_URL}/model-versions/by-hash/{hash_val}"
+    if api_key and str(api_key).strip():
+        url += f"?token={str(api_key).strip()}"
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json"
+    }
+
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with _safe_urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return {"success": True, "data": data}
+    except Exception as err:
+        return {"success": False, "error": str(err)}
+
+def save_civitai_sidecar_and_preview(local_model_path, version_data):
+    """
+    Assimilated from Civitai Helper:
+    1. Saves the Civitai API version JSON response directly into `model_name.civitai.info`.
+    2. Downloads the primary preview image from Civitai and saves it as `model_name.png` next to the model file.
+    """
+    if not local_model_path or not os.path.exists(local_model_path) or not version_data:
+        return
+
+    base_no_ext = os.path.splitext(local_model_path)[0]
+    civitai_info_file = f"{base_no_ext}.civitai.info"
+
+    # 1. Save .civitai.info sidecar
+    try:
+        with open(civitai_info_file, "w", encoding="utf-8") as f:
+            json.dump(version_data, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+    # 2. Download preview image if missing
+    has_preview = any(os.path.exists(f"{base_no_ext}{ext}") for ext in [".preview.png", ".preview.jpg", ".preview.webp", ".png", ".jpg", ".jpeg", ".webp"])
+    if not has_preview:
+        images = version_data.get("images") or []
+        if images and isinstance(images, list) and len(images) > 0:
+            first_img = images[0]
+            img_url = first_img.get("url") if isinstance(first_img, dict) else str(first_img)
+            if img_url:
+                target_img_path = f"{base_no_ext}.png"
+                try:
+                    req = urllib.request.Request(img_url, headers={"User-Agent": "Mozilla/5.0"})
+                    with _safe_urlopen(req, timeout=20) as resp, open(target_img_path, "wb") as out_f:
+                        out_f.write(resp.read())
+                except Exception:
+                    pass
+
 def _infer_model_metadata(filename, category=None):
     """
     Intelligently infers base model, model type, and formatted name from filename string.
@@ -35,12 +153,9 @@ def _infer_model_metadata(filename, category=None):
     clean_name = os.path.basename(filename)
     name_no_ext = os.path.splitext(clean_name)[0]
     
-    # Format pretty name (replace underscores with spaces)
-    import re
     clean_base = re.sub(r'^[^\w\d\.\-\_]+', '', name_no_ext).strip()
     pretty_name = clean_base.replace("_", " ").replace("-", " ").strip()
     
-    # Infer Type
     m_type = "CHECKPOINT"
     if category:
         m_type = category.rstrip("s").upper()
@@ -57,7 +172,6 @@ def _infer_model_metadata(filename, category=None):
         elif "embedding" in fn_lower or "textual" in fn_lower:
             m_type = "EMBEDDING"
 
-    # Infer Base Model
     fn_upper = filename.upper()
     base_model = "SD 1.5"
     if "ILLUSTRIOUS" in fn_upper or "ILLUS" in fn_upper:
@@ -82,15 +196,18 @@ def _infer_model_metadata(filename, category=None):
 def get_model_info_by_name(model_name, api_key=None):
     """
     Looks up model details, version info, base model, trigger words, and preview image for a local model filename or string name.
-    1. Scans ComfyUI model directories for local .preview.png, .png, .jpg, .json, .civitai.info, .txt sidecars.
-    2. Fallbacks to searching Civitai for exact model details and version metadata if local sidecars are incomplete.
+    Assimilates Civitai Helper methods:
+    1. Scans local ComfyUI model directories.
+    2. Reads local .civitai.info / .json / .txt sidecars if present.
+    3. Calculates SHA256/AutoV2 hash & queries Civitai API /by-hash if sidecar is missing.
+    4. Automatically writes .civitai.info and downloads preview image (.png) next to local model.
+    5. Fallbacks to search & metadata inference if hash lookup returns 404 or network is unavailable.
     """
     if not model_name or not str(model_name).strip():
         return {"success": False, "error": "Empty model name"}
 
     raw_path = str(model_name).strip().replace("\\", "/")
     clean_name = os.path.basename(raw_path)
-    import re
     clean_name = re.sub(r'^[^\w\d\.\-\_]+', '', clean_name).strip()
     if not clean_name:
         clean_name = os.path.basename(raw_path)
@@ -99,6 +216,8 @@ def get_model_info_by_name(model_name, api_key=None):
     pretty_name, inferred_type, inferred_base = _infer_model_metadata(clean_name)
 
     local_found = False
+    full_model_file_path = None
+
     local_info = {
         "name": pretty_name,
         "versionName": "",
@@ -128,6 +247,7 @@ def get_model_info_by_name(model_name, api_key=None):
 
                 if os.path.exists(full_model_path):
                     local_found = True
+                    full_model_file_path = full_model_path
                     local_info["type"] = category.rstrip("s").upper()
                     base_no_ext = os.path.splitext(full_model_path)[0]
 
@@ -178,6 +298,7 @@ def get_model_info_by_name(model_name, api_key=None):
                         except Exception:
                             pass
 
+                    # If sidecar provided full metadata, return immediately
                     if local_info["baseModel"] and (local_info["triggerWords"] or local_info["previewUrl"]):
                         if not local_info["description"]:
                             local_info["description"] = f"Local model located in models/{category}/{clean_name}"
@@ -188,7 +309,47 @@ def get_model_info_by_name(model_name, api_key=None):
         except Exception:
             continue
 
-    # Clean query for online search: replace underscores and dashes with spaces
+    # Civitai Helper Method: Hash Lookup via /by-hash/{hash}
+    if full_model_file_path and os.path.exists(full_model_file_path):
+        sha256_val, autov2_val = calculate_file_sha256(full_model_file_path)
+        lookup_hash = autov2_val or sha256_val
+        if lookup_hash:
+            hash_res = fetch_model_version_by_hash(lookup_hash, api_key=api_key)
+            if hash_res.get("success") and hash_res.get("data"):
+                ver_data = hash_res["data"]
+                model_obj = ver_data.get("model") or {}
+                images = ver_data.get("images") or []
+                img_url = images[0].get("url") if images and isinstance(images[0], dict) else None
+                dl_count = model_obj.get("stats", {}).get("downloadCount", 0)
+                rating_num = model_obj.get("stats", {}).get("rating", 5.0)
+
+                # Save .civitai.info & download preview image locally (Civitai Helper)
+                save_civitai_sidecar_and_preview(full_model_file_path, ver_data)
+
+                # Update previewUrl if image was newly downloaded
+                base_no_ext = os.path.splitext(full_model_file_path)[0]
+                for ext in [".png", ".jpg", ".preview.png", ".webp"]:
+                    if os.path.exists(f"{base_no_ext}{ext}"):
+                        local_info["previewUrl"] = f"/h4/link/view?path={urllib.parse.quote(os.path.abspath(f'{base_no_ext}{ext}'))}"
+                        break
+
+                return {
+                    "success": True,
+                    "info": {
+                        "name": model_obj.get("name") or local_info["name"],
+                        "versionName": ver_data.get("name") or local_info["versionName"],
+                        "type": str(model_obj.get("type") or local_info["type"]).upper(),
+                        "baseModel": ver_data.get("baseModel") or local_info["baseModel"],
+                        "rating": f"⭐ {rating_num:.1f}" if rating_num else "⭐ 5.0",
+                        "downloadCount": f"{dl_count:,}" if isinstance(dl_count, int) else str(dl_count),
+                        "triggerWords": ver_data.get("trainedWords") or local_info["triggerWords"],
+                        "previewUrl": local_info["previewUrl"] or img_url,
+                        "description": re.sub(r'<[^>]*>?', '', model_obj.get("description") or "") or local_info["description"],
+                        "filename": clean_name
+                    }
+                }
+
+    # Fallback to online Civitai text search
     search_q = name_no_ext.replace("_", " ").replace("-", " ").strip()
     civitai_res = search_civitai(query=search_q, limit=5, api_key=api_key)
     if civitai_res.get("success") and civitai_res.get("items"):
@@ -238,7 +399,6 @@ def get_model_info_by_name(model_name, api_key=None):
         "info": local_info
     }
 
-
 def get_cache_dir():
     """Returns local thumbnail and metadata cache path."""
     temp_dir = folder_paths.get_temp_directory()
@@ -249,80 +409,63 @@ def get_cache_dir():
 
 def resolve_target_folder(model_type, base_model=None):
     """
-    Determines target folder paths (LoRA, Checkpoint, VAE, Embeddings, ControlNet, UNet, etc.) using ComfyUI's folder_paths.
+    Maps Civitai model type strings to standard ComfyUI directory locations.
     """
-    type_lower = str(model_type).lower()
+    m_type = str(model_type).upper()
     
-    if "lora" in type_lower or "locon" in type_lower:
-        category = "loras"
-    elif "checkpoint" in type_lower or "model" in type_lower:
-        category = "checkpoints"
-    elif "vae" in type_lower:
-        category = "vae"
-    elif "controlnet" in type_lower:
-        category = "controlnet"
-    elif "textualinversion" in type_lower or "embedding" in type_lower:
-        category = "embeddings"
-    elif "hypernetwork" in type_lower:
-        category = "hypernetworks"
-    elif "upscale" in type_lower or "esrgan" in type_lower:
-        category = "upscale_models"
-    elif "unet" in type_lower or "diffusion" in type_lower:
-        category = "unet"
-    elif "clip" in type_lower or "text_encoder" in type_lower:
-        category = "clip"
+    if "LORA" in m_type or "LOCON" in m_type:
+        folder_key = "loras"
+    elif "CHECKPOINT" in m_type or "MODEL" in m_type:
+        folder_key = "checkpoints"
+    elif "VAE" in m_type:
+        folder_key = "vae"
+    elif "CONTROL" in m_type:
+        folder_key = "controlnet"
+    elif "UNET" in m_type:
+        folder_key = "unet"
+    elif "EMBEDDING" in m_type or "TEXTUAL" in m_type:
+        folder_key = "embeddings"
+    elif "CLIP" in m_type:
+        folder_key = "clip"
+    elif "HYPER" in m_type:
+        folder_key = "hypernetworks"
     else:
-        category = "loras"
-        
-    paths = folder_paths.get_folder_paths(category)
+        folder_key = "checkpoints"
+
+    paths = folder_paths.get_folder_paths(folder_key)
     if paths and len(paths) > 0:
         target_dir = paths[0]
     else:
-        target_dir = os.path.join(folder_paths.models_dir, category)
-        
-    os.makedirs(target_dir, exist_ok=True)
-    return target_dir, category
+        models_dir = folder_paths.models_dir
+        target_dir = os.path.join(models_dir, folder_key)
+        os.makedirs(target_dir, exist_ok=True)
 
-def search_civitai(query="", model_type="All", base_model="All", sort="Highest Rated", limit=20, page=1, nsfw=None, api_key=None):
+    return target_dir, folder_key
+
+def search_civitai(query="", model_type=None, sort="Highest Rated", period="AllTime", page=1, limit=20, nsfw=False, api_key=None):
     """
-    Queries Civitai API for models with filtering, sorting, NSFW controls, and pagination.
+    Queries Civitai REST API with parameter sanitization.
+    Note: Civitai API forbids combining 'page' with 'query'.
     """
     params = {
-        "limit": min(limit, 50),
-        "sort": sort,
+        "limit": min(max(int(limit), 1), 100),
     }
-    
+
     if query and query.strip():
         params["query"] = query.strip()
     else:
-        params["page"] = max(page, 1)
-        
-    if model_type and model_type != "All":
-        m_upper = str(model_type).strip().upper()
-        if "LORA" in m_upper or "LOCON" in m_upper:
-            params["types"] = "LORA"
-        elif "CHECKPOINT" in m_upper or "MODEL" in m_upper:
-            params["types"] = "Checkpoint"
-        elif "VAE" in m_upper:
-            params["types"] = "VAE"
-        elif "CONTROL" in m_upper:
-            params["types"] = "Controlnet"
-        elif "EMBEDDING" in m_upper or "TEXTUAL" in m_upper:
-            params["types"] = "TextualInversion"
-        elif "UNET" in m_upper:
-            params["types"] = "UNet"
-        else:
-            params["types"] = model_type
+        if sort: params["sort"] = sort
+        if period: params["period"] = period
+        if page and page > 1: params["page"] = page
 
-    if base_model and base_model != "All":
-        params["baseModels"] = base_model
+    if model_type and model_type != "All":
+        params["types"] = model_type
 
     if nsfw is not None and nsfw != "All":
         params["nsfw"] = "true" if str(nsfw).lower() in ("true", "1", "yes", "on") else "false"
 
     if api_key and api_key.strip():
-        clean_key = api_key.strip()
-        params["token"] = clean_key
+        params["token"] = api_key.strip()
 
     url = f"{CIVITAI_BASE_URL}/models?" + urllib.parse.urlencode(params)
     
@@ -331,23 +474,23 @@ def search_civitai(query="", model_type="All", base_model="All", sort="Highest R
         "Accept": "application/json"
     })
     
-    if api_key and api_key.strip():
-        req.add_header("Authorization", f"Bearer {api_key.strip()}")
-
     try:
-        with _safe_urlopen(req, timeout=15) as response:
+        with _safe_urlopen(req, timeout=12) as response:
             if response.status == 200:
-                data = json.loads(response.read().decode('utf-8'))
+                raw_body = response.read().decode('utf-8')
+                data = json.loads(raw_body)
                 return {"success": True, "items": data.get("items", []), "metadata": data.get("metadata", {})}
             else:
                 return {"success": False, "error": f"HTTP {response.status}", "items": []}
     except urllib.error.HTTPError as e:
+        msg = f"HTTP Error {e.code}: {e.reason}"
         try:
-            err_body = e.read().decode('utf-8')
-            err_json = json.loads(err_body)
-            msg = err_json.get("error") or err_json.get("message") or str(e)
+            err_payload = e.read().decode('utf-8')
+            err_json = json.loads(err_payload)
+            if isinstance(err_json, dict) and err_json.get("error"):
+                msg = f"HTTP Error {e.code}: {err_json['error']}"
         except Exception:
-            msg = str(e)
+            pass
         return {"success": False, "error": msg, "items": []}
     except Exception as e:
         return {"success": False, "error": str(e), "items": []}
@@ -411,7 +554,7 @@ def start_model_download(download_url, filename, model_type, model_name="", vers
                     _ACTIVE_DOWNLOADS[download_id]["total_bytes"] = total_len
                     
                 downloaded = 0
-                chunk_size = 1024 * 512 # 512 KB chunks
+                chunk_size = 1024 * 512
                 
                 with open(target_path, "wb") as f:
                     while True:
@@ -430,7 +573,6 @@ def start_model_download(download_url, filename, model_type, model_name="", vers
                             _ACTIVE_DOWNLOADS[download_id]["bytes_downloaded"] = downloaded
                             _ACTIVE_DOWNLOADS[download_id]["progress_percent"] = round(pct, 1)
 
-            # Check if cancelled mid-download
             with _CACHE_LOCK:
                 if _ACTIVE_DOWNLOADS[download_id].get("cancelled"):
                     _ACTIVE_DOWNLOADS[download_id]["status"] = "CANCELLED"
@@ -449,7 +591,7 @@ def start_model_download(download_url, filename, model_type, model_name="", vers
                 with open(f"{base_no_ext}.txt", "w", encoding="utf-8") as tf:
                     tf.write(words_str)
                     
-            # 2. Complete JSON sidecar (.json)
+            # 2. Civitai JSON sidecar (.civitai.info & .json)
             sidecar_payload = {
                 "model_name": model_name,
                 "version_name": version_name,
@@ -461,20 +603,24 @@ def start_model_download(download_url, filename, model_type, model_name="", vers
             with open(f"{base_no_ext}.json", "w", encoding="utf-8") as jf:
                 json.dump(sidecar_payload, jf, indent=2)
 
-            # 3. Preview Image sidecar (.preview.png or .png)
+            with open(f"{base_no_ext}.civitai.info", "w", encoding="utf-8") as cf:
+                json.dump(sidecar_payload, cf, indent=2)
+
+            # 3. Preview Image sidecar (.preview.png & .png)
             if save_preview and preview_image_url:
                 try:
                     img_req = urllib.request.Request(preview_image_url, headers={
                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 h4_Live_ToolKit/11.2.7"
                     })
                     with _safe_urlopen(img_req, timeout=15) as img_resp:
-                        preview_path = f"{base_no_ext}.preview.png"
-                        with open(preview_path, "wb") as pf:
-                            pf.write(img_resp.read())
+                        preview_data = img_resp.read()
+                        with open(f"{base_no_ext}.preview.png", "wb") as pf:
+                            pf.write(preview_data)
+                        with open(f"{base_no_ext}.png", "wb") as pf2:
+                            pf2.write(preview_data)
                 except Exception as img_err:
                     print(f"[h4_link_qol] Warning: Failed to save preview image sidecar: {img_err}")
 
-            # Notify folder_paths of directory updates if supported
             try:
                 if hasattr(folder_paths, 'filename_list_cache'):
                     folder_paths.filename_list_cache.clear()
@@ -514,4 +660,42 @@ def get_download_status(download_id=None):
             return _ACTIVE_DOWNLOADS.get(download_id, {"status": "NOT_FOUND"})
         return list(_ACTIVE_DOWNLOADS.values())
 
+def scan_and_sync_local_models(categories=None, api_key=None):
+    """
+    Assimilated from Civitai Helper:
+    Scans local ComfyUI model folders, computes SHA256/AutoV2 hashes for models missing metadata,
+    fetches Civitai API info by hash, and saves `.civitai.info` & preview `.png` files automatically.
+    """
+    cats = categories or ["checkpoints", "loras", "vae", "embeddings", "controlnet", "unet", "clip", "hypernetworks"]
+    synced_count = 0
+    scanned_count = 0
 
+    for category in cats:
+        try:
+            paths = folder_paths.get_folder_paths(category)
+            if not paths: continue
+            for base_dir in paths:
+                if not os.path.exists(base_dir): continue
+                for root, dirs, files in os.walk(base_dir):
+                    for file in files:
+                        if not file.lower().endswith((".safetensors", ".ckpt", ".pt", ".bin")):
+                            continue
+                        scanned_count += 1
+                        full_path = os.path.join(root, file)
+                        base_no_ext = os.path.splitext(full_path)[0]
+
+                        civitai_info = f"{base_no_ext}.civitai.info"
+                        has_preview = any(os.path.exists(f"{base_no_ext}{ext}") for ext in [".preview.png", ".preview.jpg", ".preview.webp", ".png", ".jpg", ".jpeg", ".webp"])
+
+                        if not os.path.exists(civitai_info) or not has_preview:
+                            sha, autov2 = calculate_file_sha256(full_path)
+                            h_val = autov2 or sha
+                            if h_val:
+                                res = fetch_model_version_by_hash(h_val, api_key=api_key)
+                                if res.get("success") and res.get("data"):
+                                    save_civitai_sidecar_and_preview(full_path, res["data"])
+                                    synced_count += 1
+        except Exception:
+            continue
+
+    return {"success": True, "scanned": scanned_count, "synced": synced_count}
