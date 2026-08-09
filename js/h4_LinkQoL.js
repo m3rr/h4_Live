@@ -725,7 +725,7 @@ app.registerExtension({
                     <span class="h4-tag-pill" data-type="Checkpoint">Checkpoint</span>
                     <span class="h4-tag-pill" data-type="VAE">VAE</span>
                     <span class="h4-tag-pill" data-type="TextualInversion">Embeddings</span>
-                    <span class="h4-tag-pill" data-type="ControlNet">ControlNet</span>
+                    <span class="h4-tag-pill" data-type="Controlnet">ControlNet</span>
                     <span class="h4-tag-pill" data-type="UNet">UNet</span>
                     <span class="h4-tag-pill nsfw" id="h4-tag-nsfw">🔞 NSFW: OFF</span>
                 </div>

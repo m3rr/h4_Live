@@ -5,6 +5,20 @@
 
 ---
 
+## [v11.2.17] — 2026-08-09
+### 🚀 Feature Release v11.2.17
+- **Dedicated Civitai Bridge Settings Sub-Menu**:
+  - Built a dedicated `🔗 CIVITAI` navigation tab in the left sidebar of `js/h4_Dashboard.js`.
+  - Housed all Civitai Bridge toggles (`civitaiGlobalToggle`, `civitaiBridgeEnabled`, `civitaiAutoInject`, `civitaiSidecars`, `civitaiPreviewSidecars`, `civitaiHoverTooltip`) inside the new dedicated panel.
+- **Real-Time API Key Management & Live Test Suite**:
+  - Implemented real-time password input field for `civitaiApiKey` that updates local configuration, syncs with the slide-out drawer, and dispatches real-time update events without page reload.
+  - Added an interactive **⚡ Test API Key** button providing instant visual feedback (`✅ API Key Valid! Connected to Civitai API` or `❌ Invalid Key`). Automatically triggers live search refresh if the drawer is open.
+- **Civitai API Type String Mapping Fix (`Controlnet` case-sensitivity)**:
+  - Corrected enum mapping in `search_civitai()` inside `nodes/h4_link_qol/civitai_api.py` to send `Controlnet` (lowercase n) required by Civitai's REST API endpoint (resolving HTTP 400 Bad Request error).
+  - Added `token` query parameter fallback alongside `Authorization: Bearer` headers.
+
+---
+
 ## [v11.2.16] — 2026-08-09
 ### 🚀 Feature Release v11.2.16
 - **Global Civitai Bridge Master Toggle**:

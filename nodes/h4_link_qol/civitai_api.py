@@ -205,7 +205,7 @@ def search_civitai(query="", model_type="All", base_model="All", sort="Highest R
         elif "VAE" in m_upper:
             params["types"] = "VAE"
         elif "CONTROL" in m_upper:
-            params["types"] = "ControlNet"
+            params["types"] = "Controlnet"
         elif "EMBEDDING" in m_upper or "TEXTUAL" in m_upper:
             params["types"] = "TextualInversion"
         elif "UNET" in m_upper:
@@ -213,8 +213,15 @@ def search_civitai(query="", model_type="All", base_model="All", sort="Highest R
         else:
             params["types"] = model_type
 
+    if base_model and base_model != "All":
+        params["baseModels"] = base_model
+
     if nsfw is not None and nsfw != "All":
         params["nsfw"] = "true" if str(nsfw).lower() in ("true", "1", "yes", "on") else "false"
+
+    if api_key and api_key.strip():
+        clean_key = api_key.strip()
+        params["token"] = clean_key
 
     url = f"{CIVITAI_BASE_URL}/models?" + urllib.parse.urlencode(params)
     
