@@ -5,6 +5,13 @@
 
 ---
 
+## [v11.2.14] — 2026-08-09
+### 🚀 Maintenance Release v11.2.14
+- **Git Ignore Sanitization**:
+  - Added `HANDOFF.md` / `handoff.md` to `.gitignore` rules and removed `HANDOFF.md` from git index tracking.
+
+---
+
 ## [v11.2.13] — 2026-08-09
 ### 🚀 Fix Release v11.2.13
 - **JS ReferenceError Fix in `showHoverTooltipForModelName`**:
