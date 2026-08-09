@@ -3,6 +3,6 @@
 # h4_Live Version Control
 # ------------------------------------------------------------------------------
 
-__version__ = "11.2.17"
+__version__ = "11.2.18"
 __author__ = "(h4)"
 __status__ = "Production Hardened - Forensic Core"

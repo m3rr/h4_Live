@@ -5,6 +5,16 @@
 
 ---
 
+## [v11.2.18] — 2026-08-09
+### 🚀 Restoration & Sub-Menu Feature Release v11.2.18
+- **Restored Exact Original Settings UI & Layout**:
+  - Restored `js/h4_Dashboard.js` to its exact original design, CSS styles, modal dimensions, drag logic, and button layout.
+- **Dedicated Civitai Sub-Menu (`└ CIVITAI`)**:
+  - Added an indented `└ CIVITAI` sub-menu item under the `QoL` navigation section on the left sidebar.
+  - Houses the Global Civitai Master Toggle, real-time API Key input with **⚡ Test API Key** live status validation suite, and all Civitai feature toggles.
+
+---
+
 ## [v11.2.17] — 2026-08-09
 ### 🚀 Feature Release v11.2.17
 - **Dedicated Civitai Bridge Settings Sub-Menu**:
