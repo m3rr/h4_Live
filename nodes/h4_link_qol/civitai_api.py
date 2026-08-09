@@ -442,7 +442,7 @@ def resolve_target_folder(model_type, base_model=None):
 
     return target_dir, folder_key
 
-def search_civitai(query="", model_type=None, sort="Highest Rated", period="AllTime", page=1, limit=20, nsfw=False, api_key=None):
+def search_civitai(query="", model_type=None, base_model=None, base_models=None, sort="Highest Rated", period="AllTime", page=1, limit=20, nsfw=False, api_key=None, **kwargs):
     """
     Queries Civitai REST API with parameter sanitization.
     Note: Civitai API forbids combining 'page' with 'query'.
@@ -460,6 +460,10 @@ def search_civitai(query="", model_type=None, sort="Highest Rated", period="AllT
 
     if model_type and model_type != "All":
         params["types"] = model_type
+
+    bm_val = base_model or base_models
+    if bm_val and bm_val != "All":
+        params["baseModels"] = bm_val
 
     if nsfw is not None and nsfw != "All":
         params["nsfw"] = "true" if str(nsfw).lower() in ("true", "1", "yes", "on") else "false"
