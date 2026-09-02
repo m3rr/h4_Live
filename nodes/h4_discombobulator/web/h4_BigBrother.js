@@ -114,6 +114,9 @@ app.registerExtension({
                 // Trigger re-render or updates if needed
                 if (key === 'debugMode') this.updateDebugNodeVisibility();
             }
+            if (key === 'qolMasterOverride' || key === 'caffeineEnabled' || key === 'kickItEnabled') {
+                this.updateToolbarButtonsVisibility();
+            }
         });
 
         // 3. Spawn the Ghost Layer
@@ -143,6 +146,22 @@ app.registerExtension({
 
         // 10. Caffeine Mode: Wake Lock Toggle (User Request)
         this.setupCaffeineButton();
+        this.updateToolbarButtonsVisibility();
+    },
+
+    updateToolbarButtonsVisibility() {
+        const master = window.h4_Dashboard ? !!window.h4_Dashboard.config?.qolMasterOverride : false;
+        const caffeineOn = window.h4_Dashboard ? !!window.h4_Dashboard.config?.caffeineEnabled : false;
+        const kickItOn = window.h4_Dashboard ? !!window.h4_Dashboard.config?.kickItEnabled : false;
+
+        const cafBtn = document.getElementById("h4-caffeine-toggle");
+        if (cafBtn) {
+            cafBtn.style.display = (master && caffeineOn) ? "block" : "none";
+        }
+        const kickBtn = document.getElementById("h4-kickit-toggle");
+        if (kickBtn) {
+            kickBtn.style.display = (master && kickItOn) ? "block" : "none";
+        }
     },
 
     // ==============================================================================
@@ -213,7 +232,8 @@ app.registerExtension({
             background: "rgba(0,0,0,0.5)",
             borderRadius: "4px",
             border: "1px solid #333",
-            userSelect: "none"
+            userSelect: "none",
+            display: "none"
         });
 
         btn.addEventListener("click", () => this.toggleCaffeineMode(btn));
@@ -243,6 +263,7 @@ app.registerExtension({
     // ==============================================================================
     setupKickItButton(caffeineBtn) {
         const btn = document.createElement("div");
+        btn.id = "h4-kickit-toggle";
         btn.textContent = "(>_<)!!";
         btn.title = "Give the Grid a kick to refresh the canvas (Fixes frozen noodles)";
 
@@ -262,6 +283,7 @@ app.registerExtension({
             borderRadius: "4px",
             border: "1px solid #333",
             userSelect: "none",
+            display: "none",
             transition: "all 0.1s"
         });
 

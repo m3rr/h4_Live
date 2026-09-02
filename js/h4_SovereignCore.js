@@ -84,7 +84,7 @@ const SOVEREIGN_HUD_NODES = new Set([
 // ============================================================================
 // 4. ENGINE STATE — Tracks enabled state and all themed node references
 // ============================================================================
-let _engineEnabled = true; // Will be hydrated from localStorage on boot
+let _engineEnabled = false; // Will be hydrated from localStorage on boot (Default: OFF)
 let themeOverrides = {};
 
 // Registry of all nodes the engine has themed.
@@ -104,7 +104,7 @@ function readConfigFromStorage() {
             }
         }
     } catch (_) { }
-    return true; // Default: ON
+    return false; // Default: OFF
 }
 
 /**

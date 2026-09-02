@@ -62,7 +62,6 @@ document.addEventListener("mouseover", (e) => {
         hideTip();
     }
 });
-
 document.addEventListener("mousemove", (e) => {
     const target = e.target.closest("[data-h4-tip]");
     if (!target) {
@@ -71,22 +70,18 @@ document.addEventListener("mousemove", (e) => {
         updateTipPos(e);
     }
 });
-
 document.addEventListener("mouseout", (e) => {
     const target = e.target.closest("[data-h4-tip]");
     if (!target) {
         hideTip();
     }
 });
-
 window.addEventListener("keyup", (e) => {
     if (e.key === "Alt" || e.key === "Control" || e.key === "Meta" || e.key === "Escape") {
         hideTip();
     }
 });
-
 window.addEventListener("blur", () => hideTip());
-
 
 // --- FORENSIC AESTHETIC HARDENING ---
 const styleId = "h4-hud-global-styles";

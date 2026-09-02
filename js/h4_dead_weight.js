@@ -27,8 +27,8 @@ const h4DW = {
 
 
     config: {
-        qolMasterOverride: true,
-        deadWeightEnabled: true
+        qolMasterOverride: false,
+        deadWeightEnabled: false
     },
 
 
@@ -85,7 +85,7 @@ function injectToolbarButton() {
         border: "1px solid #444",
         userSelect: "none",
         transition: "all 0.1s",
-        display: "flex",
+        display: "none",
         alignItems: "center",
         justifyContent: "center",
         height: "26px"

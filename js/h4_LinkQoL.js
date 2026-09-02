@@ -501,7 +501,7 @@ app.registerExtension({
                 border: 1px solid #61afef;
                 user-select: none;
                 transition: all 0.1s;
-                display: flex;
+                display: none;
                 align-items: center;
                 justify-content: center;
                 height: 26px;
@@ -942,11 +942,11 @@ app.registerExtension({
     updateButtonVisibility() {
         const btn = document.getElementById("h4-civitai-toggle-btn");
         if (!btn) return;
-        let enabled = true;
+        let enabled = false;
         if (window.h4_Dashboard && window.h4_Dashboard.config) {
-            const master = window.h4_Dashboard.config.qolMasterOverride !== false;
+            const master = !!window.h4_Dashboard.config.qolMasterOverride;
             const globalToggle = window.h4_Dashboard.config.civitaiGlobalToggle !== false;
-            const bridge = window.h4_Dashboard.config.civitaiBridgeEnabled !== false;
+            const bridge = !!window.h4_Dashboard.config.civitaiBridgeEnabled;
             enabled = master && globalToggle && bridge;
         }
         btn.style.display = enabled ? "flex" : "none";
@@ -1197,9 +1197,11 @@ app.registerExtension({
             return;
         }
 
-        if (window.h4_Dashboard && window.h4_Dashboard.config && window.h4_Dashboard.config.civitaiHoverTooltip === false) {
-            this.hideHoverTooltip();
-            return;
+        if (window.h4_Dashboard && window.h4_Dashboard.config) {
+            if (!window.h4_Dashboard.config.qolMasterOverride || !window.h4_Dashboard.config.civitaiHoverTooltip) {
+                this.hideHoverTooltip();
+                return;
+            }
         }
 
         if (this._currentHoverName === cleanName && (this._hoverTimer || instant)) {
@@ -1908,7 +1910,7 @@ app.registerExtension({
                 // Auto-Inject on Download Complete if enabled
                 if (dl.status === "COMPLETE" && !dl._autoInjected) {
                     dl._autoInjected = true;
-                    if (window.h4_Dashboard && window.h4_Dashboard.config && window.h4_Dashboard.config.civitaiAutoInject !== false) {
+                    if (window.h4_Dashboard?.config?.qolMasterOverride && window.h4_Dashboard?.config?.civitaiAutoInject) {
                         this.injectIntoNode(dl.filename);
                     }
                 }

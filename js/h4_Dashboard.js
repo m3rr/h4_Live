@@ -22,20 +22,20 @@ export const h4_Dashboard = {
     _cssText: null, // Cache for popout injection
     LORE: LORE,
 
-    // Configuration State (Default State for QoL Suite: ON)
+    // Configuration State (Default State for QoL Suite: OFF by default)
     config: {
         // Core
-        enabled: true,
+        enabled: false,
         debugMode: false,
-        qolMasterOverride: true,
+        qolMasterOverride: false,
 
         // Monitor
-        monitorEnabled: true,
-        showErrorPopup: true,
+        monitorEnabled: false,
+        showErrorPopup: false,
 
         // Visual Assets
-        showGrid: true,
-        showWires: true,
+        showGrid: false,
+        showWires: false,
         wireStyle: "Circuit",
         wireSpacing: 1.0,
         wireColorSelect: "#00F2FF",
@@ -43,21 +43,21 @@ export const h4_Dashboard = {
         gridColor: "rgba(0, 242, 255, 0.05)",
 
         // UI Hygiene (QoL)
-        deadWeightEnabled: true,
-        caffeineEnabled: true,
-        kickItEnabled: true,
-        civitaiGlobalToggle: true,
-        civitaiBridgeEnabled: true,
-        civitaiAutoInject: true,
-        civitaiSidecars: true,
-        civitaiPreviewSidecars: true,
-        civitaiHoverTooltip: true,
+        deadWeightEnabled: false,
+        caffeineEnabled: false,
+        kickItEnabled: false,
+        civitaiGlobalToggle: false,
+        civitaiBridgeEnabled: false,
+        civitaiAutoInject: false,
+        civitaiSidecars: false,
+        civitaiPreviewSidecars: false,
+        civitaiHoverTooltip: false,
         civitaiApiKey: "",
-        smartSnapping: true,
-        ioColoring: true,
+        smartSnapping: false,
+        ioColoring: false,
 
         // Aesthetic Layer
-        sovereignCoreEnabled: true,
+        sovereignCoreEnabled: false,
 
         // Viewport Settings
         panelPinned: false,         // Default: Not pinned
@@ -1630,7 +1630,7 @@ function _registerH4Settings() {
     const S = app.ui.settings;
 
     // Helper to register a boolean setting that syncs with h4_Dashboard.config
-    function addQoL(id, label, tooltip, configKey, defaultVal = true) {
+    function addQoL(id, label, tooltip, configKey, defaultVal = false) {
         S.addSetting({
             id: `h4.qol.${id}`,
             name: label,
