@@ -1152,14 +1152,43 @@ class SmartSaveUI {
         let html = `<div style="height:100%;display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:0;background:${COLORS.panel};border-radius:6px;overflow:hidden;pointer-events:none;"><div class="h4-hist-nav" data-dir="-1" title="Scroll Left" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">‹</div><div style="display:flex;gap:12px;overflow:hidden;justify-content:flex-start;padding:10px 15px;pointer-events:none;">`;
 
         const isQueueMode = this.queue_memory_enabled && this.queue_sessions && this.queue_sessions.length > 0;
-        const sourceArray = isQueueMode ? this.queue_sessions : this.history;
-        const visibleItems = sourceArray.slice(this.scroll_idx, this.scroll_idx + visibleCount);
+        let sourceArray = [];
+        let isExpandedQueue = false;
+        
+        if (isQueueMode) {
+            if (this.queue_deck_expanded) {
+                const qs = this.queue_sessions[this.queue_deck_idx || 0];
+                if (qs && qs.images) {
+                    isExpandedQueue = true;
+                    sourceArray = [{ _is_back_btn: true }, ...qs.images];
+                } else {
+                    sourceArray = this.queue_sessions;
+                    this.queue_deck_expanded = false;
+                }
+            } else {
+                sourceArray = this.queue_sessions;
+            }
+        } else {
+            sourceArray = this.history;
+        }
+        
+        // In expanded mode, we want to allow scrolling through ALL items, not limited to 5.
+        // Wait, HISTORY_LIMIT_VISIBLE is the max fit by width. It's fine to just slice based on maxFitByWidth!
+        // We'll dynamically use maxFitByWidth for visibleCount instead of hardcapping to HISTORY_LIMIT_VISIBLE (5) if we want to see more.
+        const activeVisibleCount = (!isQueueMode && !isExpandedQueue) ? Math.min(HISTORY_LIMIT_VISIBLE, Math.max(1, maxFitByWidth)) : Math.max(1, maxFitByWidth);
+        const visibleItems = sourceArray.slice(this.scroll_idx, this.scroll_idx + activeVisibleCount);
 
         visibleItems.forEach((item, i) => {
             const idx = i + this.scroll_idx;
             const animStyle = this._histOpening ? `opacity:0; animation: h4-thumb-in 0.25s ease forwards; animation-delay: ${i * 0.04}s;` : "";
 
-            if (isQueueMode) {
+            if (item._is_back_btn) {
+                html += `<div class="h4-hist-item" data-back-btn="true" draggable="false" style="min-width:110px;height:110px;background:rgba(255,255,255,0.05);border:2px dashed #555;position:relative;cursor:pointer;border-radius:4px;pointer-events:auto; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#ccc; font-weight:bold; ${animStyle}">
+                    <div style="font-size:24px; margin-bottom:5px;">‹</div>
+                    <div style="font-size:10px;">BACK TO</div>
+                    <div style="font-size:10px;">BATCHES</div>
+                </div>`;
+            } else if (isQueueMode && !isExpandedQueue) {
                 const sImgs = item.images || [];
                 if (sImgs.length === 0) return;
                 
@@ -1186,13 +1215,27 @@ class SmartSaveUI {
             } else {
                 if (!isImageFile(item.filename)) return; // Skip non-image entries
                 const url = api.apiURL(`/view?filename=${encodeURIComponent(cleanFilename(item.filename))}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}`);
-                const isSel = idx === this.selected_idx;
-                const isTemp = item.type === "temp";
-                const bCol = isSel ? (isTemp ? COLORS.forensic : COLORS.accent) : "#333";
-                const glow = (isSel && isTemp) ? `box-shadow: 0 0 12px ${COLORS.forensic}88;` : "";
+                
+                let isSel = false;
+                let bCol = "#333";
+                let glow = "";
+                let itemIdx = idx;
+                
+                if (isExpandedQueue) {
+                    // For expanded queue, we compare against queue_deck_img_idx
+                    itemIdx = idx - 1; // Because index 0 is the back button
+                    isSel = (itemIdx === (this.queue_deck_img_idx || 0));
+                    bCol = isSel ? COLORS.accent : "#333";
+                } else {
+                    isSel = idx === this.selected_idx;
+                    const isTemp = item.type === "temp";
+                    bCol = isSel ? (isTemp ? COLORS.forensic : COLORS.accent) : "#333";
+                    glow = (isSel && isTemp) ? `box-shadow: 0 0 12px ${COLORS.forensic}88;` : "";
+                }
+                
                 const hTip = `${safeText(item.filename)}: Click once to see settings, double-click for Lightbox.`;
 
-                html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${idx}" data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;pointer-events:auto; ${animStyle}">
+                html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${itemIdx}" ${isExpandedQueue ? 'data-expanded-img="true"' : ''} data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;pointer-events:auto; ${animStyle}">
                     <img src="${url}" draggable="false" style="width:100%;height:100%;object-fit:cover;border-radius:2px;pointer-events:none;" />
                     <div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.7);color:#888;font-size:9px;padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;">${safeText(item.filename)}</div>
                 </div>`;
@@ -1210,8 +1253,20 @@ class SmartSaveUI {
                 const currentBaseW = Math.max(MIN_SIZE[0], this.node.size[0]);
                 const currentMaxFit = Math.floor((currentBaseW - 80 - 30 - 12) / (110 + 12));
                 const activeVisibleCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(1, currentMaxFit));
-                const srcArr = (this.queue_memory_enabled && this.queue_sessions && this.queue_sessions.length > 0) ? this.queue_sessions : this.history;
-                const maxScroll = Math.max(0, srcArr.length - activeVisibleCount);
+                
+                let srcArrLen = 0;
+                if (this.queue_memory_enabled && this.queue_sessions && this.queue_sessions.length > 0) {
+                    if (this.queue_deck_expanded && this.queue_sessions[this.queue_deck_idx || 0]) {
+                        srcArrLen = 1 + (this.queue_sessions[this.queue_deck_idx || 0].images?.length || 0);
+                    } else {
+                        srcArrLen = this.queue_sessions.length;
+                    }
+                } else {
+                    srcArrLen = this.history.length;
+                }
+                
+                const activeVisCap = (this.queue_deck_expanded) ? Math.max(1, currentMaxFit) : activeVisibleCount;
+                const maxScroll = Math.max(0, srcArrLen - activeVisCap);
                 this.scroll_idx = Math.max(0, Math.min(maxScroll, this.scroll_idx + (dir * 3))); // Scroll 3 thumbs
                 this.updateHistoryRail();
             }, true);
@@ -1223,10 +1278,29 @@ class SmartSaveUI {
                     e.stopPropagation();
                     console.log("[h4] Mousedown on thumbnail. Attributes:", { qidx: b.getAttribute("data-qidx"), idx: b.getAttribute("data-idx") });
                     
-                    if (b.hasAttribute("data-qidx")) {
+                    if (b.hasAttribute("data-back-btn")) {
+                        this.queue_deck_expanded = false;
+                        this.scroll_idx = 0; // Reset scroll so they see the decks
+                    } else if (b.hasAttribute("data-expanded-img")) {
+                        const imgIdx = parseInt(b.getAttribute("data-idx"));
+                        this.queue_deck_img_idx = imgIdx;
+                        const qs = this.queue_sessions[this.queue_deck_idx || 0];
+                        if (qs && qs.images && qs.images[imgIdx]) {
+                            const activeImg = qs.images[imgIdx];
+                            const hIdx = this.history.findIndex(h => h.filename === activeImg.filename && h.subfolder === activeImg.subfolder && h.type === activeImg.type);
+                            if (hIdx !== -1) {
+                                this.selected_idx = hIdx;
+                            } else {
+                                this.history.unshift(activeImg);
+                                this.selected_idx = 0;
+                            }
+                        }
+                    } else if (b.hasAttribute("data-qidx")) {
                         const qidx = parseInt(b.getAttribute("data-qidx"));
                         this.queue_deck_idx = qidx; // Absolute selection track for Queue Mode
                         this.queue_deck_img_idx = 0; // Reset image cycle for new batch
+                        this.queue_deck_expanded = true; // Expand immediately
+                        this.scroll_idx = 0; // Reset scroll for the expanded view
                         
                         const qs = this.queue_sessions[qidx];
                         if (qs && qs.images && qs.images.length > 0) {
@@ -1731,6 +1805,17 @@ class SmartSaveUI {
                     this.selected_idx = Math.max(0, this.selected_idx - 1);
                 }
             }
+            if (!isFullFolder && this.lightbox_custom_items && this.lightbox_custom_items.length > 1) {
+                const activeImg = this.lightbox_custom_items[this.queue_deck_img_idx];
+                const hIdx = this.history.findIndex(h => h.filename === activeImg.filename && h.subfolder === activeImg.subfolder && h.type === activeImg.type);
+                if (hIdx !== -1) {
+                    this.selected_idx = hIdx;
+                    this.fetchSidecar(hIdx);
+                }
+                this.updateHistoryRail();
+                if (this.node) this.node.setDirtyCanvas(true, true);
+                if (window.app && app.canvas) app.canvas.setDirty(true, true);
+            }
             this.updateLightbox();
         }, true);
 
@@ -1749,6 +1834,17 @@ class SmartSaveUI {
                 } else {
                     this.selected_idx = Math.min(this.history.length - 1, this.selected_idx + 1);
                 }
+            }
+            if (!isFullFolder && this.lightbox_custom_items && this.lightbox_custom_items.length > 1) {
+                const activeImg = this.lightbox_custom_items[this.queue_deck_img_idx];
+                const hIdx = this.history.findIndex(h => h.filename === activeImg.filename && h.subfolder === activeImg.subfolder && h.type === activeImg.type);
+                if (hIdx !== -1) {
+                    this.selected_idx = hIdx;
+                    this.fetchSidecar(hIdx);
+                }
+                this.updateHistoryRail();
+                if (this.node) this.node.setDirtyCanvas(true, true);
+                if (window.app && app.canvas) app.canvas.setDirty(true, true);
             }
             this.updateLightbox();
         }, true);
@@ -2415,6 +2511,7 @@ app.registerExtension({
                                     this.h4_ui.fetchSidecar(hIdx);
                                 }
                                 
+                                this.h4_ui.updateHistoryRail();
                                 this.setDirtyCanvas(true);
                                 this.h4_ui.scheduleDraw();
                             }
