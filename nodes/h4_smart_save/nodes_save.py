@@ -433,13 +433,14 @@ try:
     @PromptServer.instance.routes.get("/h4/smart_save/history")
     async def get_smart_save_history(request):
         try:
-            # Shift to 5 thumbnails per user request for performance
-            history = _manifest.query_history(limit=5)
+            limit_param = request.query.get("limit", "5")
+            limit = int(limit_param) if limit_param.isdigit() else 5
+            history = _manifest.query_history(limit=limit)
             
             # --- Optional Cold Boot Migration (Only if empty) ---
             if not history:
                 _manifest.cold_boot_sync()
-                history = _manifest.query_history(limit=5)
+                history = _manifest.query_history(limit=limit)
 
             return web.json_response(clean_nan(history))
 
@@ -464,23 +465,40 @@ try:
             if recursive:
                 for r, d, f_names in os.walk(target_dir):
                     for f in f_names:
+                        if not (f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp'))):
+                            continue
                         rel_path = os.path.relpath(r, root_dir)
                         if rel_path == ".":
                             rel_path = ""
+                        full_p = os.path.join(r, f)
+                        try:
+                            mtime = os.path.getmtime(full_p)
+                        except:
+                            mtime = 0
                         files.append({
                             "filename": f,
                             "subfolder": rel_path.replace("\\", "/"),
-                            "type": dir_type
+                            "type": dir_type,
+                            "mtime": mtime
                         })
             else:
                 for f in os.listdir(target_dir):
-                    if os.path.isfile(os.path.join(target_dir, f)):
+                    if not (f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp'))):
+                        continue
+                    full_p = os.path.join(target_dir, f)
+                    if os.path.isfile(full_p):
+                        try:
+                            mtime = os.path.getmtime(full_p)
+                        except:
+                            mtime = 0
                         files.append({
                             "filename": f,
                             "subfolder": subfolder,
-                            "type": dir_type
+                            "type": dir_type,
+                            "mtime": mtime
                         })
 
+            files.sort(key=lambda x: x.get("mtime", 0), reverse=True)
             return web.json_response({"files": files})
 
         except Exception as e:

@@ -411,10 +411,29 @@ class SmartSaveUI {
         this.pollTimer = null;
         this.backgroundPollTimer = null;
         this.queue_sessions = [];
-        this.queue_memory_enabled = false;
+        this.queue_memory_enabled = true; // Default to true so batches are organized automatically
         this.queue_deck_expanded = false;
         this.queue_deck_idx = 0;
         this.queue_deck_img_idx = 0;
+
+        // --- OUTPUT TRAVERSAL STATE ---
+        this.output_traversal_enabled = false;
+        this._outputTraversalFiles = [];
+        this._outputTraversalLoading = false;
+        this._outputTraversalIdx = 0;
+
+        // Restore persisted queue sessions from localStorage across page reloads
+        try {
+            const savedQ = localStorage.getItem('h4_queue_sessions_' + this.node.id);
+            if (savedQ) {
+                const parsed = JSON.parse(savedQ);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    this.queue_sessions = parsed;
+                }
+            }
+        } catch (e) {
+            console.warn("[h4] Failed to load persisted queue sessions:", e);
+        }
 
         // --- NEW: PANNEL MODE STATE ---
         this.panelMode = 'docked';   // 'docked' | 'pinned' | 'popout'
@@ -425,6 +444,37 @@ class SmartSaveUI {
 
         this.fetchHistory(false);
         this.startBackgroundPolling();
+    }
+
+    saveQueueSessions() {
+        try {
+            if (this.node && this.node.id) {
+                localStorage.setItem('h4_queue_sessions_' + this.node.id, JSON.stringify(this.queue_sessions.slice(0, 20)));
+            }
+        } catch (e) {
+            console.warn("[h4] Failed to persist queue sessions:", e);
+        }
+    }
+
+    async fetchOutputTraversal() {
+        if (this._outputTraversalLoading) return;
+        this._outputTraversalLoading = true;
+        this.updateHistoryRail();
+        try {
+            const url = api.apiURL(`/h4/smart_save/list_folder?subfolder=&type=output&recursive=true`);
+            const res = await api.fetchApi(url);
+            if (res.ok) {
+                const data = await res.json();
+                this._outputTraversalFiles = (data.files || []).filter(f => isImageFile(f.filename));
+                this._outputTraversalIdx = 0;
+            }
+        } catch (e) {
+            console.warn("[h4] Output traversal fetch fault:", e);
+        } finally {
+            this._outputTraversalLoading = false;
+            this.updateHistoryRail();
+            this.scheduleDraw();
+        }
     }
 
     scheduleDraw() { if (this._redrawTimer) return; this._redrawTimer = setTimeout(() => { this._redrawTimer = null; this.node.setDirtyCanvas(true, true); }, 1); }
@@ -1147,18 +1197,18 @@ class SmartSaveUI {
         // --- GEOMETRY SYNC: Calculate exact fit based on physical node width ---
         const baseW = Math.max(MIN_SIZE[0], this.node.size[0]);
         const maxFitByWidth = Math.floor((baseW - 80 - 30 - 12) / (110 + 12));
-        const visibleCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(1, maxFitByWidth));
 
-        let html = `<div style="height:100%;display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:0;background:${COLORS.panel};border-radius:6px;overflow:hidden;pointer-events:none;"><div class="h4-hist-nav" data-dir="-1" title="Scroll Left" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">‹</div><div style="display:flex;gap:12px;overflow:hidden;justify-content:flex-start;padding:10px 15px;pointer-events:none;">`;
-
-        const isQueueMode = this.queue_memory_enabled && this.queue_sessions && this.queue_sessions.length > 0;
+        const isOutputTraversal = !!this.output_traversal_enabled;
+        const isQueueMode = !isOutputTraversal && (this.queue_memory_enabled && this.queue_sessions && this.queue_sessions.length > 0);
         let sourceArray = [];
         let isExpandedQueue = false;
         
-        if (isQueueMode) {
+        if (isOutputTraversal) {
+            sourceArray = this._outputTraversalFiles || [];
+        } else if (isQueueMode) {
             if (this.queue_deck_expanded) {
                 const qs = this.queue_sessions[this.queue_deck_idx || 0];
-                if (qs && qs.images) {
+                if (qs && qs.images && qs.images.length > 0) {
                     isExpandedQueue = true;
                     sourceArray = [{ _is_back_btn: true }, ...qs.images];
                 } else {
@@ -1169,14 +1219,44 @@ class SmartSaveUI {
                 sourceArray = this.queue_sessions;
             }
         } else {
-            sourceArray = this.history;
+            sourceArray = this.history.slice(0, 5);
         }
         
-        // In expanded mode, we want to allow scrolling through ALL items, not limited to 5.
-        // Wait, HISTORY_LIMIT_VISIBLE is the max fit by width. It's fine to just slice based on maxFitByWidth!
-        // We'll dynamically use maxFitByWidth for visibleCount instead of hardcapping to HISTORY_LIMIT_VISIBLE (5) if we want to see more.
-        const activeVisibleCount = (!isQueueMode && !isExpandedQueue) ? Math.min(HISTORY_LIMIT_VISIBLE, Math.max(1, maxFitByWidth)) : Math.max(1, maxFitByWidth);
+        let headerTitle = "FILM STRIP // TOP 5 RECENT";
+        if (isOutputTraversal) {
+            headerTitle = `OUTPUT TRAVERSAL // FULL ARCHIVE (${sourceArray.length} IMAGES)`;
+        } else if (isExpandedQueue) {
+            headerTitle = `QUEUE BATCH #${(this.queue_deck_idx || 0) + 1} // (${sourceArray.length - 1} IMAGES)`;
+        } else if (isQueueMode) {
+            headerTitle = `QUEUE FIFO // (${this.queue_sessions.length} BATCHES)`;
+        }
+
+        const activeVisibleCount = (isExpandedQueue || isOutputTraversal) ? Math.max(1, maxFitByWidth) : Math.min(HISTORY_LIMIT_VISIBLE, Math.max(1, maxFitByWidth));
         const visibleItems = sourceArray.slice(this.scroll_idx, this.scroll_idx + activeVisibleCount);
+
+        let html = `
+        <div style="height:100%;display:flex;flex-direction:column;background:${COLORS.panel};border-radius:6px;overflow:hidden;pointer-events:none;padding:4px 6px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 8px;height:24px;border-bottom:1px solid #1a1a1a;margin-bottom:4px;pointer-events:none;">
+                <div style="font-family:monospace;font-size:10px;color:${COLORS.dim};font-weight:bold;letter-spacing:0.5px;">${headerTitle}</div>
+                <div class="h4-hist-traversal-toggle" style="
+                    background:${isOutputTraversal ? "rgba(0,242,255,0.18)" : "rgba(255,255,255,0.05)"};
+                    border:1px solid ${isOutputTraversal ? COLORS.accent : "#555"};
+                    color:${isOutputTraversal ? COLORS.accent : "#aaa"};
+                    padding:3px 10px;
+                    border-radius:4px;
+                    cursor:pointer;
+                    font-size:10px;
+                    font-family:monospace;
+                    font-weight:bold;
+                    pointer-events:auto;
+                    user-select:none;
+                    box-shadow:${isOutputTraversal ? "0 0 10px rgba(0,242,255,0.25)" : "none"};
+                ">📂 OUTPUT TRAVERSAL: ${isOutputTraversal ? "ON" : "OFF"}</div>
+            </div>
+            <div style="flex:1;display:grid;grid-template-columns:36px 1fr 36px;align-items:center;overflow:hidden;pointer-events:none;">
+                <div class="h4-hist-nav" data-dir="-1" title="Scroll Left" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">‹</div>
+                <div style="display:flex;gap:12px;overflow:hidden;justify-content:flex-start;padding:4px 8px;pointer-events:none;">
+        `;
 
         visibleItems.forEach((item, i) => {
             const idx = i + this.scroll_idx;
@@ -1188,7 +1268,7 @@ class SmartSaveUI {
                     <div style="font-size:10px;">BACK TO</div>
                     <div style="font-size:10px;">BATCHES</div>
                 </div>`;
-            } else if (isQueueMode && !isExpandedQueue) {
+            } else if (isQueueMode && !isExpandedQueue && !isOutputTraversal) {
                 const sImgs = item.images || [];
                 if (sImgs.length === 0) return;
                 
@@ -1221,13 +1301,17 @@ class SmartSaveUI {
                 let glow = "";
                 let itemIdx = idx;
                 
-                if (isExpandedQueue) {
-                    // For expanded queue, we compare against queue_deck_img_idx
+                if (isOutputTraversal) {
+                    itemIdx = idx;
+                    isSel = (itemIdx === (this._outputTraversalIdx || 0));
+                    bCol = isSel ? COLORS.accent : "#333";
+                } else if (isExpandedQueue) {
                     itemIdx = idx - 1; // Because index 0 is the back button
                     isSel = (itemIdx === (this.queue_deck_img_idx || 0));
                     bCol = isSel ? COLORS.accent : "#333";
                 } else {
-                    isSel = idx === this.selected_idx;
+                    itemIdx = idx;
+                    isSel = (idx === this.selected_idx);
                     const isTemp = item.type === "temp";
                     bCol = isSel ? (isTemp ? COLORS.forensic : COLORS.accent) : "#333";
                     glow = (isSel && isTemp) ? `box-shadow: 0 0 12px ${COLORS.forensic}88;` : "";
@@ -1235,16 +1319,33 @@ class SmartSaveUI {
                 
                 const hTip = `${safeText(item.filename)}: Click once to see settings, double-click for Lightbox.`;
 
-                html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${itemIdx}" ${isExpandedQueue ? 'data-expanded-img="true"' : ''} data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;pointer-events:auto; ${animStyle}">
+                html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${itemIdx}" ${isOutputTraversal ? 'data-traversal-img="true"' : ''} ${isExpandedQueue ? 'data-expanded-img="true"' : ''} data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;pointer-events:auto; ${animStyle}">
                     <img src="${url}" draggable="false" style="width:100%;height:100%;object-fit:cover;border-radius:2px;pointer-events:none;" />
                     <div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.7);color:#888;font-size:9px;padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;">${safeText(item.filename)}</div>
                 </div>`;
             }
         });
         this._histOpening = false;
-        html += `</div><div class="h4-hist-nav" data-dir="1" title="Scroll Right" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">›</div></div><style> .h4-hist-nav:hover { background:rgba(0,242,255,0.08) !important; color:#fff !important; text-shadow:0 0 10px ${COLORS.accent}; } </style>`;
+        html += `</div><div class="h4-hist-nav" data-dir="1" title="Scroll Right" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">›</div></div></div><style> .h4-hist-nav:hover { background:rgba(0,242,255,0.08) !important; color:#fff !important; text-shadow:0 0 10px ${COLORS.accent}; } </style>`;
 
         rail.innerHTML = html;
+
+        rail.querySelector(".h4-hist-traversal-toggle")?.addEventListener("mousedown", (e) => {
+            e.stopPropagation();
+            this.output_traversal_enabled = !this.output_traversal_enabled;
+            this.scroll_idx = 0;
+            if (this.output_traversal_enabled) {
+                if (!this._outputTraversalFiles || this._outputTraversalFiles.length === 0) {
+                    this.fetchOutputTraversal();
+                } else {
+                    this.updateHistoryRail();
+                    this.scheduleDraw();
+                }
+            } else {
+                this.updateHistoryRail();
+                this.scheduleDraw();
+            }
+        }, true);
 
         rail.querySelectorAll(".h4-hist-nav").forEach(b => {
             b.addEventListener("mousedown", (e) => {
@@ -1252,21 +1353,10 @@ class SmartSaveUI {
                 const dir = parseInt(b.getAttribute("data-dir"));
                 const currentBaseW = Math.max(MIN_SIZE[0], this.node.size[0]);
                 const currentMaxFit = Math.floor((currentBaseW - 80 - 30 - 12) / (110 + 12));
-                const activeVisibleCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(1, currentMaxFit));
+                const activeVisibleCount = (isExpandedQueue || isOutputTraversal) ? Math.max(1, currentMaxFit) : Math.min(HISTORY_LIMIT_VISIBLE, Math.max(1, currentMaxFit));
                 
-                let srcArrLen = 0;
-                if (this.queue_memory_enabled && this.queue_sessions && this.queue_sessions.length > 0) {
-                    if (this.queue_deck_expanded && this.queue_sessions[this.queue_deck_idx || 0]) {
-                        srcArrLen = 1 + (this.queue_sessions[this.queue_deck_idx || 0].images?.length || 0);
-                    } else {
-                        srcArrLen = this.queue_sessions.length;
-                    }
-                } else {
-                    srcArrLen = this.history.length;
-                }
-                
-                const activeVisCap = (this.queue_deck_expanded) ? Math.max(1, currentMaxFit) : activeVisibleCount;
-                const maxScroll = Math.max(0, srcArrLen - activeVisCap);
+                const srcArrLen = sourceArray.length;
+                const maxScroll = Math.max(0, srcArrLen - activeVisibleCount);
                 this.scroll_idx = Math.max(0, Math.min(maxScroll, this.scroll_idx + (dir * 3))); // Scroll 3 thumbs
                 this.updateHistoryRail();
             }, true);
@@ -1276,11 +1366,22 @@ class SmartSaveUI {
             b.addEventListener("mousedown", (e) => {
                 try {
                     e.stopPropagation();
-                    console.log("[h4] Mousedown on thumbnail. Attributes:", { qidx: b.getAttribute("data-qidx"), idx: b.getAttribute("data-idx") });
-                    
                     if (b.hasAttribute("data-back-btn")) {
                         this.queue_deck_expanded = false;
                         this.scroll_idx = 0; // Reset scroll so they see the decks
+                    } else if (b.hasAttribute("data-traversal-img")) {
+                        const imgIdx = parseInt(b.getAttribute("data-idx"));
+                        this._outputTraversalIdx = imgIdx;
+                        const activeImg = this._outputTraversalFiles[imgIdx];
+                        if (activeImg) {
+                            const hIdx = this.history.findIndex(h => h.filename === activeImg.filename && h.subfolder === activeImg.subfolder);
+                            if (hIdx !== -1) {
+                                this.selected_idx = hIdx;
+                            } else {
+                                this.history.unshift(activeImg);
+                                this.selected_idx = 0;
+                            }
+                        }
                     } else if (b.hasAttribute("data-expanded-img")) {
                         const imgIdx = parseInt(b.getAttribute("data-idx"));
                         this.queue_deck_img_idx = imgIdx;
@@ -1306,21 +1407,15 @@ class SmartSaveUI {
                         if (qs && qs.images && qs.images.length > 0) {
                             const firstImg = qs.images[0];
                             const hIdx = this.history.findIndex(h => h.filename === firstImg.filename && h.subfolder === firstImg.subfolder && h.type === firstImg.type);
-                            console.log(`[h4] Queue Session ${qidx} clicked. Found in history at index ${hIdx}`);
                             if (hIdx !== -1) {
                                 this.selected_idx = hIdx;
                             } else {
-                                console.warn("[h4] Queue Session image not found in history! Forcing fallback.");
-                                // Fallback: manually push it to history so we can select it
                                 this.history.unshift(firstImg);
                                 this.selected_idx = 0;
                             }
-                        } else {
-                            console.warn("[h4] Queue session is empty or invalid:", qs);
                         }
                     } else {
                         this.selected_idx = parseInt(b.getAttribute("data-idx"));
-                        console.log("[h4] Regular history item clicked. Index:", this.selected_idx);
                     }
                     this.markDOMDirty();
                     this.fetchSidecar(this.selected_idx);
@@ -1336,14 +1431,28 @@ class SmartSaveUI {
             b.addEventListener("dblclick", (e) => {
                 try {
                     e.stopPropagation(); e.preventDefault();
-                    if (b.hasAttribute("data-qidx")) {
+                    if (b.hasAttribute("data-back-btn")) {
+                        this.queue_deck_expanded = false;
+                        this.scroll_idx = 0;
+                        this.updateHistoryRail();
+                        return;
+                    }
+                    if (b.hasAttribute("data-traversal-img")) {
+                        this._lightbox_full_folder = true;
+                        this._lightboxFolderItems = this._outputTraversalFiles;
+                        this._lightboxFolderIdx = this._outputTraversalIdx || 0;
+                        this.lightbox_custom_items = null;
+                    } else if (b.hasAttribute("data-expanded-img")) {
+                        const qs = this.queue_sessions[this.queue_deck_idx || 0];
+                        if (qs && qs.images) {
+                            this.lightbox_custom_items = qs.images;
+                            this.lightbox_custom_idx = this.queue_deck_img_idx || 0;
+                        }
+                    } else if (b.hasAttribute("data-qidx")) {
                         const qidx = parseInt(b.getAttribute("data-qidx"));
                         this.queue_deck_idx = qidx;
                         const qs = this.queue_sessions[qidx];
                         if (qs && qs.images && qs.images.length > 0) {
-                            const firstImg = qs.images[0];
-                            const hIdx = this.history.findIndex(h => h.filename === firstImg.filename && h.subfolder === firstImg.subfolder && h.type === firstImg.type);
-                            if (hIdx !== -1) this.selected_idx = hIdx;
                             this.lightbox_custom_items = qs.images;
                             this.lightbox_custom_idx = 0;
                         }
@@ -1361,7 +1470,14 @@ class SmartSaveUI {
             }, true);
             
             b.addEventListener("mouseenter", () => {
-                if (b.hasAttribute("data-qidx")) {
+                if (b.hasAttribute("data-traversal-img")) {
+                    const imgIdx = parseInt(b.getAttribute("data-idx"));
+                    const hItem = this._outputTraversalFiles[imgIdx];
+                    if (hItem && isImageFile(hItem.filename)) {
+                        const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(cleanFilename(hItem.filename))}&subfolder=${encodeURIComponent(hItem.subfolder)}&type=${encodeURIComponent(hItem.type)}`);
+                        this.getBitmap(fullUrl);
+                    }
+                } else if (b.hasAttribute("data-qidx")) {
                     const qidx = parseInt(b.getAttribute("data-qidx"));
                     const qs = this.queue_sessions[qidx];
                     if (qs && qs.images && qs.images.length > 0) {
@@ -1558,9 +1674,12 @@ class SmartSaveUI {
         }
 
         lb.style.display = "block";
-        const current = this.history[this.selected_idx];
+        const current = (this.lightbox_custom_items && this.lightbox_custom_items[this.lightbox_custom_idx ?? 0])
+            || (this._lightboxFolderItems && this._lightboxFolderItems[this._lightboxFolderIdx ?? 0])
+            || (this.selected_idx >= 0 ? this.history[this.selected_idx] : null)
+            || (this.history.length ? this.history[0] : null);
         
-        if (!current) {
+        if (!current && !this._lightbox_full_folder) {
             lb.innerHTML = `
                 <div class="h4-lb-close" style="
                     position:absolute;
@@ -1574,12 +1693,30 @@ class SmartSaveUI {
                     font-weight:bold;
                     pointer-events:auto !important;
                 ">✕</div>
+                <div class="h4-lb-mode-toggle" style="
+                    position:absolute;
+                    top:14px;
+                    right:60px;
+                    background:rgba(0,242,255,0.18);
+                    border:1.5px solid ${COLORS.accent};
+                    color:${COLORS.accent};
+                    padding:6px 12px;
+                    border-radius:6px;
+                    cursor:pointer;
+                    font-size:11px;
+                    font-family:monospace;
+                    font-weight:bold;
+                    pointer-events:auto !important;
+                    z-index:10001;
+                ">📂 OUTPUT TRAVERSAL: LOAD FOLDER</div>
                 <div style="
                     color:${COLORS.dim};
                     font-family:monospace;
                     font-size:12px;
                     pointer-events:none;
-                ">No preview image available.</div>
+                    text-align:center;
+                    padding-top:100px;
+                ">No preview image in active selection. Click button above to load output folder.</div>
             `;
             lb.querySelector(".h4-lb-close")?.addEventListener("mousedown", (e) => {
                 e.stopPropagation();
@@ -1591,6 +1728,11 @@ class SmartSaveUI {
                 this.markDOMDirty();
                 this.updateLightbox();
             }, true);
+            lb.querySelector(".h4-lb-mode-toggle")?.addEventListener("mousedown", (e) => {
+                e.stopPropagation();
+                this._lightbox_full_folder = true;
+                this.fetchOutputFolder("", "output", true);
+            }, true);
             return;
         }
 
@@ -1601,12 +1743,12 @@ class SmartSaveUI {
         if (needsFolderLoad) {
             if (isFullFolder) {
                 this.fetchOutputFolder("", "output", true);
-            } else {
+            } else if (current) {
                 this.fetchOutputFolder(current.subfolder, current.type, false);
             }
         }
 
-        let displayItem = current;
+        let displayItem = current || { filename: "loading.png", subfolder: "", type: "output" };
         let folderIdx = this._lightboxFolderIdx ?? 0;
         let folderTotal = null;
 
@@ -1626,7 +1768,7 @@ class SmartSaveUI {
             const qidx = this.queue_deck_idx || 0;
             counterStr = `BATCH ${qidx + 1}: ${(this.lightbox_custom_idx ?? 0) + 1} / ${this.lightbox_custom_items.length}`;
         } else if (isFullFolder) {
-            counterStr = `FULL OUTPUT: ${folderIdx + 1} / ${folderTotal}`;
+            counterStr = `FULL OUTPUT: ${folderIdx + 1} / ${folderTotal || "?"}`;
         } else {
             counterStr = (folderTotal != null) ? `${folderIdx + 1} / ${folderTotal} in /${displayItem.subfolder || "output"}` : `${this.selected_idx + 1} / ${this.history.length}`;
         }
@@ -1672,19 +1814,23 @@ class SmartSaveUI {
             
             <div class="h4-lb-mode-toggle" style="
                 position:absolute;
-                top:20px;
+                top:14px;
                 right:60px;
-                background:rgba(255,255,255,0.05);
-                border:1px solid ${COLORS.accent};
-                color:${COLORS.accent};
-                padding:4px 8px;
-                border-radius:4px;
+                background:${isFullFolder ? "rgba(0,242,255,0.18)" : "rgba(255,255,255,0.06)"};
+                border:1.5px solid ${isFullFolder ? COLORS.accent : "#666"};
+                color:${isFullFolder ? COLORS.accent : "#ddd"};
+                padding:6px 12px;
+                border-radius:6px;
                 cursor:pointer;
-                font-size:10px;
+                font-size:11px;
+                font-family:monospace;
                 font-weight:bold;
+                letter-spacing:0.5px;
                 pointer-events:auto !important;
                 z-index:10001;
-            ">MODE: ${isFullFolder ? "FULL FOLDER" : (isCustom ? "BATCH ONLY" : "TOP 5 (HISTORY)")}</div>
+                box-shadow:${isFullFolder ? "0 0 12px rgba(0,242,255,0.3)" : "none"};
+                user-select:none;
+            ">📂 OUTPUT TRAVERSAL: ${isFullFolder ? "ON (FULL ARCHIVE)" : (isCustom ? "OFF (BATCH ONLY)" : "OFF (TOP 5)")}</div>
 
             <div style="
                 position:absolute;
@@ -2331,24 +2477,22 @@ app.registerExtension({
                 if (message.h4_history && message.h4_history.length > 0) {
                     const allImages = message.h4_history;
 
-                    // --- QUEUE ACCUMULATION KERNEL (FIFO max 10) ---
-                    const rawQMem = Array.isArray(message.queue_memory) ? message.queue_memory[0] : message.queue_memory;
-                    const qActive = rawQMem !== undefined ? !!rawQMem : this.h4_ui.queue_memory_enabled;
-                    if (qActive) {
-                        const validBatch = allImages.filter(img => isImageFile(img.filename)).map(img => ({ ...img, filename: cleanFilename(img.filename) }));
-                        if (validBatch.length > 0) {
-                            const rawQId = Array.isArray(message.queue_id) ? message.queue_id[0] : message.queue_id;
-                            const rawBCount = Array.isArray(message.batch_count) ? message.batch_count[0] : message.batch_count;
-                            this.h4_ui.queue_sessions.unshift({
-                                id: rawQId || ('q_' + Date.now()),
-                                timestamp: Date.now(),
-                                images: validBatch,
-                                batch_count: rawBCount || validBatch.length
-                            });
-                            if (this.h4_ui.queue_sessions.length > 10) {
-                                this.h4_ui.queue_sessions = this.h4_ui.queue_sessions.slice(0, 10);
-                            }
+                    // --- QUEUE ACCUMULATION KERNEL (FIFO max 20) ---
+                    const validBatch = allImages.filter(img => isImageFile(img.filename)).map(img => ({ ...img, filename: cleanFilename(img.filename) }));
+                    if (validBatch.length > 0) {
+                        const rawQId = Array.isArray(message.queue_id) ? message.queue_id[0] : message.queue_id;
+                        const rawBCount = Array.isArray(message.batch_count) ? message.batch_count[0] : message.batch_count;
+                        this.h4_ui.queue_sessions.unshift({
+                            id: 'q_' + Date.now(),
+                            node_queue_id: rawQId,
+                            timestamp: Date.now(),
+                            images: validBatch,
+                            batch_count: rawBCount || validBatch.length
+                        });
+                        if (this.h4_ui.queue_sessions.length > 20) {
+                            this.h4_ui.queue_sessions = this.h4_ui.queue_sessions.slice(0, 20);
                         }
+                        this.h4_ui.saveQueueSessions();
                     }
 
                     // TIER 2 — deferred, medium weight (History Rail Injection)
@@ -2477,8 +2621,11 @@ app.registerExtension({
                     if (this._last_clk && (now - this._last_clk < 300)) {
                         this.h4_ui.lightbox_custom_items = null;
                         
-                        // If Queue Mode, pass the current batch to Lightbox
-                        if (this.h4_ui.queue_memory_enabled && this.h4_ui.queue_sessions && this.h4_ui.queue_sessions.length > 0) {
+                        if (this.h4_ui.output_traversal_enabled && this.h4_ui._outputTraversalFiles && this.h4_ui._outputTraversalFiles.length > 0) {
+                            this.h4_ui._lightbox_full_folder = true;
+                            this.h4_ui._lightboxFolderItems = this.h4_ui._outputTraversalFiles;
+                            this.h4_ui._lightboxFolderIdx = this.h4_ui._outputTraversalIdx || 0;
+                        } else if (this.h4_ui.queue_memory_enabled && this.h4_ui.queue_sessions && this.h4_ui.queue_sessions.length > 0) {
                             const qidx = this.h4_ui.queue_deck_idx || 0;
                             const qs = this.h4_ui.queue_sessions[qidx];
                             if (qs && qs.images && qs.images.length > 0) {
@@ -2491,8 +2638,26 @@ app.registerExtension({
                         this.h4_ui.updateLightbox();
                         this.h4_ui.scheduleDraw();
                     } else {
-                        // Handle Single Click -> Cycle Batch Images (if in Queue Mode)
-                        if (this.h4_ui.queue_memory_enabled && this.h4_ui.queue_sessions && this.h4_ui.queue_sessions.length > 0) {
+                        // Handle Single Click -> Cycle Images
+                        if (this.h4_ui.output_traversal_enabled && this.h4_ui._outputTraversalFiles && this.h4_ui._outputTraversalFiles.length > 1) {
+                            const total = this.h4_ui._outputTraversalFiles.length;
+                            if (px < pts.preview_area.x + 40) {
+                                this.h4_ui._outputTraversalIdx = ((this.h4_ui._outputTraversalIdx || 0) - 1 + total) % total;
+                            } else {
+                                this.h4_ui._outputTraversalIdx = ((this.h4_ui._outputTraversalIdx || 0) + 1) % total;
+                            }
+                            const activeItem = this.h4_ui._outputTraversalFiles[this.h4_ui._outputTraversalIdx];
+                            if (activeItem) {
+                                const hIdx = this.h4_ui.history.findIndex(h => h.filename === activeItem.filename && h.subfolder === activeItem.subfolder);
+                                if (hIdx !== -1) {
+                                    this.h4_ui.selected_idx = hIdx;
+                                    this.h4_ui.fetchSidecar(hIdx);
+                                }
+                            }
+                            this.h4_ui.updateHistoryRail();
+                            this.setDirtyCanvas(true);
+                            this.h4_ui.scheduleDraw();
+                        } else if (this.h4_ui.queue_memory_enabled && this.h4_ui.queue_sessions && this.h4_ui.queue_sessions.length > 0) {
                             const qidx = this.h4_ui.queue_deck_idx || 0;
                             const qs = this.h4_ui.queue_sessions[qidx];
                             if (qs && qs.images && qs.images.length > 1) {
@@ -2560,9 +2725,13 @@ app.registerExtension({
                 ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, mesh.w, mesh.baseH); ctx.strokeStyle = COLORS.border; ctx.lineWidth = 1; ctx.strokeRect(0, 0, mesh.w, mesh.baseH);
                 
                 let activeItem = null;
-                const isQueueMode = ui.queue_memory_enabled && ui.queue_sessions && ui.queue_sessions.length > 0;
+                const isOutputTraversal = ui.output_traversal_enabled && ui._outputTraversalFiles && ui._outputTraversalFiles.length > 0;
+                const isQueueMode = !isOutputTraversal && (ui.queue_memory_enabled && ui.queue_sessions && ui.queue_sessions.length > 0);
                 
-                if (isQueueMode) {
+                if (isOutputTraversal) {
+                    const otIdx = (ui._outputTraversalIdx || 0) % ui._outputTraversalFiles.length;
+                    activeItem = ui._outputTraversalFiles[otIdx];
+                } else if (isQueueMode) {
                     const qidx = ui.queue_deck_idx || 0;
                     const imgIdx = ui.queue_deck_img_idx || 0;
                     if (ui.queue_sessions[qidx] && ui.queue_sessions[qidx].images.length > 0) {
@@ -2624,24 +2793,23 @@ app.registerExtension({
                         }
                     } else {
                         ctx.drawImage(activeImg, dx, dy, dw, dh);
+                    }
                     ctx.restore();
                     
-                    if (isQueueMode) {
-                        const qidx = ui.queue_deck_idx || 0;
-                        const qs = ui.queue_sessions[qidx];
-                        if (qs && qs.images && qs.images.length > 1) {
-                            ctx.save();
-                            ctx.fillStyle = "rgba(0,0,0,0.3)";
-                            ctx.fillRect(area.x, area.y, 30, area.h);
-                            ctx.fillRect(area.x + area.w - 30, area.y, 30, area.h);
-                            ctx.fillStyle = "rgba(0, 242, 255, 0.7)";
-                            ctx.font = "bold 24px monospace";
-                            ctx.textAlign = "center";
-                            ctx.textBaseline = "middle";
-                            ctx.fillText("‹", area.x + 15, area.y + area.h/2);
-                            ctx.fillText("›", area.x + area.w - 15, area.y + area.h/2);
-                            ctx.restore();
-                        }
+                    const hasMultiImages = (isOutputTraversal && ui._outputTraversalFiles.length > 1) ||
+                        (isQueueMode && ui.queue_sessions[ui.queue_deck_idx || 0]?.images?.length > 1);
+                    if (hasMultiImages) {
+                        ctx.save();
+                        ctx.fillStyle = "rgba(0,0,0,0.3)";
+                        ctx.fillRect(area.x, area.y, 30, area.h);
+                        ctx.fillRect(area.x + area.w - 30, area.y, 30, area.h);
+                        ctx.fillStyle = "rgba(0, 242, 255, 0.7)";
+                        ctx.font = "bold 24px monospace";
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillText("‹", area.x + 15, area.y + area.h/2);
+                        ctx.fillText("›", area.x + area.w - 15, area.y + area.h/2);
+                        ctx.restore();
                     }
                 }
 
