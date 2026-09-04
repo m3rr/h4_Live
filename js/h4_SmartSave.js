@@ -1252,6 +1252,8 @@ class SmartSaveUI {
                     this.fetchSidecar(this.selected_idx);
                     this.updateHistoryRail(); 
                     this.scheduleDraw();
+                    if (this.node) this.node.setDirtyCanvas(true, true);
+                    if (window.app && app.canvas) app.canvas.setDirty(true, true);
                 } catch (err) {
                     console.error("[h4] Error in thumbnail click handler:", err);
                 }
@@ -1428,30 +1430,25 @@ class SmartSaveUI {
         const closeBtn = viewer.querySelector(".h4-viewer-close");
         if (closeBtn) closeBtn.onclick = () => { this.show_viewer = false; this.markDOMDirty(); this.scheduleDraw(); };
     }
-
-    // --- ADD THIS METHOD to SmartSaveUI ---
-    // Fetches all images in the same output subfolder as the currently viewed image.
-    // Called once when the lightbox opens. Results cached in this._lightboxFolderItems.
-
-    async fetchOutputFolder(subfolder, type) {
+    async fetchOutputFolder(subfolder, type, recursive = false) {
+        if (this._lightboxFolderLoading) return;
         this._lightboxFolderLoading = true;
-        this._lightboxFolderItems = null;
-
+        this.updateLightbox(); // re-render to show loading banner
+        
         try {
-            // ComfyUI's /api/v1/folder endpoint — returns all files in a folder
             const url = api.apiURL(
-                `/h4/smart_save/list_folder?subfolder=${encodeURIComponent(subfolder)}&type=${encodeURIComponent(type)}`
+                `/h4/smart_save/list_folder?subfolder=${encodeURIComponent(subfolder)}&type=${encodeURIComponent(type)}&recursive=${recursive}`
             );
             const res = await api.fetchApi(url);
             if (!res.ok) throw new Error(`Folder fetch failed: ${res.status}`);
 
-            const data = await res.json(); // expects: { files: [{filename, subfolder, type}, ...] }
-            // Filter to images only, sort by filename descending (newest first)
+            const data = await res.json();
             this._lightboxFolderItems = (data.files || [])
                 .filter(f => isImageFile(f.filename))
                 .sort((a, b) => b.filename.localeCompare(a.filename));
+            
+            this._lightboxFolderItems._recursive = recursive;
 
-            // Find the index of the currently open image in the folder list
             const current = this.history[this.selected_idx];
             if (current) {
                 const idx = this._lightboxFolderItems.findIndex(
@@ -1464,8 +1461,8 @@ class SmartSaveUI {
 
         } catch (e) {
             console.warn("[h4] Folder fetch fault — falling back to history items", e);
-            // Graceful fallback: use history as the traversal list
             this._lightboxFolderItems = this.history.filter(h => isImageFile(h.filename));
+            this._lightboxFolderItems._recursive = false;
             const current = this.history[this.selected_idx];
             this._lightboxFolderIdx = current
                 ? this._lightboxFolderItems.findIndex(f => f.filename === current.filename)
@@ -1473,28 +1470,23 @@ class SmartSaveUI {
             if (this._lightboxFolderIdx < 0) this._lightboxFolderIdx = 0;
         } finally {
             this._lightboxFolderLoading = false;
-            this.updateLightbox(); // Re-render now that we have the folder data
+            this.updateLightbox(); 
         }
     }
 
     updateLightbox() {
-        const lb = this.node.__h4_lightbox;
-        if (!lb) return;
-
+        const lb = this.node.__h4_lightbox; if (!lb) return;
+        
         if (!this.show_lightbox) {
             lb.style.display = "none";
-            lb.style.pointerEvents = "none";
             lb.innerHTML = "";
             return;
         }
 
-        lb.style.display = "flex";
-        lb.style.pointerEvents = "auto";
-
-        const currentList = this.lightbox_custom_items || this.history;
-        const currentIdx = this.lightbox_custom_items ? (this.lightbox_custom_idx ?? 0) : this.selected_idx;
-        const current = currentList[currentIdx];
-        if (!current || !isImageFile(current.filename)) {
+        lb.style.display = "block";
+        const current = this.history[this.selected_idx];
+        
+        if (!current) {
             lb.innerHTML = `
                 <div class="h4-lb-close" style="
                     position:absolute;
@@ -1521,16 +1513,23 @@ class SmartSaveUI {
                 this._lightboxFolderItems = null;
                 this._lightboxFolderLoading = false;
                 this._lightboxFolderIdx = 0;
+                this._lightbox_full_folder = false;
                 this.markDOMDirty();
                 this.updateLightbox();
             }, true);
             return;
         }
 
-        const isCustom = !!this.lightbox_custom_items;
-        const needsFolderLoad = !isCustom && !this._lightboxFolderItems && !this._lightboxFolderLoading;
+        const isFullFolder = !!this._lightbox_full_folder;
+        const isCustom = !isFullFolder && !!this.lightbox_custom_items;
+        const needsFolderLoad = !isCustom && (!this._lightboxFolderItems || this._lightboxFolderItems._recursive !== isFullFolder) && !this._lightboxFolderLoading;
+        
         if (needsFolderLoad) {
-            this.fetchOutputFolder(current.subfolder, current.type);
+            if (isFullFolder) {
+                this.fetchOutputFolder("", "output", true);
+            } else {
+                this.fetchOutputFolder(current.subfolder, current.type, false);
+            }
         }
 
         let displayItem = current;
@@ -1538,7 +1537,7 @@ class SmartSaveUI {
         let folderTotal = null;
 
         if (isCustom) {
-            displayItem = current;
+            displayItem = this.lightbox_custom_items[this.lightbox_custom_idx ?? 0] || current;
         } else if (this._lightboxFolderItems?.length) {
             folderTotal = this._lightboxFolderItems.length;
             displayItem = this._lightboxFolderItems[folderIdx] ?? current;
@@ -1548,11 +1547,15 @@ class SmartSaveUI {
             `/view?filename=${encodeURIComponent(cleanFilename(displayItem.filename))}&subfolder=${encodeURIComponent(displayItem.subfolder)}&type=${encodeURIComponent(displayItem.type)}`
         );
 
-        const counterStr = this.lightbox_custom_items
-            ? `QUEUE IMAGE ${(this.lightbox_custom_idx ?? 0) + 1} / ${this.lightbox_custom_items.length}`
-            : (folderTotal != null
-                ? `${folderIdx + 1} / ${folderTotal} in /${displayItem.subfolder || "output"}`
-                : `${this.selected_idx + 1} / ${this.history.length}`);
+        let counterStr = "";
+        if (isCustom) {
+            const qidx = this.queue_deck_idx || 0;
+            counterStr = `BATCH ${qidx + 1}: ${(this.lightbox_custom_idx ?? 0) + 1} / ${this.lightbox_custom_items.length}`;
+        } else if (isFullFolder) {
+            counterStr = `FULL OUTPUT: ${folderIdx + 1} / ${folderTotal}`;
+        } else {
+            counterStr = (folderTotal != null) ? `${folderIdx + 1} / ${folderTotal} in /${displayItem.subfolder || "output"}` : `${this.selected_idx + 1} / ${this.history.length}`;
+        }
 
         const loadingBanner = this._lightboxFolderLoading
             ? `<div style="
@@ -1592,6 +1595,22 @@ class SmartSaveUI {
                 text-shadow:0 0 10px rgba(0,242,255,0.5);
                 pointer-events:auto !important;
             ">✕</div>
+            
+            <div class="h4-lb-mode-toggle" style="
+                position:absolute;
+                top:20px;
+                right:60px;
+                background:rgba(255,255,255,0.05);
+                border:1px solid ${COLORS.accent};
+                color:${COLORS.accent};
+                padding:4px 8px;
+                border-radius:4px;
+                cursor:pointer;
+                font-size:10px;
+                font-weight:bold;
+                pointer-events:auto !important;
+                z-index:10001;
+            ">MODE: ${isFullFolder ? "FULL FOLDER" : (isCustom ? "BATCH ONLY" : "TOP 5 (HISTORY)")}</div>
 
             <div style="
                 position:absolute;
@@ -1685,21 +1704,29 @@ class SmartSaveUI {
             this._lightboxFolderItems = null;
             this._lightboxFolderLoading = false;
             this._lightboxFolderIdx = 0;
+            this._lightbox_full_folder = false;
             this.markDOMDirty();
+            this.updateLightbox();
+        }, true);
+        
+        lb.querySelector(".h4-lb-mode-toggle")?.addEventListener("mousedown", (e) => {
+            e.stopPropagation();
+            this._lightbox_full_folder = !this._lightbox_full_folder;
             this.updateLightbox();
         }, true);
 
         lb.querySelector(".h4-lb-prev")?.addEventListener("mousedown", (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (this.lightbox_custom_items && this.lightbox_custom_items.length > 1) {
+            const isFullFolder = !!this._lightbox_full_folder;
+            if (!isFullFolder && this.lightbox_custom_items && this.lightbox_custom_items.length > 1) {
                 const total = this.lightbox_custom_items.length;
                 this.lightbox_custom_idx = ((this.lightbox_custom_idx ?? 0) - 1 + total) % total;
                 this.queue_deck_img_idx = this.lightbox_custom_idx;
             } else {
                 const list = this._lightboxFolderItems;
                 if (list && list.length > 1) {
-                    this._lightboxFolderIdx = (folderIdx - 1 + list.length) % list.length;
+                    this._lightboxFolderIdx = (this._lightboxFolderIdx - 1 + list.length) % list.length;
                 } else {
                     this.selected_idx = Math.max(0, this.selected_idx - 1);
                 }
@@ -1710,14 +1737,15 @@ class SmartSaveUI {
         lb.querySelector(".h4-lb-next")?.addEventListener("mousedown", (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (this.lightbox_custom_items && this.lightbox_custom_items.length > 1) {
+            const isFullFolder = !!this._lightbox_full_folder;
+            if (!isFullFolder && this.lightbox_custom_items && this.lightbox_custom_items.length > 1) {
                 const total = this.lightbox_custom_items.length;
                 this.lightbox_custom_idx = ((this.lightbox_custom_idx ?? 0) + 1) % total;
                 this.queue_deck_img_idx = this.lightbox_custom_idx;
             } else {
                 const list = this._lightboxFolderItems;
                 if (list && list.length > 1) {
-                    this._lightboxFolderIdx = (folderIdx + 1) % list.length;
+                    this._lightboxFolderIdx = ((this._lightboxFolderIdx ?? 0) + 1) % list.length;
                 } else {
                     this.selected_idx = Math.min(this.history.length - 1, this.selected_idx + 1);
                 }
@@ -2372,7 +2400,12 @@ app.registerExtension({
                             const qidx = this.h4_ui.queue_deck_idx || 0;
                             const qs = this.h4_ui.queue_sessions[qidx];
                             if (qs && qs.images && qs.images.length > 1) {
-                                this.h4_ui.queue_deck_img_idx = ((this.h4_ui.queue_deck_img_idx || 0) + 1) % qs.images.length;
+                                // Check if left arrow area was clicked
+                                if (px < pts.preview_area.x + 40) {
+                                    this.h4_ui.queue_deck_img_idx = ((this.h4_ui.queue_deck_img_idx || 0) - 1 + qs.images.length) % qs.images.length;
+                                } else {
+                                    this.h4_ui.queue_deck_img_idx = ((this.h4_ui.queue_deck_img_idx || 0) + 1) % qs.images.length;
+                                }
                                 
                                 // Sync the selected history index so metadata/sidecar updates!
                                 const activeItem = qs.images[this.h4_ui.queue_deck_img_idx];
@@ -2494,8 +2527,25 @@ app.registerExtension({
                         }
                     } else {
                         ctx.drawImage(activeImg, dx, dy, dw, dh);
-                    }
                     ctx.restore();
+                    
+                    if (isQueueMode) {
+                        const qidx = ui.queue_deck_idx || 0;
+                        const qs = ui.queue_sessions[qidx];
+                        if (qs && qs.images && qs.images.length > 1) {
+                            ctx.save();
+                            ctx.fillStyle = "rgba(0,0,0,0.3)";
+                            ctx.fillRect(area.x, area.y, 30, area.h);
+                            ctx.fillRect(area.x + area.w - 30, area.y, 30, area.h);
+                            ctx.fillStyle = "rgba(0, 242, 255, 0.7)";
+                            ctx.font = "bold 24px monospace";
+                            ctx.textAlign = "center";
+                            ctx.textBaseline = "middle";
+                            ctx.fillText("‹", area.x + 15, area.y + area.h/2);
+                            ctx.fillText("›", area.x + area.w - 15, area.y + area.h/2);
+                            ctx.restore();
+                        }
+                    }
                 }
 
                 // HUD Headers

@@ -453,6 +453,7 @@ try:
             subfolder = request.query.get("subfolder", "")
             dir_type = request.query.get("type", "output")
 
+            recursive = request.query.get("recursive", "false").lower() == "true"
             root_dir = folder_paths.get_temp_directory() if dir_type == "temp" else folder_paths.get_output_directory()
             target_dir = os.path.join(root_dir, subfolder) if subfolder else root_dir
 
@@ -460,13 +461,25 @@ try:
                 return web.json_response({"files": []})
 
             files = []
-            for f in os.listdir(target_dir):
-                if os.path.isfile(os.path.join(target_dir, f)):
-                    files.append({
-                        "filename": f,
-                        "subfolder": subfolder,
-                        "type": dir_type
-                    })
+            if recursive:
+                for r, d, f_names in os.walk(target_dir):
+                    for f in f_names:
+                        rel_path = os.path.relpath(r, root_dir)
+                        if rel_path == ".":
+                            rel_path = ""
+                        files.append({
+                            "filename": f,
+                            "subfolder": rel_path.replace("\\", "/"),
+                            "type": dir_type
+                        })
+            else:
+                for f in os.listdir(target_dir):
+                    if os.path.isfile(os.path.join(target_dir, f)):
+                        files.append({
+                            "filename": f,
+                            "subfolder": subfolder,
+                            "type": dir_type
+                        })
 
             return web.json_response({"files": files})
 
