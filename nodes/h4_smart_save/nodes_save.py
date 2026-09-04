@@ -224,6 +224,7 @@ class H4_SmartSave:
             "optional": {
                 "filename_prefix": ("STRING", {"default": "h4_", "multiline": False}),
                 "save_mode": ("BOOLEAN", {"default": False, "label_on": "SAVE TO DISK", "label_off": "PREVIEW ONLY"}),
+                "queue_memory": ("BOOLEAN", {"default": False, "label_on": "QUEUE ACCUMULATE: ON", "label_off": "QUEUE ACCUMULATE: OFF"}),
                 "output_path": ("STRING", {"default": "", "multiline": False}),
                 "metadata_mode": (modes, {"default": "Lite (Author+Model)"}),
                 "json_mode": (modes, {"default": "Full (Forensic)"}),
@@ -276,6 +277,7 @@ class H4_SmartSave:
         images,
         filename_prefix="h4_",
         save_mode=False,
+        queue_memory=False,
         metadata_mode="None",
         json_mode="None",
         output_path="",
@@ -370,7 +372,15 @@ class H4_SmartSave:
                 sidecar=sidecar_data
             )
 
-        return {"ui": {"h4_history": results}, "result": (images,)}
+        return {
+            "ui": {
+                "h4_history": results,
+                "queue_id": [str(unique_id or id(images))],
+                "queue_memory": [bool(queue_memory)],
+                "batch_count": [len(results)]
+            },
+            "result": (images,)
+        }
 
     def _build_sidecar(self, json_mode, metadata_mode, author, model_name, comments, custom_json, forensics_map, telemetry, prompt, extra_pnginfo):
         sidecar_data = {}

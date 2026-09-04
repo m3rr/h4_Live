@@ -283,7 +283,7 @@ window.addEventListener("keyup", (e) => {
     }
 });
 
-const MIN_SIZE = [750, 500];
+const MIN_SIZE = [850, 520];
 const RAIL_H = 150;
 const DRAWER_W = 340;
 const DRAWER_GAP = 15;
@@ -378,10 +378,12 @@ function getGrid(node) {
         pts: {
             title: { x: cx, y: 32 },
             lod_badge: { x: cx, y: baseH - 45, w: 100, h: 24 },
-            mode: { x: cx, y: 72, w: 170, h: 24 },
-            prefix_box: { x: cx - 335, y: hudY - 12, w: 160, h: 24 },
-            toggle_box: { x: cx - 165, y: hudY - 10, w: 60, h: 20 },
-            path_box: { x: cx + 110, y: hudY - 12, w: 160, h: 24 },
+            prefix_box: { x: cx - 390, y: hudY - 12, w: 130, h: 24 },
+            toggle_box: { x: cx - 226, y: hudY - 10, w: 46, h: 20 },
+            mode: { x: cx - 92.5, y: 72, w: 145, h: 24 },
+            queue_toggle_box: { x: cx + 20, y: hudY - 10, w: 46, h: 20 },
+            queue_mode: { x: cx + 153.5, y: 72, w: 145, h: 24 },
+            path_box: { x: cx + 275, y: hudY - 12, w: 130, h: 24 },
             btn_p: { x: baseW - 55, y: 150, w: BTN_SIZE, h: BTN_SIZE },
             btn_m: { x: 20, y: 150, w: BTN_SIZE, h: BTN_SIZE },
             btn_h: { x: 20, y: baseH - 55, w: BTN_SIZE, h: BTN_SIZE },
@@ -392,8 +394,6 @@ function getGrid(node) {
             drawer_custom: { x: -(DRAWER_W * 2 + DRAWER_GAP + DETAIL_GAP), y: 10, w: DRAWER_W, h: baseH - 20 },
             drawer_viewer: previewArea,
             history_rail: { x: railX, y: baseH + 10, w: railW, h: RAIL_H },
-            scrub_prev: { x: previewArea.x - SCRUB_BTN_W - 8, y: previewArea.y + previewArea.h / 2 - 20, w: SCRUB_BTN_W, h: 40 },
-            scrub_next: { x: previewArea.x + previewArea.w + 8, y: previewArea.y + previewArea.h / 2 - 20, w: SCRUB_BTN_W, h: 40 },
         },
     };
 }
@@ -410,6 +410,11 @@ class SmartSaveUI {
         this._lastHistorySignature = ""; this._lastSidecarSignature = "";
         this.pollTimer = null;
         this.backgroundPollTimer = null;
+        this.queue_sessions = [];
+        this.queue_memory_enabled = false;
+        this.queue_deck_expanded = false;
+        this.queue_deck_idx = 0;
+        this.queue_deck_img_idx = 0;
 
         // --- NEW: PANNEL MODE STATE ---
         this.panelMode = 'docked';   // 'docked' | 'pinned' | 'popout'
@@ -467,6 +472,11 @@ class SmartSaveUI {
     stopBackgroundPolling() {
         if (this.backgroundPollTimer) clearInterval(this.backgroundPollTimer);
         this.backgroundPollTimer = null;
+        this.queue_sessions = [];
+        this.queue_memory_enabled = false;
+        this.queue_deck_expanded = false;
+        this.queue_deck_idx = 0;
+        this.queue_deck_img_idx = 0;
     }
 
     async fetchHistory(force = false) {
@@ -1141,23 +1151,52 @@ class SmartSaveUI {
 
         let html = `<div style="height:100%;display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:0;background:${COLORS.panel};border-radius:6px;overflow:hidden;pointer-events:none;"><div class="h4-hist-nav" data-dir="-1" title="Scroll Left" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">‹</div><div style="display:flex;gap:12px;overflow:hidden;justify-content:flex-start;padding:10px 15px;pointer-events:none;">`;
 
-        const visibleItems = this.history.slice(this.scroll_idx, this.scroll_idx + visibleCount);
-        visibleItems.forEach((item, i) => {
-            if (!isImageFile(item.filename)) return; // Skip non-image entries (e.g. .json sidecars)
-            const url = api.apiURL(`/view?filename=${encodeURIComponent(cleanFilename(item.filename))}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}`);
-            const idx = i + this.scroll_idx;
-            const isSel = idx === this.selected_idx;
-            const isTemp = item.type === "temp";
-            const bCol = isSel ? (isTemp ? COLORS.forensic : COLORS.accent) : "#333";
-            const glow = (isSel && isTemp) ? `box-shadow: 0 0 12px ${COLORS.forensic}88;` : "";
-            const hTip = `${safeText(item.filename)}: Click once to see the settings, or double-click to blow it up in the high-res Lightbox.`;
+        const isQueueMode = this.queue_memory_enabled && this.queue_sessions && this.queue_sessions.length > 0;
+        const sourceArray = isQueueMode ? this.queue_sessions : this.history;
+        const visibleItems = sourceArray.slice(this.scroll_idx, this.scroll_idx + visibleCount);
 
+        visibleItems.forEach((item, i) => {
+            const idx = i + this.scroll_idx;
             const animStyle = this._histOpening ? `opacity:0; animation: h4-thumb-in 0.25s ease forwards; animation-delay: ${i * 0.04}s;` : "";
 
-            html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${idx}" data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;pointer-events:auto; ${animStyle}">
-                <img src="${url}" draggable="false" style="width:100%;height:100%;object-fit:cover;border-radius:2px;pointer-events:none;" />
-                <div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.7);color:#888;font-size:9px;padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;">${safeText(item.filename)}</div>
-            </div>`;
+            if (isQueueMode) {
+                const sImgs = item.images || [];
+                if (sImgs.length === 0) return;
+                
+                // Directly match the selected queue session index for absolute certainty
+                const isSel = (idx === (this.queue_deck_idx || 0));
+                
+                const bCol = isSel ? COLORS.accent : "#333";
+                const hTip = `QUEUE SESSION: ${item.batch_count || sImgs.length} IMAGES. Click to load batch.`;
+
+                html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-qidx="${idx}" data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};position:relative;cursor:pointer;border-radius:4px;pointer-events:auto; ${animStyle}">`;
+                
+                const stack = sImgs.slice(0, 3).reverse();
+                stack.forEach((stackImg, sIdx) => {
+                    const sUrl = api.apiURL(`/view?filename=${encodeURIComponent(cleanFilename(stackImg.filename))}&subfolder=${encodeURIComponent(stackImg.subfolder)}&type=${encodeURIComponent(stackImg.type)}`);
+                    const offX = sIdx * 5;
+                    const offY = sIdx * -5;
+                    const scale = 1 - (sIdx * 0.08);
+                    const z = stack.length - sIdx;
+                    html += `<img src="${sUrl}" style="position:absolute; width:85%; height:85%; left:5%; top:10%; object-fit:cover; border-radius:3px; transform:translate(${offX}px, ${offY}px) scale(${scale}); z-index:${z}; box-shadow: -2px 2px 6px rgba(0,0,0,0.9); pointer-events:none;" />`;
+                });
+                
+                html += `<div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.8);color:${COLORS.accent};font-size:9px;padding:2px;text-align:center;font-weight:bold;z-index:99;pointer-events:none;border-top:1px solid #333;">BATCH: ${item.batch_count || sImgs.length}</div>`;
+                html += `</div>`;
+            } else {
+                if (!isImageFile(item.filename)) return; // Skip non-image entries
+                const url = api.apiURL(`/view?filename=${encodeURIComponent(cleanFilename(item.filename))}&subfolder=${encodeURIComponent(item.subfolder)}&type=${encodeURIComponent(item.type)}`);
+                const isSel = idx === this.selected_idx;
+                const isTemp = item.type === "temp";
+                const bCol = isSel ? (isTemp ? COLORS.forensic : COLORS.accent) : "#333";
+                const glow = (isSel && isTemp) ? `box-shadow: 0 0 12px ${COLORS.forensic}88;` : "";
+                const hTip = `${safeText(item.filename)}: Click once to see settings, double-click for Lightbox.`;
+
+                html += `<div class="h4-hist-item ${isSel ? "active" : ""}" data-idx="${idx}" data-h4-tip="${hTip.replace(/"/g, "&quot;")}" draggable="false" style="min-width:110px;height:110px;background:#000;border:2px solid ${bCol};${glow}position:relative;cursor:pointer;border-radius:4px;pointer-events:auto; ${animStyle}">
+                    <img src="${url}" draggable="false" style="width:100%;height:100%;object-fit:cover;border-radius:2px;pointer-events:none;" />
+                    <div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.7);color:#888;font-size:9px;padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;">${safeText(item.filename)}</div>
+                </div>`;
+            }
         });
         this._histOpening = false;
         html += `</div><div class="h4-hist-nav" data-dir="1" title="Scroll Right" style="height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);color:${COLORS.accent};font-size:20px;cursor:pointer;user-select:none;pointer-events:auto;">›</div></div><style> .h4-hist-nav:hover { background:rgba(0,242,255,0.08) !important; color:#fff !important; text-shadow:0 0 10px ${COLORS.accent}; } </style>`;
@@ -1168,49 +1207,98 @@ class SmartSaveUI {
             b.addEventListener("mousedown", (e) => {
                 e.stopPropagation();
                 const dir = parseInt(b.getAttribute("data-dir"));
-                const oldIdx = this.scroll_idx;
-
-                // --- SCROLL CALCULATION: Recalculate max offset based on active width ---
                 const currentBaseW = Math.max(MIN_SIZE[0], this.node.size[0]);
                 const currentMaxFit = Math.floor((currentBaseW - 80 - 30 - 12) / (110 + 12));
                 const activeVisibleCount = Math.min(HISTORY_LIMIT_VISIBLE, Math.max(1, currentMaxFit));
-
-                const maxScroll = Math.max(0, this.history.length - activeVisibleCount);
-                this.scroll_idx = Math.max(0, Math.min(maxScroll, this.scroll_idx + (dir * 3))); // Scroll 3 thumbs at a time
-
+                const srcArr = (this.queue_memory_enabled && this.queue_sessions && this.queue_sessions.length > 0) ? this.queue_sessions : this.history;
+                const maxScroll = Math.max(0, srcArr.length - activeVisibleCount);
+                this.scroll_idx = Math.max(0, Math.min(maxScroll, this.scroll_idx + (dir * 3))); // Scroll 3 thumbs
                 this.updateHistoryRail();
             }, true);
         });
 
         rail.querySelectorAll(".h4-hist-item").forEach(b => {
-            const itemIdx = parseInt(b.getAttribute("data-idx"));
             b.addEventListener("mousedown", (e) => {
-                e.stopPropagation();
-                this.selected_idx = itemIdx;
-                this.markDOMDirty();
-                this.fetchSidecar(this.selected_idx);
-                rail.querySelectorAll(".h4-hist-item").forEach(itemEl => {
-                    const idx = parseInt(itemEl.getAttribute("data-idx"));
-                    const isSel = idx === this.selected_idx;
-                    itemEl.classList.toggle("active", isSel);
-                    itemEl.style.borderColor = isSel ? (this.history[idx]?.type === "temp" ? COLORS.forensic : COLORS.accent) : "#333";
-                    itemEl.style.boxShadow = (isSel && this.history[idx]?.type === "temp") ? `0 0 12px ${COLORS.forensic}88` : "none";
-                });
-                this.scheduleDraw();
+                try {
+                    e.stopPropagation();
+                    console.log("[h4] Mousedown on thumbnail. Attributes:", { qidx: b.getAttribute("data-qidx"), idx: b.getAttribute("data-idx") });
+                    
+                    if (b.hasAttribute("data-qidx")) {
+                        const qidx = parseInt(b.getAttribute("data-qidx"));
+                        this.queue_deck_idx = qidx; // Absolute selection track for Queue Mode
+                        this.queue_deck_img_idx = 0; // Reset image cycle for new batch
+                        
+                        const qs = this.queue_sessions[qidx];
+                        if (qs && qs.images && qs.images.length > 0) {
+                            const firstImg = qs.images[0];
+                            const hIdx = this.history.findIndex(h => h.filename === firstImg.filename && h.subfolder === firstImg.subfolder && h.type === firstImg.type);
+                            console.log(`[h4] Queue Session ${qidx} clicked. Found in history at index ${hIdx}`);
+                            if (hIdx !== -1) {
+                                this.selected_idx = hIdx;
+                            } else {
+                                console.warn("[h4] Queue Session image not found in history! Forcing fallback.");
+                                // Fallback: manually push it to history so we can select it
+                                this.history.unshift(firstImg);
+                                this.selected_idx = 0;
+                            }
+                        } else {
+                            console.warn("[h4] Queue session is empty or invalid:", qs);
+                        }
+                    } else {
+                        this.selected_idx = parseInt(b.getAttribute("data-idx"));
+                        console.log("[h4] Regular history item clicked. Index:", this.selected_idx);
+                    }
+                    this.markDOMDirty();
+                    this.fetchSidecar(this.selected_idx);
+                    this.updateHistoryRail(); 
+                    this.scheduleDraw();
+                } catch (err) {
+                    console.error("[h4] Error in thumbnail click handler:", err);
+                }
             }, true);
+            
             b.addEventListener("dblclick", (e) => {
-                e.stopPropagation(); e.preventDefault();
-                this.selected_idx = itemIdx;
-                this.show_lightbox = true;
-                this.markDOMDirty();
-                this.updateLightbox();
-                this.scheduleDraw();
+                try {
+                    e.stopPropagation(); e.preventDefault();
+                    if (b.hasAttribute("data-qidx")) {
+                        const qidx = parseInt(b.getAttribute("data-qidx"));
+                        this.queue_deck_idx = qidx;
+                        const qs = this.queue_sessions[qidx];
+                        if (qs && qs.images && qs.images.length > 0) {
+                            const firstImg = qs.images[0];
+                            const hIdx = this.history.findIndex(h => h.filename === firstImg.filename && h.subfolder === firstImg.subfolder && h.type === firstImg.type);
+                            if (hIdx !== -1) this.selected_idx = hIdx;
+                            this.lightbox_custom_items = qs.images;
+                            this.lightbox_custom_idx = 0;
+                        }
+                    } else {
+                        this.selected_idx = parseInt(b.getAttribute("data-idx"));
+                        this.lightbox_custom_items = null;
+                    }
+                    this.show_lightbox = true;
+                    this.markDOMDirty();
+                    this.updateLightbox();
+                    this.scheduleDraw();
+                } catch (err) {
+                    console.error("[h4] Error in thumbnail dblclick handler:", err);
+                }
             }, true);
+            
             b.addEventListener("mouseenter", () => {
-                const hItem = this.history[itemIdx]; if (!hItem || !isImageFile(hItem.filename)) return;
-                const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(cleanFilename(hItem.filename))}&subfolder=${encodeURIComponent(hItem.subfolder)}&type=${encodeURIComponent(hItem.type)}`);
-                // Preload into GPU bitmap cache on hover for instant display
-                this.getBitmap(fullUrl);
+                if (b.hasAttribute("data-qidx")) {
+                    const qidx = parseInt(b.getAttribute("data-qidx"));
+                    const qs = this.queue_sessions[qidx];
+                    if (qs && qs.images && qs.images.length > 0) {
+                        const hItem = qs.images[0];
+                        const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(cleanFilename(hItem.filename))}&subfolder=${encodeURIComponent(hItem.subfolder)}&type=${encodeURIComponent(hItem.type)}`);
+                        this.getBitmap(fullUrl);
+                    }
+                } else {
+                    const itemIdx = parseInt(b.getAttribute("data-idx"));
+                    const hItem = this.history[itemIdx]; if (!hItem || !isImageFile(hItem.filename)) return;
+                    const fullUrl = api.apiURL(`/view?filename=${encodeURIComponent(cleanFilename(hItem.filename))}&subfolder=${encodeURIComponent(hItem.subfolder)}&type=${encodeURIComponent(hItem.type)}`);
+                    this.getBitmap(fullUrl);
+                }
             });
         });
     }
@@ -1403,7 +1491,9 @@ class SmartSaveUI {
         lb.style.display = "flex";
         lb.style.pointerEvents = "auto";
 
-        const current = this.history[this.selected_idx];
+        const currentList = this.lightbox_custom_items || this.history;
+        const currentIdx = this.lightbox_custom_items ? (this.lightbox_custom_idx ?? 0) : this.selected_idx;
+        const current = currentList[currentIdx];
         if (!current || !isImageFile(current.filename)) {
             lb.innerHTML = `
                 <div class="h4-lb-close" style="
@@ -1437,7 +1527,8 @@ class SmartSaveUI {
             return;
         }
 
-        const needsFolderLoad = !this._lightboxFolderItems && !this._lightboxFolderLoading;
+        const isCustom = !!this.lightbox_custom_items;
+        const needsFolderLoad = !isCustom && !this._lightboxFolderItems && !this._lightboxFolderLoading;
         if (needsFolderLoad) {
             this.fetchOutputFolder(current.subfolder, current.type);
         }
@@ -1446,7 +1537,9 @@ class SmartSaveUI {
         let folderIdx = this._lightboxFolderIdx ?? 0;
         let folderTotal = null;
 
-        if (this._lightboxFolderItems?.length) {
+        if (isCustom) {
+            displayItem = current;
+        } else if (this._lightboxFolderItems?.length) {
             folderTotal = this._lightboxFolderItems.length;
             displayItem = this._lightboxFolderItems[folderIdx] ?? current;
         }
@@ -1455,9 +1548,11 @@ class SmartSaveUI {
             `/view?filename=${encodeURIComponent(cleanFilename(displayItem.filename))}&subfolder=${encodeURIComponent(displayItem.subfolder)}&type=${encodeURIComponent(displayItem.type)}`
         );
 
-        const counterStr = folderTotal != null
-            ? `${folderIdx + 1} / ${folderTotal} in /${displayItem.subfolder || "output"}`
-            : `${this.selected_idx + 1} / ${this.history.length}`;
+        const counterStr = this.lightbox_custom_items
+            ? `QUEUE IMAGE ${(this.lightbox_custom_idx ?? 0) + 1} / ${this.lightbox_custom_items.length}`
+            : (folderTotal != null
+                ? `${folderIdx + 1} / ${folderTotal} in /${displayItem.subfolder || "output"}`
+                : `${this.selected_idx + 1} / ${this.history.length}`);
 
         const loadingBanner = this._lightboxFolderLoading
             ? `<div style="
@@ -1586,6 +1681,7 @@ class SmartSaveUI {
         lb.querySelector(".h4-lb-close")?.addEventListener("mousedown", (e) => {
             e.stopPropagation();
             this.show_lightbox = false;
+            this.lightbox_custom_items = null;
             this._lightboxFolderItems = null;
             this._lightboxFolderLoading = false;
             this._lightboxFolderIdx = 0;
@@ -1594,31 +1690,49 @@ class SmartSaveUI {
         }, true);
 
         lb.querySelector(".h4-lb-prev")?.addEventListener("mousedown", (e) => {
+            e.preventDefault();
             e.stopPropagation();
-            const list = this._lightboxFolderItems;
-            if (list && list.length > 1) {
-                this._lightboxFolderIdx = (folderIdx - 1 + list.length) % list.length;
+            if (this.lightbox_custom_items && this.lightbox_custom_items.length > 1) {
+                const total = this.lightbox_custom_items.length;
+                this.lightbox_custom_idx = ((this.lightbox_custom_idx ?? 0) - 1 + total) % total;
+                this.queue_deck_img_idx = this.lightbox_custom_idx;
             } else {
-                this.selected_idx = Math.max(0, this.selected_idx - 1);
+                const list = this._lightboxFolderItems;
+                if (list && list.length > 1) {
+                    this._lightboxFolderIdx = (folderIdx - 1 + list.length) % list.length;
+                } else {
+                    this.selected_idx = Math.max(0, this.selected_idx - 1);
+                }
             }
             this.updateLightbox();
         }, true);
 
         lb.querySelector(".h4-lb-next")?.addEventListener("mousedown", (e) => {
+            e.preventDefault();
             e.stopPropagation();
-            const list = this._lightboxFolderItems;
-            if (list && list.length > 1) {
-                this._lightboxFolderIdx = (folderIdx + 1) % list.length;
+            if (this.lightbox_custom_items && this.lightbox_custom_items.length > 1) {
+                const total = this.lightbox_custom_items.length;
+                this.lightbox_custom_idx = ((this.lightbox_custom_idx ?? 0) + 1) % total;
+                this.queue_deck_img_idx = this.lightbox_custom_idx;
             } else {
-                this.selected_idx = Math.min(this.history.length - 1, this.selected_idx + 1);
+                const list = this._lightboxFolderItems;
+                if (list && list.length > 1) {
+                    this._lightboxFolderIdx = (folderIdx + 1) % list.length;
+                } else {
+                    this.selected_idx = Math.min(this.history.length - 1, this.selected_idx + 1);
+                }
             }
             this.updateLightbox();
         }, true);
 
         lb.onmousedown = (e) => {
-            if (e.target === lb) {
+            if (e.target.closest('.h4-lb-prev') || e.target.closest('.h4-lb-next') || e.target.closest('.h4-lb-close')) {
+                return;
+            }
+            if (e.target === lb || e.target.tagName === 'IMG') {
                 e.stopPropagation();
                 this.show_lightbox = false;
+                this.lightbox_custom_items = null;
                 this._lightboxFolderItems = null;
                 this._lightboxFolderLoading = false;
                 this._lightboxFolderIdx = 0;
@@ -1949,6 +2063,7 @@ app.registerExtension({
         if (nodeDef.name !== "H4_SmartSave") return;
         nodeType.prototype.onNodeCreated = function () {
             this.h4_ui = new SmartSaveUI(this); activeNodes.add(this.h4_ui);
+            if (!this.size || this.size[0] < 850) this.size = [850, 520];
             // --- ELEMENT CREATION: __h4_interactive flag controls which elements capture clicks ---
             // Only input fields and open drawers should intercept mouse events.
             // Buttons M/H/P/toggle/scrub are canvas-drawn and need the click to reach the canvas.
@@ -2004,6 +2119,10 @@ app.registerExtension({
                     else if (n === "author") { const inp = this.__h4_metadrawer.querySelector(".h4-meta-author"); if (inp) { inp.value = w.value ?? ""; inp.oninput = () => { w.value = inp.value; }; } }
                     else if (n === "comments") { const tx = this.__h4_metadrawer.querySelector(".h4-meta-comments"); if (tx) { tx.value = w.value ?? ""; tx.oninput = () => { w.value = tx.value; }; } }
                     else if (n === "save_mode") this.__h4_save_mode_widget = w;
+                    else if (n === "queue_memory") {
+                        this.__h4_queue_memory_widget = w;
+                        this.h4_ui.queue_memory_enabled = !!w.value;
+                    }
                     else if (n === "metadata_mode" || n === "json_mode") {
                         if (n === "metadata_mode") this.__h4_metadata_mode_widget = w;
                         else this.__h4_json_mode_widget = w;
@@ -2029,12 +2148,7 @@ app.registerExtension({
                     cloakWidget(w);
                 }); return true;
             };
-            nodeType.prototype.onRemoved = function () {
-                activeNodes.delete(this.h4_ui);
-                [this.__h4_prefix, this.__h4_path, this.__h4_core_drawer, this.__h4_detaildrawer, this.__h4_metadrawer, this.__h4_customdrawer, this.__h4_viewerdrawer, this.__h4_history_rail, this.__h4_lightbox].forEach(el => {
-                    if (el && el.parentNode) el.remove();
-                });
-            };
+
             this.__h4_metadrawer._body.innerHTML = `
                 <div class="h4-input-group">
                     <div class="h4-input-label">AUTHOR</div>
@@ -2092,6 +2206,26 @@ app.registerExtension({
 
                 if (message.h4_history && message.h4_history.length > 0) {
                     const allImages = message.h4_history;
+
+                    // --- QUEUE ACCUMULATION KERNEL (FIFO max 10) ---
+                    const rawQMem = Array.isArray(message.queue_memory) ? message.queue_memory[0] : message.queue_memory;
+                    const qActive = rawQMem !== undefined ? !!rawQMem : this.h4_ui.queue_memory_enabled;
+                    if (qActive) {
+                        const validBatch = allImages.filter(img => isImageFile(img.filename)).map(img => ({ ...img, filename: cleanFilename(img.filename) }));
+                        if (validBatch.length > 0) {
+                            const rawQId = Array.isArray(message.queue_id) ? message.queue_id[0] : message.queue_id;
+                            const rawBCount = Array.isArray(message.batch_count) ? message.batch_count[0] : message.batch_count;
+                            this.h4_ui.queue_sessions.unshift({
+                                id: rawQId || ('q_' + Date.now()),
+                                timestamp: Date.now(),
+                                images: validBatch,
+                                batch_count: rawBCount || validBatch.length
+                            });
+                            if (this.h4_ui.queue_sessions.length > 10) {
+                                this.h4_ui.queue_sessions = this.h4_ui.queue_sessions.slice(0, 10);
+                            }
+                        }
+                    }
 
                     // TIER 2 — deferred, medium weight (History Rail Injection)
                     requestIdleCallback(() => {
@@ -2195,14 +2329,66 @@ app.registerExtension({
                     return true;
                 }
 
-                if (hit(pts.scrub_prev) && this.h4_ui.history.length > 0) { this.h4_ui.selected_idx = Math.max(0, this.h4_ui.selected_idx - 1); this.h4_ui.fetchSidecar(this.h4_ui.selected_idx); this.setDirtyCanvas(true); return true; }
-                if (hit(pts.scrub_next) && this.h4_ui.history.length > 0) { this.h4_ui.selected_idx = Math.min(this.h4_ui.history.length - 1, this.h4_ui.selected_idx + 1); this.h4_ui.fetchSidecar(this.h4_ui.selected_idx); this.setDirtyCanvas(true); return true; }
+                if (hit(pts.queue_toggle_box)) {
+                    if (this.__h4_queue_memory_widget) {
+                        this.__h4_queue_memory_widget.value = !this.__h4_queue_memory_widget.value;
+                        this.h4_ui.queue_memory_enabled = !!this.__h4_queue_memory_widget.value;
+                        if (this.__h4_queue_memory_widget.callback) {
+                            try { this.__h4_queue_memory_widget.callback(this.__h4_queue_memory_widget.value); }
+                            catch (e) { console.warn("[h4] Widget callback error:", e); }
+                        }
+                    } else {
+                        this.h4_ui.queue_memory_enabled = !this.h4_ui.queue_memory_enabled;
+                    }
+                    if (this.h4_ui) this.h4_ui.updateHistoryRail();
+                    this.setDirtyCanvas(true);
+                    app.graph.setDirtyCanvas(true, true);
+                    return true;
+                }
+
 
                 if (hit(pts.preview_area)) {
                     const now = Date.now();
-                    if (this._last_clk && (now - this._last_clk < 300)) { this.h4_ui.show_lightbox = true; this.h4_ui.updateLightbox(); this.h4_ui.scheduleDraw(); }
+                    // Handle Double Click -> Lightbox
+                    if (this._last_clk && (now - this._last_clk < 300)) {
+                        this.h4_ui.lightbox_custom_items = null;
+                        
+                        // If Queue Mode, pass the current batch to Lightbox
+                        if (this.h4_ui.queue_memory_enabled && this.h4_ui.queue_sessions && this.h4_ui.queue_sessions.length > 0) {
+                            const qidx = this.h4_ui.queue_deck_idx || 0;
+                            const qs = this.h4_ui.queue_sessions[qidx];
+                            if (qs && qs.images && qs.images.length > 0) {
+                                this.h4_ui.lightbox_custom_items = qs.images;
+                                this.h4_ui.lightbox_custom_idx = this.h4_ui.queue_deck_img_idx || 0;
+                            }
+                        }
+                        
+                        this.h4_ui.show_lightbox = true;
+                        this.h4_ui.updateLightbox();
+                        this.h4_ui.scheduleDraw();
+                    } else {
+                        // Handle Single Click -> Cycle Batch Images (if in Queue Mode)
+                        if (this.h4_ui.queue_memory_enabled && this.h4_ui.queue_sessions && this.h4_ui.queue_sessions.length > 0) {
+                            const qidx = this.h4_ui.queue_deck_idx || 0;
+                            const qs = this.h4_ui.queue_sessions[qidx];
+                            if (qs && qs.images && qs.images.length > 1) {
+                                this.h4_ui.queue_deck_img_idx = ((this.h4_ui.queue_deck_img_idx || 0) + 1) % qs.images.length;
+                                
+                                // Sync the selected history index so metadata/sidecar updates!
+                                const activeItem = qs.images[this.h4_ui.queue_deck_img_idx];
+                                const hIdx = this.h4_ui.history.findIndex(h => h.filename === activeItem.filename);
+                                if (hIdx !== -1) {
+                                    this.h4_ui.selected_idx = hIdx;
+                                    this.h4_ui.fetchSidecar(hIdx);
+                                }
+                                
+                                this.setDirtyCanvas(true);
+                                this.h4_ui.scheduleDraw();
+                            }
+                        }
+                    }
                     this._last_clk = now;
-                    return true; // Prevent drag when clicking on the image preview
+                    return true;
                 }
                 // --- ALL OTHER CLICKS: Handle via original LiteGraph chain ---
                 return origMouseDown ? origMouseDown.apply(this, arguments) : false;
@@ -2222,6 +2408,7 @@ app.registerExtension({
             if (hit(pts.btn_p)) showTip("Parameters - Settings for everything in the workflow that makes the image the image", e);
             else if (hit(pts.btn_m)) showTip("Metadata - Image DNA Thumbprint. Modify, edit, view, and otherwise control the meta of your image - Your image , Your data, Your business", e);
             else if (hit(pts.btn_h)) showTip("Histories - A Film Strip Styled thumbnailed history of your output folder // [now with colour coding]", e);
+            else if (hit(pts.queue_toggle_box) || hit(pts.queue_mode)) showTip("Queue Memory - Toggle FIFO accumulation of queued run batches (Max 10). Displays a 3D cascading preview deck.", e);
             else if (hit(pts.prefix_box) || hit(pts.path_box) || hit(pts.toggle_box)) { /* handled by DOM tips */ }
             else hideTip();
         };
@@ -2241,43 +2428,119 @@ app.registerExtension({
                 ui.syncDOM();
                 this.size[0] = mesh.w; this.size[1] = mesh.h; // --- GEOMETRY ENFORCEMENT ---
                 ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, mesh.w, mesh.baseH); ctx.strokeStyle = COLORS.border; ctx.lineWidth = 1; ctx.strokeRect(0, 0, mesh.w, mesh.baseH);
-                let activeImg = null;
-                if (ui.selected_idx >= 0 && ui.history[ui.selected_idx]) {
-                    const item = ui.history[ui.selected_idx];
-                    if (isImageFile(item.filename)) {
-                        const fullUrl = api.apiURL(
-                            `/view?filename=${encodeURIComponent(cleanFilename(item.filename))}` +
-                            `&subfolder=${encodeURIComponent(item.subfolder)}` +
-                            `&type=${encodeURIComponent(item.type)}`
-                        );
+                
+                let activeItem = null;
+                const isQueueMode = ui.queue_memory_enabled && ui.queue_sessions && ui.queue_sessions.length > 0;
+                
+                if (isQueueMode) {
+                    const qidx = ui.queue_deck_idx || 0;
+                    const imgIdx = ui.queue_deck_img_idx || 0;
+                    if (ui.queue_sessions[qidx] && ui.queue_sessions[qidx].images.length > 0) {
+                        // Ensure imgIdx doesn't go out of bounds if they click a smaller batch
+                        const safeImgIdx = imgIdx % ui.queue_sessions[qidx].images.length;
+                        activeItem = ui.queue_sessions[qidx].images[safeImgIdx];
+                    }
+                }
+                
+                if (!activeItem) {
+                    if (ui.selected_idx >= 0 && ui.history[ui.selected_idx]) {
+                        activeItem = ui.history[ui.selected_idx];
+                    } else if (ui.history.length > 0) {
+                        ui.selected_idx = 0;
+                        activeItem = ui.history[0];
+                    }
+                }
 
-                        // GPU bitmap pipeline: instant if cached, async decode if not yet ready
+                let activeImg = null;
+                if (activeItem) {
+                    if (isImageFile(activeItem.filename)) {
+                        const fullUrl = api.apiURL(
+                            `/view?filename=${encodeURIComponent(cleanFilename(activeItem.filename))}` +
+                            `&subfolder=${encodeURIComponent(activeItem.subfolder)}` +
+                            `&type=${encodeURIComponent(activeItem.type)}`
+                        );
                         activeImg = ui.getBitmap(fullUrl);
                     }
                 } else if (this.__h4_live_imgs?.length) {
                     activeImg = this.__h4_live_imgs[0];
                 }
+
+                const area = pts.preview_area;
+
                 if (activeImg && activeImg.width > 0 && ui.viewer_anim < 0.98) {
-                    const area = pts.preview_area; ctx.save(); ctx.beginPath(); ctx.rect(area.x, area.y, area.w, area.h); ctx.clip(); ctx.fillStyle = "#000"; ctx.fillRect(area.x, area.y, area.w, area.h);
-                    const gr = Math.max(0.01, Math.min(area.w / activeImg.width, area.h / activeImg.height)); const dw = activeImg.width * gr; const dh = activeImg.height * gr; const dx = area.x + (area.w - dw) / 2; const dy = area.y + (area.h - dh) / 2;
-                    if (ui.viewer_anim > 0.05 && ui.viewer_anim < 0.9) { const time = Date.now() * 0.001; for (let i = 0; i < 4; i++) { const sy = Math.random() * activeImg.height; const sh = Math.random() * (activeImg.height * 0.1); const ox = (Math.random() - 0.5) * 30 * Math.sin(time * 20); ctx.save(); ctx.beginPath(); ctx.rect(dx, dy + (sy / activeImg.height) * dh, dw, (sh / activeImg.height) * dh); ctx.clip(); ctx.drawImage(activeImg, dx + ox, dy, dw, dh); ctx.restore(); } } else ctx.drawImage(activeImg, dx, dy, dw, dh); ctx.restore();
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(area.x, area.y, area.w, area.h);
+                    ctx.clip();
+                    ctx.fillStyle = "#000";
+                    ctx.fillRect(area.x, area.y, area.w, area.h);
+                    const gr = Math.max(0.01, Math.min(area.w / activeImg.width, area.h / activeImg.height));
+                    const dw = activeImg.width * gr;
+                    const dh = activeImg.height * gr;
+                    const dx = area.x + (area.w - dw) / 2;
+                    const dy = area.y + (area.h - dh) / 2;
+                    if (ui.viewer_anim > 0.05 && ui.viewer_anim < 0.9) {
+                        const time = Date.now() * 0.001;
+                        for (let i = 0; i < 4; i++) {
+                            const sy = Math.random() * activeImg.height;
+                            const sh = Math.random() * (activeImg.height * 0.1);
+                            const ox = (Math.random() - 0.5) * 30 * Math.sin(time * 20);
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(dx, dy + (sy / activeImg.height) * dh, dw, (sh / activeImg.height) * dh);
+                            ctx.clip();
+                            ctx.drawImage(activeImg, dx + ox, dy, dw, dh);
+                            ctx.restore();
+                        }
+                    } else {
+                        ctx.drawImage(activeImg, dx, dy, dw, dh);
+                    }
+                    ctx.restore();
                 }
-                ctx.fillStyle = COLORS.dim; ctx.font = "10px monospace"; ctx.textAlign = "center"; ctx.fillText("IDENTITY ANCHOR", pts.prefix_box.x + pts.prefix_box.w / 2, pts.prefix_box.y - 8); ctx.fillText("OUTPUT PATH", pts.path_box.x + pts.path_box.w / 2, pts.path_box.y - 8);
-                ctx.textAlign = "center"; ctx.font = "bold 16px monospace"; ctx.fillStyle = COLORS.accent; ctx.fillText("h4 // SmartSave v2.0", pts.title.x, pts.title.y);
+
+                // HUD Headers
+                ctx.fillStyle = COLORS.dim;
+                ctx.font = "10px monospace";
+                ctx.textAlign = "center";
+                ctx.fillText("IDENTITY ANCHOR", pts.prefix_box.x + pts.prefix_box.w / 2, pts.prefix_box.y - 8);
+                ctx.fillText("OUTPUT PATH", pts.path_box.x + pts.path_box.w / 2, pts.path_box.y - 8);
+
+                // REBRANDED HEADER TITLE
+                ctx.textAlign = "center";
+                ctx.font = "bold 16px monospace";
+                ctx.fillStyle = COLORS.accent;
+                ctx.fillText("h4 // Smart_Save_+Ultra edition", pts.title.x, pts.title.y);
+
+                // 1. SAVE MODE PILL
                 const isSave = !!this.__h4_save_mode_widget?.value;
-                ctx.save(); ctx.translate(pts.mode.x - pts.mode.w / 2, pts.mode.y - 12);
-                ctx.fillStyle = isSave ? "rgba(0,255,138,0.08)" : "rgba(255,215,0,0.08)"; ctx.strokeStyle = isSave ? COLORS.save : COLORS.preview; ctx.lineWidth = 1.5;
-                ctx.beginPath(); ctx.roundRect(0, 0, pts.mode.w, pts.mode.h, 12); ctx.fill(); ctx.stroke();
-                ctx.font = "bold 10px monospace"; ctx.fillStyle = isSave ? COLORS.save : COLORS.preview;
-                ctx.textAlign = "center"; ctx.fillText(isSave ? "● SAVE TO DISK" : "● PREVIEW ONLY", pts.mode.w / 2, 16);
+                ctx.save();
+                ctx.translate(pts.mode.x - pts.mode.w / 2, pts.mode.y - 12);
+                ctx.fillStyle = isSave ? "rgba(0,255,138,0.08)" : "rgba(255,215,0,0.08)";
+                ctx.strokeStyle = isSave ? COLORS.save : COLORS.preview;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.roundRect(0, 0, pts.mode.w, pts.mode.h, 12);
+                ctx.fill();
+                ctx.stroke();
+                ctx.font = "bold 10px monospace";
+                ctx.fillStyle = isSave ? COLORS.save : COLORS.preview;
+                ctx.textAlign = "center";
+                ctx.fillText(isSave ? "● SAVE TO DISK" : "● PREVIEW ONLY", pts.mode.w / 2, 16);
                 ctx.restore();
 
-                ctx.save(); ctx.translate(pts.toggle_box.x, pts.toggle_box.y);
-                const tW = pts.toggle_box.w; const tH = pts.toggle_box.h; const tR = tH / 2;
-                // --- FULL PILL STEALTH TRACK ---
-                ctx.beginPath(); ctx.roundRect(0, 0, tW, tH, tR);
-                ctx.fillStyle = "#050505"; ctx.fill(); ctx.strokeStyle = "#222"; ctx.lineWidth = 1; ctx.stroke();
-                // Active Pill Glow
+                // SAVE MODE TACTILE SWITCH
+                ctx.save();
+                ctx.translate(pts.toggle_box.x, pts.toggle_box.y);
+                const tW = pts.toggle_box.w;
+                const tH = pts.toggle_box.h;
+                const tR = tH / 2;
+                ctx.beginPath();
+                ctx.roundRect(0, 0, tW, tH, tR);
+                ctx.fillStyle = "#050505";
+                ctx.fill();
+                ctx.strokeStyle = "#222";
+                ctx.lineWidth = 1;
+                ctx.stroke();
                 if (isSave) {
                     ctx.shadowBlur = 8; ctx.shadowColor = COLORS.save; ctx.fillStyle = COLORS.save + "44";
                     ctx.beginPath(); ctx.roundRect(tW / 2 + 1, 2, tW / 2 - 3, tH - 4, tR - 2); ctx.fill();
@@ -2285,14 +2548,57 @@ app.registerExtension({
                     ctx.shadowBlur = 8; ctx.shadowColor = COLORS.preview; ctx.fillStyle = COLORS.preview + "44";
                     ctx.beginPath(); ctx.roundRect(2, 2, tW / 2 - 3, tH - 4, tR - 2); ctx.fill();
                 }
-                // Tactile Knob
                 const knobX = isSave ? tW - 18 : 2;
                 ctx.shadowBlur = 12; ctx.shadowColor = "#000";
                 ctx.fillStyle = "#333"; ctx.beginPath(); ctx.roundRect(knobX, 2, 16, 16, 8); ctx.fill();
                 ctx.strokeStyle = "#444"; ctx.lineWidth = 1; ctx.stroke();
-                // Knob Polish
                 ctx.shadowBlur = 0; ctx.fillStyle = "rgba(255,255,255,0.05)";
                 ctx.beginPath(); ctx.arc(knobX + 8, 2 + 8, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+
+                // 2. QUEUE MEMORY PILL
+                const isQMem = !!(this.__h4_queue_memory_widget?.value ?? ui.queue_memory_enabled);
+                ctx.save();
+                ctx.translate(pts.queue_mode.x - pts.queue_mode.w / 2, pts.queue_mode.y - 12);
+                ctx.fillStyle = isQMem ? "rgba(0,242,255,0.08)" : "rgba(100,100,100,0.08)";
+                ctx.strokeStyle = isQMem ? COLORS.accent : COLORS.dim2;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.roundRect(0, 0, pts.queue_mode.w, pts.queue_mode.h, 12);
+                ctx.fill();
+                ctx.stroke();
+                ctx.font = "bold 10px monospace";
+                ctx.fillStyle = isQMem ? COLORS.accent : COLORS.dim2;
+                ctx.textAlign = "center";
+                ctx.fillText(isQMem ? "● QUEUE FIFO: ON" : "○ QUEUE FIFO: OFF", pts.queue_mode.w / 2, 16);
+                ctx.restore();
+
+                // QUEUE MEMORY TACTILE SWITCH
+                ctx.save();
+                ctx.translate(pts.queue_toggle_box.x, pts.queue_toggle_box.y);
+                const qtW = pts.queue_toggle_box.w;
+                const qtH = pts.queue_toggle_box.h;
+                const qtR = qtH / 2;
+                ctx.beginPath();
+                ctx.roundRect(0, 0, qtW, qtH, qtR);
+                ctx.fillStyle = "#050505";
+                ctx.fill();
+                ctx.strokeStyle = "#222";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                if (isQMem) {
+                    ctx.shadowBlur = 8; ctx.shadowColor = COLORS.accent; ctx.fillStyle = COLORS.accent + "44";
+                    ctx.beginPath(); ctx.roundRect(qtW / 2 + 1, 2, qtW / 2 - 3, qtH - 4, qtR - 2); ctx.fill();
+                } else {
+                    ctx.shadowBlur = 4; ctx.shadowColor = "#333"; ctx.fillStyle = "rgba(255,255,255,0.05)";
+                    ctx.beginPath(); ctx.roundRect(2, 2, qtW / 2 - 3, qtH - 4, qtR - 2); ctx.fill();
+                }
+                const qKnobX = isQMem ? qtW - 18 : 2;
+                ctx.shadowBlur = 12; ctx.shadowColor = "#000";
+                ctx.fillStyle = "#333"; ctx.beginPath(); ctx.roundRect(qKnobX, 2, 16, 16, 8); ctx.fill();
+                ctx.strokeStyle = "#444"; ctx.lineWidth = 1; ctx.stroke();
+                ctx.shadowBlur = 0; ctx.fillStyle = "rgba(255,255,255,0.05)";
+                ctx.beginPath(); ctx.arc(qKnobX + 8, 2 + 8, 4, 0, Math.PI * 2); ctx.fill();
                 ctx.restore();
                 const drawButton = (r, label, active = false, fg = COLORS.dim, glow = false) => { ctx.save(); if (glow) { ctx.shadowBlur = 10; ctx.shadowColor = COLORS.accent; } ctx.fillStyle = active ? "#111" : "rgba(28,28,28,0.9)"; ctx.strokeStyle = active ? COLORS.accent : (glow ? COLORS.accent : COLORS.border); ctx.lineWidth = active || glow ? 1.5 : 1; ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, 5); ctx.fill(); ctx.stroke(); ctx.fillStyle = active || glow ? COLORS.accent : fg; ctx.font = `bold ${Math.round(r.w * 0.45)}px monospace`; ctx.textAlign = "center"; ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2 + (r.h * 0.15)); ctx.restore(); };
 
@@ -2304,8 +2610,13 @@ app.registerExtension({
                 drawButton(pts.btn_p, pLabel, pActive, isPinned ? COLORS.accent : COLORS.dim, pGlow);
 
                 drawButton(pts.btn_m, "M", ui.show_meta); drawButton(pts.btn_h, "H", ui.show_history);
-                if (ui.history.length > 0) { drawButton(pts.scrub_prev, "⟨", false, COLORS.accent, true); drawButton(pts.scrub_next, "⟩", false, COLORS.accent, true); }
                 if (activeImg && activeImg.width > 0) { ctx.font = "11px monospace"; ctx.fillStyle = COLORS.accent; ctx.textAlign = "center"; ctx.fillText(`${activeImg.width} x ${activeImg.height}`, pts.lod_badge.x, pts.lod_badge.y); }
+
+                // Cache verification
+                if (!this._logged_layout_v2) {
+                    console.log("✅ h4_SmartSave: New Symmetric Layout Loaded (Cache Busted!)");
+                    this._logged_layout_v2 = true;
+                }
 
                 // --- SECURE TERMINAL PURGE ---
                 this.imgs = null; this.images = null;
